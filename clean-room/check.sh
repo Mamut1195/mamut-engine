@@ -3,15 +3,16 @@
 set -euo pipefail
 export LC_ALL=C
 
-if [[ $# != 1 ]]; then
-    printf 'Uso: bash clean-room/check.sh <base-del-PR>\n' >&2
+if [[ $# -lt 1 || $# -gt 2 ]]; then
+    printf 'Uso: bash clean-room/check.sh <base-del-PR> [directorio-de-listas]\n' >&2
     exit 2
 fi
 
 repo_root=$(git rev-parse --show-toplevel)
 cd "$repo_root"
 base=$(git merge-base "$1" HEAD)
-rules_dir="$repo_root/clean-room"
+# Las listas pueden venir de un checkout confiable (rama base) en CI.
+rules_dir=$(cd "${2:-$repo_root/clean-room}" && pwd)
 
 paths=()
 identifiers=()
@@ -19,6 +20,13 @@ for list in forbidden_paths forbidden_identifiers; do
     while IFS= read -r entry || [[ -n "$entry" ]]; do
         [[ -z "$entry" || "$entry" == \#* ]] && continue
         if [[ "$list" == forbidden_paths ]]; then
+            # Un patrón anclado a la raíz ("/x/*") se normaliza a relativo.
+            entry=${entry#/}
+            # Un glob que abarca todo el repo prohibiría cualquier ruta: error de configuración.
+            if [[ -z "$entry" || "$entry" =~ ^\*+$ ]]; then
+                printf 'Patrón de ruta demasiado amplio o vacío en %s\n' "$list" >&2
+                exit 2
+            fi
             paths+=("$entry")
         else
             # La lista inicial contiene solo identificadores ASCII.
@@ -30,6 +38,12 @@ for list in forbidden_paths forbidden_identifiers; do
         fi
     done < "$rules_dir/$list.txt"
 done
+
+# Listas vacías pasarían en verde sin comprobar nada: se tratan como error.
+if [[ ${#paths[@]} == 0 || ${#identifiers[@]} == 0 ]]; then
+    printf 'Listas prohibidas vacías (rutas: %d, identificadores: %d)\n' "${#paths[@]}" "${#identifiers[@]}" >&2
+    exit 2
+fi
 
 # Verificar el diff antes de leerlo mediante sustitución de procesos.
 # Sin detección de renombres: se comprueba todo el contenido del destino nuevo.

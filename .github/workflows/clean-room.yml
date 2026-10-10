@@ -1,5 +1,6 @@
 name: Clean-room
 
+# pull_request (no pull_request_target): el código del PR nunca corre con permisos de escritura.
 on:
   pull_request:
 
@@ -10,11 +11,62 @@ jobs:
   clean-room:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Fuente confiable: validador y listas de la rama BASE, en carpeta aparte.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          fetch-depth: 0
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted-base
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - name: Check clean-room
+          path: pr
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Elegir validador confiable
+        run: |
+          if [ -f trusted-base/clean-room/check.sh ] && [ -f trusted-base/clean-room/tests/run.sh ]; then
+            echo "TRUSTED=$GITHUB_WORKSPACE/trusted-base/clean-room" >> "$GITHUB_ENV"
+          else
+            # Arranque: la base aún no tiene validador. Se usa el del PR; el job
+            # protected-review exige aprobación del dueño para ese cambio.
+            echo "::warning::La base no tiene validador clean-room; se usa el del PR (arranque)."
+            echo "TRUSTED=$GITHUB_WORKSPACE/pr/clean-room" >> "$GITHUB_ENV"
+          fi
+      - name: Pruebas del validador
+        run: bash "$TRUSTED/tests/run.sh" "$TRUSTED"
+      - name: Check clean-room (validador y listas de la base)
+        working-directory: pr
         env:
           PR_BASE: ${{ github.event.pull_request.base.sha }}
-        run: bash clean-room/check.sh "$PR_BASE"
+        run: bash "$TRUSTED/check.sh" "$PR_BASE" "$TRUSTED"
+
+  protected-review:
+    # Falla si el PR toca clean-room/**, workflows, CODEOWNERS o docs/CLEAN_ROOM.md
+    # sin una aprobación vigente (sobre el último commit) de un dueño.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Exigir revisión del dueño
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          OWNER: Mamut1195
+        run: |
+          changed=$(git diff --no-ext-diff --no-renames --name-only -z "$PR_BASE" HEAD -- | tr '\0' '\n' | grep -E '^(clean-room/|\.github/workflows/|\.github/CODEOWNERS$|docs/CLEAN_ROOM\.md$)' || true)
+          if [ -z "$changed" ]; then echo "Sin archivos protegidos modificados."; exit 0; fi
+          printf 'Archivos protegidos modificados:\n%s\n' "$changed"
+          ok=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" --paginate \
+            --jq "[.[] | select(.state==\"APPROVED\" and .user.login==\"$OWNER\" and .commit_id==\"$PR_HEAD\")] | length")
+          if [ "$(printf '%s\n' "$ok" | awk '{t+=$1} END{print t+0}')" -ge 1 ]; then echo "Aprobado por $OWNER."; exit 0; fi
+          echo "::error::Cambios en archivos protegidos sin aprobación vigente de @$OWNER."
+          exit 1

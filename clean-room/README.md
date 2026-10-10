@@ -17,3 +17,14 @@ los binarios no aportan líneas de texto para comprobar identificadores.
 Cualquier cambio en `crates/`, incluidas bajas, requiere un
 `provenance/ENG-*.md` añadido o modificado; `provenance/TEMPLATE.md` no cuenta.
 El script devuelve 0 si pasa, 1 ante infracciones y otro código ante errores.
+
+## Seguridad del CI
+
+El workflow corre con `pull_request` y `contents: read`, con acciones fijadas por SHA.
+El validador (`check.sh`) y las listas se toman de la rama **base** (carpeta
+`trusted-base`), no del PR: un PR no puede vaciar las listas para pasar. Listas vacías
+o un glob que abarque todo el repo (`*`, `/*`) dan error (código 2); un `/` inicial
+ancla el patrón a la raíz. El job `protected-review` falla si el PR modifica
+`clean-room/**`, `.github/workflows/**`, `.github/CODEOWNERS` o `docs/CLEAN_ROOM.md`
+sin aprobación vigente de `@Mamut1195` (ver `.github/CODEOWNERS`). Pruebas del
+validador: `bash clean-room/tests/run.sh`.
