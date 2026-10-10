@@ -1,0 +1,20 @@
+name: Clean-room
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  clean-room:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Check clean-room
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+        run: bash clean-room/check.sh "$PR_BASE"
