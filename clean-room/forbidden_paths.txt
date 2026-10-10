@@ -1,0 +1,19 @@
+# Fuente exclusiva: docs/CLEAN_ROOM.md §5. Patrones glob de Bash,
+# relativos a la raíz del repo; * también abarca separadores de directorio.
+# Las rutas de directorio incluyen todos sus archivos.
+OpenSees/OpenSees/*
+lambdaclass/stabileo/*
+node_modules/stabileo-*
+mamut-structures/src/stabileo-adapter/*
+motor-fem/engine/*
+# §5 da una ruta absoluta; este patrón comprueba su ubicación relativa.
+opensees-web/spike/*
+# PENDIENTE/DESCONOCIDO: rutas de forks y derivados de OpenSees
+# (Xara, OpenSeesPy, Tessera, openseesjs), wiki de desarrolladores y foros.
+# PENDIENTE/DESCONOCIDO: ubicación del crate dedaliano-engine.
+# PENDIENTE/DESCONOCIDO: parte de motor-geo que usa groundhog.
+# PENDIENTE/DESCONOCIDO: rutas de otros motores GPL/LGPL/AGPL o con licencia
+# desconocida/ausente (CalculiX, code_aster, OOFEM, carapace, anaStruct).
+# PENDIENTE/DESCONOCIDO: ubicación de Kratos y aprobación requerida.
+# PENDIENTE/DESCONOCIDO: ubicación del manual de comandos de OpenSees
+# usado como especificación y de listados de Davis/CSparse.

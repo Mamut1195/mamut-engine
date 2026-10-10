@@ -1,0 +1,35 @@
+# Fuente exclusiva: docs/CLEAN_ROOM.md §6, lista inicial. Una entrada por línea.
+# Comandos
+geomTransf
+uniaxialMaterial
+nDMaterial
+eleLoad
+timeSeries
+fix
+equalDOF
+rigidDiaphragm
+recorder
+numberer
+integrator
+algorithm
+analyze
+# Elementos
+elasticBeamColumn
+dispBeamColumn
+forceBeamColumn
+zeroLength
+# Materiales
+Steel01
+Steel02
+Concrete01
+Concrete02
+PySimple1
+TzSimple1
+QzSimple1
+PressureDependMultiYield
+# Solvers
+ProfileSPD
+BandGeneral
+UmfPack
+LoadControl
+DisplacementControl
