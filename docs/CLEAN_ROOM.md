@@ -22,7 +22,7 @@ Quien escribe código o especificaciones del motor **no abre** el código fuente
 | **Operador de oráculo** (interno) | Repo hermano, binario de OpenSees, manual de usuario de OpenSees para armar el modelo | Código fuente de OpenSees. No escribe código ni fixtures del motor | Corre OpenSees como caja negra y compara con nuestro CLI; resultados solo en el repo hermano |
 | **Auditor** | Todo, solo para comparar | — | Corre similitud de código y revisa bitácoras. Nunca escribe código del motor ni dice al implementador «cómo lo hace OpenSees» |
 
-Una misma persona o sesión no puede ser operador de oráculo o auditor e implementador del mismo método.
+Una misma persona o sesión no puede combinar los roles de operador de oráculo o auditor con los de especificador o implementador del mismo método. Quien haya visto código o rutas prohibidas (§5) no puede escribir fichas, fixtures ni código de ningún método; solo puede actuar como auditor u operador de oráculo. Pasar de auditor a especificador exige una sesión nueva y limpia, registrada en la bitácora.
 
 ## 4. Fuentes permitidas
 
@@ -60,7 +60,7 @@ La lista machine-readable vivirá en `clean-room/forbidden_paths.txt` y `clean-r
 
 ## 7. Registro de procedencia
 
-Por ticket, `provenance/ENG-XXX.md` a partir de `provenance/TEMPLATE.md`. La CI (ENG-GOV-005) rechaza un PR que toque `crates/` sin bitácora.
+Por ticket, `provenance/ENG-XXX.md` a partir de `provenance/TEMPLATE.md`. La CI (ENG-GOV-005, en desarrollo) rechazará un PR que toque `crates/` sin bitácora; hasta que esté activa y protegida, el revisor lo comprueba a mano.
 
 ## 8. Verificación contra oráculos libres
 
