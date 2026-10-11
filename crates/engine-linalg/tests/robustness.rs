@@ -169,3 +169,156 @@ fn singular_mass_error_is_independent_of_dof_order() {
     assert_eq!(mass_error(&[-1.0, 1.0]).0, "ENG-E-0010");
     assert_eq!(mass_error(&[1.0, -1.0]).0, "ENG-E-0010");
 }
+
+fn sym(n: usize, v: &[f64]) -> SymMatrix {
+    SymMatrix::new(dmat(n, n, v)).unwrap()
+}
+
+#[test]
+fn pivot_threshold_is_invariant_to_diagonal_scaling() {
+    // T5 (J4): matrices definidas positivas con GDL de escalas muy distintas
+    // no son singulares; el veredicto no depende de D·A·D.
+    for (d0, d1) in [
+        (1e6, 1e-9),
+        (1e8, 1e-6),
+        (1e-9, 1e6),
+        (1e12, 1e-12),
+        (1.0, 1.0),
+    ] {
+        let m = sym(2, &[d0, 0.0, 0.0, d1]);
+        let f = ReferenceBackend.factorize(&m).unwrap();
+        let mut rhs = dmat(2, 1, &[d0, d1]);
+        f.solve_in_place(&mut rhs).unwrap();
+        for v in rhs.values() {
+            assert!((v - 1.0).abs() < 1e-12, "{d0} {d1}: {v}");
+        }
+        let k = sym(2, &[2.0 * d0, 0.0, 0.0, 3.0 * d1]);
+        let e = ReferenceBackend.generalized_eigen(&k, &m).unwrap();
+        assert!((e.eigenvalues[0] - 2.0).abs() < 1e-12 && (e.eigenvalues[1] - 3.0).abs() < 1e-12);
+    }
+    // Acoplada: D A D de una A bien condicionada se factoriza y resuelve igual.
+    let base = [4.0, 1.0, 1.0, 3.0];
+    let x_ref = [1.0, 2.0];
+    for (s0, s1) in [(1e4, 1e-5), (1e-6, 1e6), (1.0, 1.0)] {
+        let a = [
+            base[0] * s0 * s0,
+            base[1] * s0 * s1,
+            base[2] * s0 * s1,
+            base[3] * s1 * s1,
+        ];
+        let f = ReferenceBackend.factorize(&sym(2, &a)).unwrap();
+        // A_s x_s = b_s con x_s = x_ref/s: b = A_s x_s.
+        let xs = [x_ref[0] / s0, x_ref[1] / s1];
+        let mut b = dmat(
+            2,
+            1,
+            &[a[0] * xs[0] + a[1] * xs[1], a[2] * xs[0] + a[3] * xs[1]],
+        );
+        f.solve_in_place(&mut b).unwrap();
+        assert!((b.values()[0] / xs[0] - 1.0).abs() < 1e-9, "{s0} {s1}");
+        assert!((b.values()[1] / xs[1] - 1.0).abs() < 1e-9, "{s0} {s1}");
+    }
+}
+
+#[test]
+fn scaling_does_not_hide_true_singularity() {
+    // Singular de verdad (filas proporcionales) sigue dando ENG-E-0006 a
+    // cualquier escala diagonal; nula también.
+    for (s0, s1) in [(1.0, 1.0), (1e6, 1e-6), (1e-6, 1e6)] {
+        let a = [s0 * s0, s0 * s1, s0 * s1, s1 * s1];
+        let e = ReferenceBackend.factorize(&sym(2, &a)).err().unwrap();
+        assert_eq!(e.code, "ENG-E-0006", "{s0} {s1}");
+    }
+    assert_eq!(
+        ReferenceBackend
+            .factorize(&sym(2, &[1e6, 0.0, 0.0, 0.0]))
+            .err()
+            .unwrap()
+            .code,
+        "ENG-E-0006"
+    );
+    assert_eq!(
+        ReferenceBackend
+            .generalized_eigen(
+                &sym(2, &[1.0, 0.0, 0.0, 1.0]),
+                &sym(2, &[1e6, 0.0, 0.0, 0.0])
+            )
+            .err()
+            .unwrap()
+            .code,
+        "ENG-E-0006"
+    );
+}
+
+#[test]
+fn equilibrated_ldlt_underflow_case_is_accurate_or_rejected() {
+    // J4 r3 (a): A=[[1e-200,1e-200],[1e-200,1]], b=[0,7.41e-224]. x1 ≈ 7.41e-224 y
+    // x0 = −x1 (de la fila 0). Antes (equilibrado sin cuidado) x0 salía −9.88e-224
+    // (33 % de error) y en main daba ENG-E-0006.
+    let a = sym(2, &[1e-200, 1e-200, 1e-200, 1.0]);
+    for b1 in [7.41e-224, 1e-224, 3.0e-100] {
+        let b = dmat(2, 1, &[0.0, b1]);
+        match ReferenceBackend.factorize(&a) {
+            Err(e) => assert_eq!(e.code, "ENG-E-0006"),
+            Ok(f) => {
+                let mut x = b.clone();
+                match f.solve_in_place(&mut x) {
+                    Err(e) => assert!(["ENG-E-0006", "ENG-E-0008"].contains(&e.code), "{e}"),
+                    Ok(()) => {
+                        let (x0, x1) = (x.values()[0], x.values()[1]);
+                        // Fila 0: x0 = −x1; fila 1: x1(1−1e-200) = b1 ⇒ x1 ≈ b1.
+                        let want1 = b1 / (1.0 - 1e-200);
+                        assert!((x1 / want1 - 1.0).abs() < 1e-10, "{b1}: x1 {x1} vs {want1}");
+                        assert!(
+                            (x0 / -want1 - 1.0).abs() < 1e-9,
+                            "{b1}: x0 {x0} vs {}",
+                            -want1
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn equilibrated_ldlt_rhs_near_f64_max_keeps_working() {
+    // J4 r3 (b): A=[[.5,.5],[.5,-.5]], b=[1.3e308, 0] devolvía ENG-E-0008
+    // (b·s desbordaba antes de normalizar); la solución es [1.3e308, 1.3e308].
+    let a = sym(2, &[0.5, 0.5, 0.5, -0.5]);
+    let f = ReferenceBackend.factorize(&a).unwrap();
+    let mut x = dmat(2, 1, &[1.3e308, 0.0]);
+    f.solve_in_place(&mut x).unwrap();
+    for v in x.values() {
+        assert!((v / 1.3e308 - 1.0).abs() < 1e-12, "{v}");
+    }
+}
+
+#[test]
+fn equilibration_improves_coupled_scaling_without_promising_invariance() {
+    // J4 r3 (c): A acoplada y D·A·D. Se acepta en un rango amplio de D (Ruiz
+    // iterativo), sin prometer invariancia exacta fuera de él.
+    let base = [2.0, 1.9, 0.0, 1.9, 2.0, 1.0, 0.0, 1.0, 1.001];
+    for e in [1.0, 1e2, 1e4, 1e6, 1e8] {
+        let d = [e, 1.0 / e, 1.0];
+        let a: Vec<f64> = (0..9).map(|k| base[k] * (d[k / 3] * d[k % 3])).collect();
+        let f = ReferenceBackend.factorize(&sym(3, &a));
+        assert!(f.is_ok(), "e = {e}: {:?}", f.err());
+    }
+    let two = [1.0, 0.9, 0.9, 1.0];
+    for e in [1.0, 1e6, 1e10, 1e14] {
+        let d = [e, 1.0];
+        let a: Vec<f64> = (0..4).map(|k| two[k] * (d[k / 2] * d[k % 2])).collect();
+        assert!(ReferenceBackend.factorize(&sym(2, &a)).is_ok(), "e = {e}");
+    }
+}
+
+#[test]
+fn generalized_eigen_with_extreme_mass_scaling() {
+    // K=diag(1e6,1e3), M=diag(1e8,1e-6): λ = [1e6/1e8, 1e3/1e-6] = [0.01, 1e9].
+    let k = sym(2, &[1e6, 0.0, 0.0, 1e3]);
+    let m = sym(2, &[1e8, 0.0, 0.0, 1e-6]);
+    let e = ReferenceBackend.generalized_eigen(&k, &m).unwrap();
+    assert!((e.eigenvalues[0] / 0.01 - 1.0).abs() < 1e-12);
+    assert!((e.eigenvalues[1] / 1e9 - 1.0).abs() < 1e-12);
+}

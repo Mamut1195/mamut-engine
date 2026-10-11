@@ -85,9 +85,13 @@ pub struct GeneralizedEigen {
 /// autovalores usa ENG-E-0007 si no converge. La masa debe ser definida positiva:
 /// una masa singular se rechaza con ENG-E-0006 sin producir NaN; una masa
 /// indefinida con ENG-E-0010. La reducción de GDL sin masa queda en ENG-LA-009.
-/// En factorización simétrica y solve denso, ambos backends clasifican como
-/// numéricamente singular un pivote de módulo
-/// ≤ `64 ε max(n,1)` tras dividir la matriz por su entrada de mayor módulo.
+/// En factorización simétrica y masa (Cholesky) la matriz se equilibra antes con
+/// `S A S` (equilibrado iterativo tipo Ruiz) para tolerar GDL de escalas muy
+/// distintas. Esto MITIGA, no garantiza, la invariancia al reescalado diagonal
+/// `D A D`: es exacta para matrices diagonales y fiable en acopladas de escalado
+/// moderado, pero no se promete para rangos extremos. Un pivote es
+/// numéricamente singular si su módulo es
+/// ≤ `64 ε max(n,1)` tras dividir la matriz (equilibrada) por su entrada de mayor módulo.
 /// Por ello no se garantiza resolver matrices muy mal condicionadas. La
 /// política es numérica, adimensional y explícita; no es una tolerancia física.
 pub trait LinAlgBackend {

@@ -159,6 +159,59 @@ fn magnitude(values: &[Real]) -> Real {
         scale
     }
 }
+/// Equilibrado diagonal simétrico iterativo (tipo Ruiz) `B = S A S`: parte de
+/// `s_i = 1` y repite `s_i ← s_i / √(máx_j |s_i a_ij s_j|)` (filas nulas: 1) hasta
+/// que todas las filas de B tengan máximo ≈ 1 (±1 %) o 40 pasadas. Hace que
+/// matrices diagonales y casi diagonales con GDL de escalas muy distintas
+/// (diag(1e6, 1e-9) → identidad) y el reescalado `D A D` de matrices acopladas
+/// moderadamente escaladas se clasifiquen igual. NO garantiza invariancia exacta
+/// al reescalado diagonal en matrices acopladas con rangos extremos (T5, J4 r3).
+fn equilibration(values: &[Real], n: usize) -> Vec<Real> {
+    let mut s = vec![1.0; n];
+    for _ in 0..40 {
+        let mut worst: Real = 0.0;
+        let rows: Vec<Real> = (0..n)
+            .map(|i| {
+                let m = (0..n).fold(0.0_f64, |m, j| {
+                    m.max(((values[i * n + j] * s[i]) * s[j]).abs())
+                });
+                worst = worst.max((m - 1.0).abs());
+                m
+            })
+            .collect();
+        if worst <= 0.01 {
+            break;
+        }
+        for (si, &m) in s.iter_mut().zip(&rows) {
+            if m > 0.0 && m.is_finite() {
+                *si /= m.sqrt();
+            }
+        }
+    }
+    s
+}
+/// Deshace equilibrado y normalizaciones: `x = s · (y · rs / scale)` evitando
+/// desbordes y subdesbordes intermedios (se prueban varios órdenes de evaluación).
+fn scale_back(y: Real, equil: Real, rs: Real, scale: Real) -> Real {
+    let exact_zero = y == 0.0;
+    let good = |x: Real| x.is_finite() && (exact_zero || x.abs() >= Real::MIN_POSITIVE);
+    let candidates = [
+        rescale(y * equil, rs, scale),
+        rescale(y, rs, scale) * equil,
+        rescale(y, equil, scale) * rs,
+        rescale(y, rs, scale / equil),
+    ];
+    for c in candidates {
+        if good(c) {
+            return c;
+        }
+    }
+    if candidates[0].is_finite() {
+        candidates[0]
+    } else {
+        candidates[1]
+    }
+}
 fn cutoff(n: usize) -> Real {
     64.0 * f64::EPSILON * (n.max(1) as Real)
 }
@@ -170,15 +223,22 @@ struct Ldlt {
     off: Vec<Real>,
     blocks: Vec<usize>,
     permutation: Vec<usize>,
+    /// Equilibrado diagonal `s` (B = S A S) previo a factorizar.
+    equil: Vec<Real>,
     scale: Real,
     info: FactorInfo,
 }
 impl Ldlt {
     fn new(matrix: &SymMatrix) -> EResult<Self> {
         let n = matrix.order();
-        let scale = magnitude(matrix.dense().values());
-        let mut a: Vec<_> = matrix.dense().values().iter().map(|v| v / scale).collect();
+        let equil = equilibration(matrix.dense().values(), n);
+        let balanced: Vec<Real> = (0..n * n)
+            .map(|k| matrix.dense().values()[k] * equil[k / n] * equil[k % n])
+            .collect();
+        let scale = magnitude(&balanced);
+        let mut a: Vec<_> = balanced.iter().map(|v| v / scale).collect();
         let mut f = Self {
+            equil,
             n,
             l: identity(n)?.values,
             d: vec![0.0; n],
@@ -305,11 +365,13 @@ impl SymFactorization for Ldlt {
         size(b.rows(), self.n)?;
         let mut x = b.clone();
         for rhs in 0..b.cols() {
+            // La escala de la RHS es la de b (sin equilibrar): b·s puede desbordar
+            // aunque la solución sea finita (J4 r3).
             let rhs_scale = magnitude_iter((0..self.n).map(|i| b.values()[i * b.cols() + rhs]));
             let mut y: Vec<_> = self
                 .permutation
                 .iter()
-                .map(|&i| b.values()[i * b.cols() + rhs] / rhs_scale)
+                .map(|&i| (b.values()[i * b.cols() + rhs] / rhs_scale) * self.equil[i])
                 .collect();
             for i in 0..self.n {
                 for j in 0..i {
@@ -341,7 +403,9 @@ impl SymFactorization for Ldlt {
                 }
             }
             for (i, &v) in y.iter().enumerate() {
-                x.values[self.permutation[i] * b.cols() + rhs] = rescale(v, rhs_scale, self.scale);
+                let orig = self.permutation[i];
+                x.values[orig * b.cols() + rhs] =
+                    scale_back(v, self.equil[orig], rhs_scale, self.scale);
             }
         }
         finite(&x.values)?;
@@ -353,10 +417,14 @@ impl SymFactorization for Ldlt {
 pub(crate) fn cholesky(m: &SymMatrix) -> EResult<DMat> {
     let n = m.order();
     let mut l = DMat::zeros(n, n)?;
-    let scale = magnitude(m.dense().values());
+    let equil = equilibration(m.dense().values(), n);
+    let balanced: Vec<Real> = (0..n * n)
+        .map(|k| m.dense().values()[k] * equil[k / n] * equil[k % n])
+        .collect();
+    let scale = magnitude(&balanced);
     for i in 0..n {
         for j in 0..=i {
-            let mut value = m.dense().values()[i * n + j] / scale;
+            let mut value = balanced[i * n + j] / scale;
             for k in 0..j {
                 value -= l.values[i * n + k] * l.values[j * n + k];
             }
@@ -388,8 +456,11 @@ pub(crate) fn cholesky(m: &SymMatrix) -> EResult<DMat> {
             }
         }
     }
-    for v in &mut l.values {
-        *v *= scale.sqrt();
+    // M = S⁻¹ B S⁻¹ con B = L_B L_Bᵀ ⇒ L = S⁻¹ L_B (filas), más la escala global.
+    for (i, &e) in equil.iter().enumerate() {
+        for j in 0..n {
+            l.values[i * n + j] = l.values[i * n + j] * scale.sqrt() / e;
+        }
     }
     finite(&l.values)?;
     Ok(l)
