@@ -120,6 +120,34 @@ pub trait LinAlgBackend {
 pub(crate) fn invalid(message: &str) -> EngineError {
     EngineError::new("ENG-E-0010", message)
 }
+/// Límite de una reserva individual de almacenamiento numérico: 8 GiB.
+///
+/// Evita pánicos de capacidad (`capacity overflow`) y abortos por falta de
+/// memoria ante dimensiones extremas; más allá de este tamaño el motor denso no
+/// es el camino correcto (solver disperso, ENG-LA-008).
+pub(crate) const MAX_ALLOC_BYTES: usize = 1 << 33;
+
+/// Crea un `Vec` de `len` copias de `fill` con reserva fallible y acotada.
+/// ENG-E-0010 con diagnóstico (elementos, bytes, límite) si excede el límite o
+/// la reserva falla; nunca provoca pánico.
+pub(crate) fn alloc_vec<T: Clone>(len: usize, fill: T) -> EResult<Vec<T>> {
+    let bytes = len
+        .checked_mul(std::mem::size_of::<T>())
+        .filter(|&b| b <= MAX_ALLOC_BYTES)
+        .ok_or_else(|| {
+            invalid(&format!(
+                "Álgebra lineal: la reserva de {len} elementos excede el límite de {MAX_ALLOC_BYTES} bytes."
+            ))
+        })?;
+    let mut v = Vec::new();
+    v.try_reserve_exact(len).map_err(|_| {
+        invalid(&format!(
+            "Álgebra lineal: no se pudo reservar {bytes} bytes para {len} elementos."
+        ))
+    })?;
+    v.resize(len, fill);
+    Ok(v)
+}
 pub(crate) fn size(actual: usize, expected: usize) -> EResult<()> {
     if actual != expected {
         return Err(invalid(&format!(

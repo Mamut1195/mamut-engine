@@ -256,7 +256,7 @@ el alcance y los límites de verificación de esta sesión.
 
 ## Condición de licencia de faer (hallazgo de ENG-LA-007)
 
-**Condición:** faer (MPL-2.0 vía Eigen en su grafo, según el hallazgo de LA-007) requiere revisión de licencia y visto bueno de Jonathan antes de ser backend por defecto o de distribuirse en la oferta comercial. Hasta entonces faer solo puede usarse detrás de la feature de Cargo `faer`, nunca por defecto (ENG-LA-007 deja el adaptador como PENDIENTE). Esta sección registra evidencia técnica; **no es una conclusión legal**.
+**Condición:** faer (su paquete 0.24.4 incluye el aviso MPL-2.0 de Eigen en `COPYING.EIGEN.MPL2`; no es una dependencia aparte ni figura en su grafo de crates, según el hallazgo de LA-007) requiere revisión de licencia y visto bueno de Jonathan antes de ser backend por defecto o de distribuirse en la oferta comercial. Hasta entonces faer solo puede usarse detrás de la feature de Cargo `faer`, nunca por defecto (ENG-LA-007 deja el adaptador como PENDIENTE). Esta sección registra evidencia técnica; **no es una conclusión legal**.
 
 Evidencia (2026-10-11; crate de prueba fuera del workspace con `faer =0.24.4`, `default-features = false`, `features = ["std", "sparse-linalg"]`, sin rayon):
 

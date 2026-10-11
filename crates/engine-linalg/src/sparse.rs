@@ -44,7 +44,7 @@ impl SparseMatrix {
         let mut result = Self {
             rows,
             cols,
-            offsets: vec![0; len],
+            offsets: alloc_vec(len, 0usize)?,
             columns: Vec::with_capacity(sums.len()),
             values: Vec::with_capacity(sums.len()),
         };

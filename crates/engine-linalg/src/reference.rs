@@ -44,8 +44,16 @@ impl LinAlgBackend for ReferenceBackend {
         let scale = magnitude(a.values());
         let mut u: Vec<_> = a.values().iter().map(|v| v / scale).collect();
         let mut x = b.clone();
-        for v in &mut x.values {
-            *v /= scale;
+        let cols = b.cols();
+        // Escala independiente por RHS: dividir por la escala de A puede desbordar
+        // aunque la solución sea finita (J4 ENG-LA-007, medio).
+        let rhs_scales: Vec<Real> = (0..cols)
+            .map(|c| magnitude_iter((0..n).map(|i| b.values()[i * cols + c])))
+            .collect();
+        for i in 0..n {
+            for (c, &rs) in rhs_scales.iter().enumerate() {
+                x.values[i * cols + c] /= rs;
+            }
         }
         for k in 0..n {
             let pivot = (k..n)
@@ -76,6 +84,11 @@ impl LinAlgBackend for ReferenceBackend {
                     x.values[i * b.cols() + j] -= u[i * n + k] * x.values[k * b.cols() + j];
                 }
                 x.values[i * b.cols() + j] /= u[i * n + i];
+            }
+        }
+        for i in 0..n {
+            for (c, &rs) in rhs_scales.iter().enumerate() {
+                x.values[i * cols + c] = rescale(x.values[i * cols + c], rs, scale);
             }
         }
         finite(&x.values)?;
@@ -109,6 +122,25 @@ pub(crate) fn identity(n: usize) -> EResult<DMat> {
         a.values[i * n + i] = 1.0;
     }
     Ok(a)
+}
+fn magnitude_iter(values: impl Iterator<Item = Real>) -> Real {
+    let scale = values.fold(0.0_f64, |a, v| a.max(v.abs()));
+    if scale == 0.0 {
+        1.0
+    } else {
+        scale
+    }
+}
+/// Devuelve `v * num / den` evitando un desbordamiento intermedio evitable;
+/// si el resultado real no es representable queda infinito y `finite` lo
+/// reporta como ENG-E-0008.
+fn rescale(v: Real, num: Real, den: Real) -> Real {
+    let direct = (v * num) / den;
+    if direct.is_finite() {
+        direct
+    } else {
+        (v / den) * num
+    }
 }
 fn magnitude(values: &[Real]) -> Real {
     let scale = values.iter().fold(0.0_f64, |a, v| a.max(v.abs()));
@@ -177,7 +209,11 @@ impl Ldlt {
                 f.swap(&mut a, k, diag, k);
                 let d = a[k * n + k];
                 if d.abs() <= cutoff(n) {
-                    return Err(singular("Referencia LDLᵀ", f.permutation[k]));
+                    // Todo el bloque restante es numéricamente nulo: el GDL culpable
+                    // es el de menor índice original, independiente del orden de
+                    // pivoteo (determinista bajo permutación de GDL).
+                    let culprit = f.permutation[k..].iter().copied().min().unwrap();
+                    return Err(singular("Referencia LDLᵀ", culprit));
                 }
                 f.d[k] = d;
                 f.count(d, &mut smallest, &mut largest);
@@ -190,7 +226,9 @@ impl Ldlt {
                 let (d, e, g) = (a[k * n + k], a[(k + 1) * n + k], a[(k + 1) * n + k + 1]);
                 let det = d * g - e * e;
                 if det.abs() <= cutoff(n) * offmax {
-                    return Err(singular("Referencia LDLᵀ bloque", f.permutation[k]));
+                    // Menor índice original del par, independiente del orden de pivoteo.
+                    let culprit = f.permutation[k].min(f.permutation[k + 1]);
+                    return Err(singular("Referencia LDLᵀ bloque", culprit));
                 }
                 f.d[k] = d;
                 f.d[k + 1] = g;
@@ -258,10 +296,11 @@ impl SymFactorization for Ldlt {
         size(b.rows(), self.n)?;
         let mut x = b.clone();
         for rhs in 0..b.cols() {
+            let rhs_scale = magnitude_iter((0..self.n).map(|i| b.values()[i * b.cols() + rhs]));
             let mut y: Vec<_> = self
                 .permutation
                 .iter()
-                .map(|&i| b.values()[i * b.cols() + rhs] / self.scale)
+                .map(|&i| b.values()[i * b.cols() + rhs] / rhs_scale)
                 .collect();
             for i in 0..self.n {
                 for j in 0..i {
@@ -273,10 +312,17 @@ impl SymFactorization for Ldlt {
                 if block == 1 {
                     y[k] /= self.d[k];
                 } else {
-                    let det = self.d[k] * self.d[k + 1] - self.off[k] * self.off[k];
-                    let (v, w) = (y[k], y[k + 1]);
-                    y[k] = (self.d[k + 1] * v - self.off[k] * w) / det;
-                    y[k + 1] = (self.d[k] * w - self.off[k] * v) / det;
+                    // Bloque normalizado por su mayor entrada: evita productos
+                    // diminutos que subdesbordan (J4 ENG-LA-007, medio).
+                    let m = self.d[k]
+                        .abs()
+                        .max(self.d[k + 1].abs())
+                        .max(self.off[k].abs());
+                    let (d0, d1, e) = (self.d[k] / m, self.d[k + 1] / m, self.off[k] / m);
+                    let det = d0 * d1 - e * e;
+                    let (v, w) = (y[k] / m, y[k + 1] / m);
+                    y[k] = (d1 * v - e * w) / det;
+                    y[k + 1] = (d0 * w - e * v) / det;
                 }
                 k += block;
             }
@@ -286,7 +332,7 @@ impl SymFactorization for Ldlt {
                 }
             }
             for (i, &v) in y.iter().enumerate() {
-                x.values[self.permutation[i] * b.cols() + rhs] = v;
+                x.values[self.permutation[i] * b.cols() + rhs] = rescale(v, rhs_scale, self.scale);
             }
         }
         finite(&x.values)?;
@@ -306,7 +352,7 @@ pub(crate) fn cholesky(m: &SymMatrix) -> EResult<DMat> {
                 value -= l.values[i * n + k] * l.values[j * n + k];
             }
             if i == j {
-                if value.abs() <= cutoff(n) {
+                if value.abs() <= cutoff(n) || value < 0.0 {
                     // Un pivote Cholesky nulo también puede pertenecer a una
                     // masa invertible indefinida; LDLᵀ distingue ambos casos.
                     return match Ldlt::new(m) {
@@ -326,11 +372,6 @@ pub(crate) fn cholesky(m: &SymMatrix) -> EResult<DMat> {
                             "Cholesky de masa: masa no definida positiva, GDL {i}."
                         ))),
                     };
-                }
-                if value < 0.0 {
-                    return Err(invalid(
-                        "Cholesky de masa: la masa debe ser definida positiva.",
-                    ));
                 }
                 l.values[i * n + j] = value.sqrt();
             } else {

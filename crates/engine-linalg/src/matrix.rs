@@ -23,12 +23,13 @@ impl DMat {
         finite(&values)?;
         Ok(Self { rows, cols, values })
     }
-    /// Crea almacenamiento nulo; ENG-E-0010 si el tamaño desborda.
+    /// Crea almacenamiento nulo; ENG-E-0010 si el tamaño desborda o excede el
+    /// límite de reserva (8 GiB), sin pánico.
     pub fn zeros(rows: usize, cols: usize) -> EResult<Self> {
         let len = rows
             .checked_mul(cols)
             .ok_or_else(|| invalid("Tamaño matricial desbordado."))?;
-        Self::new(rows, cols, vec![0.0; len])
+        Self::new(rows, cols, alloc_vec(len, 0.0)?)
     }
     /// Número de filas.
     pub fn rows(&self) -> usize {

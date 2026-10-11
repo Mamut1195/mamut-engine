@@ -262,3 +262,29 @@ a la evaluación temporal descartada del grafo. No se modificaron clean-room/**,
 .github, CODEOWNERS, docs/CLEAN_ROOM.md, archivos LICENSE/texto legal, ni el ADR.
 No hay nuevas dependencias externas en la entrega, commits ni cambios en el
 índice del usuario. Revisión humana, CI remota y ejecución wasm siguen pendientes.
+
+## Correcciones tras la revisión clean-room de J4
+
+**Revisor clean-room:** J4 (informe sobre el PR #18: 3 hallazgos medios y 2 bajos
+según el log `cx-engine-pr18.txt`; el encargo hablaba de 1 medio y 4 bajos).
+Branch `j2/la-007-j4-findings`. Todas las correcciones son propias, derivadas
+de los casos descritos por J4 y de aritmética elemental; no se leyó código de
+faer, nalgebra, Eigen, LAPACK ni OpenSees/CalculiX.
+
+| Hallazgo (J4) | Corrección | Prueba |
+|---|---|---|
+| Medio: `DMat::zeros(1, usize::MAX/8)` y CSR con filas enormes provocan pánico de capacidad (matrix.rs:31, sparse.rs:47) | `alloc_vec`: `checked_mul` en bytes, límite de 8 GiB por reserva y `try_reserve_exact`; ENG-E-0010 con diagnóstico (elementos, bytes, límite) | `dense_extreme_dimensions_*`, `sparse_extreme_dimensions_*` |
+| Medio: RHS ≈1e308 se dividía por la escala de A y desbordaba (reference.rs:48, :264) | Escala independiente por columna de RHS; reescalado final con `rescale` (evita desbordes intermedios evitables). Si la solución no es representable, ENG-E-0008 | `solve_dense_rhs_near_f64_max_is_finite`, `solve_dense_columns_scale_independently`, `ldlt_rhs_near_f64_max_is_finite`, `unrepresentable_solution_reports_eng_e_0008` |
+| Medio: bloque 2×2 perdía `1e-10·1e-320` por subdesbordamiento (reference.rs:278) | Bloque normalizado por su mayor entrada antes de resolver; RHS dividida, no multiplicada. Límite documentado: la resolución de entradas subnormales es la de f64 (~0,05 % en 1e-320) | `ldlt_block_2x2_keeps_subnormal_rhs` |
+| Bajo: masa singular con diagonal negativa daba ENG-E-0010 o ENG-E-0006 según el orden de GDL (reference.rs:330) | Precedencia definida: singularidad (ENG-E-0006) sobre indefinición (ENG-E-0010) en todo fallo de pivote de Cholesky; el GDL culpable es el de menor índice original entre los restantes nulos | `singular_mass_error_is_independent_of_dof_order` (las 6 permutaciones y casos con varios GDL nulos) |
+| Bajo: ADR-002 l.259 vs l.264 sobre MPL-2.0 | Redacción unificada: el aviso MPL-2.0 de Eigen está dentro del paquete faer; la condición (revisión de licencia y visto bueno de Jonathan antes de ser backend por defecto o distribuirse comercialmente) se mantiene; sin conclusión legal | revisión de texto |
+
+Las referencias de línea de la tabla (reference.rs:48/:264/:278/:330, etc.) son las del código original revisado por J4, previas a esta corrección. En el bloque 2×2 singular el GDL culpable es el menor índice original del par.
+
+**Hallazgo no encontrado:** el encargo mencionaba un cuarto bajo que el informe
+de J4 disponible no contiene (solo hay 2 bajos); queda como no identificado.
+
+**Límite residual:** `SparsityPattern::entries()` materializa una máscara
+O(orden²) sin posibilidad de error (firma `&[bool]`); no se cambió la API.
+
+Verificación local: ver el PR (fmt, clippy, tests, doc, clean-room).
