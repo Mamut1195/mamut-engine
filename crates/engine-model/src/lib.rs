@@ -1,9 +1,8 @@
 //! Modelo de dominio e inspección de entradas, escritos desde cero.
 //!
-//! **PROPUESTA ESTÁNDAR PENDIENTE DE APROBACIÓN DE JONATHAN.**
-//! **Estado: DECISIÓN PROVISIONAL (J0/J2, 2026-10-10), revocable por Jonathan.** Ejes globales X, Y, Z diestros, Z vertical
+//! **APROBADA por Jonathan 2026-10-10 22:52: X-Y horizontal, Z vertical arriba (el Engine gobierna).** Ejes globales X, Y, Z diestros, Z vertical
 //! hacia arriba. Los nodos D2 representan el plano X-Y (coordenada Z = 0), con
-//! Ux, Uy y Rz; este plano es horizontal bajo la decisión provisional. D3 admite seis GDL.
+//! Ux, Uy y Rz; este plano es horizontal. D3 admite seis GDL.
 //! El eje local x va de i a j; en D2, y = (-x_y, x_x, 0) y z = x × y.
 //! En D3 se necesita una orientación adicional antes del cálculo; este modelo
 //! de dominio no la deduce. Fuerzas y desplazamientos positivos siguen los ejes;
@@ -15,7 +14,7 @@
 //! hacia -x en i y +x en j; cortante Vy positivo hacia -y en i y +y en j;
 //! momento Mz positivo hacia -z en i y +z en j. Estos signos de resultantes
 //! internas deben distinguirse de cargas nodales expresadas en ejes globales.
-//! Véase también `docs/CONVENCION_EJES.md`.
+//! La convención de elevación 2D sigue pendiente de decisión. Véase también `docs/CONVENCION_EJES.md`.
 //!
 //! Cada nodo declara su dimensión; se permiten colecciones de nodos de distintas
 //! dimensiones sin imponer compatibilidad entre miembros en este ticket. Todas

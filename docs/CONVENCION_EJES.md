@@ -1,17 +1,17 @@
 # Convención de ejes y signos · ENG-CORE-003
 
-**DECISIÓN PROVISIONAL (J0/J2, 2026-10-10): X-Y con Rz en planos, Z arriba; revocable por Jonathan**
+**APROBADA por Jonathan 2026-10-10 22:52: X-Y horizontal, Z vertical arriba (el Engine gobierna)**
 
-**Estado: DECISIÓN PROVISIONAL (J0/J2, 2026-10-10): X-Y con Rz en planos, Z arriba; revocable por Jonathan.** Este texto y el rustdoc de `engine-model`
-registran esa decisión provisional.
+**Estado: APROBADA** (Jonathan, 2026-10-10 22:52): X-Y horizontal, Z vertical arriba; el Engine gobierna la convención. Este texto y el rustdoc de `engine-model`
+registran esa decisión. Queda pendiente la convención de elevación 2D (véase «Pendiente»).
 Redacción propia basada en mecánica estructural estándar.
 
 ## Ejes globales y dimensión
 
 X, Y y Z forman una terna diestra: X × Y = Z. Z es vertical hacia arriba.
 Los modelos planos D2 se representan en X-Y, con Z = 0 y componentes Ux, Uy y
-Rz. Por tanto, el plano propuesto es horizontal; un pórtico vertical requeriría
-D3 o una futura decisión explícita sobre otro plano. No se interpreta Y como
+Rz. Por tanto, el plano D2 es horizontal; un pórtico vertical requeriría
+D3 o una decisión explícita sobre otro plano (véase «Pendiente»). No se interpreta Y como
 vertical. D3 admite Ux, Uy, Uz, Rx, Ry y Rz.
 
 Cada nodo declara `Dim`. El modelo de dominio permite almacenar nodos de ambas
@@ -85,3 +85,16 @@ no son finitas; esos defectos tienen sus propios diagnósticos.
 de rigideces, compatibilidad dimensional entre nodos o propiedades obligatorias.
 Sus diagnósticos se acumulan en un orden determinista y reutilizan el catálogo
 de `engine-core`. La inserción no valida ni elimina duplicados.
+
+## Pendiente
+
+**PENDIENTE DE DECISIÓN.** La convención de elevación, sección o plano inclinado 2D
+(el mapeo x2D→X, y2D→Z que declarará `contracts`) no está definida: faltan la normal
+del plano, el sentido de Rz y la gravedad. Lo siguiente es solo una **propuesta, no
+aprobada**:
+
+> Plano 2D de elevación: x2D→X, y2D→Z; normal del plano -Y; Rz→giro alrededor de Y,
+> con signo por la regla de la mano derecha (rotación positiva de +X hacia +Z según
+> `contracts`); gravedad -Z.
+
+Mientras no se decida, los modelos D2 de este crate siguen en el plano horizontal X-Y.
