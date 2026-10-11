@@ -845,6 +845,112 @@ fn system_kit_detects_wrong_tangent_and_incomplete_output_overwrite() {
     }
 }
 
+/// Sistema que ACUMULA en `out` en lugar de sobrescribir (viola el trait).
+struct AccumSystem {
+    inner: SpringSystem,
+    which: u8, // 0 tangente, 1 masa, 2 Kg
+}
+impl SystemView for AccumSystem {
+    fn n_free_dofs(&self) -> usize {
+        self.inner.n_free_dofs()
+    }
+    fn pattern(&self) -> &SparsityPattern {
+        self.inner.pattern()
+    }
+    fn tangent(&mut self, u: &[Real], out: &mut SymMatrix) -> EResult<()> {
+        if self.which == 3 && out.dense().values()[0] != 0.0 {
+            // Segunda salida (prellenada) de otra dimensión.
+            *out = SymMatrix::zeros(2)?;
+            return Ok(());
+        }
+        let acc = self.which == 0;
+        let inner = &mut self.inner;
+        let mut fresh = SymMatrix::zeros(1)?;
+        inner.tangent(u, &mut fresh)?;
+        let v = fresh.dense().values()[0] + if acc { out.dense().values()[0] } else { 0.0 };
+        *out = SymMatrix::new(DMat::new(1, 1, vec![v])?)?;
+        Ok(())
+    }
+    fn internal_force(&mut self, u: &[Real], out: &mut [Real]) -> EResult<()> {
+        self.inner.internal_force(u, out)
+    }
+    fn mass(&mut self, k: MassKind, out: &mut SymMatrix) -> EResult<()> {
+        let acc = self.which == 1;
+        let mut fresh = SymMatrix::zeros(1)?;
+        self.inner.mass(k, &mut fresh)?;
+        let v = fresh.dense().values()[0] + if acc { out.dense().values()[0] } else { 0.0 };
+        *out = SymMatrix::new(DMat::new(1, 1, vec![v])?)?;
+        Ok(())
+    }
+    fn geometric(&mut self, u: &[Real], out: &mut SymMatrix) -> EResult<()> {
+        let acc = self.which == 2;
+        let mut fresh = SymMatrix::zeros(1)?;
+        self.inner.geometric(u, &mut fresh)?;
+        let v = fresh.dense().values()[0] + if acc { out.dense().values()[0] } else { 0.0 };
+        *out = SymMatrix::new(DMat::new(1, 1, vec![v])?)?;
+        Ok(())
+    }
+    fn external_force(&self, c: &CaseRef, f: Real, out: &mut [Real]) -> EResult<()> {
+        self.inner.external_force(c, f, out)
+    }
+    fn accept(&mut self, u: &[Real]) -> EResult<()> {
+        self.inner.accept(u)
+    }
+    fn rollback(&mut self) {
+        self.inner.rollback()
+    }
+    fn dof_label(&self, d: DofIndex) -> (NodeId, Dof) {
+        self.inner.dof_label(d)
+    }
+}
+#[test]
+fn system_kit_detects_accumulation_in_matrix_outputs() {
+    // J4 (#30): también con rigideces enormes (K=1e12), donde un centinela fijo
+    // quedaría dentro de la tolerancia de `close`.
+    for stiffness in [12.0, 1e12, 1e306] {
+        for which in 0..3u8 {
+            let mut sys = AccumSystem {
+                inner: SpringSystem::new(stiffness).unwrap(),
+                which,
+            };
+            detected(
+                check_system_view(
+                    &mut sys,
+                    &[vec![0.1]],
+                    &CaseRef("example.case".into()),
+                    1e-6,
+                ),
+                "sobrescribir",
+            );
+        }
+    }
+    // La segunda salida no puede cambiar de dimensión.
+    let mut sys = AccumSystem {
+        inner: SpringSystem::new(12.0).unwrap(),
+        which: 3,
+    };
+    detected(
+        check_system_view(
+            &mut sys,
+            &[vec![0.1]],
+            &CaseRef("example.case".into()),
+            1e-6,
+        ),
+        "cambió de dimensión",
+    );
+    // Control: sin acumulación el kit sigue limpio.
+    let mut ok = AccumSystem {
+        inner: SpringSystem::new(12.0).unwrap(),
+        which: 9,
+    };
+    assert_clean(check_system_view(
+        &mut ok,
+        &[vec![0.1]],
+        &CaseRef("example.case".into()),
+        1e-6,
+    ));
+}
+
 struct BadAnalysis(u8);
 impl AnalysisMethod for BadAnalysis {
     fn id(&self) -> &'static str {

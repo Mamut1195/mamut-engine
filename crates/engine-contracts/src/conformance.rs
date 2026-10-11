@@ -845,8 +845,68 @@ pub fn check_element_factory(
     out
 }
 
+/// Factor del centinela respecto a la magnitud de la matriz limpia: debe superar
+/// con holgura la tolerancia relativa de `close` (1e-10) para que una
+/// implementación que acumule el centinela no quede dentro de ella.
+const SENTINEL_FACTOR: Real = 1e3;
+/// Evalúa una operación que debe SOBRESCRIBIR una matriz de salida: una vez con
+/// salida en ceros y otra prellenada con un centinela simétrico no nulo; ambas
+/// deben dar el mismo resultado (una implementación que acumule en `out` falla).
+/// Devuelve la matriz de la primera llamada si ambas tuvieron éxito.
+fn overwritten(
+    out: &mut Vec<Diagnostic>,
+    context: &str,
+    label: &str,
+    n: usize,
+    mut call: impl FnMut(&mut SymMatrix) -> EResult<()>,
+) -> Option<SymMatrix> {
+    let mut clean = take(out, context, SymMatrix::zeros(n))?;
+    take(out, context, call(&mut clean))?;
+    // Centinela simétrico PROPORCIONAL a la magnitud de la matriz limpia
+    // (mínimo 1): con K~1e12 un centinela fijo de 7.25 caería dentro de la tolerancia.
+    let magnitude = clean
+        .dense()
+        .values()
+        .iter()
+        .fold(1.0_f64, |m, v| m.max(v.abs()));
+    // Con magnitud ~1e306 el factor desbordaría: se usa entonces la propia
+    // magnitud (acumular la duplicaría: muy por encima de la tolerancia de `close`).
+    let scaled = SENTINEL_FACTOR * magnitude;
+    let sentinel = if scaled.is_finite() {
+        scaled
+    } else {
+        magnitude
+    };
+    let dirty = take(out, context, DMat::new(n, n, vec![sentinel; n * n]))?;
+    let mut dirty = take(out, context, SymMatrix::new(dirty))?;
+    take(out, context, call(&mut dirty))?;
+    if dirty.dense().rows() != n || dirty.dense().cols() != n {
+        issue(
+            out,
+            context,
+            format!(
+                "{label}: la segunda salida cambió de dimensión ({}×{}, esperada {n}×{n}).",
+                dirty.dense().rows(),
+                dirty.dense().cols()
+            ),
+        );
+        return Some(clean);
+    }
+    if clean.dense().rows() == n && clean.dense().cols() == n {
+        close(
+            out,
+            context,
+            clean.dense().values(),
+            dirty.dense().values(),
+            &format!("{label}: debe sobrescribir `out` (no acumular)"),
+        );
+    }
+    Some(clean)
+}
+
 /// Comprueba SystemView mediante muestras totales SI y caso válido.
-/// Sobrescritura de fuerzas (salida prellenada con NaN), matrices y patrón del
+/// Sobrescritura de fuerzas (salida prellenada con NaN) y de matrices (salida
+/// en ceros y con centinela simétrico: ambas deben coincidir), patrón del
 /// orden correcto, masa/Kg finitas, tangente FD <1e-6, escalado lineal del caso,
 /// aceptación y rollback conservando la respuesta del último aceptado.
 /// Muta el sistema: al finalizar queda aceptada la última muestra exitosa.
@@ -869,8 +929,7 @@ pub fn check_system_view(
         return out;
     }
     for kind in [MassKind::Lumped, MassKind::Consistent] {
-        let mut mass = SymMatrix::zeros(n).expect("Orden de patrón validado");
-        if take(&mut out, name, sys.mass(kind, &mut mass)).is_some() {
+        if let Some(mass) = overwritten(&mut out, name, "Masa", n, |m| sys.mass(kind, m)) {
             matrix(&mut out, name, mass.dense(), n);
         }
     }
@@ -900,14 +959,14 @@ pub fn check_system_view(
         {
             continue;
         }
-        let mut tangent = SymMatrix::zeros(n).expect("Orden de patrón validado");
-        if take(&mut out, &context, sys.tangent(u, &mut tangent)).is_none()
-            || !matrix(&mut out, &context, tangent.dense(), n)
-        {
+        let Some(tangent) = overwritten(&mut out, &context, "Tangente", n, |m| sys.tangent(u, m))
+        else {
+            continue;
+        };
+        if !matrix(&mut out, &context, tangent.dense(), n) {
             continue;
         }
-        let mut geometric = SymMatrix::zeros(n).expect("Orden de patrón validado");
-        if take(&mut out, &context, sys.geometric(u, &mut geometric)).is_some() {
+        if let Some(geometric) = overwritten(&mut out, &context, "Kg", n, |m| sys.geometric(u, m)) {
             matrix(&mut out, &context, geometric.dense(), n);
         }
         let mut fd = vec![0.0; n * n];
