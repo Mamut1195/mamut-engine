@@ -110,8 +110,19 @@ pub fn assemble_matrix_with_tolerance<B: LinAlgBackend>(
         for i in 0..indices.len() {
             for j in 0..i {
                 let (a, b) = (at(i, j), at(j, i));
-                // NaN o infinitos dan `symmetric = false`: se rechazan.
-                let symmetric = a == b || (a - b).abs() <= symmetry_tolerance * scale;
+                // NaN o infinitos se rechazan SIEMPRE (también ∞ ≤ ∞) y la diferencia
+                // se compara sin desbordar: |a−b| ≤ |a|+|b| puede ser ∞ con a,b finitos.
+                // La diferencia se calcula directamente (exacta para subnormales: 5e-324
+                // frente a 0 es asimétrico con tol=0); solo si desborda se compara con mitades.
+                let diff = (a - b).abs();
+                let symmetric = a.is_finite()
+                    && b.is_finite()
+                    && (a == b
+                        || if diff.is_finite() {
+                            diff <= symmetry_tolerance * scale
+                        } else {
+                            (a / 2.0 - b / 2.0).abs() <= 0.5 * symmetry_tolerance * scale
+                        });
                 if !symmetric {
                     return Err(error("ENG-E-0010", "Matriz no simétrica."));
                 }
@@ -119,10 +130,15 @@ pub fn assemble_matrix_with_tolerance<B: LinAlgBackend>(
         }
         for (i, row) in indices.iter().enumerate() {
             for (j, col) in indices.iter().enumerate() {
-                let value = if symmetry_tolerance == 0.0 {
-                    at(i, j)
+                let (a, b) = (at(i, j), at(j, i));
+                // a == b se conserva exacto (también subnormales); la media usa la suma
+                // directa y solo recurre a mitades si la suma desborda.
+                let value = if a == b || symmetry_tolerance == 0.0 {
+                    a
+                } else if (a + b).is_finite() {
+                    (a + b) * 0.5
                 } else {
-                    0.5 * (at(i, j) + at(j, i))
+                    a / 2.0 + b / 2.0
                 };
                 entries.push(Triplet {
                     row: row.0 as usize,

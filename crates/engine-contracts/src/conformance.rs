@@ -528,17 +528,45 @@ pub fn check_element(
                 }
             }));
         }
-        if let Some(r) = take(&mut out, name, response(element, ctx, &u, &state)) {
-            if check_response(&mut out, name, &r, n, ns) {
-                let scale = magnitude(origin.tangent.values()) * magnitude(&u) * (n as Real);
-                let residual = magnitude(&r.force);
-                if !scale.is_finite() || residual > 1e-12 + 1e-10 * scale {
-                    issue(
-                        &mut out,
-                        name,
-                        format!("Modo rígido {mode}: fuerza residual {residual}, escala {scale}"),
-                    );
+        // Traslaciones: el modo es exacto también en el sentido no lineal. Giros:
+        // un giro finito (amplitud 1 rad) no es rígido para un elemento no
+        // lineal válido (p. ej. no corrotacional); el modo rígido es entonces
+        // INFINITESIMAL: se exige K₀·u ≈ 0 con la tangente del origen.
+        if mode < axes {
+            if let Some(r) = take(&mut out, name, response(element, ctx, &u, &state)) {
+                if check_response(&mut out, name, &r, n, ns) {
+                    let scale = magnitude(origin.tangent.values()) * magnitude(&u) * (n as Real);
+                    let residual = magnitude(&r.force);
+                    if !scale.is_finite() || residual > 1e-12 + 1e-10 * scale {
+                        issue(
+                            &mut out,
+                            name,
+                            format!(
+                                "Modo rígido {mode}: fuerza residual {residual}, escala {scale}"
+                            ),
+                        );
+                    }
                 }
+            }
+        } else {
+            // Se conserva la validación de respuesta (longitudes, finitud) de ese estado.
+            if let Some(r) = take(&mut out, name, response(element, ctx, &u, &state)) {
+                check_response(&mut out, name, &r, n, ns);
+            }
+            let k = origin.tangent.values();
+            let ku: Vec<Real> = (0..n)
+                .map(|i| (0..n).map(|j| k[i * n + j] * u[j]).sum())
+                .collect();
+            let scale = magnitude(k) * magnitude(&u) * (n as Real);
+            let residual = magnitude(&ku);
+            if !scale.is_finite() || residual > 1e-12 + 1e-10 * scale {
+                issue(
+                    &mut out,
+                    name,
+                    format!(
+                        "Modo rígido {mode} (infinitesimal): K·u residual {residual}, escala {scale}"
+                    ),
+                );
             }
         }
     }

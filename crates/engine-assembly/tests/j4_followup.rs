@@ -140,6 +140,39 @@ fn symmetry_tolerance_is_explicit_and_relative() {
 }
 
 #[test]
+fn symmetry_check_and_mean_do_not_overflow() {
+    // J4 (#23): assemble.rs:113/124. Valores finitos cuya suma o diferencia
+    // desborda f64 no deben cambiar el veredicto ni producir ∞.
+    let loc = [DofIndex(0), DofIndex(1)];
+    let big = 1.7e308;
+    let same = DMat::new(2, 2, vec![1.0, big, big, 1.0]).unwrap();
+    // a == b: la media (a+b)/2 desbordaba a ∞ con tolerancia > 0.
+    let k = assemble_matrix_with_tolerance(&mut ReferenceBackend, 2, &[(&loc, &same)], 1e-6)
+        .unwrap()
+        .to_dense()
+        .unwrap();
+    assert_eq!(k.get(0, 1), Some(big));
+    assert_eq!(k.get(1, 0), Some(big));
+    let opposite = DMat::new(2, 2, vec![1.0, big, -big, 1.0]).unwrap();
+    // |a−b| = 2·big desborda: nunca se acepta por ∞ ≤ ∞, y con tolerancias
+    // insuficientes se rechaza.
+    for tol in [0.0, 1e-6, 1.0, 1.9] {
+        code(
+            assemble_matrix_with_tolerance(&mut ReferenceBackend, 2, &[(&loc, &opposite)], tol),
+            "ENG-E-0010",
+        );
+    }
+    // Con tol = 2 (|a−b| = 2·máx) es matemáticamente simétrico dentro de la
+    // tolerancia: se acepta y la media es 0.
+    let k = assemble_matrix_with_tolerance(&mut ReferenceBackend, 2, &[(&loc, &opposite)], 2.0)
+        .unwrap()
+        .to_dense()
+        .unwrap();
+    assert_eq!(k.get(0, 1), Some(0.0));
+    assert_eq!(k.get(1, 0), Some(0.0));
+}
+
+#[test]
 fn zero_reference_geometric_still_rejects_other_states() {
     // T1 (J4): Kg(ref)=0 con aportes geométricos no debe devolver Kg=0 para u≠ref.
     let mut e = element(10.0);
@@ -152,4 +185,32 @@ fn zero_reference_geometric_still_rejects_other_states() {
     s.set_geometric_reference(&[0.5]).unwrap();
     s.geometric(&[0.5], &mut out).unwrap();
     code(s.geometric(&[0.0], &mut out), "ENG-E-0013");
+}
+
+#[test]
+fn subnormal_asymmetry_and_means_are_exact() {
+    // J4 (#35): 5e-324 frente a 0 no puede aceptarse con tol=0; dos 5e-324
+    // iguales no pierden su valor con tol>0.
+    let loc = [DofIndex(0), DofIndex(1)];
+    let tiny = 5e-324;
+    let skew = DMat::new(2, 2, vec![1.0, tiny, 0.0, 1.0]).unwrap();
+    code(
+        assemble_matrix(&mut ReferenceBackend, 2, &[(&loc, &skew)]),
+        "ENG-E-0010",
+    );
+    let same = DMat::new(2, 2, vec![1.0, tiny, tiny, 1.0]).unwrap();
+    for tol in [0.0, 1e-6] {
+        let k = assemble_matrix_with_tolerance(&mut ReferenceBackend, 2, &[(&loc, &same)], tol)
+            .unwrap()
+            .to_dense()
+            .unwrap();
+        assert_eq!(k.get(0, 1), Some(tiny), "tol {tol}");
+        assert_eq!(k.get(1, 0), Some(tiny), "tol {tol}");
+    }
+    // Con tolerancia suficiente la media de valores distintos es la exacta.
+    let k = assemble_matrix_with_tolerance(&mut ReferenceBackend, 2, &[(&loc, &skew)], 1e-6)
+        .unwrap()
+        .to_dense()
+        .unwrap();
+    assert_eq!(k.get(0, 1), k.get(1, 0));
 }

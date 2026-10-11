@@ -135,11 +135,20 @@ fn magnitude_iter(values: impl Iterator<Item = Real>) -> Real {
 /// si el resultado real no es representable queda infinito y `finite` lo
 /// reporta como ENG-E-0008.
 fn rescale(v: Real, num: Real, den: Real) -> Real {
-    let direct = (v * num) / den;
-    if direct.is_finite() {
-        direct
+    let exact_zero = v == 0.0 || num == 0.0;
+    let good = |x: Real| x.is_finite() && (exact_zero || x.abs() >= Real::MIN_POSITIVE);
+    // Tres órdenes de evaluación: cada uno evita un desbordamiento o un
+    // subdesbordamiento intermedio distinto; se elige el primero normal y finito.
+    let candidates = [(v * num) / den, (v / den) * num, v * (num / den)];
+    for c in candidates {
+        if good(c) {
+            return c;
+        }
+    }
+    if candidates[0].is_finite() {
+        candidates[0]
     } else {
-        (v / den) * num
+        candidates[1]
     }
 }
 fn magnitude(values: &[Real]) -> Real {
@@ -505,4 +514,23 @@ pub(crate) fn normalize_modes(
         eigenvalues,
         vectors,
     })
+}
+
+#[cfg(test)]
+mod rescale_tests {
+    use super::rescale;
+    #[test]
+    fn avoids_intermediate_underflow_and_overflow() {
+        // v·num = 1e-400 subdesborda aunque el resultado real (1e-100) es normal.
+        let r = rescale(1e-200, 1e-200, 1e-300);
+        assert!((r / 1e-100 - 1.0).abs() < 1e-12, "{r}");
+        // v·num = 1e400 desborda aunque el resultado real (1e100) es normal.
+        let r = rescale(1e200, 1e200, 1e300);
+        assert!((r / 1e100 - 1.0).abs() < 1e-12, "{r}");
+        // Caso ordinario y ceros exactos.
+        assert_eq!(rescale(3.0, 4.0, 2.0), 6.0);
+        assert_eq!(rescale(0.0, 4.0, 2.0), 0.0);
+        // Resultado no representable: queda infinito (el llamador da ENG-E-0008).
+        assert!(!rescale(1e300, 1e300, 1e-300).is_finite());
+    }
 }

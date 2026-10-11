@@ -22,9 +22,16 @@ fn dense_extreme_dimensions_return_eng_e_0010_without_panic() {
     assert!(DMat::zeros(3, 4).is_ok());
 }
 
+/// Filas que superan el límite de reserva por destino (`1 << 40` no compila en wasm32).
+#[cfg(target_pointer_width = "64")]
+const HUGE_ROWS: usize = 1usize << 40;
+/// 2^29 filas × 4 B = 2 GiB > límite de 1 GiB en 32 bits.
+#[cfg(not(target_pointer_width = "64"))]
+const HUGE_ROWS: usize = 1usize << 29;
+
 #[test]
 fn sparse_extreme_dimensions_return_eng_e_0010_without_panic() {
-    for rows in [usize::MAX, usize::MAX - 1, usize::MAX / 8, 1 << 40] {
+    for rows in [usize::MAX, usize::MAX - 1, usize::MAX / 8, HUGE_ROWS] {
         let e = SparseMatrix::from_triplets(rows, 1, &[]).unwrap_err();
         assert_eq!(e.code, "ENG-E-0010", "rows {rows}");
     }
