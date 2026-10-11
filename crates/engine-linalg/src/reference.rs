@@ -41,6 +41,11 @@ impl LinAlgBackend for ReferenceBackend {
         size(a.rows(), a.cols())?;
         size(b.rows(), a.rows())?;
         let n = a.rows();
+        if n == 0 {
+            // Sin incógnitas: la solución es B (vacía) sea cual sea el número de
+            // columnas; evita reservar vectores por columna (pánico con cols enormes).
+            return Ok(b.clone());
+        }
         let scale = magnitude(a.values());
         let mut u: Vec<_> = a.values().iter().map(|v| v / scale).collect();
         let mut x = b.clone();
