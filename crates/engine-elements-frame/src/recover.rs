@@ -18,7 +18,15 @@ pub(crate) fn output(
     let q = loads::sum(g, member_loads)?;
     let f = loads::local_vector(g.length, q)?;
     let recovered = release::displacements(beam, g, &u, &f)?;
-    let elastic = multiply(&stiffness::local_matrix(beam, g)?, &recovered)?;
+    let mut elastic = multiply(&stiffness::local_matrix(beam, g)?, &recovered)?;
+    // Doble liberación: la flexión condensada es EXACTAMENTE cero; el producto
+    // K·u_recuperado con EI enorme solo aporta ruido de redondeo (cortante espurio,
+    // J4 #31), así que la parte flexional elástica se fija en cero.
+    if beam.releases.i && beam.releases.j {
+        for i in [1, 2, 4, 5] {
+            elastic[i] = 0.0;
+        }
+    }
     let mut ends = [0.0; 6];
     for i in 0..6 {
         ends[i] = finite(elastic[i] - f[i], "Acción de extremo")?;

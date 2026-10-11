@@ -712,3 +712,30 @@ fn factory_validates_required_fields_optional_releases_and_model() {
         );
     }
 }
+
+#[test]
+fn double_release_with_huge_ei_has_no_spurious_shear() {
+    // J4 (#31): EI = 1e20, doble liberación, L = 3.1: el cortante y el momento
+    // deben ser exactamente los de la carga (sin ruido de redondeo ~64 N / 198 N·m).
+    let p = ElementParams::default();
+    let coords = [[0.0; 3], [3.1, 0.0, 0.0]];
+    let c = ctx(&coords, &p);
+    let b = EulerFrame2D::new(1e20, 2.0, 1.0, 3.0, RELEASES[3]).unwrap();
+    let u = [0.0, 0.37, 0.0, 0.0, -0.21, 0.0];
+    let out = b.recover(&c, &u, &[], &[], &[0.0, 0.5, 1.0]).unwrap();
+    for v in [out.end_forces_local[1], out.end_forces_local[4]] {
+        assert_eq!(v, 0.0);
+    }
+    for s in &out.stations {
+        assert_eq!(s.forces_local[1], 0.0);
+        assert_eq!(s.forces_local[5], 0.0);
+    }
+    // Con carga uniforme q: V extremos = ±qL/2 (equilibrio de viga articulada).
+    let load = uniform([0.0, -6.0, 0.0], 0.0);
+    let out = b
+        .recover(&c, &u, &[], std::slice::from_ref(&load), &[0.5])
+        .unwrap();
+    assert!((out.end_forces_local[1] - 6.0 * 3.1 / 2.0).abs() <= 1e-12);
+    assert!((out.end_forces_local[4] - 6.0 * 3.1 / 2.0).abs() <= 1e-12);
+    assert!((out.stations[0].forces_local[5] - 6.0 * 3.1 * 3.1 / 8.0).abs() <= 1e-12);
+}
