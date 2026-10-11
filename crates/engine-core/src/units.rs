@@ -90,8 +90,9 @@ pub enum Unit {
 impl Unit {
     /// Reconoce un símbolo exacto, distinguiendo mayúsculas y minúsculas.
     ///
-    /// Admite los símbolos de [`Self::symbol`] y los alias ASCII `N*m`, `Nm`,
-    /// `kN*m`, `kNm`, `MN*m` y `MNm`. No elimina espacios ni acepta texto vacío.
+    /// Admite los símbolos de [`Self::symbol`] y los alias ASCII `N.m`, `N*m`,
+    /// `Nm`, `kN.m`, `kN*m`, `kNm`, `MN*m` y `MNm`. No elimina espacios ni
+    /// acepta texto vacío.
     ///
     /// # Errores
     ///
@@ -115,8 +116,8 @@ impl Unit {
             "N" => Ok(Self::Newton),
             "kN" => Ok(Self::Kilonewton),
             "MN" => Ok(Self::Meganewton),
-            "N·m" | "N*m" | "Nm" => Ok(Self::NewtonMeter),
-            "kN·m" | "kN*m" | "kNm" => Ok(Self::KilonewtonMeter),
+            "N·m" | "N.m" | "N*m" | "Nm" => Ok(Self::NewtonMeter),
+            "kN·m" | "kN.m" | "kN*m" | "kNm" => Ok(Self::KilonewtonMeter),
             "MN·m" | "MN*m" | "MNm" => Ok(Self::MeganewtonMeter),
             "Pa" => Ok(Self::Pascal),
             "kPa" => Ok(Self::Kilopascal),
@@ -360,6 +361,16 @@ mod tests {
             let error = Unit::parse(text).unwrap_err();
             assert_eq!(error.code, "ENG-E-0001");
             assert!(error.message.contains(&format!("«{text}»")));
+        }
+    }
+
+    #[test]
+    fn codigos_ascii_de_units_1() {
+        assert_eq!(Unit::parse("N.m").unwrap(), Unit::NewtonMeter);
+        assert_eq!(Unit::parse("kN.m").unwrap(), Unit::KilonewtonMeter);
+        assert_eq!(Unit::parse("N.m").unwrap(), Unit::parse("N·m").unwrap());
+        for text in ["MN.m", "N.mm", "n.m"] {
+            assert_eq!(Unit::parse(text).unwrap_err().code, "ENG-E-0001");
         }
     }
 
