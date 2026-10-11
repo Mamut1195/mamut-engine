@@ -20,6 +20,7 @@
 use std::fmt;
 
 pub mod catalog;
+pub mod units;
 
 /// Número real utilizado en las magnitudes del modelo y sus resultados.
 pub type Real = f64;
