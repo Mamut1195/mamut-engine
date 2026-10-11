@@ -25,6 +25,18 @@ name = "engine-core"
 version = "0.1.0"
 
 [[package]]
+name = "engine-elements-truss"
+version = "0.1.0"
+dependencies = [
+ "engine-assembly",
+ "engine-contracts",
+ "engine-core",
+ "engine-laws",
+ "engine-linalg",
+ "engine-model",
+]
+
+[[package]]
 name = "engine-geo"
 version = "0.1.0"
 dependencies = [

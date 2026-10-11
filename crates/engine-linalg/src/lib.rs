@@ -120,12 +120,19 @@ pub trait LinAlgBackend {
 pub(crate) fn invalid(message: &str) -> EngineError {
     EngineError::new("ENG-E-0010", message)
 }
-/// Límite de una reserva individual de almacenamiento numérico: 8 GiB.
+/// Límite de una reserva individual de almacenamiento numérico, por destino.
 ///
 /// Evita pánicos de capacidad (`capacity overflow`) y abortos por falta de
 /// memoria ante dimensiones extremas; más allá de este tamaño el motor denso no
 /// es el camino correcto (solver disperso, ENG-LA-008).
+/// En destinos de 64 bits el tope es 8 GiB; en destinos de 32 bits (p. ej.
+/// wasm32) es 1 GiB, explícito, porque `isize::MAX` (≈2 GiB) no limitaría en la práctica.
+#[cfg(target_pointer_width = "64")]
 pub(crate) const MAX_ALLOC_BYTES: usize = 1 << 33;
+
+// 8 GiB no cabe en usize de 32 bits: tope explícito de 1 GiB.
+#[cfg(not(target_pointer_width = "64"))]
+pub(crate) const MAX_ALLOC_BYTES: usize = 1 << 30;
 
 /// Crea un `Vec` de `len` copias de `fill` con reserva fallible y acotada.
 /// ENG-E-0010 con diagnóstico (elementos, bytes, límite) si excede el límite o
@@ -174,4 +181,26 @@ pub(crate) fn singular(operation: &str, index: usize) -> EngineError {
         error.entities.push(EntityRef::Dof(DofIndex(index)));
     }
     error
+}
+
+#[cfg(test)]
+mod max_alloc_tests {
+    use super::*;
+
+    #[test]
+    fn max_alloc_bytes_is_explicit_per_target() {
+        #[cfg(target_pointer_width = "64")]
+        assert_eq!(MAX_ALLOC_BYTES, 8usize << 30);
+        #[cfg(not(target_pointer_width = "64"))]
+        {
+            assert_eq!(MAX_ALLOC_BYTES, 1usize << 30);
+            assert!(MAX_ALLOC_BYTES < isize::MAX as usize);
+        }
+    }
+
+    #[test]
+    fn alloc_vec_rejects_above_limit() {
+        let too_many = MAX_ALLOC_BYTES / std::mem::size_of::<f64>() + 1;
+        assert!(alloc_vec(too_many, 0.0f64).is_err());
+    }
 }
