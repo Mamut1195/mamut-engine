@@ -49,12 +49,12 @@ fn geometric_rejects_states_other_than_reference() {
     s.geometric(&[0.0], &mut out).unwrap();
     assert_eq!(out.dense().values(), &[3.0]);
     out = SymMatrix::zeros(1).unwrap();
-    code(s.geometric(&[0.5], &mut out), "ENG-E-0010");
+    code(s.geometric(&[0.5], &mut out), "ENG-E-0013");
     assert_eq!(out.dense().values(), &[0.0], "salida intacta ante error");
     s.set_geometric_reference(&[0.5]).unwrap();
     s.geometric(&[0.5], &mut out).unwrap();
     assert_eq!(out.dense().values(), &[3.0]);
-    code(s.geometric(&[0.0], &mut out), "ENG-E-0010");
+    code(s.geometric(&[0.0], &mut out), "ENG-E-0013");
     code(s.set_geometric_reference(&[0.0, 0.0]), "ENG-E-0010");
     code(s.set_geometric_reference(&[f64::NAN]), "ENG-E-0008");
 }

@@ -169,7 +169,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
     ///
     /// Por defecto es u = 0. [`SystemView::geometric`] solo acepta ese u exacto
     /// cuando hay aportes geométricos (sin ellos Kg=0 y cualquier u es válido; u se
-    /// compara exactamente). ENG-E-0010 por tamaño; ENG-E-0008 por
+    /// compara exactamente; otro u da ENG-E-0013). ENG-E-0010 por tamaño; ENG-E-0008 por
     /// valores no finitos.
     pub fn set_geometric_reference(&mut self, u: &[Real]) -> EResult<()> {
         size(u.len(), self.n_free_dofs())?;
@@ -344,13 +344,12 @@ impl<B: LinAlgBackend> SystemView for LinearSystem<B> {
         self.evaluate(u)?;
         // Este sistema no recalcula axiales: Kg(u) solo es válida en el estado
         // de referencia del productor. Otro u daría un valor silenciosamente
-        // incorrecto, así que se rechaza con ENG-E-0010 (entrada inválida para
-        // este sistema; el catálogo no tiene código de «capacidad no soportada»
-        // y ENG-E-0009 es solo de versiones de contrato). Sin aportes
+        // incorrecto, así que se rechaza con ENG-E-0013 (capacidad no soportada;
+        // ENG-E-0009 es solo de versiones de contrato). Sin aportes
         // geométricos Kg=0 para todo u.
         if self.kg.values().iter().any(|v| *v != 0.0) && u != self.kg_reference.as_slice() {
             return Err(error(
-                "ENG-E-0010",
+                "ENG-E-0013",
                 "Kg(u) no se recalcula: u difiere del estado de referencia de Kg.",
             ));
         }

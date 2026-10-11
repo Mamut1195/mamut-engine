@@ -113,6 +113,13 @@ pub static CODES: &[CodeInfo] = &[
         message: "El motor encontró un estado interno inesperado.",
         explanation: "Una condición interna impide completar la operación. Conserve los datos de entrada y el código del diagnóstico para reproducir la situación y revisar su causa.",
     },
+    CodeInfo {
+        code: "ENG-E-0013",
+        severity: Severity::Error,
+        title: "Capacidad no soportada",
+        message: "La operación solicitada no está soportada por este componente.",
+        explanation: "La entrada es válida, pero el componente no implementa la capacidad pedida (por ejemplo, evaluar la rigidez geométrica en un estado distinto del de referencia). Use un componente que la soporte o limite la solicitud a lo admitido; no reintente con los mismos datos.",
+    },
 ];
 
 /// Busca un código exacto y devuelve su información estática, o `None`.
@@ -143,13 +150,22 @@ mod tests {
     /// Comprueba el formato, el orden estricto y la ausencia de códigos repetidos.
     #[test]
     fn unique_ordered_codes_with_valid_format() {
-        assert_eq!(CODES.len(), 12);
+        assert_eq!(CODES.len(), 13);
         for info in CODES {
             let number = info.code.strip_prefix("ENG-E-").unwrap();
             assert_eq!(number.len(), 4);
             assert!(number.bytes().all(|byte| byte.is_ascii_digit()));
         }
         assert!(CODES.windows(2).all(|pair| pair[0].code < pair[1].code));
+    }
+
+    /// Fija el significado estable de ENG-E-0013 (no reutilizar ni renumerar).
+    #[test]
+    fn unsupported_capability_code_is_stable() {
+        let info = lookup("ENG-E-0013").unwrap();
+        assert_eq!(info.title, "Capacidad no soportada");
+        assert_eq!(info.severity, Severity::Error);
+        assert_eq!(CODES.last().unwrap().code, "ENG-E-0013");
     }
 
     /// Comprueba textos no vacíos y que la búsqueda conserve los datos registrados.

@@ -211,9 +211,9 @@ correcciones por J2, revisor OpenCode). Hallazgos y resolución:
    Decisión: error explícito en vez de valor silenciosamente incorrecto. Si hay
    aportes geométricos no nulos, `geometric(u)` solo acepta el `u` de referencia
    (por defecto 0; declarable con `LinearSystem::set_geometric_reference`) y
-   devuelve ENG-E-0010 para otro `u` (el catálogo no tiene código de «capacidad no
-   soportada»; ENG-E-0009 es solo de versiones de contrato; OpenCode señaló el
-   uso de 0009 y se corrigió; un código dedicado queda como propuesta para engine-core); sin aportes, Kg=0 para todo `u`. Consecuencia:
+   devuelve ENG-E-0013 («capacidad no soportada», añadido a engine-core en el PR de
+   seguimiento; antes se usaba ENG-E-0010 por falta de código; ENG-E-0009 es solo
+   de versiones de contrato); sin aportes, Kg=0 para todo `u`. Consecuencia:
    el kit `check_system_view` se ejecuta con Kg solo en el estado de referencia.
    **Antes de pandeo/P-Delta** debe existir un productor de Kg(u) (ENG-ELM-*).
 2. **Bajo — `dof_label` con pánico fuera de rango.** El trait no puede devolver
@@ -233,3 +233,5 @@ Pruebas nuevas: `crates/engine-assembly/tests/j4_followup.rs`.
 Revisión OpenCode (alibaba-token-plan/qwen3.7-max): primera pasada CAMBIOS
 REQUERIDOS (código ENG-E-0009 mal usado, test de masa consistente, comentario);
 corregido en esta rama.
+
+Seguimiento 2026-10-11: ENG-E-0013 «Capacidad no soportada» en el catálogo de engine-core (test de unicidad/estabilidad); `geometric(u)` ≠ referencia usa ahora ENG-E-0013 en lugar de ENG-E-0010.
