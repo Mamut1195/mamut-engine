@@ -739,3 +739,35 @@ fn double_release_with_huge_ei_has_no_spurious_shear() {
     assert!((out.end_forces_local[4] - 6.0 * 3.1 / 2.0).abs() <= 1e-12);
     assert!((out.stations[0].forces_local[5] - 6.0 * 3.1 * 3.1 / 8.0).abs() <= 1e-12);
 }
+
+#[test]
+fn double_release_shear_is_exact_for_ei_1e12_and_1e30() {
+    // Seguimiento de #41 (J4): el test con EI=1e20 pasaba también sin el arreglo
+    // en algunos redondeos. Aquí se barren EI y longitudes y estados u arbitrarios:
+    // sin poner a cero la flexión elástica condensada aparece cortante espurio
+    // (~EI/L³·ε), con el arreglo es exactamente cero.
+    let p = ElementParams::default();
+    let mut spurious_without_fix_possible = 0;
+    for ei in [1e12, 1e20, 1e30] {
+        for length in [3.1, 0.7, 11.3, 2.0 / 3.0] {
+            let coords = [[0.0; 3], [length, 0.0, 0.0]];
+            let c = ctx(&coords, &p);
+            let b = EulerFrame2D::new(ei, 2.0, 1.0, 3.0, RELEASES[3]).unwrap();
+            for u in [
+                [0.0, 0.37, 0.11, 0.0, -0.21, 0.07],
+                [0.013, -0.9, 0.5, -0.4, 0.3, -0.2],
+                [0.0, 1e-3, 1.0 / 3.0, 0.0, 1e-3, -1.0 / 7.0],
+            ] {
+                let out = b.recover(&c, &u, &[], &[], &[0.0, 0.25, 0.5, 1.0]).unwrap();
+                assert_eq!(out.end_forces_local[1], 0.0, "EI={ei} L={length}");
+                assert_eq!(out.end_forces_local[4], 0.0, "EI={ei} L={length}");
+                for s in &out.stations {
+                    assert_eq!(s.forces_local[1], 0.0, "EI={ei} L={length}");
+                    assert_eq!(s.forces_local[5], 0.0, "EI={ei} L={length}");
+                }
+                spurious_without_fix_possible += 1;
+            }
+        }
+    }
+    assert_eq!(spurious_without_fix_possible, 36);
+}
