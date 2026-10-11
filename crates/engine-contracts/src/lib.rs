@@ -6,8 +6,8 @@
 //! Las fuerzas de extremo son acciones sobre las caras del miembro: i negativa,
 //! j positiva; axial positivo en tracción. La elevación D2 sigue pendiente.
 //! Historia plana, finita y sin punteros; responder es puro, aceptar es explícito.
-//! Los tipos matriciales **se reemplazan por el backend de ENG-LA-007**;
-//! aquí solo se almacena información, sin factorización ni solver.
+//! Los tipos matriciales definitivos se reexportan desde `engine-linalg`;
+//! los contratos conservan una API independiente de la librería numérica.
 //!
 //! ```
 //! use engine_contracts::{examples::LinearElastic, conformance::check_uniaxial_law};
@@ -20,10 +20,9 @@
 pub use engine_core::{
     ContractId, Diagnostic, Dim, Dof, DofIndex, EResult, EngineError, NodeId, Real,
 };
-mod matrix;
 mod traits;
 mod types;
-pub use matrix::*;
+pub use engine_linalg::{DMat, SparsityPattern, SymMatrix};
 pub use traits::*;
 pub use types::*;
 pub mod conformance;

@@ -1,16 +1,16 @@
-//! Almacenamiento provisional; se reemplaza por el backend de ENG-LA-007.
+//! Tipos definitivos del motor, independientes de cualquier librería numérica.
 use crate::*;
 
-/// Matriz densa fila-mayor, sin operaciones de álgebra lineal.
+/// Matriz densa fila-mayor para bloques de elemento y varias RHS.
 ///
-/// Se reemplaza por el backend de ENG-LA-007. El constructor exige longitud
+/// El constructor exige longitud
 /// rows × cols y datos finitos. Las unidades dependen de cada fila/columna
 /// (p. ej. fuerza/desplazamiento para una tangente).
 #[derive(Clone, Debug, PartialEq)]
 pub struct DMat {
     rows: usize,
     cols: usize,
-    values: Vec<Real>,
+    pub(crate) values: Vec<Real>,
 }
 impl DMat {
     /// Construye desde valores fila-mayor; ENG-E-0010 por tamaño/desbordamiento
@@ -52,9 +52,9 @@ impl DMat {
     }
 }
 
-/// Matriz simétrica provisional densa fila-mayor.
+/// Matriz simétrica densa fila-mayor para problemas pequeños.
 ///
-/// Se reemplaza por el backend de ENG-LA-007. Almacena ambas mitades;
+/// Almacena ambas mitades;
 /// exige simetría exacta para no introducir una tolerancia física implícita.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SymMatrix(DMat);
@@ -85,14 +85,15 @@ impl SymMatrix {
     }
 }
 
-/// Patrón estructural provisional con máscara densa fila-mayor.
+/// Patrón simétrico con coordenadas ordenadas y únicas.
 ///
-/// Se reemplaza por el backend de ENG-LA-007; true declara una entrada
+/// El constructor compatible recibe una máscara: true declara una entrada
 /// potencialmente no nula. No realiza ordenamiento ni análisis numérico.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 pub struct SparsityPattern {
     order: usize,
-    entries: Vec<bool>,
+    coordinates: Vec<(usize, usize)>,
+    mask: std::sync::OnceLock<Vec<bool>>,
 }
 impl SparsityPattern {
     /// Construye patrón simétrico n × n; ENG-E-0010 por tamaño o asimetría.
@@ -110,14 +111,60 @@ impl SparsityPattern {
                 }
             }
         }
-        Ok(Self { order, entries })
+        Ok(Self {
+            order,
+            coordinates: entries
+                .iter()
+                .enumerate()
+                .filter_map(|(i, &present)| present.then_some((i / order, i % order)))
+                .collect(),
+            mask: std::sync::OnceLock::from(entries),
+        })
+    }
+    /// Construye desde coordenadas; las ordena y deduplica sin una máscara densa.
+    /// ENG-E-0010 por desbordamiento, índices inválidos o asimetría estructural.
+    pub fn from_coordinates(order: usize, mut coordinates: Vec<(usize, usize)>) -> EResult<Self> {
+        order
+            .checked_mul(order)
+            .ok_or_else(|| invalid("Patrón desbordado."))?;
+        coordinates.sort_unstable();
+        coordinates.dedup();
+        for &(row, col) in &coordinates {
+            if row >= order || col >= order || coordinates.binary_search(&(col, row)).is_err() {
+                return Err(invalid("Coordenadas fuera de rango o patrón no simétrico."));
+            }
+        }
+        Ok(Self {
+            order,
+            coordinates,
+            mask: std::sync::OnceLock::new(),
+        })
+    }
+    /// Entradas estructurales ordenadas por fila y columna, sin unidades.
+    pub fn coordinates(&self) -> &[(usize, usize)] {
+        &self.coordinates
     }
     /// Orden global del patrón.
     pub fn order(&self) -> usize {
         self.order
     }
-    /// Máscara inmutable fila-mayor, sin unidades.
+    /// Máscara inmutable fila-mayor compatible con los contratos anteriores.
+    /// Se materializa bajo demanda: memoria O(orden²); use `coordinates` para
+    /// conservar almacenamiento disperso.
     pub fn entries(&self) -> &[bool] {
-        &self.entries
+        self.mask.get_or_init(|| {
+            let mut entries = vec![false; self.order * self.order];
+            for &(i, j) in &self.coordinates {
+                entries[i * self.order + j] = true;
+            }
+            entries
+        })
     }
 }
+
+impl PartialEq for SparsityPattern {
+    fn eq(&self, other: &Self) -> bool {
+        self.order == other.order && self.coordinates == other.coordinates
+    }
+}
+impl Eq for SparsityPattern {}

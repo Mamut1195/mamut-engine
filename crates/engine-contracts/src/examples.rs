@@ -224,7 +224,7 @@ impl Element for LinearBar2D {
             return Ok(None);
         } // Ausencia física explícita.
         let total = self.density * self.area * length; // Masa total del miembro.
-        let mut values = vec![0.0; 36]; // Reserva el bloque denso provisional.
+        let mut values = vec![0.0; 36]; // Reserva el bloque denso de elemento.
         for axis in 0..2 {
             for a in 0..2 {
                 for b in 0..2 {

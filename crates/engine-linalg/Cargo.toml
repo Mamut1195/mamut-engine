@@ -1,0 +1,14 @@
+[package]
+name = "engine-linalg"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+
+[features]
+default = []
+# PENDIENTE: integración bloqueada por verificación de avisos de licencia;
+# véase README.md y provenance/ENG-LA-007.md. El nombre reserva la feature.
+faer = []
+
+[dependencies]
+engine-core = { path = "../engine-core" }

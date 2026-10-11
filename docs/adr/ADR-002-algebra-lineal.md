@@ -253,3 +253,14 @@ es **decisión pendiente de Jonathan** y esta aceptación no la fija.
 
 La [bitácora ENG-LA-006](../../provenance/ENG-LA-006.md) registra las fuentes,
 el alcance y los límites de verificación de esta sesión.
+
+## Condición de licencia de faer (hallazgo de ENG-LA-007)
+
+**Condición:** faer (MPL-2.0 vía Eigen en su grafo, según el hallazgo de LA-007) requiere revisión de licencia y visto bueno de Jonathan antes de ser backend por defecto o de distribuirse en la oferta comercial. Hasta entonces faer solo puede usarse detrás de la feature de Cargo `faer`, nunca por defecto (ENG-LA-007 deja el adaptador como PENDIENTE). Esta sección registra evidencia técnica; **no es una conclusión legal**.
+
+Evidencia (2026-10-11; crate de prueba fuera del workspace con `faer =0.24.4`, `default-features = false`, `features = ["std", "sparse-linalg"]`, sin rayon):
+
+- `cargo tree` sobre ese crate: el grafo resuelto son crates sin copyleft declarado en su manifiesto (p. ej. gemm*, pulp, dyn-stack, num-complex, bytemuck, libm, qd); ningún crate del grafo declara MPL-2.0 en su campo `license`.
+- `COPYING.EIGEN.MPL2` es un archivo **dentro del propio paquete `faer-0.24.4`** (junto a `COPYING.LAPACK.BSD`, `COPYING.SUITE_SPARSE.AMD.BSD` y `COPYING.SUITE_SPARSE.COLAMD.BSD`), no una dependencia aparte. El manifiesto de faer declara `license = "MIT"`. El encabezado del archivo dice «ported algorithms: divide and conquer SVD» seguido del texto de MPL-2.0; es decir, el aviso se refiere a algoritmos portados de Eigen y su alcance exacto en el código de faer no está documentado en el manifiesto.
+- Los módulos de SVD de faer (`src/linalg/svd/`, incluido `bidiag_svd.rs`) forman parte de la feature `linalg`, que `sparse-linalg` activa. Por tanto el archivo está presente con la configuración propuesta. No se verificó qué rutas de código cubre exactamente el aviso ni si Cholesky/LU/LDLᵀ denso o disperso quedan fuera: **PENDIENTE** (requiere revisión del titular de faer/abogado; no se leyó código de implementación para este ADR).
+- `cargo deny check licenses` sobre el crate de prueba: las licencias de manifiesto del grafo se resuelven con la lista MIT/Apache-2.0/BSD-3-Clause/ISC/Zlib/Unicode-3.0; cargo-deny **no detecta** el archivo `COPYING.EIGEN.MPL2` porque lee la expresión SPDX del manifiesto (y, con confianza, archivos LICENSE), de modo que un resultado verde de cargo-deny no descarta el aviso. Contraste con [ADR-002-evidencia.md](ADR-002-evidencia.md): sus resultados de cargo-deny son coherentes con esto y no examinan los archivos `COPYING.*` del paquete.

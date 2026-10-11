@@ -7,6 +7,7 @@ name = "engine-contracts"
 version = "0.1.0"
 dependencies = [
  "engine-core",
+ "engine-linalg",
 ]
 
 [[package]]
@@ -25,6 +26,13 @@ name = "engine-laws"
 version = "0.1.0"
 dependencies = [
  "engine-contracts",
+ "engine-core",
+]
+
+[[package]]
+name = "engine-linalg"
+version = "0.1.0"
+dependencies = [
  "engine-core",
 ]
 
