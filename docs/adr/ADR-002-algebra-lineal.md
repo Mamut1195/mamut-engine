@@ -1,7 +1,7 @@
 # ADR-002: selección de librerías de álgebra lineal
 
 - **Tarea:** ENG-LA-006
-- **Estado:** Propuesto, pendiente de aprobación de Jonathan
+- **Estado:** Aceptado (2026-10-11): aprobado por J0 (jefe de programa); revocable por Jonathan
 - **Fecha:** 2026-10-10 (America/Guayaquil)
 
 ## Contexto
@@ -215,6 +215,23 @@ y soluciones analíticas, sin motores externos como oráculos.
    de convergencia, masa singular e interoperabilidad. Las cifras de descargas
    por sí solas no satisfacen esta revisión.
 
+## Aceptación (2026-10-11)
+
+Este ADR pasa de provisional a **aceptado** el 2026-10-11: **aprobado por J0
+(jefe de programa); revocable por Jonathan**. Se acepta faer como backend
+principal y nalgebra como segundo opcional. La evidencia medida está en
+[ADR-002-evidencia.md](ADR-002-evidencia.md).
+
+Queda **PENDIENTE** (no cubierto por esta aceptación): matrices dispersas
+(solver disperso), LDLt, autovalores, `simd128`, `wasm-opt`, memoria y CI.
+
+Garantías de determinismo: con faer **no se promete igualdad bit a bit entre
+nativo y wasm**, ni con `rayon` entre distinto número de hilos.
+
+Licencia de manifests: ADR-001 registra la licencia dual AGPL-3.0 + comercial,
+que no es una única expresión SPDX; la expresión `license` de los `Cargo.toml`
+es **decisión pendiente de Jonathan** y esta aceptación no la fija.
+
 ## Criterios de aceptación de ENG-LA-006
 
 | Criterio del ticket | Estado | Evidencia o trabajo restante |
@@ -223,11 +240,11 @@ y soluciones analíticas, sin motores externos como oráculos.
 | Licencia de cada crate verificada en crates.io y LICENSE oficial, y aceptada por `cargo-deny` | **PENDIENTE** | Corte crates.io proporcionado; §10 registra LICENSE de faer/nalgebra/sprs. Falta revisión reproducible por versión y grafo completo, y `cargo-deny` (V1) |
 | Cada crate elegido compila y corre pruebas en wasm (Node) y nativo en CI | **PENDIENTE** | Compilación wasm histórica registrada en §10; ejecución y CI de integración no verificadas (V2) |
 | Sin dependencias C/Fortran (BLAS, LAPACK, ARPACK) en el build wasm | **PENDIENTE** de verificación del build | Restricción y descarte documental de arpack-ng **cumplidos**; falta grafo y build de los perfiles elegidos (V1/V2) |
-| Decisión aprobada por Jonathan | **PENDIENTE** | El estado de este ADR sigue siendo propuesto |
+| Decisión aprobada | **Cumplido** (2026-10-11) | Aprobada por J0 (jefe de programa); revocable por Jonathan |
 
 ## Pendientes
 
-- [ ] Aprobación de Jonathan, incluida la recomendación de MSRV por perfil.
+- [x] Aprobación (2026-10-11) por J0; revocable por Jonathan. La recomendación de MSRV por perfil queda incluida.
 - [ ] V1: licencias del grafo, `cargo-deny`, MSRV efectivo y features resueltas.
 - [ ] V2: ejecución real de pruebas en nativo y wasm en Node/CI.
 - [ ] V3: APIs con features mínimas, inercia de faer y solver disperso de autovalores.
