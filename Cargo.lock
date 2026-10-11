@@ -3,6 +3,16 @@
 version = 4
 
 [[package]]
+name = "engine-assembly"
+version = "0.1.0"
+dependencies = [
+ "engine-contracts",
+ "engine-core",
+ "engine-linalg",
+ "engine-model",
+]
+
+[[package]]
 name = "engine-contracts"
 version = "0.1.0"
 dependencies = [
