@@ -421,6 +421,21 @@ fn empty_samples_invalid_steps_and_wrong_inputs_never_pass() {
         detected(check_uniaxial_law(&law, &[0.0], h), "incremento");
     }
     detected(check_uniaxial_law(&law, &[], 1e-6), "muestras");
+    // T2 (J4): h finito pero absurdo (redondeo o truncamiento) tampoco pasa.
+    for h in [1e-12, 1e-10, 0.1, 1.0, 1e6] {
+        detected(check_uniaxial_law(&law, &[0.0], h), "fuera de");
+        detected(
+            check_section_law(&SpatialSection, &[vec![0.0; 4]], h),
+            "fuera de",
+        );
+    }
+    for h in [
+        crate::conformance::FD_STEP_MIN,
+        1e-6,
+        crate::conformance::FD_STEP_MAX,
+    ] {
+        assert_clean(check_uniaxial_law(&law, &[0.1], h));
+    }
     detected(
         check_section_law(
             &ElasticSection2D::new(2.0, 3.0).unwrap(),

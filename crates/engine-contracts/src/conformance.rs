@@ -105,12 +105,27 @@ fn symmetric(out: &mut Vec<Diagnostic>, context: &str, m: &DMat, label: &str) {
         }
     }
 }
+/// Rango del incremento de diferencias finitas centrales: por debajo, el
+/// redondeo domina (error ~ε/h); por encima, el truncamiento (error ~h²) invalida
+/// la comparación con tolerancia 1e-6. T2 (J4): h acotado, no solo finito > 0.
+pub const FD_STEP_MIN: Real = 1e-9;
+/// Cota superior del incremento de diferencias finitas (véase [`FD_STEP_MIN`]).
+pub const FD_STEP_MAX: Real = 1e-2;
 fn setup(out: &mut Vec<Diagnostic>, context: &str, count: usize, h: Real) -> bool {
     if count == 0 || !h.is_finite() || h <= 0.0 {
         issue(
             out,
             context,
             "Se requieren muestras no vacías e incremento FD finito positivo.",
+        );
+        false
+    } else if !(FD_STEP_MIN..=FD_STEP_MAX).contains(&h) {
+        issue(
+            out,
+            context,
+            format!(
+                "incremento FD {h} fuera de [{FD_STEP_MIN}, {FD_STEP_MAX}]: el error de redondeo o truncamiento invalida la comparación."
+            ),
         );
         false
     } else {
