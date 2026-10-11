@@ -35,9 +35,40 @@ El contrato `SystemView` devuelve fuerza interna física `(K u)_f`, que incluye
 `reactions` devuelve la acción del apoyo sobre el nodo:
 `R_p = K_pf u_f + K_pp u_p − factor F_p`. Incluye las fuerzas sobre apoyos.
 
-K y M son constantes. Kg es un aporte ya evaluado en el estado de referencia
-por su productor y permanece constante incluso al consultar `geometric(u)`;
-este crate no calcula axiales ni implementa un análisis P-Delta. Cada evaluación
+K y M son constantes. Sin productores registrados, Kg es una instantánea del
+estado declarado con `set_geometric_reference` (por defecto u reducido nulo).
+Si existe cualquier aporte Kg estático, incluso cero, `geometric(u)` rechaza
+otro estado con ENG-E-0013. Sin aportes, devuelve cero para cualquier u finito.
+
+`GeometricProducer { location, eval }` permite evaluar Kg tipo P-Delta con los
+esfuerzos N del estado u. `set_geometric_producers` sustituye el registro entero:
+cada productor sustituye la Kg estática del único `ElementContribution` cuya
+`location` coincide exactamente, incluido su orden, y si no coincide añade un
+bloque independiente. Ubicaciones repetidas entre productores o coincidencias
+con varios aportes dan ENG-E-0002 por ambigüedad. Un aporte Kg estático que no
+tiene productor sigue sujeto a su referencia; vaciar el registro restaura las
+instantáneas originales. `global_geometric()` conserva la instantánea original;
+la matriz vigente reducida se obtiene con `geometric(u, out)`.
+
+El registro valida ubicaciones y evalúa en la referencia expandida. Cada consulta
+expande u reducido con `Constraints::expand`, incluidos desplazamientos
+prescritos, extrae u_e en el orden elemental, evalúa, ensambla por
+`assemble_matrix` con simetría exacta y reduce a libres. Sobrescribe `out`.
+Propaga los errores del productor; ENG-E-0010 por tamaño/asimetría/índices y
+ENG-E-0008 por datos o sumas no finitos. El patrón incluye todos los pares
+libres de las ubicaciones registradas, incluso si Kg es cero en la referencia.
+Las clausuras son deterministas y no requieren Send/Sync. El ensamblaje sigue
+el orden de los aportes originales, después el de productores independientes;
+las evaluaciones siguen el orden del registro.
+
+El adaptador `engine_elements_truss::geometric_producer` captura elemento y
+contexto para calcular N=(EA/L)d·Δu y Kg=(N/L)(I−ddᵀ), con geometría fija.
+La dependencia interna de assembly, ya usada por truss en pruebas, pasa a ser
+de producción; no se incorpora ningún crate adicional.
+Las [derivaciones y pruebas P-Delta](../../provenance/ENG-ASM-001-KG.md) explican
+el alcance incremental de K+Kg y el multiplicador crítico del arco de dos barras.
+Esto proporciona Kg al método de análisis; `tangent` e `internal_force` siguen
+siendo las operaciones lineales K y Ku. Cada evaluación
 exitosa de desplazamiento actualiza la prueba; `accept(u)` reevalúa exactamente
 u y lo acepta, y `rollback` recupera el último aceptado. Los errores no dejan
 salidas ni estados parcialmente modificados.

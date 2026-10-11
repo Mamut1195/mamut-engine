@@ -1,6 +1,8 @@
 //! Sistema lineal poseído; ensamblaje global, reducción y estado atómico.
 use crate::{
-    assemble::{assemble_model, missing_case, multiply, triplets, GlobalAssembly},
+    assemble::{
+        assemble_matrix, assemble_model, location, missing_case, multiply, triplets, GlobalAssembly,
+    },
     error, finite, reactions, size, Constraints, DofMap, ElementContribution, PrescribedDof,
     Reaction,
 };
@@ -8,12 +10,62 @@ use engine_contracts::{CaseRef, MassKind, SystemView};
 use engine_core::{Dof, DofIndex, EResult, EngineError, EntityRef, NodeId, Real};
 use engine_linalg::{DMat, LinAlgBackend, SparseMatrix, SparsityPattern, SymMatrix, Triplet};
 use engine_model::Model;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
-/// Sistema de matrices constantes con desplazamientos impuestos constantes.
+/// Evaluador determinista de Kg elemental global a partir de u_e global (m/rad).
+/// No requiere Send/Sync; los errores se propagan sin modificar salida ni prueba.
+pub type GeometricEval = dyn Fn(&[Real]) -> EResult<DMat>;
+
+/// Productor de rigidez geométrica dependiente del estado, para pandeo/P-Delta.
 ///
-/// No evalúa leyes/elementos ni convierte unidades. Las operaciones SystemView
-/// usan vectores reducidos totales en m/rad, escriben out completamente y nunca
+/// u_e contiene desplazamientos totales globales, incluidos los prescritos, en
+/// el orden de location. El productor calcula el esfuerzo N de u_e y devuelve
+/// Kg global cuadrada, finita y exactamente simétrica en ese mismo orden.
+/// Unidades: N/m, N o N·m según traslaciones/giros de fila y columna.
+/// La clausura debe ser determinista y no modificar historia del elemento.
+pub struct GeometricProducer {
+    /// Índices globales distintos, en el orden elemental (no índices reducidos).
+    pub location: Vec<DofIndex>,
+    /// Evaluación elemental global, sin requisitos Send/Sync.
+    pub eval: Box<GeometricEval>,
+}
+
+type GeometricBlock = (Vec<DofIndex>, Option<DMat>);
+
+fn produced_geometric<B: LinAlgBackend>(
+    backend: &mut B,
+    order: usize,
+    elements: &[GeometricBlock],
+    producers: &[GeometricProducer],
+    global: &[Real],
+) -> EResult<SparseMatrix> {
+    let matrices = producers
+        .iter()
+        .map(|p| {
+            let u_e: Vec<_> = p.location.iter().map(|d| global[d.0 as usize]).collect();
+            (p.eval)(&u_e)
+        })
+        .collect::<EResult<Vec<_>>>()?;
+    let mut blocks = Vec::new();
+    for (indices, matrix) in elements {
+        if let Some(i) = producers.iter().position(|p| p.location == *indices) {
+            blocks.push((indices.as_slice(), &matrices[i]));
+        } else if let Some(matrix) = matrix {
+            blocks.push((indices.as_slice(), matrix));
+        }
+    }
+    for (p, matrix) in producers.iter().zip(&matrices) {
+        if !elements.iter().any(|(indices, _)| *indices == p.location) {
+            blocks.push((p.location.as_slice(), matrix));
+        }
+    }
+    assemble_matrix(backend, order, &blocks)
+}
+
+/// Sistema de K/M constantes, Kg opcionalmente producida y apoyos constantes.
+///
+/// Solo evalúa los productores Kg registrados; no convierte unidades. Sus
+/// operaciones SystemView usan vectores reducidos totales en m/rad, escriben out completamente y nunca
 /// aceptan implícitamente. Un fallo conserva salidas y estados. El factor de
 /// carga escala solo F, no u_p. El estado inicial aceptado tiene u_f=0 y u_p
 /// prescrito; no implica equilibrio. Para escalados de normas mixtas, el método
@@ -35,8 +87,10 @@ pub struct LinearSystem<B> {
     accepted: Vec<Real>,
     trial: Vec<Real>,
     kg_reference: Vec<Real>,
-    /// ¿Algún elemento aportó rigidez geométrica? (independiente de que Kg(ref) sea 0).
+    /// ¿Queda Kg estática sin productor? Independiente de que Kg(ref) sea 0.
     has_geometric: bool,
+    geometric_elements: Vec<GeometricBlock>,
+    geometric_producers: Vec<GeometricProducer>,
 }
 
 fn reduced<B: LinAlgBackend>(
@@ -135,6 +189,11 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             trial: vec![0.0; nf],
             kg_reference: vec![0.0; nf],
             has_geometric: elements.iter().any(|e| e.geometric.is_some()),
+            geometric_elements: elements
+                .iter()
+                .map(|e| (e.location.clone(), e.geometric.clone()))
+                .collect(),
+            geometric_producers: Vec::new(),
         })
     }
 
@@ -163,21 +222,85 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             MassKind::Consistent => &self.consistent,
         }
     }
-    /// Rigidez geométrica global CSR constante en el estado de referencia
-    /// (ver [`LinearSystem::set_geometric_reference`]).
+    /// Instantánea global CSR estática recibida en from_model.
+    /// No incluye sustituciones ni evaluaciones de productores registrados;
+    /// consulte [`SystemView::geometric`] para Kg(u) reducida vigente.
     pub fn global_geometric(&self) -> &SparseMatrix {
         &self.kg
     }
-    /// Declara el estado reducido u (m/rad) en el que los productores evaluaron Kg.
+    /// Declara el estado reducido u (m/rad) en el que se evaluó la Kg estática.
     ///
-    /// Por defecto es u = 0. [`SystemView::geometric`] solo acepta ese u exacto
-    /// cuando algún elemento aportó Kg, aunque Kg(ref) sea cero (sin aportes Kg=0 y cualquier u es válido; u se
-    /// compara exactamente; otro u da ENG-E-0013). ENG-E-0010 por tamaño; ENG-E-0008 por
-    /// valores no finitos.
+    /// Por defecto es u = 0. Si queda algún aporte Kg sin productor,
+    /// [`SystemView::geometric`] solo acepta esa referencia exacta, aunque
+    /// Kg(ref) sea cero; otro u da ENG-E-0013. Los productores no dependen de
+    /// esta restricción. Sin ningún aporte, Kg=0 para cualquier u válido.
+    /// ENG-E-0010 por tamaño; ENG-E-0008 por valores no finitos.
     pub fn set_geometric_reference(&mut self, u: &[Real]) -> EResult<()> {
         size(u.len(), self.n_free_dofs())?;
         finite(u)?;
         self.kg_reference = u.to_vec();
+        Ok(())
+    }
+
+    /// Sustituye el registro completo de productores Kg(u), de forma atómica.
+    ///
+    /// La identidad es location con igualdad exacta, incluido su orden. Un
+    /// productor sustituye la Kg estática del único aporte con esa location,
+    /// incluso si era None. Sin coincidencia añade un bloque independiente.
+    /// Dos productores con la misma location o una coincidencia con varios
+    /// aportes son ambiguos y dan ENG-E-0002. No se emparejan permutaciones.
+    /// Un registro vacío restaura todos los aportes estáticos originales.
+    ///
+    /// Valida ubicaciones y evalúa en la referencia expandida con u_p para
+    /// validar tamaños, finitud y simetría exacta por assemble_matrix. Revalida
+    /// las matrices en cada geometric(u). Propaga errores del evaluador;
+    /// ENG-E-0010 por ubicación/tamaño/asimetría, ENG-E-0008 por no finitos.
+    /// Amplía el patrón con todos los pares de GDL libres de cada productor,
+    /// incluidos ceros. Conserva salida, registro y prueba ante cualquier error.
+    pub fn set_geometric_producers(&mut self, producers: Vec<GeometricProducer>) -> EResult<()> {
+        let mut seen = BTreeSet::new();
+        for p in &producers {
+            location(self.map.len(), &p.location)?;
+            if !seen.insert(p.location.clone())
+                || self
+                    .geometric_elements
+                    .iter()
+                    .filter(|(indices, _)| *indices == p.location)
+                    .count()
+                    > 1
+            {
+                return Err(error(
+                    "ENG-E-0002",
+                    "Ubicación de productor geométrico ambigua.",
+                ));
+            }
+        }
+        let global = self.constraints.expand(&self.kg_reference)?;
+        let kg = produced_geometric(
+            &mut self.backend,
+            self.map.len(),
+            &self.geometric_elements,
+            &producers,
+            &global,
+        )?;
+        reduced(&mut self.backend, &kg, &self.constraints)?;
+        let mut coordinates = Vec::new();
+        for matrix in [&self.k, &self.lumped, &self.consistent, &self.kg, &kg] {
+            for t in triplets(matrix) {
+                if let (Some(r), Some(c)) = (
+                    self.constraints.reduced_index(DofIndex(t.row as u32))?,
+                    self.constraints.reduced_index(DofIndex(t.col as u32))?,
+                ) {
+                    coordinates.push((r.0 as usize, c.0 as usize));
+                }
+            }
+        }
+        let pattern = SparsityPattern::from_coordinates(self.n_free_dofs(), coordinates)?;
+        self.has_geometric = self.geometric_elements.iter().any(|(indices, matrix)| {
+            matrix.is_some() && !producers.iter().any(|p| p.location == *indices)
+        });
+        self.geometric_producers = producers;
+        self.pattern = pattern;
         Ok(())
     }
     /// Etiqueta nodo/GDL de un índice reducido, sin pánico: ENG-E-0010 si d ≥ n.
@@ -344,20 +467,28 @@ impl<B: LinAlgBackend> SystemView for LinearSystem<B> {
     }
     fn geometric(&mut self, u: &[Real], out: &mut SymMatrix) -> EResult<()> {
         size(out.order(), self.n_free_dofs())?;
-        self.evaluate(u)?;
-        // Este sistema no recalcula axiales: Kg(u) solo es válida en el estado
-        // de referencia del productor. Otro u daría un valor silenciosamente
-        // incorrecto, así que se rechaza con ENG-E-0013 (capacidad no soportada;
-        // ENG-E-0009 es solo de versiones de contrato). Sin aportes
-        // geométricos Kg=0 para todo u. Se usa `has_geometric` y no «Kg≠0»: con
-        // axial nulo en la referencia Kg(ref)=0 pero Kg(u≠ref) no lo es (P-Δ).
+        let global = self.constraints.expand(u)?;
+        // La regla de referencia sigue aplicando a cada Kg estática sin productor,
+        // aunque sea nula. Nunca devolvemos esa instantánea fuera de referencia.
         if self.has_geometric && u != self.kg_reference.as_slice() {
             return Err(error(
                 "ENG-E-0013",
-                "Kg(u) no se recalcula: u difiere del estado de referencia de Kg.",
+                "Un aporte Kg estático sin productor exige su estado de referencia.",
             ));
         }
-        *out = self.kg_free.clone();
+        let result = if self.geometric_producers.is_empty() {
+            self.kg_free.clone()
+        } else {
+            let kg = produced_geometric(
+                &mut self.backend,
+                self.map.len(),
+                &self.geometric_elements,
+                &self.geometric_producers,
+                &global,
+            )?;
+            reduced(&mut self.backend, &kg, &self.constraints)?
+        };
+        *out = result;
         self.trial = u.to_vec();
         Ok(())
     }

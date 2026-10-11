@@ -62,7 +62,7 @@ pub use assemble::{ElementContribution, ElementLoad};
 pub use constraints::{Constraints, PrescribedDof};
 pub use dofmap::DofMap;
 pub use reactions::Reaction;
-pub use system::LinearSystem;
+pub use system::{GeometricEval, GeometricProducer, LinearSystem};
 
 use engine_core::{EResult, EngineError, Real};
 

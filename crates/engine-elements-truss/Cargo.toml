@@ -9,7 +9,7 @@ engine-core = { path = "../engine-core" }
 engine-contracts = { path = "../engine-contracts" }
 engine-laws = { path = "../engine-laws" }
 engine-linalg = { path = "../engine-linalg" }
+engine-assembly = { path = "../engine-assembly" }
 
 [dev-dependencies]
-engine-assembly = { path = "../engine-assembly" }
 engine-model = { path = "../engine-model" }

@@ -26,7 +26,8 @@ pub struct ElementLoad {
 /// None en masa/Kg significa aporte nulo, sin inferir una masa de otra clase.
 /// Kg es una matriz ya evaluada por el productor en su estado de referencia
 /// (u=0 salvo `LinearSystem::set_geometric_reference`);
-/// este sistema lineal la mantiene constante y no calcula axiales ni P-Delta.
+/// permanece constante salvo sustitución por un GeometricProducer registrado
+/// con exactamente la misma location, incluido su orden.
 #[derive(Clone, Debug)]
 pub struct ElementContribution {
     /// Índices globales distintos en el orden de los vectores y matrices.

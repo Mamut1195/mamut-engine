@@ -11,6 +11,8 @@
 //! fuentes de propiedades. La fábrica usa números SI E, A y rho explícitos.
 //! Masa isotrópica de traslación con interpolación lineal. Kg se ofrece aparte:
 //! no modifica la tangente ni convierte respond en un análisis de segundo orden.
+//! [`geometric_producer`] adapta esta Kg a engine-assembly: captura geometría y
+//! propiedades y evalúa N con u_e total, incluidos desplazamientos prescritos.
 //! Solo cargas uniformes axiales sin momentos; peso propio debe convertirse
 //! explícitamente en q=rho A g y ser paralelo al eje. No se presume gravedad.
 //! La recuperación devuelve extremos locales [-N_i,0,…,N_j,0,…] y estaciones
@@ -40,6 +42,7 @@ mod geometric;
 mod geometry;
 mod loads;
 mod mass;
+mod producer;
 mod recover;
 mod stiffness;
 
@@ -48,6 +51,7 @@ use engine_core::{ContractId, Dim, Dof, EResult, EngineError, Real};
 use engine_laws::uniaxial::Elastic;
 use engine_linalg::DMat;
 pub use factory::TrussFactory;
+pub use producer::geometric_producer;
 
 /// Barra lineal de dos nodos con propiedades SI inmutables y sin historia.
 ///
