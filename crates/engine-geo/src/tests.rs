@@ -320,6 +320,23 @@ fn saturated_weight_need_not_exceed_gamma_and_effective_stress_is_not_clamped() 
 }
 
 #[test]
+fn f64_precision_limit_near_1e16_is_pinned() {
+    // Paso entre f64 consecutivos en 1e16 es 2 m: 1e16 + 1 colapsa y se rechaza.
+    assert_diagnostic(
+        StratifiedProfile::new(
+            vec![layer(1e16, 1.0, None), layer(1.0, 1.0, None)],
+            Some(m(1e17)),
+            Some(m(10.0)),
+        ),
+        "ENG-E-0010",
+        "thickness_m",
+    );
+    // 1e16 + 3 se redondea a 1e16 + 4: se acepta con la cota inferior redondeada.
+    let rounded = profile(vec![layer(1e16, 1.0, None), layer(3.0, 1.0, None)], 1e17);
+    assert_eq!(rounded.total_depth_m(), 1e16 + 4.0);
+}
+
+#[test]
 fn arithmetic_overflow_and_unrepresentable_layer_geometry_are_rejected() {
     assert_diagnostic(
         StratifiedProfile::new(

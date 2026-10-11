@@ -80,6 +80,17 @@ impl StratifiedProfile {
     /// capa esté seca. No se exige γsat >= γ. Las tensiones se comprueban al
     /// consultar: un perfil válido geométricamente puede desbordar en una consulta.
     ///
+    /// # Límite de precisión (f64)
+    ///
+    /// Las cotas se acumulan en f64 (53 bits de mantisa). Con una profundidad
+    /// acumulada cercana a 1e16 m el paso entre f64 consecutivos es 2 m: un
+    /// espesor que no llega a la mitad de ese paso (p. ej. 1 m) se pierde y se
+    /// rechaza con `ENG-E-0010`, pero uno mayor (p. ej. 3 m) se acepta y su cota
+    /// inferior se redondea (1e16 + 3 → 1e16 + 4). No es un error de lógica sino
+    /// una limitación de la aritmética f64; la API no emite aviso en el segundo
+    /// caso. Los espesores físicos reales están muchos órdenes de magnitud por
+    /// debajo de este régimen.
+    ///
     /// ```
     /// use engine_geo::{Layer, Parameter, Provenance, StratifiedProfile};
     /// let m = |x| Parameter::new(x, Provenance::Measured);

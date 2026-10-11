@@ -1,6 +1,6 @@
 # Bitácora clean-room · ENG-GEO-001
 
-- Ticket / PR: ENG-GEO-001 (Perfil de suelo para análisis); sin commit, push ni PR creado en esta sesión.
+- Ticket / PR: ENG-GEO-001 (Perfil de suelo para análisis); PR #14, fusionado en `main` (3e3c2b8); seguimiento en la rama `j2/geo-001-followup`.
 - Autor(es): Codex gpt-6.1-sol, esfuerzo high, bajo dirección de J2 · 2026-10-11 (America/Guayaquil; fecha indicada para esta bitácora).
 - Rol: especificador e implementador; sin actividad de operador de oráculo ni auditor de similitud.
 - Contrato implementado: crate `engine-geo` 0.1.0, registrado en el workspace, dependiente únicamente de `engine-core` por path. Trait propio `StressProfile: Send + Sync`, utilizable como `dyn StressProfile`, contrato `stress-profile/1` (mayor 1, menor 0). `StratifiedProfile` valida capas contiguas por espesor, nivel freático y peso unitario del agua; calcula tensión vertical total, presión de poro hidrostática y tensión efectiva. `GeoResult<T> = Result<T, Diagnostic>`, con códigos del catálogo del núcleo y contexto en `hint`. No implementa `element/1` ni ningún `kind` estructural.
@@ -14,7 +14,7 @@
 - Validación: analítica, con resultados calculados a mano abajo y literales independientes en las pruebas; 14 pruebas unitarias y 3 doctests en el nuevo crate. Libro (edición, ejemplo, página): **PENDIENTE: verificar edición/página**. Ejemplo publicado: ninguno; los casos A–H son propios. Workspace completo: 57 pruebas unitarias y 28 doctests satisfactorios. Verificación de formato, clippy, tests y rustdoc detallada abajo; sin ejecución de CI remota.
 - Comparación con oráculo (repo hermano, informativa): no. No se ejecutó ni consultó OpenSees, CalculiX u otro motor.
 - Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket." Tampoco consulté CalculiX, motor-geotecnico ni código de otros motores de las rutas prohibidas. Código, diseño de API, documentación y fixtures escritos desde cero.
-- Revisor clean-room: **PENDIENTE** de revisión humana; firma y aprobación de Jonathan pendientes.
+- Revisor clean-room: J4 (2026-10-11): 0 hallazgos altos y 4 bajos; la firma y aprobación de Jonathan siguen pendientes. Referencia Das/Terzaghi/Cengage: **PENDIENTE** (edición y página sin verificar).
 
 ## Derivación por integración de peso propio
 
@@ -234,6 +234,14 @@ la versión menor del paquete. Cambiar unidades, signos o requisitos del
 trait exige nueva versión mayor del contrato `stress-profile`; extensiones
 compatibles cambian su versión menor. Se comprueban identidad y compatibilidad
 con minor 7, e incompatibilidad con major 2, usando `ContractId` del núcleo.
+
+## Límite de precisión f64 (seguimiento)
+
+Con cotas acumuladas cercanas a 1e16 m el paso f64 es 2 m: un espesor de 1 m
+se pierde y se rechaza (`ENG-E-0010`), y uno de 3 m se acepta con la cota
+inferior redondeada (1e16 + 4). Es una limitación de f64, no un error de
+lógica; se documenta en rustdoc de `StratifiedProfile::new` y la prueba
+`f64_precision_limit_near_1e16_is_pinned` fija ese comportamiento.
 
 ## Verificación local
 
