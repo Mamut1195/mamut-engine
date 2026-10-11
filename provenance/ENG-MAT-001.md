@@ -1,6 +1,6 @@
 # Bitácora clean-room · ENG-MAT-001
 
-- Ticket / PR: ENG-MAT-001, «Ley uniaxial elástica y sección elástica»; rama `j2/eng-mat-001-elastic`. Sin commit, push ni PR en esta sesión.
+- Ticket / PR: ENG-MAT-001, «Ley uniaxial elástica y sección elástica»; rama `j2/eng-mat-001-elastic`. PR #13 de `mamut-engine` (fusionado en `main`, 8440441).
 - Autor(es): Codex gpt-6.1-sol high, orquestado por J2; fecha 2026-10-10/11 (America/Guayaquil), según la identificación solicitada para esta entrega. No se delegó a otros agentes.
 - Rol: implementador; sin actividad de operador de oráculo ni auditor de similitud.
 - Contrato implementado: `uniaxial/1`, kind `elastic`, y `section/1`, kind `elastic_frame`, versiones de contrato 1.0. Crate y métodos versión semántica 0.1.0.
@@ -10,7 +10,7 @@
 - Validación: analítico; σ=Eε, N=EAε0, My=EIyκy, Mz=EIzκz y T=GJθ′, tangentes consistentes, conformidad, entradas negativas y repetibilidad.
 - Comparación con oráculo (repo hermano, informativa): no (**PENDIENTE ENG-GOV-004**). No se usó ningún motor externo como oráculo.
 - Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket." Tampoco consulté código ni manuales de CalculiX u otros motores, ni manuales de OpenSees/Stabileo. No hubo acceso a la red en esta sesión.
-- Revisor clean-room: **PENDIENTE** de revisión humana.
+- Revisor clean-room: J4, 2026-10-11; resultado: 0 hallazgos altos, 0 medios, 4 bajos.
 
 ## Documentos internos consultados
 
@@ -21,8 +21,8 @@ También se leyeron `docs/CLEAN_ROOM.md`, `provenance/TEMPLATE.md`,
 `provenance/ENG-CORE-007.md` y `docs/CONVENCION_EJES.md`.
 
 La especificación autorizada se consultó directamente en
-`/workspace/motor-rust/04_TICKETS.md`, sección ENG-MAT-001, y
-`/workspace/motor-rust/01_ARQUITECTURA_Y_CONTRATOS.md`, §§4.2 y 4.3.
+`04_TICKETS.md` (documento de tickets del programa Mamut), sección ENG-MAT-001, y
+`01_ARQUITECTURA_Y_CONTRATOS.md` (documento del programa Mamut), §§4.2 y 4.3.
 Se consultaron los tipos de intercambio, almacenamiento matricial y diagnósticos
 del núcleo, los manifests del workspace y `clean-room/check.sh`. No se encontró
 un `AGENTS.md` aplicable en el workspace ni en sus directorios ascendientes.
@@ -173,7 +173,7 @@ conserva los archivos nuevos sin añadir, disponibles para revisión del usuario
   compilar a wasm32 sin `std::fs`, hilos ni tiempo del sistema; no se afirma
   validación numérica wasm ni equivalencia nativo/wasm en esta entrega.
 - Comparación con oráculo: no, **PENDIENTE ENG-GOV-004**.
-- Revisor clean-room: **PENDIENTE**.
+- Revisor clean-room: J4, 2026-10-11; resultado: 0 altos, 0 medios, 4 bajos.
 
 No se modificaron `clean-room/**`, `.github/workflows`, `CODEOWNERS`,
 `docs/CLEAN_ROOM.md` ni archivos legales; no se creó `LICENSE`.
