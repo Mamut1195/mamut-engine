@@ -7,5 +7,6 @@ Estado: decisiones fundacionales propuestas, pendientes de aprobación de Jonath
 Licencia dual **AGPL-3.0 + licencia comercial**, decidida por Jonathan el **2026-10-08**. Texto de licencia y aviso legal: **PENDIENTE (ver Notion)**, en ENG-GOV-004. Titular del copyright: **PENDIENTE**.
 
 - [ADR-001: decisiones fundacionales](docs/adr/ADR-001-fundacionales.md)
+- [ADR-002: selección de librerías de álgebra lineal](docs/adr/ADR-002-algebra-lineal.md)
 - [Protocolo clean-room](docs/CLEAN_ROOM.md)
 - [Guía de contribución](CONTRIBUTING.md)
