@@ -124,7 +124,7 @@ fn conformidad(backend: &mut impl LinAlgBackend) {
     assert_eq!(assembled.column_indices(), &[0, 1, 0, 1]);
     assert_eq!(assembled.values(), &[2.0, -1.0, -1.0, 2.0]);
     let pattern = assembled.symmetric_pattern().unwrap();
-    assert_eq!(pattern.entries(), &[true, true, true, true]);
+    assert_eq!(pattern.try_entries().unwrap(), &[true, true, true, true]);
     let dense = SymMatrix::new(assembled.to_dense().unwrap()).unwrap();
     residual(
         dense.dense(),
@@ -452,7 +452,12 @@ fn matrix_validation_and_sparse_storage() {
     let coords = SparsityPattern::from_coordinates(2, vec![(1, 0), (0, 1), (1, 0)]).unwrap();
     let mask = SparsityPattern::new(2, vec![false, true, true, false]).unwrap();
     assert_eq!(coords, mask);
-    assert_eq!(coords.entries(), mask.entries());
+    assert_eq!(coords.try_entries().unwrap(), mask.try_entries().unwrap());
+    assert_eq!(
+        coords.mask_iter().collect::<Vec<_>>(),
+        vec![false, true, true, false]
+    );
+    assert!(coords.contains(0, 1) && !coords.contains(0, 0) && !coords.contains(9, 9));
     check_error(
         SparsityPattern::from_coordinates(2, vec![(1, 0)]),
         "ENG-E-0010",
@@ -467,4 +472,38 @@ fn matrix_validation_and_sparse_storage() {
             .symmetric_pattern(),
         "ENG-E-0010",
     );
+}
+
+#[test]
+fn pattern_dense_mask_is_fallible_for_extreme_orders() {
+    let huge = SparsityPattern::from_coordinates(usize::MAX, vec![(0, 0)]);
+    // from_coordinates rechaza orden² desbordado (ENG-E-0010) y por tanto no hay patrón.
+    check_error(huge, "ENG-E-0010");
+    // Orden grande sin desbordar pero con máscara densa sobre el límite.
+    // Orden² > límite por destino sin desbordar usize: 2^40 B (> 8 GiB) en 64 bits; 1,6e9 B (> 1 GiB) en 32 bits.
+    #[cfg(target_pointer_width = "64")]
+    let order = 1usize << 20;
+    #[cfg(not(target_pointer_width = "64"))]
+    let order = 40_000usize;
+    let p = SparsityPattern::from_coordinates(order, vec![(0, 0), (order - 1, order - 1)]).unwrap();
+    assert_eq!(p.coordinates().len(), 2);
+    check_error(p.try_entries(), "ENG-E-0013");
+    // Las vías perezosas funcionan sin materializar.
+    assert!(p.contains(order - 1, order - 1) && !p.contains(0, 1));
+    assert_eq!(
+        p.mask_iter().take(3).collect::<Vec<_>>(),
+        vec![true, false, false]
+    );
+}
+
+#[test]
+fn pattern_dense_mask_small_is_cached_and_correct() {
+    let p = SparsityPattern::from_coordinates(3, vec![(0, 0), (2, 1), (1, 2)]).unwrap();
+    let a = p.try_entries().unwrap();
+    assert_eq!(
+        a,
+        &[true, false, false, false, false, true, false, true, false]
+    );
+    assert!(std::ptr::eq(a, p.try_entries().unwrap()));
+    assert_eq!(p.mask_iter().collect::<Vec<_>>(), a);
 }

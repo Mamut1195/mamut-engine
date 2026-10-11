@@ -149,17 +149,56 @@ impl SparsityPattern {
     pub fn order(&self) -> usize {
         self.order
     }
+    /// ¿Contiene la entrada estructural (i, j)? O(log nnz), sin memoria extra.
+    /// Índices fuera de rango devuelven `false`.
+    pub fn contains(&self, row: usize, col: usize) -> bool {
+        self.coordinates.binary_search(&(row, col)).is_ok()
+    }
+    /// Máscara fila-mayor perezosa: `order²` valores `bool` en orden de fila y
+    /// columna, generados bajo demanda en memoria O(1) (sin materializar nada).
+    /// El número de elementos es `order²`, que puede ser enorme: no la recoja
+    /// con `collect` sin acotar el tamaño; use `try_entries` para eso.
+    pub fn mask_iter(&self) -> impl Iterator<Item = bool> + '_ {
+        let order = self.order;
+        let mut next = self.coordinates.iter().peekable();
+        (0..order)
+            .flat_map(move |i| (0..order).map(move |j| (i, j)))
+            .map(move |ij| {
+                if next.peek().is_some_and(|&&c| c == ij) {
+                    next.next();
+                    true
+                } else {
+                    false
+                }
+            })
+    }
     /// Máscara inmutable fila-mayor compatible con los contratos anteriores.
-    /// Se materializa bajo demanda: memoria O(orden²); use `coordinates` para
-    /// conservar almacenamiento disperso.
-    pub fn entries(&self) -> &[bool] {
-        self.mask.get_or_init(|| {
-            let mut entries = vec![false; self.order * self.order];
-            for &(i, j) in &self.coordinates {
-                entries[i * self.order + j] = true;
-            }
-            entries
-        })
+    /// Se materializa bajo demanda con memoria O(orden²) y **falla** en vez de
+    /// provocar pánico o aborto: ENG-E-0013 (capacidad no soportada) si
+    /// `orden²` desborda o supera el límite de reserva por destino
+    /// (`MAX_ALLOC_BYTES`: 8 GiB en 64 bits, 1 GiB en 32 bits), y ENG-E-0010 si
+    /// la reserva falla. Para patrones grandes use `coordinates`, `contains` o
+    /// `mask_iter`, que no materializan la máscara.
+    pub fn try_entries(&self) -> EResult<&[bool]> {
+        if let Some(mask) = self.mask.get() {
+            return Ok(mask);
+        }
+        let len = self
+            .order
+            .checked_mul(self.order)
+            .ok_or_else(|| unsupported("Patrón sin máscara densa: orden² desborda usize."))?;
+        if len > crate::MAX_ALLOC_BYTES {
+            return Err(unsupported(&format!(
+                "Patrón sin máscara densa: orden {} requiere {len} bytes, sobre el límite de {} bytes; use coordinates(), contains() o mask_iter().",
+                self.order,
+                crate::MAX_ALLOC_BYTES
+            )));
+        }
+        let mut entries = crate::alloc_vec(len, false)?;
+        for &(i, j) in &self.coordinates {
+            entries[i * self.order + j] = true;
+        }
+        Ok(self.mask.get_or_init(|| entries))
     }
 }
 

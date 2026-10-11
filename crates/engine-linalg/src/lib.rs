@@ -155,6 +155,9 @@ pub(crate) fn alloc_vec<T: Clone>(len: usize, fill: T) -> EResult<Vec<T>> {
     v.resize(len, fill);
     Ok(v)
 }
+pub(crate) fn unsupported(message: &str) -> EngineError {
+    EngineError::new("ENG-E-0013", message)
+}
 pub(crate) fn size(actual: usize, expected: usize) -> EResult<()> {
     if actual != expected {
         return Err(invalid(&format!(
