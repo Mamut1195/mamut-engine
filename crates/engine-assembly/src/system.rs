@@ -35,6 +35,8 @@ pub struct LinearSystem<B> {
     accepted: Vec<Real>,
     trial: Vec<Real>,
     kg_reference: Vec<Real>,
+    /// ¿Algún elemento aportó rigidez geométrica? (independiente de que Kg(ref) sea 0).
+    has_geometric: bool,
 }
 
 fn reduced<B: LinAlgBackend>(
@@ -132,6 +134,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             accepted: vec![0.0; nf],
             trial: vec![0.0; nf],
             kg_reference: vec![0.0; nf],
+            has_geometric: elements.iter().any(|e| e.geometric.is_some()),
         })
     }
 
@@ -168,7 +171,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
     /// Declara el estado reducido u (m/rad) en el que los productores evaluaron Kg.
     ///
     /// Por defecto es u = 0. [`SystemView::geometric`] solo acepta ese u exacto
-    /// cuando hay aportes geométricos (sin ellos Kg=0 y cualquier u es válido; u se
+    /// cuando algún elemento aportó Kg, aunque Kg(ref) sea cero (sin aportes Kg=0 y cualquier u es válido; u se
     /// compara exactamente; otro u da ENG-E-0013). ENG-E-0010 por tamaño; ENG-E-0008 por
     /// valores no finitos.
     pub fn set_geometric_reference(&mut self, u: &[Real]) -> EResult<()> {
@@ -346,8 +349,9 @@ impl<B: LinAlgBackend> SystemView for LinearSystem<B> {
         // de referencia del productor. Otro u daría un valor silenciosamente
         // incorrecto, así que se rechaza con ENG-E-0013 (capacidad no soportada;
         // ENG-E-0009 es solo de versiones de contrato). Sin aportes
-        // geométricos Kg=0 para todo u.
-        if self.kg.values().iter().any(|v| *v != 0.0) && u != self.kg_reference.as_slice() {
+        // geométricos Kg=0 para todo u. Se usa `has_geometric` y no «Kg≠0»: con
+        // axial nulo en la referencia Kg(ref)=0 pero Kg(u≠ref) no lo es (P-Δ).
+        if self.has_geometric && u != self.kg_reference.as_slice() {
             return Err(error(
                 "ENG-E-0013",
                 "Kg(u) no se recalcula: u difiere del estado de referencia de Kg.",

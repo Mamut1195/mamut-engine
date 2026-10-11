@@ -138,3 +138,18 @@ fn symmetry_tolerance_is_explicit_and_relative() {
         );
     }
 }
+
+#[test]
+fn zero_reference_geometric_still_rejects_other_states() {
+    // T1 (J4): Kg(ref)=0 con aportes geométricos no debe devolver Kg=0 para u≠ref.
+    let mut e = element(10.0);
+    e.geometric = Some(DMat::new(2, 2, vec![0.0; 4]).unwrap());
+    let mut s = LinearSystem::from_model(ReferenceBackend, &model(), &[e], &[]).unwrap();
+    let mut out = SymMatrix::zeros(1).unwrap();
+    s.geometric(&[0.0], &mut out).unwrap();
+    assert_eq!(out.dense().values(), &[0.0]);
+    code(s.geometric(&[0.5], &mut out), "ENG-E-0013");
+    s.set_geometric_reference(&[0.5]).unwrap();
+    s.geometric(&[0.5], &mut out).unwrap();
+    code(s.geometric(&[0.0], &mut out), "ENG-E-0013");
+}
