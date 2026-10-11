@@ -24,8 +24,9 @@
   usaron números de otros motores. Citas bibliográficas precisas: **PENDIENTE**.
 - Comparación con oráculo (repo hermano, informativa): no.
 - Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
-- Revisor clean-room: **PENDIENTE (J4)**. No se realiza aprobación de merge en
-  esta sesión.
+- Revisor clean-room: J4 (2026-10-11): 0 altos, 1 medio documentado como límite
+  (`geometric(u)` no recalcula Kg) y bajos listados en «Correcciones tras la
+  revisión de J4». El informe se transmitió vía J0; no se adjunta en este repo.
 
 ## Documentos internos consultados
 
@@ -198,4 +199,37 @@ Comandos con `/home/box/.cargo/bin` en PATH y `RUSTUP_TOOLCHAIN=stable`
   modificados; sin campo license, archivos LICENSE ni texto legal nuevos.
 
 No se hicieron commit, push, PR ni cambios al índice del usuario. Revisión
-clean-room humana **PENDIENTE (J4)**.
+clean-room: ver sección siguiente.
+
+## Correcciones tras la revisión de J4
+
+Seguimiento en la rama `j2/asm-001-j4-findings` (Codex autor del ticket original;
+correcciones por J2, revisor OpenCode). Hallazgos y resolución:
+
+1. **Medio — `geometric(u)` ignoraba `u`** (contrato SystemView: «axial propio de
+   u»). El sistema no tiene capacidad de recomputar Kg(u): recibe Kg ya evaluada.
+   Decisión: error explícito en vez de valor silenciosamente incorrecto. Si hay
+   aportes geométricos no nulos, `geometric(u)` solo acepta el `u` de referencia
+   (por defecto 0; declarable con `LinearSystem::set_geometric_reference`) y
+   devuelve ENG-E-0010 para otro `u` (el catálogo no tiene código de «capacidad no
+   soportada»; ENG-E-0009 es solo de versiones de contrato; OpenCode señaló el
+   uso de 0009 y se corrigió; un código dedicado queda como propuesta para engine-core); sin aportes, Kg=0 para todo `u`. Consecuencia:
+   el kit `check_system_view` se ejecuta con Kg solo en el estado de referencia.
+   **Antes de pandeo/P-Delta** debe existir un productor de Kg(u) (ENG-ELM-*).
+2. **Bajo — `dof_label` con pánico fuera de rango.** El trait no puede devolver
+   error (precondición d < n del contrato); se añade `try_dof_label` → ENG-E-0010.
+3. **Bajo — masa nodal y rigidez elemental negativas** → ENG-E-0010 (catálogo sin
+   código más específico). También masa elemental con diagonal negativa. No se
+   comprueba definición positiva completa, solo la diagonal.
+4. **Bajo — reacciones:** rustdoc aclarado: se recuperan en todo GDL prescrito
+   (apoyos y desplazamientos impuestos), no solo «nodos apoyados».
+5. **Bajo — bitácora:** revisor actualizado (esta sección).
+6. **Bajo — simetría:** `assemble_matrix` sigue exacta (`EXACT_SYMMETRY = 0`);
+   nueva `assemble_matrix_with_tolerance(.., tol)` relativa a máx|a| del bloque,
+   simetriza con la media; tolerancia negativa/no finita → ENG-E-0010. Para ASM-002.
+
+Pruebas nuevas: `crates/engine-assembly/tests/j4_followup.rs`.
+
+Revisión OpenCode (alibaba-token-plan/qwen3.7-max): primera pasada CAMBIOS
+REQUERIDOS (código ENG-E-0009 mal usado, test de masa consistente, comentario);
+corregido en esta rama.

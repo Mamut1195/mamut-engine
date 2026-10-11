@@ -4,7 +4,7 @@ use crate::{error, finite, size};
 use engine_contracts::CaseRef;
 use engine_core::{DofIndex, EResult, EngineError, Real};
 use engine_core::{EntityRef, NodeId};
-use engine_linalg::{DMat, LinAlgBackend, SparseMatrix, SymMatrix, Triplet};
+use engine_linalg::{DMat, LinAlgBackend, SparseMatrix, Triplet};
 use engine_model::Model;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -24,7 +24,8 @@ pub struct ElementLoad {
 /// K/Kg: N/m, N, N·m según fila/columna; masas: kg, kg·m, kg·m².
 /// Las matrices deben ser cuadradas, simétricas exactamente y finitas.
 /// None en masa/Kg significa aporte nulo, sin inferir una masa de otra clase.
-/// Kg es una matriz ya evaluada por el productor en su estado de referencia;
+/// Kg es una matriz ya evaluada por el productor en su estado de referencia
+/// (u=0 salvo `LinearSystem::set_geometric_reference`);
 /// este sistema lineal la mantiene constante y no calcula axiales ni P-Delta.
 #[derive(Clone, Debug)]
 pub struct ElementContribution {
@@ -58,31 +59,74 @@ pub(crate) fn location(order: usize, indices: &[DofIndex]) -> EResult<()> {
     Ok(())
 }
 
-/// Ensambla bloques simétricos mediante tripletas del backend.
+/// Tolerancia de simetría de [`assemble_matrix`]: exacta (0), sin tolerancia
+/// física implícita. ASM-002 puede usar [`assemble_matrix_with_tolerance`].
+pub const EXACT_SYMMETRY: Real = 0.0;
+
+/// Ensambla bloques simétricos con simetría exacta ([`EXACT_SYMMETRY`]).
 ///
-/// blocks contiene (ubicación global, matriz elemental). Se emiten ambas
-/// mitades y ceros explícitos, en orden de bloques, fila y columna. Las sumas
-/// coincidentes siguen ese orden determinista; no se itera HashMap.
-/// ENG-E-0010 por tamaños/índices/asimetría; ENG-E-0002 por ubicación duplicada;
-/// ENG-E-0008 por datos o acumulaciones no finitos. La salida conserva ceros
-/// estructurales para construir el patrón, incluso en cancelaciones numéricas.
+/// Equivale a [`assemble_matrix_with_tolerance`] con tolerancia 0.
 pub fn assemble_matrix<B: LinAlgBackend>(
     backend: &mut B,
     order: usize,
     blocks: &[(&[DofIndex], &DMat)],
 ) -> EResult<SparseMatrix> {
+    assemble_matrix_with_tolerance(backend, order, blocks, EXACT_SYMMETRY)
+}
+
+/// Ensambla bloques simétricos mediante tripletas del backend.
+///
+/// blocks contiene (ubicación global, matriz elemental). Se emiten ambas
+/// mitades y ceros explícitos, en orden de bloques, fila y columna. Las sumas
+/// coincidentes siguen ese orden determinista; no se itera HashMap.
+/// `symmetry_tolerance` es relativa y no negativa: cada bloque exige
+/// `|a_ij − a_ji| ≤ tol · máx|a|` del bloque. Con 0 la simetría es exacta. Con
+/// tol > 0 se emite la media `(a_ij + a_ji)/2` en ambas mitades, de modo que lo
+/// ensamblado es exactamente simétrico.
+/// ENG-E-0010 por tamaños/índices/asimetría o tolerancia negativa/no finita;
+/// ENG-E-0002 por ubicación duplicada; ENG-E-0008 por datos o acumulaciones no
+/// finitos. La salida conserva ceros estructurales para construir el patrón,
+/// incluso en cancelaciones numéricas.
+pub fn assemble_matrix_with_tolerance<B: LinAlgBackend>(
+    backend: &mut B,
+    order: usize,
+    blocks: &[(&[DofIndex], &DMat)],
+    symmetry_tolerance: Real,
+) -> EResult<SparseMatrix> {
+    if !symmetry_tolerance.is_finite() || symmetry_tolerance < 0.0 {
+        return Err(error(
+            "ENG-E-0010",
+            "Tolerancia de simetría negativa o no finita.",
+        ));
+    }
     let mut entries = Vec::new();
     for &(indices, matrix) in blocks {
         location(order, indices)?;
         size(matrix.rows(), indices.len())?;
         size(matrix.cols(), indices.len())?;
-        SymMatrix::new(matrix.clone())?;
+        let at = |i: usize, j: usize| matrix.get(i, j).expect("Dimensiones validadas");
+        let scale = matrix.values().iter().fold(0.0_f64, |m, v| m.max(v.abs()));
+        for i in 0..indices.len() {
+            for j in 0..i {
+                let (a, b) = (at(i, j), at(j, i));
+                // NaN o infinitos dan `symmetric = false`: se rechazan.
+                let symmetric = a == b || (a - b).abs() <= symmetry_tolerance * scale;
+                if !symmetric {
+                    return Err(error("ENG-E-0010", "Matriz no simétrica."));
+                }
+            }
+        }
         for (i, row) in indices.iter().enumerate() {
             for (j, col) in indices.iter().enumerate() {
+                let value = if symmetry_tolerance == 0.0 {
+                    at(i, j)
+                } else {
+                    0.5 * (at(i, j) + at(j, i))
+                };
                 entries.push(Triplet {
                     row: row.0 as usize,
                     col: col.0 as usize,
-                    value: matrix.get(i, j).expect("Dimensiones validadas"),
+                    value,
                 });
             }
         }
@@ -148,6 +192,15 @@ pub(crate) fn assemble_model<B: LinAlgBackend>(
             return Err(e);
         }
     }
+    for element in elements {
+        non_negative_diagonal(&element.stiffness, "Rigidez elemental negativa.")?;
+        for mass in [&element.mass_lumped, &element.mass_consistent]
+            .into_iter()
+            .flatten()
+        {
+            non_negative_diagonal(mass, "Masa elemental negativa.")?;
+        }
+    }
     let blocks: Vec<_> = elements
         .iter()
         .map(|e| (e.location.as_slice(), &e.stiffness))
@@ -211,6 +264,11 @@ pub(crate) fn assemble_model<B: LinAlgBackend>(
             return Err(error("ENG-E-0002", "Identificador de masa duplicado."));
         }
         for value in &mass.values {
+            if value.value < 0.0 {
+                let mut e = error("ENG-E-0010", "Masa nodal negativa.");
+                e.entities.push(EntityRef::Node(mass.node));
+                return Err(e);
+            }
             let i = map.global_index(mass.node, value.dof)?.0 as usize;
             nodal_mass.push(Triplet {
                 row: i,
@@ -231,6 +289,16 @@ pub(crate) fn assemble_model<B: LinAlgBackend>(
         kg,
         forces,
     })
+}
+
+/// K y M son semidefinidas positivas: una diagonal negativa lo contradice.
+fn non_negative_diagonal(matrix: &DMat, message: &str) -> EResult<()> {
+    for i in 0..matrix.rows().min(matrix.cols()) {
+        if matrix.get(i, i).is_some_and(|v| v < 0.0) {
+            return Err(error("ENG-E-0010", message));
+        }
+    }
+    Ok(())
 }
 
 fn check_node(map: &DofMap, node: NodeId) -> EResult<()> {

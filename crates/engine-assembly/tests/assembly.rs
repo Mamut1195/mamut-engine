@@ -283,7 +283,13 @@ fn mass_geometric_forces_pattern_and_overwrite() {
     s.external_force(&CaseRef("Q".into()), 2.0, &mut force)
         .unwrap();
     close(&force, &[6.0, 4.0]);
-    assert!(check_system_view(&mut s, &[vec![0.0, 0.0], vec![0.1, 0.2]], &case(), 1e-5).is_empty());
+    assert!(check_system_view(&mut s, &[vec![0.0, 0.0]], &case(), 1e-5).is_empty());
+    // Con Kg precalculado el kit solo puede muestrear el estado de referencia;
+    // otro u se rechaza (ver j4_followup.rs). Muestras fuera de él: sistema sin Kg.
+    let mut no_kg = system(&model(3), &elements(&[100.0, 200.0]), &[]);
+    assert!(
+        check_system_view(&mut no_kg, &[vec![0.0, 0.0], vec![0.1, 0.2]], &case(), 1e-5).is_empty()
+    );
     // None sobrescribe una salida no nula con cero, sin fabricar masa ni Kg.
     let mut zero = system(&model(3), &elements(&[100.0, 200.0]), &[]);
     zero.mass(MassKind::Consistent, &mut out).unwrap();

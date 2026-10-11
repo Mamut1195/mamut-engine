@@ -34,6 +34,7 @@ pub struct LinearSystem<B> {
     forces: BTreeMap<String, Vec<Real>>,
     accepted: Vec<Real>,
     trial: Vec<Real>,
+    kg_reference: Vec<Real>,
 }
 
 fn reduced<B: LinAlgBackend>(
@@ -130,6 +131,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             forces,
             accepted: vec![0.0; nf],
             trial: vec![0.0; nf],
+            kg_reference: vec![0.0; nf],
         })
     }
 
@@ -158,9 +160,33 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             MassKind::Consistent => &self.consistent,
         }
     }
-    /// Rigidez geométrica global CSR constante en el estado de referencia.
+    /// Rigidez geométrica global CSR constante en el estado de referencia
+    /// (ver [`LinearSystem::set_geometric_reference`]).
     pub fn global_geometric(&self) -> &SparseMatrix {
         &self.kg
+    }
+    /// Declara el estado reducido u (m/rad) en el que los productores evaluaron Kg.
+    ///
+    /// Por defecto es u = 0. [`SystemView::geometric`] solo acepta ese u exacto
+    /// cuando hay aportes geométricos (sin ellos Kg=0 y cualquier u es válido; u se
+    /// compara exactamente). ENG-E-0010 por tamaño; ENG-E-0008 por
+    /// valores no finitos.
+    pub fn set_geometric_reference(&mut self, u: &[Real]) -> EResult<()> {
+        size(u.len(), self.n_free_dofs())?;
+        finite(u)?;
+        self.kg_reference = u.to_vec();
+        Ok(())
+    }
+    /// Etiqueta nodo/GDL de un índice reducido, sin pánico: ENG-E-0010 si d ≥ n.
+    pub fn try_dof_label(&self, d: DofIndex) -> EResult<(NodeId, Dof)> {
+        match self.constraints.free_dofs().get(d.0 as usize) {
+            Some(&global) => self.map.label(global),
+            None => {
+                let mut e = error("ENG-E-0010", "Índice reducido fuera de rango.");
+                e.entities.push(EntityRef::Dof(d));
+                Err(e)
+            }
+        }
     }
     /// Último desplazamiento reducido aceptado, en m/rad.
     pub fn accepted_displacement(&self) -> &[Real] {
@@ -220,9 +246,11 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         Ok(solution.values().to_vec())
     }
 
-    /// Recupera R = K_pf u_f + K_pp u_p − factor F_p sobre los nodos apoyados.
-    /// Orden global estable; unidades N/N·m. No acepta ni modifica pruebas.
-    /// Incluye las cargas aplicadas directamente sobre apoyos.
+    /// Recupera R = K_pf u_f + K_pp u_p − factor F_p sobre todo GDL prescrito:
+    /// los restringidos por apoyos y los de desplazamiento impuesto (asentamiento).
+    /// No existe reacción en un GDL libre. Orden global estable; unidades
+    /// N/N·m. No acepta ni modifica pruebas. Incluye las cargas aplicadas
+    /// directamente sobre GDL prescritos.
     pub fn reactions(
         &self,
         u_free: &[Real],
@@ -314,6 +342,18 @@ impl<B: LinAlgBackend> SystemView for LinearSystem<B> {
     fn geometric(&mut self, u: &[Real], out: &mut SymMatrix) -> EResult<()> {
         size(out.order(), self.n_free_dofs())?;
         self.evaluate(u)?;
+        // Este sistema no recalcula axiales: Kg(u) solo es válida en el estado
+        // de referencia del productor. Otro u daría un valor silenciosamente
+        // incorrecto, así que se rechaza con ENG-E-0010 (entrada inválida para
+        // este sistema; el catálogo no tiene código de «capacidad no soportada»
+        // y ENG-E-0009 es solo de versiones de contrato). Sin aportes
+        // geométricos Kg=0 para todo u.
+        if self.kg.values().iter().any(|v| *v != 0.0) && u != self.kg_reference.as_slice() {
+            return Err(error(
+                "ENG-E-0010",
+                "Kg(u) no se recalcula: u difiere del estado de referencia de Kg.",
+            ));
+        }
         *out = self.kg_free.clone();
         self.trial = u.to_vec();
         Ok(())
@@ -339,10 +379,10 @@ impl<B: LinAlgBackend> SystemView for LinearSystem<B> {
     fn rollback(&mut self) {
         self.trial.clone_from(&self.accepted);
     }
+    /// Precondición del contrato: d < n. El trait no puede devolver error; use
+    /// [`LinearSystem::try_dof_label`] para entradas no confiables.
     fn dof_label(&self, d: DofIndex) -> (NodeId, Dof) {
-        let global = self.constraints.free_dofs()[d.0 as usize];
-        self.map
-            .label(global)
+        self.try_dof_label(d)
             .expect("Índice reducido válido requerido por SystemView")
     }
 }

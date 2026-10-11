@@ -3,12 +3,13 @@ use crate::{assemble::multiply, finite, size, Constraints, DofMap};
 use engine_core::{Dof, EResult, NodeId, Real};
 use engine_linalg::SparseMatrix;
 
-/// Reacción del apoyo sobre el nodo; signo positivo según el GDL global.
+/// Reacción sobre un GDL prescrito (apoyo o desplazamiento impuesto); signo
+/// positivo según el GDL global.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Reaction {
-    /// Nodo apoyado.
+    /// Nodo con GDL prescrito.
     pub node: NodeId,
-    /// Componente restringida.
+    /// Componente prescrita (restringida o con valor impuesto).
     pub dof: Dof,
     /// Fuerza en N o momento en N·m: `(K u - F)_p`.
     pub value: Real,
