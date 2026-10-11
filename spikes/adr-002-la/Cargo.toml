@@ -1,0 +1,27 @@
+[package]
+name = "spike-la"
+version = "0.0.0"
+edition = "2021"
+publish = false
+license = "MIT"
+
+[lib]
+crate-type = ["rlib","cdylib"]
+
+[dependencies]
+faer = { optional = true, version = "=0.24.4", default-features = false, features = ["std", "sparse-linalg"] }
+nalgebra = { optional = true, version = "=0.35.0", default-features = false, features = ["std"] }
+
+[features]
+default = ["with-faer","with-na"]
+with-faer = ["dep:faer"]
+with-na = ["dep:nalgebra"]
+rayon = ["with-faer","faer/rayon"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[workspace]

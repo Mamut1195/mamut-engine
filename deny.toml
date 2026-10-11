@@ -1,0 +1,50 @@
+# deny.toml propuesto (ADR-002 §V1). Política de dependencias permisivas del
+# protocolo clean-room: licencias permitidas explícitas, LGPL/GPL/AGPL denegadas.
+[graph]
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "wasm32-unknown-unknown",
+]
+
+[advisories]
+version = 2
+yanked = "deny"
+# paste es una macro procedural de compilación, dependencia transitiva de faer (gemm).
+# Aviso de "no mantenido", no de vulnerabilidad. Revisar en cada actualización de faer.
+ignore = [
+    { id = "RUSTSEC-2024-0436", reason = "paste: macro de compilación sin mantenimiento; transitiva de faer/gemm; sin vulnerabilidad conocida" },
+]
+
+[licenses]
+version = 2
+confidence-threshold = 0.93
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "CC0-1.0",
+    "0BSD",
+]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+deny = [
+    { crate = "sprs-ldl" },
+    { crate = "openblas-src" },
+    { crate = "blas-src" },
+    { crate = "lapack-src" },
+    { crate = "arpack-ng-sys" },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
