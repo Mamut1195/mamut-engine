@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/engine-core", "crates/engine-model", "crates/engine-contracts", "crates/engine-laws", "crates/engine-geo", "crates/engine-linalg", "crates/engine-assembly", "crates/engine-elements-truss"]
+members = ["crates/engine-core", "crates/engine-model", "crates/engine-contracts", "crates/engine-laws", "crates/engine-geo", "crates/engine-linalg", "crates/engine-assembly", "crates/engine-elements-truss", "crates/engine-elements-frame"]
 
 [workspace.package]
 edition = "2021"
