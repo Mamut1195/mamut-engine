@@ -1,0 +1,8 @@
+[package]
+name = "engine-model"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+engine-core = { path = "../engine-core" }
