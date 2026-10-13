@@ -24,9 +24,12 @@ apoyos, acciones y masas sí se contrastan con la dimensión del nodo.
 
 El extremo i es el primer nodo y j el segundo. El eje unitario local x apunta
 de i a j. En D2 se toma y = (-x_y, x_x, 0) y z = x × y, de modo que z apunta
-hacia +Z. En D3, la dirección x no basta para elegir y: el cálculo futuro deberá
-recibir una orientación transversal explícita, normalizarla y hacerla ortogonal
-a x antes de formar z = x × y. Este crate solo almacena el dominio y no crea
+hacia +Z. En D3, la dirección x no basta para elegir la terna: el elemento recibe un
+vector de orientación que es la **referencia del eje local z** (plano x-z). Se normaliza, se ortogonaliza respecto de x (z' = v − (v·x)x) y se
+forma y = z × x, de modo que (x, y, z) es dextrógira. Para el caso 2D, z = +Z
+y y = Z × x coincide con la convención D2. Un pilar vertical (x = ±Z) rechaza la orientación +Z por ser paralela a x: requiere otro
+vector (p. ej. +X o +Y). Una orientación nula o casi paralela a
+x (sen del ángulo ≤ 1e-8) se rechaza. Este crate solo almacena el dominio y no crea
 una orientación espacial automática. Invertir i y j cambia la orientación local;
 no cambia las direcciones de cargas definidas en ejes globales.
 

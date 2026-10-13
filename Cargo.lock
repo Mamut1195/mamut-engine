@@ -37,6 +37,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-elements-frame3d"
+version = "0.1.0"
+dependencies = [
+ "engine-assembly",
+ "engine-contracts",
+ "engine-core",
+ "engine-laws",
+ "engine-linalg",
+ "engine-model",
+]
+
+[[package]]
 name = "engine-elements-spring"
 version = "0.1.0"
 dependencies = [

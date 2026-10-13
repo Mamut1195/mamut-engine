@@ -1,0 +1,127 @@
+//! Terna diestra explícita; T global→local, Kglobal=Tᵀ Klocal T.
+use crate::{finite, invalid, vector, Matrix};
+use engine_contracts::ElementCtx;
+use engine_core::{Dim, EResult, EngineError, Real};
+use engine_linalg::DMat;
+
+pub(crate) struct Geometry {
+    pub length: Real,
+    axes: [[Real; 3]; 3],
+}
+/// Normalización escalada: admite orientaciones enormes o diminutas finitas.
+/// Seno mínimo del ángulo entre la orientación y el eje x local.
+pub(crate) const ORIENTATION_MIN_SIN: Real = 1e-8;
+pub(crate) fn unit(v: [Real; 3]) -> EResult<[Real; 3]> {
+    vector(&v, 3, "Orientación")?;
+    let scale = v.iter().fold(0.0_f64, |a, b| a.max(b.abs()));
+    if scale == 0.0 {
+        return Err(invalid("Orientación: vector nulo."));
+    }
+    let v = v.map(|x| x / scale);
+    let norm = v[0].hypot(v[1]).hypot(v[2]);
+    Ok(v.map(|x| x / norm))
+}
+fn cross(a: [Real; 3], b: [Real; 3]) -> [Real; 3] {
+    [
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    ]
+}
+impl Geometry {
+    pub fn new(ctx: &ElementCtx<'_>, orientation: [Real; 3]) -> EResult<Self> {
+        if ctx.dim != Dim::D3 || ctx.coords.len() != 2 {
+            return Err(invalid("Viga espacial: requiere D3 y dos coordenadas."));
+        }
+        for p in ctx.coords {
+            vector(p, 3, "Coordenada (m)")?;
+        }
+        let mut delta = [0.0; 3];
+        for (a, d) in delta.iter_mut().enumerate() {
+            *d = finite(
+                ctx.coords[1][a] - ctx.coords[0][a],
+                "Diferencia coordenadas",
+            )?;
+        }
+        let length = finite(delta[0].hypot(delta[1]).hypot(delta[2]), "L (m)")?;
+        if length <= 1e-12 {
+            return Err(EngineError::new("ENG-E-0005", "Viga: L≤1e-12 m."));
+        }
+        let x = delta.map(|d| d / length);
+        let hint = unit(orientation)?;
+        // hint×x equivale a proyectar hint normal a x y formar y=z×x.
+        // `hint` es unitario, luego |hint×x| = sen(ángulo). Con sen ≤ 1e-8 el error
+        // relativo de la terna sería ≥ ε/1e-8 ≈ 1e-8 y las rotaciones rígidas dejarían
+        // fuerzas espurias (J4 r6): se rechaza. Además se reortogonaliza.
+        let y = cross(hint, x);
+        if y[0].hypot(y[1]).hypot(y[2]) <= ORIENTATION_MIN_SIN {
+            return Err(invalid(
+                "Orientación paralela o casi paralela al eje local x (sen del ángulo ≤ 1e-8).",
+            ));
+        }
+        let mut y = unit(y)?;
+        // Una pasada de Gram–Schmidt contra x y renormalización: ortonormal a ~1e-16.
+        let dot: Real = x.iter().zip(y).map(|(a, b)| a * b).sum();
+        for (yi, xi) in y.iter_mut().zip(x) {
+            *yi -= dot * xi;
+        }
+        let y = unit(y)?;
+        let z = unit(cross(x, y))?;
+        Ok(Self {
+            length,
+            axes: [x, y, z],
+        })
+    }
+    fn transform(&self) -> Matrix {
+        let mut t = [[0.0; 12]; 12];
+        for start in [0, 3, 6, 9] {
+            for (i, axis) in self.axes.iter().enumerate() {
+                t[start + i][start..start + 3].copy_from_slice(axis);
+            }
+        }
+        t
+    }
+    pub fn local_triplet(&self, v: [Real; 3]) -> EResult<[Real; 3]> {
+        vector(&v, 3, "Intensidad global")?;
+        let mut out = [0.0; 3];
+        for (r, axis) in out.iter_mut().zip(self.axes) {
+            *r = finite(
+                axis.iter().zip(v).map(|(a, v)| a * v).sum(),
+                "Intensidad local",
+            )?;
+        }
+        Ok(out)
+    }
+    pub fn global_triplet(&self, v: [Real; 3]) -> EResult<[Real; 3]> {
+        vector(&v, 3, "Intensidad local")?;
+        let mut out = [0.0; 3];
+        for (i, r) in out.iter_mut().enumerate() {
+            *r = finite(
+                (0..3).map(|a| self.axes[a][i] * v[a]).sum(),
+                "Intensidad global",
+            )?;
+        }
+        Ok(out)
+    }
+    pub fn local_vector(&self, u: &[Real]) -> EResult<[Real; 12]> {
+        vector(u, 12, "u_e (m/rad)")?;
+        multiply(&self.transform(), u)
+    }
+    pub fn global_vector(&self, f: &[Real; 12]) -> EResult<[Real; 12]> {
+        crate::release::force(f, &self.transform())
+    }
+    pub fn global_matrix(&self, m: &Matrix) -> EResult<DMat> {
+        let global = crate::release::project(m, &self.transform())?;
+        DMat::new(12, 12, global.into_iter().flatten().collect())
+    }
+}
+pub(crate) fn multiply(m: &Matrix, u: &[Real]) -> EResult<[Real; 12]> {
+    let mut f = [0.0; 12];
+    for (v, row) in f.iter_mut().zip(m) {
+        *v = finite(
+            row.iter().zip(u).map(|(k, u)| k * u).sum(),
+            "Producto matriz/vector",
+        )?;
+    }
+    Ok(f)
+}
