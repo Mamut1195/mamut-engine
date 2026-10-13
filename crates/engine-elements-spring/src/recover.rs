@@ -13,6 +13,15 @@ pub(crate) fn output(
 ) -> EResult<ElementOutput> {
     geometry::validate(s, ctx)?;
     let force = stiffness::force(s, u, committed)?;
+    output_with_force(s, force, member_loads, stations)
+}
+
+pub(crate) fn output_with_force(
+    s: &LinearSpring,
+    force: Real,
+    member_loads: &[MemberLoad],
+    stations: &[Real],
+) -> EResult<ElementOutput> {
     for load in member_loads {
         loads::validate(load)?;
     }

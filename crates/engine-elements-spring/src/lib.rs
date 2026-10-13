@@ -1,7 +1,17 @@
-//! Resorte `spring.linear`, contrato element/1, sin historia ni pretensión.
+//! Resortes `spring.linear` y `spring.nonlinear`, contrato element/1.
 //!
-//! La API directa [`LinearSpring::new`] admite uno o varios GDL locales de la
-//! misma familia (traslaciones o giros), que comparten una rigidez k≥0:
+//! [`NonlinearSpring`] conserva una ley `uniaxial/1` resuelta. Usa longitud y
+//! área unitarias: ε=δ, σ=F; la tabla de la ley expresa desplazamiento y fuerza,
+//! sin convertir una curva tensión-deformación de material automáticamente.
+//! Su historia es exactamente la de la ley. `respond` solo produce una prueba;
+//! el llamador hace commit sustituyendo su historia aceptada por `trial_state`
+//! tras converger, o revert descartando la prueba y conservando la aceptada.
+//! La tangente es (dF/dδ)bbᵀ, con eje fijo y sin rigidez geométrica.
+//! Los quiebres, gaps, pretensión y rango físico dependen de la ley seleccionada.
+//! Para giros la interpretación equivalente es ε=θ, σ=M, tangente N·m/rad.
+//!
+//! En `spring.linear`, la API directa [`LinearSpring::new`] admite uno o varios GDL
+//! locales de la misma familia (traslaciones o giros), que comparten una rigidez k≥0:
 //! δ es la SUMA de sus desplazamientos relativos, energía
 //! W=½kδ². Esto acopla los GDL; resortes independientes requieren elementos
 //! separados. Entre nodos δ=c·(u_j−u_i); a tierra δ=c·u_i. Para un GDL,
@@ -50,6 +60,7 @@ mod geometric;
 mod geometry;
 mod loads;
 mod mass;
+mod nonlinear;
 mod recover;
 mod stiffness;
 
@@ -58,6 +69,7 @@ use engine_core::{ContractId, Dim, Dof, EResult, EngineError, Real};
 use engine_linalg::DMat;
 pub use factory::SpringFactory;
 pub use geometry::SpringAxes;
+pub use nonlinear::NonlinearSpring;
 
 /// Conexión del resorte; el orden nodal entre extremos es i, j.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

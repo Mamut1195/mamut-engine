@@ -10,5 +10,6 @@ engine-contracts = { path = "../engine-contracts" }
 engine-linalg = { path = "../engine-linalg" }
 
 [dev-dependencies]
+engine-laws = { path = "../engine-laws" }
 engine-assembly = { path = "../engine-assembly" }
 engine-model = { path = "../engine-model" }

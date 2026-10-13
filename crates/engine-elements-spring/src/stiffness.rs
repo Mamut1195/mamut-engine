@@ -52,14 +52,18 @@ pub(crate) fn vector(s: &LinearSpring, force: Real, local: bool) -> EResult<Vec<
 }
 
 pub(crate) fn matrix(s: &LinearSpring) -> EResult<DMat> {
+    matrix_with_tangent(s, s.k)
+}
+
+pub(crate) fn matrix_with_tangent(s: &LinearSpring, tangent: Real) -> EResult<DMat> {
     let b = vector(s, 1.0, false)?;
     let n = b.len();
     let mut values = vec![0.0; n * n];
     for i in 0..n {
         for j in 0..=i {
             let v = finite(
-                s.k * finite(b[i] * b[j], "Acoplamiento bbᵀ")?,
-                "Rigidez kbbᵀ",
+                tangent * finite(b[i] * b[j], "Acoplamiento bbᵀ")?,
+                "Rigidez tangente bbᵀ",
             )?;
             values[i * n + j] = v;
             values[j * n + i] = v;
