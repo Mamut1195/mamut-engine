@@ -1,9 +1,15 @@
-//! Materiales elásticos `elastic` y `multilinear_elastic`, contrato `uniaxial/1`.
+//! Leyes uniaxiales `uniaxial/1`: elásticas (`elastic`, `multilinear_elastic`) y
+//! de plasticidad con historia (`steel.bilinear_kinematic`).
 
 mod multilinear;
 pub use multilinear::{
     MultilinearElastic, MultilinearElasticFactory, MultilinearElasticParams, MultilinearMode,
     MULTILINEAR_ELASTIC,
+};
+mod steel_bilinear;
+pub use steel_bilinear::{
+    SteelBilinearKinematic, SteelBilinearKinematicFactory, SteelBilinearKinematicParams,
+    STEEL_BILINEAR_KINEMATIC,
 };
 
 use crate::{finite, positive, vector, LawDescriptor};

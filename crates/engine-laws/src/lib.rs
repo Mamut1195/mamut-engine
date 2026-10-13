@@ -1,8 +1,10 @@
-//! Leyes constitutivas elásticas, puras y sin dependencias externas.
+//! Leyes constitutivas puras, sin dependencias externas.
 //!
 //! [`uniaxial::Elastic`] y [`uniaxial::MultilinearElastic`] implementan
 //! `uniaxial/1` (kinds `elastic` y `multilinear_elastic`), y
 //! [`section::ElasticFrame`] implementa `section/1` (kind `elastic_frame`).
+//! [`uniaxial::SteelBilinearKinematic`] implementa `uniaxial/1`, con historia
+//! de plasticidad y kind `steel.bilinear_kinematic`.
 //! Los parámetros y resultados usan SI; no hay conversión de unidades, cálculo
 //! geométrico ni registro global. Las fábricas tipadas permiten construir
 //! objetos de los traits de `engine-contracts` sin acoplar al consumidor a una
