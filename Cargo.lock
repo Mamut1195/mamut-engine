@@ -128,3 +128,17 @@ version = "0.1.0"
 dependencies = [
  "engine-core",
 ]
+
+[[package]]
+name = "engine-validation"
+version = "0.1.0"
+dependencies = [
+ "engine-analysis",
+ "engine-assembly",
+ "engine-contracts",
+ "engine-core",
+ "engine-elements-frame",
+ "engine-elements-truss",
+ "engine-linalg",
+ "engine-model",
+]

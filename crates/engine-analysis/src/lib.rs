@@ -2,8 +2,8 @@
 //!
 //! `static.linear` resuelve casos independientes con una única factorización
 //! de K_ff. Incluye asentamientos sin escalarlos por el factor de carga; no modifica el estado
-//! aceptado o de prueba. No interpreta combinaciones declarativas del modelo:
-//! el llamador debe declarar su carga combinada como un caso del sistema.
+//! aceptado o de prueba. El módulo `combination` superpone resultados usando
+//! combinaciones declarativas del modelo; `StaticLinear` resuelve solo casos.
 //! Con prescritos nulos, u(A+B)=u(A)+u(B); con asentamientos, se resta una vez
 //! la solución sin carga u(0). No incorpora Kg, iteraciones ni regularización.
 //!
@@ -16,6 +16,7 @@
 //! de mano derecha, y los pares nodales. No usa el RHS reducido para esta suma.
 #![deny(missing_docs)]
 
+pub mod combination;
 pub mod results;
 
 use engine_assembly::{LinearSystem, Reaction};

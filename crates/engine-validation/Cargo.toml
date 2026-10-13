@@ -1,0 +1,16 @@
+[package]
+name = "engine-validation"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dev-dependencies]
+engine-core = { path = "../engine-core" }
+engine-contracts = { path = "../engine-contracts" }
+engine-model = { path = "../engine-model" }
+engine-linalg = { path = "../engine-linalg" }
+engine-assembly = { path = "../engine-assembly" }
+engine-elements-truss = { path = "../engine-elements-truss" }
+engine-elements-frame = { path = "../engine-elements-frame" }
+engine-analysis = { path = "../engine-analysis" }

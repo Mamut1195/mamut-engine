@@ -461,11 +461,28 @@ fn recover_member(
             output = recover_output(m, &ctx, &u, &loads, &stations)?;
         }
     }
-    let first = output
+    let stations: Vec<_> = output
         .stations
+        .into_iter()
+        .map(|s| StationResult {
+            position: s.position,
+            forces_local: s.forces_local,
+        })
+        .collect();
+    Ok(MemberResult {
+        id: m.id,
+        end_forces_local: output.end_forces_local,
+        extremes: station_extremes(&stations)?,
+        stations,
+    })
+}
+
+/// Extremos algebraicos de las estaciones, conservando la primera en empates.
+pub(crate) fn station_extremes(stations: &[StationResult]) -> EResult<Vec<FieldExtremes>> {
+    let first = stations
         .first()
-        .ok_or_else(|| error("ENG-E-0012", "Recuperación sin estaciones."))?;
-    let extremes = FORCE_FIELDS
+        .ok_or_else(|| error("ENG-E-0010", "Miembro sin estaciones."))?;
+    Ok(FORCE_FIELDS
         .iter()
         .enumerate()
         .map(|(i, &field)| {
@@ -475,7 +492,7 @@ fn recover_member(
             };
             let mut max = start;
             let mut min = start;
-            for s in &output.stations {
+            for s in stations {
                 let candidate = Extreme {
                     value: s.forces_local[i],
                     at_station: s.position,
@@ -489,20 +506,7 @@ fn recover_member(
             }
             FieldExtremes { field, max, min }
         })
-        .collect();
-    Ok(MemberResult {
-        id: m.id,
-        end_forces_local: output.end_forces_local,
-        stations: output
-            .stations
-            .into_iter()
-            .map(|s| StationResult {
-                position: s.position,
-                forces_local: s.forces_local,
-            })
-            .collect(),
-        extremes,
-    })
+        .collect())
 }
 
 fn recover_output(
