@@ -1,6 +1,7 @@
 //! Leyes constitutivas elásticas, puras y sin dependencias externas.
 //!
-//! [`uniaxial::Elastic`] implementa `uniaxial/1` (kind `elastic`) y
+//! [`uniaxial::Elastic`] y [`uniaxial::MultilinearElastic`] implementan
+//! `uniaxial/1` (kinds `elastic` y `multilinear_elastic`), y
 //! [`section::ElasticFrame`] implementa `section/1` (kind `elastic_frame`).
 //! Los parámetros y resultados usan SI; no hay conversión de unidades, cálculo
 //! geométrico ni registro global. Las fábricas tipadas permiten construir

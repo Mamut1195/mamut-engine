@@ -1,4 +1,10 @@
-//! Material elástico lineal `elastic`, contrato `uniaxial/1`.
+//! Materiales elásticos `elastic` y `multilinear_elastic`, contrato `uniaxial/1`.
+
+mod multilinear;
+pub use multilinear::{
+    MultilinearElastic, MultilinearElasticFactory, MultilinearElasticParams, MultilinearMode,
+    MULTILINEAR_ELASTIC,
+};
 
 use crate::{finite, positive, vector, LawDescriptor};
 use engine_contracts::{UniaxialLaw, UniaxialResponse};
