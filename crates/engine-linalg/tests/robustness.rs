@@ -322,3 +322,28 @@ fn generalized_eigen_with_extreme_mass_scaling() {
     assert!((e.eigenvalues[0] / 0.01 - 1.0).abs() < 1e-12);
     assert!((e.eigenvalues[1] / 1e9 - 1.0).abs() < 1e-12);
 }
+
+#[test]
+fn empty_factorization_solve_with_huge_rhs_columns_terminates() {
+    // Preexistente (J4): factorize(0×0) + solve_in_place(B 0×usize::MAX) no terminaba.
+    let a = SymMatrix::new(DMat::zeros(0, 0).unwrap()).unwrap();
+    let f = ReferenceBackend.factorize(&a).unwrap();
+    let mut b = DMat::zeros(0, usize::MAX).unwrap();
+    f.solve_in_place(&mut b).unwrap();
+    assert_eq!((b.rows(), b.cols()), (0, usize::MAX));
+    // Filas incompatibles siguen siendo error.
+    let mut bad = DMat::zeros(1, 3).unwrap();
+    assert!(f.solve_in_place(&mut bad).is_err());
+}
+
+#[test]
+fn rhs_spanning_more_than_1e300_loses_the_small_component_documented_limit() {
+    // Documenta el límite de #36: b=[1e300, 1e-30] → el componente pequeño se pierde
+    // (ver doc de LinAlgBackend). La solución grande sigue siendo correcta.
+    let a = SymMatrix::new(dmat(2, 2, &[2.0, 0.0, 0.0, 2.0])).unwrap();
+    let f = ReferenceBackend.factorize(&a).unwrap();
+    let mut b = dmat(2, 1, &[1e300, 1e-30]);
+    f.solve_in_place(&mut b).unwrap();
+    assert_eq!(b.values()[0], 5e299);
+    assert!(b.values()[1] == 0.0 || (b.values()[1] - 5e-31).abs() <= 5e-31);
+}

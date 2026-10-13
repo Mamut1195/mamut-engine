@@ -154,3 +154,23 @@ fn recovered_backend_panic_does_not_leave_budget_charged() {
         "peak documenta el conjunto de trabajo cargado"
     );
 }
+
+#[test]
+fn error_order_does_not_depend_on_the_budget() {
+    // Forma incompatible: mismo error con presupuesto holgado o diminuto.
+    let a = dmat(2, 2, &[1.0, 0.0, 0.0, 1.0]);
+    let b = dmat(3, 1, &[1.0, 1.0, 1.0]);
+    let big = MemoryBudget::new(1 << 30)
+        .solve_dense(&mut ReferenceBackend, &a, &b)
+        .unwrap_err();
+    let tiny = MemoryBudget::new(1)
+        .solve_dense(&mut ReferenceBackend, &a, &b)
+        .unwrap_err();
+    assert_eq!(big.code, tiny.code);
+    // Con forma válida y presupuesto insuficiente: ENG-E-0013.
+    let ok_b = dmat(2, 1, &[1.0, 1.0]);
+    let e = MemoryBudget::new(1)
+        .solve_dense(&mut ReferenceBackend, &a, &ok_b)
+        .unwrap_err();
+    assert_eq!(e.code, "ENG-E-0013");
+}

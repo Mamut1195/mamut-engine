@@ -368,6 +368,11 @@ impl SymFactorization for Ldlt {
     }
     fn solve_in_place(&self, b: &mut DMat) -> EResult<()> {
         size(b.rows(), self.n)?;
+        if self.n == 0 {
+            // Sin incógnitas no hay nada que resolver: evita recorrer `cols`
+            // columnas (con B 0×usize::MAX el bucle no terminaba).
+            return Ok(());
+        }
         let mut x = b.clone();
         for rhs in 0..b.cols() {
             // La escala de la RHS es la de b (sin equilibrar): b·s puede desbordar

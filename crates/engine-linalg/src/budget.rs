@@ -111,6 +111,12 @@ impl MemoryBudget {
         a: &DMat,
         b: &DMat,
     ) -> EResult<DMat> {
+        // Orden de errores independiente del presupuesto: primero la forma de los
+        // operandos (la valida el backend sin reservar nada), después desborde de
+        // tamaños y por último el presupuesto (ENG-E-0013).
+        if a.rows() != a.cols() || b.rows() != a.rows() {
+            return backend.solve_dense(a, b);
+        }
         let overflow = || invalid("Tamaño matricial desbordado.");
         let a_bytes = dense_bytes(a.rows(), a.cols()).ok_or_else(overflow)?;
         let b_bytes = dense_bytes(b.rows(), b.cols()).ok_or_else(overflow)?;

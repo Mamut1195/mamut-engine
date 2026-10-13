@@ -94,6 +94,10 @@ pub struct GeneralizedEigen {
 /// moderado, pero no se promete para rangos extremos. Un pivote es
 /// numéricamente singular si su módulo es
 /// ≤ `64 ε max(n,1)` tras dividir la matriz (equilibrada) por su entrada de mayor módulo.
+/// LÍMITE de `solve_in_place`: cada columna de `b` se normaliza por su entrada de
+/// mayor módulo; si las entradas de una misma columna abarcan más de ~1e300 de
+/// rango (cociente < ~1e-300) el componente pequeño subdesborda y se pierde
+/// (aporta 0 a la solución). Es un límite de f64 y no se señala como error.
 /// Por ello no se garantiza resolver matrices muy mal condicionadas. La
 /// política es numérica, adimensional y explícita; no es una tolerancia física.
 pub trait LinAlgBackend {
