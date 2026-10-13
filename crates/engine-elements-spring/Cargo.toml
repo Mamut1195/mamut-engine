@@ -1,0 +1,14 @@
+[package]
+name = "engine-elements-spring"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+engine-core = { path = "../engine-core" }
+engine-contracts = { path = "../engine-contracts" }
+engine-linalg = { path = "../engine-linalg" }
+
+[dev-dependencies]
+engine-assembly = { path = "../engine-assembly" }
+engine-model = { path = "../engine-model" }
