@@ -372,6 +372,47 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         Ok(solution.values().to_vec())
     }
 
+    /// Resuelve varios casos independientes con UNA factorización de K_ff.
+    ///
+    /// Conserva el orden de entrada y no acepta ni modifica pruebas. Cada RHS
+    /// es `factor F_f - K_fp u_p`: los prescritos no se escalan. Valida todos
+    /// los casos antes de factorizar. ENG-E-0010 por lista vacía o nombres
+    /// duplicados; ENG-E-0003 por caso ausente; ENG-E-0008 por no finitos.
+    /// Traduce errores del backend igual que [`Self::solve`], incluidos
+    /// mecanismos ENG-E-0006 con nodo/GDL y diagnósticos inválidos ENG-E-0012.
+    pub fn solve_cases(&mut self, cases: &[(CaseRef, Real)]) -> EResult<Vec<Vec<Real>>> {
+        if cases.is_empty() {
+            return Err(error("ENG-E-0010", "Lista de casos vacía."));
+        }
+        let mut names = BTreeSet::new();
+        for (case, _) in cases {
+            if !names.insert(&case.0) {
+                return Err(error("ENG-E-0010", "Caso duplicado en análisis."));
+            }
+        }
+        let rhs = cases
+            .iter()
+            .map(|(case, factor)| {
+                DMat::new(self.n_free_dofs(), 1, self.reduced_rhs(case, *factor)?)
+            })
+            .collect::<EResult<Vec<_>>>()?;
+        let factorization = self
+            .backend
+            .factorize(&self.k_free)
+            .map_err(|e| self.translate_solver_error(e))?;
+        rhs.iter()
+            .map(|rhs| {
+                let solution = factorization
+                    .solve(rhs)
+                    .map_err(|e| self.translate_solver_error(e))?;
+                size(solution.rows(), self.n_free_dofs())?;
+                size(solution.cols(), 1)?;
+                finite(solution.values())?;
+                Ok(solution.values().to_vec())
+            })
+            .collect()
+    }
+
     /// Recupera R = K_pf u_f + K_pp u_p − factor F_p sobre todo GDL prescrito:
     /// los restringidos por apoyos y los de desplazamiento impuesto (asentamiento).
     /// No existe reacción en un GDL libre. Orden global estable; unidades
@@ -417,7 +458,9 @@ impl<B: LinAlgBackend> LinearSystem<B> {
                         "El solver informó un GDL reducido inexistente.",
                     );
                 };
-                let (node, dof) = self.map.label(global).expect("Mapa inmutable validado");
+                let Ok((node, dof)) = self.map.label(global) else {
+                    return error("ENG-E-0012", "El solver informó un GDL global inexistente.");
+                };
                 e.message.push_str(&format!(
                     " Nodo {}, GDL {dof} (global {}).",
                     node.0, global.0

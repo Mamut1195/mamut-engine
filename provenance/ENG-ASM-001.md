@@ -235,3 +235,9 @@ REQUERIDOS (código ENG-E-0009 mal usado, test de masa consistente, comentario);
 corregido en esta rama.
 
 Seguimiento 2026-10-11: ENG-E-0013 «Capacidad no soportada» en el catálogo de engine-core (test de unicidad/estabilidad); `geometric(u)` ≠ referencia usa ahora ENG-E-0013 en lugar de ENG-E-0010.
+
+Seguimiento ENG-ANL-001 (2026-10-11): `LinearSystem::solve_cases` reutiliza una
+factorización para varios casos y `DofMap::coordinates` conserva los brazos
+nodales. Derivaciones, autoría, pruebas y revisión pendiente de esta ampliación:
+[provenance/ENG-ANL-001.md](ENG-ANL-001.md). El revisor de la implementación
+original no se atribuye a esta ampliación.

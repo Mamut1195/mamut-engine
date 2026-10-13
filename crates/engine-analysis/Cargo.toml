@@ -1,0 +1,16 @@
+[package]
+name = "engine-analysis"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+engine-core = { path = "../engine-core" }
+engine-contracts = { path = "../engine-contracts" }
+engine-linalg = { path = "../engine-linalg" }
+engine-assembly = { path = "../engine-assembly" }
+
+[dev-dependencies]
+engine-model = { path = "../engine-model" }
+engine-elements-truss = { path = "../engine-elements-truss" }
+engine-elements-frame = { path = "../engine-elements-frame" }

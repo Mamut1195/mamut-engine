@@ -1,6 +1,6 @@
 //! Numeración global estable de los GDL declarados por los nodos.
 use crate::{error, finite};
-use engine_core::{Dof, DofIndex, EResult, EntityRef, NodeId};
+use engine_core::{Dof, DofIndex, EResult, EntityRef, NodeId, Real};
 use engine_model::Node;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -15,6 +15,7 @@ pub struct DofMap {
     labels: Vec<(NodeId, Dof)>,
     indices: BTreeMap<(NodeId, usize), DofIndex>,
     nodes: BTreeSet<NodeId>,
+    coordinates: BTreeMap<NodeId, [Real; 3]>,
 }
 
 impl DofMap {
@@ -57,6 +58,7 @@ impl DofMap {
             labels: Vec::new(),
             indices: BTreeMap::new(),
             nodes: ordered.keys().copied().collect(),
+            coordinates: ordered.iter().map(|(&id, n)| (id, n.coordinates)).collect(),
         };
         for (id, node) in ordered {
             for &dof in node.dim.dofs() {
@@ -79,6 +81,17 @@ impl DofMap {
     /// Indica si no hay GDL; un mapa construido correctamente nunca está vacío.
     pub fn is_empty(&self) -> bool {
         self.labels.is_empty()
+    }
+
+    /// Coordenadas globales originales en m para brazos de fuerzas (D2: XY,
+    /// Z=0 por convención; D3: XYZ). No transforma ni proyecta coordenadas.
+    /// ENG-E-0003 por nodo ausente.
+    pub fn coordinates(&self, node: NodeId) -> EResult<[Real; 3]> {
+        self.coordinates.get(&node).copied().ok_or_else(|| {
+            let mut e = error("ENG-E-0003", "Nodo sin coordenadas en el mapa.");
+            e.entities.push(EntityRef::Node(node));
+            e
+        })
     }
 
     pub(crate) fn contains_node(&self, node: NodeId) -> bool {

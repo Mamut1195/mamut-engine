@@ -537,6 +537,7 @@ fn inconsistent_backend_diagnostic_uses_catalog_error() {
         )
         .unwrap();
         code(s.solve(&case(), 1.0), "ENG-E-0012");
+        code(s.solve_cases(&[(case(), 1.0)]), "ENG-E-0012");
     }
 }
 
