@@ -18,6 +18,46 @@ pub struct MemoryBudget {
 
 const F64: usize = std::mem::size_of::<Real>();
 
+/// Cota superior del almacenamiento de heap que RETIENE una factorización del
+/// backend de referencia de orden `n`: L densa, D, diagonal secundaria, bloques
+/// (capacidad reservada n), permutación, escalas y cabecera del factor en su Box.
+/// No incluye la entrada ni metadatos internos del allocator. `None` si desborda.
+pub fn factor_bytes(n: usize) -> Option<usize> {
+    let vectors =
+        n.checked_mul(3 * std::mem::size_of::<f64>() + 2 * std::mem::size_of::<usize>())?;
+    dense_bytes(n, n)?
+        .checked_add(vectors)?
+        .checked_add(crate::reference::FACTOR_HEADER_BYTES)
+}
+
+/// Cota del trabajo TRANSITORIO: balanced y la copia normalizada a siguen vivas
+/// junto con L en LDLᵀ. Las filas temporales del equilibrado (n valores) caben
+/// en estas dos matrices para n>0; para n=0 no reservan. `None` si desborda.
+fn factor_working_bytes(n: usize) -> Option<usize> {
+    dense_bytes(n, n)?.checked_mul(2)
+}
+
+/// Cota superior del trabajo TRANSITORIO de `generalized_eigen` de orden `n`
+/// en el backend de referencia: nueve matrices densas n×n (Cholesky, inversa,
+/// productos, Jacobi y capacidad sobrante al recoger los modos), más vectores
+/// auxiliares y cabecera LDLᵀ para el diagnóstico de masa rechazada por Cholesky.
+/// Excluye las entradas y el resultado (n² de modos + n autovalores), que
+/// `MemoryBudget::generalized_eigen` carga aparte. No incluye metadatos internos
+/// del allocator. `None` si desborda.
+pub fn eigen_working_bytes(n: usize) -> Option<usize> {
+    // Equilibrado, filas temporales, D y diagonal secundaria: cuatro vectores
+    // Real; bloques/permutación o índices/espacio del ordenamiento: dos usize.
+    let auxiliary = n.checked_mul(4 * F64 + 2 * std::mem::size_of::<usize>())?;
+    dense_bytes(n, n)?
+        .checked_mul(9)?
+        .checked_add(auxiliary)?
+        .checked_add(crate::reference::FACTOR_HEADER_BYTES)
+}
+
+fn eigen_result_bytes(n: usize) -> Option<usize> {
+    dense_bytes(n, n)?.checked_add(n.checked_mul(std::mem::size_of::<f64>())?)
+}
+
 /// Bytes de una matriz densa `rows × cols` de `Real`; `None` si desborda.
 pub fn dense_bytes(rows: usize, cols: usize) -> Option<usize> {
     rows.checked_mul(cols)?.checked_mul(F64)
@@ -89,6 +129,66 @@ impl MemoryBudget {
         if let Some(b) = dense_bytes(m.rows(), m.cols()) {
             self.release(b);
         }
+    }
+    /// Factoriza `a` cargando antes el presupuesto (retenido + trabajo). Éxito: queda
+    /// cargada solo la factorización retenida (`factor_bytes(n)`; libérala con
+    /// `release` al soltarla); error o pánico recuperado: `used` intacto.
+    /// Orden de errores: forma/desborde de tamaño → presupuesto (ENG-E-0013) → backend.
+    /// La cota cubre el almacenamiento numérico del backend de referencia;
+    /// otros backends y la construcción de mensajes de error no están acotados.
+    pub fn factorize<B: LinAlgBackend>(
+        &mut self,
+        backend: &mut B,
+        a: &SymMatrix,
+    ) -> EResult<Box<dyn SymFactorization>> {
+        let overflow = || invalid("Tamaño matricial desbordado.");
+        let n = a.order();
+        let retained = factor_bytes(n).ok_or_else(overflow)?;
+        let total = retained
+            .checked_add(factor_working_bytes(n).ok_or_else(overflow)?)
+            .ok_or_else(overflow)?;
+        self.charge(total)?;
+        let mut guard = ReleaseOnDrop {
+            budget: self,
+            bytes: total,
+        };
+        let result = backend.factorize(a);
+        if result.is_ok() {
+            guard.bytes = total - retained;
+        }
+        drop(guard);
+        result
+    }
+    /// Autovalores generalizados con presupuesto: carga el conjunto de trabajo
+    /// (`eigen_working_bytes(n)`) más el resultado; éxito: quedan cargados solo los
+    /// bytes del resultado (n² + n valores `f64`); error o pánico: `used` intacto.
+    /// La cota cubre el almacenamiento numérico del backend de referencia;
+    /// otros backends y la construcción de mensajes de error no están acotados.
+    pub fn generalized_eigen<B: LinAlgBackend>(
+        &mut self,
+        backend: &mut B,
+        k: &SymMatrix,
+        m: &SymMatrix,
+    ) -> EResult<GeneralizedEigen> {
+        if k.order() != m.order() {
+            return backend.generalized_eigen(k, m);
+        }
+        let overflow = || invalid("Tamaño matricial desbordado.");
+        let n = k.order();
+        let work = eigen_working_bytes(n).ok_or_else(overflow)?;
+        let result_bytes = eigen_result_bytes(n).ok_or_else(overflow)?;
+        let total = work.checked_add(result_bytes).ok_or_else(overflow)?;
+        self.charge(total)?;
+        let mut guard = ReleaseOnDrop {
+            budget: self,
+            bytes: total,
+        };
+        let result = backend.generalized_eigen(k, m);
+        if result.is_ok() {
+            guard.bytes = work;
+        }
+        drop(guard);
+        result
     }
     /// Crea una matriz nula cargándola; el llamador la libera con `release_dense`.
     /// ENG-E-0013 si no cabe en el presupuesto; ENG-E-0010 por desborde/reserva.

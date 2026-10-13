@@ -174,3 +174,83 @@ fn error_order_does_not_depend_on_the_budget() {
         .unwrap_err();
     assert_eq!(e.code, "ENG-E-0013");
 }
+
+fn sym(n: usize, diag: f64) -> engine_linalg::SymMatrix {
+    let mut v = vec![0.0; n * n];
+    for i in 0..n {
+        v[i * n + i] = diag;
+    }
+    engine_linalg::SymMatrix::new(dmat(n, n, &v)).unwrap()
+}
+
+#[test]
+fn factorize_is_charged_keeps_only_the_factorization_and_respects_the_limit() {
+    use engine_linalg::{factor_bytes, LinAlgBackend};
+    let a = sym(8, 4.0);
+    let retained = factor_bytes(8).unwrap();
+    let mut budget = MemoryBudget::new(1 << 20);
+    let f = budget.factorize(&mut ReferenceBackend, &a).unwrap();
+    assert_eq!(budget.used(), retained);
+    assert!(
+        budget.peak() > retained,
+        "peak incluye el trabajo transitorio"
+    );
+    let mut b = dmat(8, 1, &[1.0; 8]);
+    f.solve_in_place(&mut b).unwrap();
+    assert!((b.values()[0] - 0.25).abs() < 1e-14);
+    budget.release(retained);
+    assert_eq!(budget.used(), 0);
+    // Presupuesto insuficiente: ENG-E-0013 sin alterar `used`.
+    let mut tiny = MemoryBudget::new(retained);
+    assert_eq!(
+        tiny.factorize(&mut ReferenceBackend, &a)
+            .err()
+            .unwrap()
+            .code,
+        "ENG-E-0013"
+    );
+    assert_eq!(tiny.used(), 0);
+    // Error del backend (singular): `used` intacto.
+    let singular = sym(4, 0.0);
+    let mut budget = MemoryBudget::new(1 << 20);
+    assert!(budget.factorize(&mut ReferenceBackend, &singular).is_err());
+    assert_eq!(budget.used(), 0);
+    let _ = ReferenceBackend.name();
+}
+
+#[test]
+fn generalized_eigen_is_charged_and_respects_the_limit() {
+    use engine_linalg::eigen_working_bytes;
+    let k = sym(6, 3.0);
+    let m = sym(6, 1.0);
+    let work = eigen_working_bytes(6).unwrap();
+    let mut budget = MemoryBudget::new(1 << 22);
+    let r = budget
+        .generalized_eigen(&mut ReferenceBackend, &k, &m)
+        .unwrap();
+    assert_eq!(r.eigenvalues.len(), 6);
+    assert!((r.eigenvalues[0] - 3.0).abs() < 1e-12);
+    assert_eq!(budget.used(), dense_bytes(6, 6).unwrap() + 6 * 8);
+    assert!(budget.peak() >= work);
+    let mut small = MemoryBudget::new(work);
+    assert_eq!(
+        small
+            .generalized_eigen(&mut ReferenceBackend, &k, &m)
+            .err()
+            .unwrap()
+            .code,
+        "ENG-E-0013"
+    );
+    assert_eq!(small.used(), 0);
+    // Órdenes distintos: el error no depende del presupuesto.
+    let m3 = sym(3, 1.0);
+    let a = MemoryBudget::new(1)
+        .generalized_eigen(&mut ReferenceBackend, &k, &m3)
+        .err()
+        .unwrap();
+    let b = MemoryBudget::new(1 << 30)
+        .generalized_eigen(&mut ReferenceBackend, &k, &m3)
+        .err()
+        .unwrap();
+    assert_eq!(a.code, b.code);
+}

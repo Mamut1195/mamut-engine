@@ -233,6 +233,9 @@ struct Ldlt {
     scale: Real,
     info: FactorInfo,
 }
+// El factor se devuelve en un Box: su cabecera también ocupa heap, incluso n=0.
+pub(crate) const FACTOR_HEADER_BYTES: usize = std::mem::size_of::<Ldlt>();
+
 impl Ldlt {
     fn new(matrix: &SymMatrix) -> EResult<Self> {
         let n = matrix.order();
@@ -248,7 +251,8 @@ impl Ldlt {
             l: identity(n)?.values,
             d: vec![0.0; n],
             off: vec![0.0; n],
-            blocks: vec![],
+            // Como máximo hay n pivotes 1×1; evitar crecimiento y capacidad sobrante.
+            blocks: Vec::with_capacity(n),
             permutation: (0..n).collect(),
             scale,
             info: FactorInfo {

@@ -24,7 +24,7 @@ mod budget;
 mod matrix;
 mod reference;
 mod sparse;
-pub use budget::{dense_bytes, sparse_bytes, MemoryBudget};
+pub use budget::{dense_bytes, eigen_working_bytes, factor_bytes, sparse_bytes, MemoryBudget};
 pub use matrix::{DMat, SparsityPattern, SymMatrix};
 pub use reference::ReferenceBackend;
 pub use sparse::{SparseMatrix, Triplet};
