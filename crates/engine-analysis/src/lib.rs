@@ -16,6 +16,8 @@
 //! de mano derecha, y los pares nodales. No usa el RHS reducido para esta suma.
 #![deny(missing_docs)]
 
+pub mod results;
+
 use engine_assembly::{LinearSystem, Reaction};
 use engine_contracts::CaseRef;
 use engine_core::{DofIndex, EResult, EngineError, Real};
