@@ -25,6 +25,7 @@
 //! ```
 #![deny(missing_docs)]
 
+pub mod mass;
 mod nodal;
 mod span;
 mod weight;

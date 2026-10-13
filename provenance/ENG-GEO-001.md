@@ -1,7 +1,7 @@
 # Bitácora clean-room · ENG-GEO-001
 
 - Ticket / PR: ENG-GEO-001 (Perfil de suelo para análisis); PR #14, fusionado en `main` (3e3c2b8); seguimiento en la rama `j2/geo-001-followup`.
-- Autor(es): Codex gpt-6.1-sol, esfuerzo high, bajo dirección de J2 · 2026-10-11 (America/Guayaquil; fecha indicada para esta bitácora).
+- Autor(es): J2 (agente, Grok Bot), 2026-10-11 (America/Guayaquil), etiqueta solicitada por el usuario. Implementación histórica registrada: Codex gpt-6.1-sol, esfuerzo high, bajo dirección de J2. Actualización de metadatos en ENG-MASS-001: Codex basado en GPT-6.
 - Rol: especificador e implementador; sin actividad de operador de oráculo ni auditor de similitud.
 - Contrato implementado: crate `engine-geo` 0.1.0, registrado en el workspace, dependiente únicamente de `engine-core` por path. Trait propio `StressProfile: Send + Sync`, utilizable como `dyn StressProfile`, contrato `stress-profile/1` (mayor 1, menor 0). `StratifiedProfile` valida capas contiguas por espesor, nivel freático y peso unitario del agua; calcula tensión vertical total, presión de poro hidrostática y tensión efectiva. `GeoResult<T> = Result<T, Diagnostic>`, con códigos del catálogo del núcleo y contexto en `hint`. No implementa `element/1` ni ningún `kind` estructural.
 - Fuentes permitidas usadas:
@@ -13,8 +13,8 @@
 - Código de terceros copiado: ninguno. Implementación propia con biblioteca estándar y API interna de `engine-core`; sin dependencias adicionales, sin código ni datos de motor-geotecnico.
 - Validación: analítica, con resultados calculados a mano abajo y literales independientes en las pruebas; 14 pruebas unitarias y 3 doctests en el nuevo crate. Libro (edición, ejemplo, página): **PENDIENTE: verificar edición/página**. Ejemplo publicado: ninguno; los casos A–H son propios. Workspace completo: 57 pruebas unitarias y 28 doctests satisfactorios. Verificación de formato, clippy, tests y rustdoc detallada abajo; sin ejecución de CI remota.
 - Comparación con oráculo (repo hermano, informativa): no. No se ejecutó ni consultó OpenSees, CalculiX u otro motor.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket." Tampoco consulté CalculiX, motor-geotecnico ni código de otros motores de las rutas prohibidas. Código, diseño de API, documentación y fixtures escritos desde cero.
-- Revisor clean-room: J4 (2026-10-11): 0 hallazgos altos y 4 bajos; la firma y aprobación de Jonathan siguen pendientes. Referencia Das/Terzaghi/Cengage: **PENDIENTE** (edición y página sin verificar).
+- Declaración: 'No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados'. Código, diseño de API, documentación y fixtures propios.
+- Revisor clean-room: PENDIENTE (J4). Registro histórico: revisión J4 (2026-10-11), 0 hallazgos altos y 4 bajos; la firma y aprobación de Jonathan siguen pendientes. Referencia Das/Terzaghi/Cengage: **PENDIENTE** (edición y página sin verificar).
 
 ## Derivación por integración de peso propio
 

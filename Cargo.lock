@@ -115,6 +115,8 @@ dependencies = [
  "engine-contracts",
  "engine-core",
  "engine-elements-frame",
+ "engine-elements-truss",
+ "engine-linalg",
  "engine-model",
 ]
 

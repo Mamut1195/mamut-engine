@@ -1,4 +1,4 @@
-# engine-loads · ENG-LOAD-001
+# engine-loads · ENG-LOAD-001 / ENG-MASS-001
 
 Funciones puras en SI, con dependencias internas por ruta. No aplican factores
 normativos ni suponen una dirección de gravedad.
@@ -60,3 +60,43 @@ ENG-E-0011 del mapa. No se usa una tolerancia dimensional para L: se admiten
 longitudes positivas muy pequeñas. El elemento frame existente mantiene su
 propia tolerancia geométrica. El redondeo y subdesbordamiento siguen IEEE-754;
 no se garantiza precisión relativa para resultados subnormales.
+
+El módulo público `mass` reutiliza `engine_model::NodalMass`. Valida masas en
+kg e inercias en kg·m², referencias y GDL; `assemble_nodal_masses` devuelve la
+diagonal global y `assemble_nodal_mass_matrix` la matriz diagonal CSR. Se suman
+asignaciones con ids distintos y componentes repetidas, igual que en
+`LinearSystem`; los ids repetidos se rechazan. Ninguna operación modifica el modelo.
+
+Las masas elementales siguen procediendo de `Element::mass(ctx, MassKind)` y
+se pasan en `ElementContribution` a `LinearSystem::from_model`. Las masas
+nodales se añaden a ambas clases. `mass::system_total_mass(system, kind, d)`
+consulta `global_mass(kind)` y calcula `r_dᵀ M r_d`, incluidos los nodos apoyados:
+para cada dirección cartesiana, el resultado esperado es la suma de masas
+nodales de esa componente más Σrho·A·L de los elementos. En una dirección
+oblicua, una masa nodal diagonal aporta Σm_a·d̂_a². Los giros del vector rígido
+son cero. No se usa la traza de M, que no conserva masa consistente.
+La dirección se normaliza y cada nodo debe declarar todas sus componentes de
+traslación no nulas; una dirección Z en un modelo XY produce ENG-E-0011.
+
+`mass::masses_from_case(map, case, factor, d, g_usuario)` convierte cargas
+nodales en asignaciones `NodalMass`; `masses_from_system_case` incluye también
+las fuerzas equivalentes de los elementos del caso. Por nodo se calcula
+`m = |F·d̂|·factor/g_usuario` con fuerzas globales netas, antes de sumar las
+masas entre nodos. Los momentos se validan y no contribuyen. La masa escalar
+se asigna por igual a cada traslación declarada del nodo; no se crean inercias.
+La dirección selecciona el peso de origen. Para Fz=−120 N, factor=0.25,
+d=−Z y g_usuario=10 m/s², la masa es 3 kg en cada traslación.
+
+El factor debe ser finito y no negativo, y g_usuario finita y positiva; ambos
+son parámetros obligatorios. Se admiten factor cero y fuerzas de cualquier
+signo. `mass_from_force` permite la conversión escalar, y
+`masses_from_load_vector` recibe un vector global ya ensamblado y un prefijo
+de ids explícito. Los adaptadores de caso usan `mass:case:<nombre>:node:<id>`;
+al combinar fuentes, el llamador debe asegurar ids únicos y agregarlas
+explícitamente a `Model::masses` antes de construir el sistema. No se vuelven
+a añadir masas de elemento durante la conversión. Las masas negativas son
+ENG-E-0010; los no finitos y desbordamientos, incluidos intermedios, ENG-E-0008.
+Una masa positiva que se reduce a cero en el producto por factor o división
+por g se rechaza con ENG-E-0010. La normalización admite direcciones grandes
+y subnormales; no se garantiza precisión relativa de cantidades subnormales.
+Derivaciones y evidencia en [ENG-MASS-001](../../provenance/ENG-MASS-001.md).

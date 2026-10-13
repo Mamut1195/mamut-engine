@@ -9,6 +9,8 @@ engine-core = { path = "../engine-core" }
 engine-model = { path = "../engine-model" }
 engine-contracts = { path = "../engine-contracts" }
 engine-assembly = { path = "../engine-assembly" }
+engine-linalg = { path = "../engine-linalg" }
 
 [dev-dependencies]
 engine-elements-frame = { path = "../engine-elements-frame" }
+engine-elements-truss = { path = "../engine-elements-truss" }
