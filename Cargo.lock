@@ -95,6 +95,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-loads"
+version = "0.1.0"
+dependencies = [
+ "engine-assembly",
+ "engine-contracts",
+ "engine-core",
+ "engine-elements-frame",
+ "engine-model",
+]
+
+[[package]]
 name = "engine-model"
 version = "0.1.0"
 dependencies = [
