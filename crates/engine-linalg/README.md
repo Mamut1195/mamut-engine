@@ -76,14 +76,58 @@ de la feature final verifica el stub, no un adaptador faer funcional.
 La reincorporación requiere resolver ese alcance documental y volver a probar
 la dependencia optional con la configuración exacta anterior y la misma suite.
 El solver directo disperso con AMD y separación simbólica/numérica sigue en
-ENG-LA-008. Autovalores dispersos, eliminación de GDL sin masa, controles de
-Sturm y modos faltantes quedan en ENG-LA-009. **Nalgebra PENDIENTE**, sin dependencia
+ENG-LA-008. Autovalores dispersos y eliminación de GDL sin masa siguen pendientes.
+Los controles densos de Sturm y modos faltantes se implementan en ENG-LA-009.
+**Nalgebra PENDIENTE**, sin dependencia
 ni feature en esta entrega. Sprs-ldl permanece excluido.
 
 Se usan `f64::sqrt` y `hypot`; `cos` solo calcula el esperado analítico en tests.
 No se añadió libm: no es necesario para las pruebas nativas, y añadirlo como
 dependencia directa excedería la restricción de este ticket. La política de
 trascendentes y la igualdad bit a bit nativo/wasm siguen en ENG-CORE-010.
+
+## Modos inferiores densos · ENG-LA-009
+
+`backend.lowest_modes(&k, &m, count)` y la función libre `lowest_modes` devuelven
+`LowestModes`: autovalores ascendentes, columnas normalizadas a masa y
+`rigid_mode_count`. Son métodos compatibles con backends existentes: se reutiliza
+`generalized_eigen`, seguido de un conteo independiente de Sturm por LDLᵀ.
+No se añade ninguna dependencia ni se conecta MemoryBudget (#38/#50).
+
+`sturm_count(&mut backend, &k, &m, sigma)` cuenta λ<σ mediante la inercia negativa
+de K−σM; M se valida definida positiva. `symmetric_inertia` consulta el factor
+por defecto; la referencia reutiliza LDLᵀ admitiendo un bloque restante nulo
+solo para contar, sin exponer factores singulares para resolver. Un pivote 1×1
+negativo cuenta uno. En 2×2, det<0 cuenta uno; det>0 cuenta dos si la traza es
+negativa, cero si es positiva. Con det=0 se excluyen ceros y se usa la traza
+para el signo restante; la referencia elige un pivote 1×1 cuando el bloque es
+semidefinido, y los bloques 2×2 elegidos por predominio fuera de diagonal tienen
+det<0. La inercia se conserva por congruencia y equilibrado diagonal positivo.
+
+El control de completitud exige Sturm(σ)=count, con σ=λ_count(1+1e−7), y un piso
+λ_count+16·tol_cero para valores nulos o muy pequeños. La tolerancia numérica de
+cero es 128 ε n max|λ|; para K totalmente nula se usa σ=1e−7. No es tolerancia
+física. Un corte dentro de un autovalor múltiple o grupo separado por menos que
+ese margen devuelve **ENG-E-0007: MODOS FALTANTES / corte de multiplicidad**;
+se debe solicitar el grupo completo. Un conteo inferior también devuelve error.
+No se modifica K ni M para superar este control. Pivotes cerca de una raíz se
+clasifican con la tolerancia de LDLᵀ, no con exactitud matemática ilimitada.
+
+K semidefinida es válida. Los modos con |λ|≤tol_cero se entregan como λ=0 y
+se identifican como movimientos rígidos o posibles mecanismos. Distinguirlos
+requiere apoyos, conectividad y liberaciones del modelo; ENG-E-0006 corresponde
+a esos mecanismos en el análisis estático. λ<−tol_cero devuelve ENG-E-0010 con
+diagnóstico de rigidez indefinida/inestabilidad. Masa singular devuelve
+ENG-E-0006; masa indefinida, count>n u órdenes distintos, ENG-E-0010.
+count=0 devuelve n×0 sin factorizar, incluso si la masa es singular.
+
+Las pruebas cerradas de cadenas están en `tests/modes.rs`; las vigas de Euler
+simplemente apoyada y en voladizo se ensamblan usando el elemento propio en
+`engine-elements-frame/tests/modes.rs`. Ubicar allí las pruebas aprovecha sus
+dependencias existentes y evita añadir un ciclo entre crates. El refinamiento
+de 4 a 12 elementos mejora el error de las tres primeras frecuencias al menos
+10 veces; tolerancia relativa final 3e−4. Derivaciones, límites y verificación:
+`provenance/ENG-LA-009.md`.
 
 ## Verificación reproducible
 

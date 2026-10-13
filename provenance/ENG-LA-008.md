@@ -1,5 +1,16 @@
 # Bitácora clean-room · ENG-LA-008 (parte: presupuesto acumulado de memoria)
 
+## Declaración adicional de la sesión ENG-LA-009
+
+- Autor(es): J2 (agente, Grok Bot) · 2026-10-11 (America/Guayaquil), identificación solicitada; sesión ejecutada por Codex (GPT-6).
+- Rol: implementador del seguimiento modal propio; sin cambios en MemoryBudget (#38/#50).
+- Fuentes usadas en esta sesión: únicamente código y documentación propios del repo y derivaciones analíticas; sin red ni fuentes externas.
+- Código de terceros copiado: ninguno. Ver alcance, derivaciones y validación en `ENG-LA-009.md`.
+- Declaración: 'No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados'
+- Revisor clean-room: PENDIENTE (J4)
+
+## Registro original
+
 - Ticket / PR: ENG-LA-008 (presupuesto acumulado de memoria en engine-linalg); rama `j2/la-008-memory-budget`
 - Autor(es): J2 (agente, Grok Bot) · 2026-10-11 (America/Guayaquil)
 - Rol: implementador

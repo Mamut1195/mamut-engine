@@ -63,7 +63,7 @@ impl LinAlgBackend for ReferenceBackend {
         for k in 0..n {
             let pivot = (k..n)
                 .max_by(|&i, &j| u[i * n + k].abs().total_cmp(&u[j * n + k].abs()))
-                .unwrap();
+                .ok_or_else(|| invalid("Referencia solve: no hay candidato a pivote."))?;
             if u[pivot * n + k].abs() <= cutoff(n) {
                 return Err(singular("Referencia solve denso", k));
             }
@@ -101,6 +101,12 @@ impl LinAlgBackend for ReferenceBackend {
     }
     fn factorize(&mut self, a: &SymMatrix) -> EResult<Box<dyn SymFactorization>> {
         Ok(Box::new(Ldlt::new(a)?))
+    }
+    fn symmetric_inertia(&mut self, a: &SymMatrix) -> EResult<(usize, usize, usize)> {
+        Ldlt::build(a, true)?
+            .info
+            .inertia
+            .ok_or_else(|| unsupported("Referencia LDLᵀ: inercia no disponible."))
     }
     fn generalized_eigen(&mut self, k: &SymMatrix, m: &SymMatrix) -> EResult<GeneralizedEigen> {
         size(k.order(), m.order())?;
@@ -238,6 +244,10 @@ pub(crate) const FACTOR_HEADER_BYTES: usize = std::mem::size_of::<Ldlt>();
 
 impl Ldlt {
     fn new(matrix: &SymMatrix) -> EResult<Self> {
+        Self::build(matrix, false)
+    }
+    // `allow_null` solo se usa para inercia; nunca para entregar un factor resoluble.
+    fn build(matrix: &SymMatrix, allow_null: bool) -> EResult<Self> {
         let n = matrix.order();
         let equil = equilibration(matrix.dense().values(), n);
         let balanced: Vec<Real> = (0..n * n)
@@ -267,7 +277,7 @@ impl Ldlt {
         while k < n {
             let diag = (k..n)
                 .max_by(|&i, &j| a[i * n + i].abs().total_cmp(&a[j * n + j].abs()))
-                .unwrap();
+                .ok_or_else(|| invalid("Referencia LDLᵀ: no hay candidato a pivote."))?;
             let mut pair = (k, k);
             let mut offmax = 0.0;
             for i in k..n {
@@ -277,6 +287,13 @@ impl Ldlt {
                         pair = (j, i);
                     }
                 }
+            }
+            if allow_null && a[diag * n + diag].abs().max(offmax) <= cutoff(n) {
+                if let Some(inertia) = f.info.inertia.as_mut() {
+                    inertia.2 += n - k;
+                }
+                smallest = 0.0;
+                break;
             }
             let block = if a[diag * n + diag].abs() >= 0.5 * offmax {
                 1
@@ -290,7 +307,9 @@ impl Ldlt {
                     // Todo el bloque restante es numéricamente nulo: el GDL culpable
                     // es el de menor índice original, independiente del orden de
                     // pivoteo (determinista bajo permutación de GDL).
-                    let culprit = f.permutation[k..].iter().copied().min().unwrap();
+                    let culprit = f.permutation[k..].iter().copied().min().ok_or_else(|| {
+                        invalid("Referencia LDLᵀ: no hay GDL singular identificable.")
+                    })?;
                     return Err(singular("Referencia LDLᵀ", culprit));
                 }
                 f.d[k] = d;
@@ -313,8 +332,23 @@ impl Ldlt {
                 f.off[k] = e;
                 let half = (d + g) * 0.5;
                 let radius = ((d - g) * 0.5).hypot(e);
-                f.count(half + radius, &mut smallest, &mut largest);
-                f.count(half - radius, &mut smallest, &mut largest);
+                // La congruencia conserva inercia. det<0: un signo de cada uno;
+                // det>0: ambos tienen el signo de la traza d+g. No basta contar
+                // diagonales de D. El bloque singular se rechaza arriba.
+                if let Some(inertia) = f.info.inertia.as_mut() {
+                    if det < 0.0 {
+                        inertia.0 += 1;
+                        inertia.1 += 1;
+                    } else if d + g < 0.0 {
+                        inertia.1 += 2;
+                    } else {
+                        inertia.0 += 2;
+                    }
+                }
+                for value in [half + radius, half - radius] {
+                    smallest = smallest.min(value.abs());
+                    largest = largest.max(value.abs());
+                }
                 for i in k + 2..n {
                     let (v, w) = (a[i * n + k], a[i * n + k + 1]);
                     f.l[i * n + k] = (v * g - w * e) / det;
@@ -339,7 +373,11 @@ impl Ldlt {
             k += block;
         }
         if n > 0 {
-            f.info.min_pivot_ratio = Some(smallest / largest);
+            f.info.min_pivot_ratio = Some(if largest == 0.0 {
+                0.0
+            } else {
+                smallest / largest
+            });
         }
         Ok(f)
     }
@@ -356,11 +394,12 @@ impl Ldlt {
         self.permutation.swap(i, j);
     }
     fn count(&mut self, value: Real, min: &mut Real, max: &mut Real) {
-        let inertia = self.info.inertia.as_mut().unwrap();
-        if value > 0.0 {
-            inertia.0 += 1;
-        } else {
-            inertia.1 += 1;
+        if let Some(inertia) = self.info.inertia.as_mut() {
+            if value > 0.0 {
+                inertia.0 += 1;
+            } else {
+                inertia.1 += 1;
+            }
         }
         *min = min.min(value.abs());
         *max = max.max(value.abs());
@@ -583,7 +622,7 @@ pub(crate) fn normalize_modes(
                     .abs()
                     .total_cmp(&vectors.values[j * n + col].abs())
             })
-            .unwrap();
+            .ok_or_else(|| invalid("Normalización modal: vector vacío."))?;
         let divisor = norm.sqrt()
             * if vectors.values[pivot * n + col] < 0.0 {
                 -1.0

@@ -22,10 +22,12 @@
 use engine_core::{DofIndex, EResult, EngineError, EntityRef, Real};
 mod budget;
 mod matrix;
+mod modes;
 mod reference;
 mod sparse;
 pub use budget::{dense_bytes, eigen_working_bytes, factor_bytes, sparse_bytes, MemoryBudget};
 pub use matrix::{DMat, SparsityPattern, SymMatrix};
+pub use modes::{lowest_modes, sturm_count, LowestModes};
 pub use reference::ReferenceBackend;
 pub use sparse::{SparseMatrix, Triplet};
 #[cfg(feature = "faer")]
@@ -37,7 +39,7 @@ pub use faer_backend::FaerBackend;
 #[derive(Clone, Debug, PartialEq)]
 pub struct FactorInfo {
     /// Conteos (positivos, negativos, nulos), si el backend los ofrece.
-    /// No implica control de Sturm ni búsqueda de modos faltantes.
+    /// El control de Sturm usa el número de negativos de esta inercia.
     pub inertia: Option<(usize, usize, usize)>,
     /// Mínimo valor absoluto de pivote dividido por el máximo, si se conoce.
     /// En bloques 2×2 se usan sus dos autovalores, no solo la diagonal.
@@ -122,9 +124,27 @@ pub trait LinAlgBackend {
     /// Factoriza una matriz simétrica densa una sola vez, sin regularización.
     /// El factor posee sus datos y puede sobrevivir al backend y a la matriz.
     fn factorize(&mut self, a: &SymMatrix) -> EResult<Box<dyn SymFactorization>>;
+    /// Inercia (positivos, negativos, nulos) por congruencia LDLᵀ.
+    ///
+    /// Por defecto consulta el factor; ENG-E-0013 si no ofrece inercia.
+    /// El backend de referencia admite matrices singulares para este conteo,
+    /// con la misma tolerancia numérica de pivotes que `factorize`, pero sin
+    /// entregar un factor singular para resolver. Otros backends pueden
+    /// devolver ENG-E-0006 si el desplazamiento coincide con un autovalor.
+    fn symmetric_inertia(&mut self, a: &SymMatrix) -> EResult<(usize, usize, usize)> {
+        self.factorize(a)?
+            .info()
+            .inertia
+            .ok_or_else(|| unsupported("El backend no ofrece inercia para el control de Sturm."))
+    }
     /// Resuelve el problema generalizado denso con masa definida positiva.
     /// ENG-E-0010 si los órdenes difieren; véase la política de masa del trait.
     fn generalized_eigen(&mut self, k: &SymMatrix, m: &SymMatrix) -> EResult<GeneralizedEigen>;
+    /// Modos más bajos normalizados a masa con control de completitud de Sturm.
+    /// Véanse [`lowest_modes`] y [`LowestModes`] para tolerancias y diagnósticos.
+    fn lowest_modes(&mut self, k: &SymMatrix, m: &SymMatrix, count: usize) -> EResult<LowestModes> {
+        lowest_modes(self, k, m, count)
+    }
 }
 
 pub(crate) fn invalid(message: &str) -> EngineError {
