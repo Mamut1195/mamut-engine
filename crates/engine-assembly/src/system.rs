@@ -323,6 +323,52 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         &self.trial
     }
 
+    /// Fuerza interna lineal global K u, incluidos los prescritos constantes.
+    /// No modifica desplazamientos aceptados ni de prueba.
+    pub fn global_internal_force(&self, free: &[Real]) -> EResult<Vec<Real>> {
+        multiply(&self.k, &self.constraints.expand(free)?)
+    }
+
+    /// Suma tangentes elementales variables a K y extrae la partición ff.
+    /// Los bloques son aportes adicionales: no deben duplicarse en from_model.
+    /// Valida ubicación, tamaño, finitud y simetría como assemble_matrix.
+    /// Los prescritos se incorporan a la fuerza interna evaluando u TOTAL;
+    /// su corrección es cero y no se añade ningún término K_fp Δu_p al RHS.
+    pub fn tangent_with_blocks(&mut self, blocks: &[(&[DofIndex], &DMat)]) -> EResult<SymMatrix> {
+        let extra = assemble_matrix(&mut self.backend, self.map.len(), blocks)?;
+        let mut entries = triplets(&self.k);
+        entries.extend(triplets(&extra));
+        let global = self
+            .backend
+            .assemble(self.map.len(), self.map.len(), &entries)?;
+        reduced(&mut self.backend, &global, &self.constraints)
+    }
+
+    /// Resuelve una corrección reducida con UNA factorización de la tangente.
+    /// Sin regularización, aceptación ni modificación de pruebas. Traduce
+    /// ENG-E-0006 a nodo/GDL igual que solve; rechaza no finitos y tamaños.
+    pub fn solve_correction(
+        &mut self,
+        tangent: &SymMatrix,
+        residual: &[Real],
+    ) -> EResult<Vec<Real>> {
+        size(tangent.order(), self.n_free_dofs())?;
+        size(residual.len(), self.n_free_dofs())?;
+        finite(residual)?;
+        let rhs = DMat::new(self.n_free_dofs(), 1, residual.to_vec())?;
+        let factorization = self
+            .backend
+            .factorize(tangent)
+            .map_err(|e| self.translate_solver_error(e))?;
+        let solution = factorization
+            .solve(&rhs)
+            .map_err(|e| self.translate_solver_error(e))?;
+        size(solution.rows(), self.n_free_dofs())?;
+        size(solution.cols(), 1)?;
+        finite(solution.values())?;
+        Ok(solution.values().to_vec())
+    }
+
     /// Fuerzas globales físicas factor F del caso (N/N·m), incluidos apoyos.
     /// ENG-E-0003 por caso ausente; ENG-E-0008 por factor/resultado no finito.
     pub fn global_force(&self, case: &CaseRef, factor: Real) -> EResult<Vec<Real>> {

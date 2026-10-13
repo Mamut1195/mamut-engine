@@ -16,7 +16,7 @@
   covarianza, diferencias finitas del kit con historia y entradas inválidas.
 - Comparación con oráculo (repo hermano, informativa): no. No se ejecutó ningún
   motor externo ni se usaron resultados de oráculos.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+- Declaración: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados"
 - Revisor clean-room: PENDIENTE (J4).
 
 ## Documentos internos consultados

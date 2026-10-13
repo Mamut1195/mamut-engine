@@ -1,7 +1,7 @@
-//! Análisis `static.linear`: K constante, pequeños desplazamientos, unidades SI.
+//! Análisis `static.linear` y [`newton`] (`static.newton`), en unidades SI.
 //!
-//! Resuelve casos independientes con una única factorización de K_ff. Incluye
-//! asentamientos sin escalarlos por el factor de carga; no modifica el estado
+//! `static.linear` resuelve casos independientes con una única factorización
+//! de K_ff. Incluye asentamientos sin escalarlos por el factor de carga; no modifica el estado
 //! aceptado o de prueba. No interpreta combinaciones declarativas del modelo:
 //! el llamador debe declarar su carga combinada como un caso del sistema.
 //! Con prescritos nulos, u(A+B)=u(A)+u(B); con asentamientos, se resta una vez
@@ -22,6 +22,8 @@ use engine_assembly::{LinearSystem, Reaction};
 use engine_contracts::CaseRef;
 use engine_core::{DofIndex, EResult, EngineError, Real};
 use engine_linalg::LinAlgBackend;
+
+pub mod newton;
 
 /// Método de análisis estático lineal sin estado propio.
 pub struct StaticLinear;

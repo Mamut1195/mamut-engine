@@ -10,7 +10,9 @@ dependencies = [
  "engine-contracts",
  "engine-core",
  "engine-elements-frame",
+ "engine-elements-spring",
  "engine-elements-truss",
+ "engine-laws",
  "engine-linalg",
  "engine-model",
 ]

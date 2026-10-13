@@ -14,3 +14,5 @@ engine-assembly = { path = "../engine-assembly" }
 engine-model = { path = "../engine-model" }
 engine-elements-truss = { path = "../engine-elements-truss" }
 engine-elements-frame = { path = "../engine-elements-frame" }
+engine-elements-spring = { path = "../engine-elements-spring" }
+engine-laws = { path = "../engine-laws" }
