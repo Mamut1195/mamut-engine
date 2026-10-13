@@ -11,7 +11,9 @@ Que cada línea del motor se pueda rastrear hasta una fuente permitida (libro, p
 
 ## 2. Regla de oro
 
-Quien escribe código o especificaciones del motor **no abre** el código fuente de OpenSees, de Stabileo ni de ningún derivado. OpenSees solo se **ejecuta** como caja negra (entran modelos, salen números), de forma interna, desde el repo hermano privado `mamut-engine-oracles`.
+Quien escribe código o especificaciones del motor **no abre** el código fuente de OpenSees, de Stabileo ni de ningún derivado. OpenSees y Stabileo solo se **ejecutan** como cajas negras (entran modelos, salen números), de forma interna, desde el repo hermano privado `mamut-engine-oracles`, bajo §5.1 y §8.
+
+Q2 asume el rol de **operador de oráculo** de §3: no especifica ni implementa métodos ni escribe fixtures del Engine; J4 audita. El veto permanente por ver informes o salidas (§5.1) prevalece sobre cualquier cambio de rol o sesión limpia previsto en §3.
 
 ## 3. Roles
 
@@ -19,7 +21,7 @@ Quien escribe código o especificaciones del motor **no abre** el código fuente
 |---|---|---|---|
 | **Especificador** (persona o IA) | Fuentes permitidas (§4), contratos Rust | Código de OpenSees, Stabileo y las rutas del §5 | Escribe la ficha del método (ecuaciones y citas) y los fixtures de benchmark |
 | **Implementador** (persona o IA) | Contrato Rust, ficha del método, plantilla de método, fixtures, bitácora | Lo mismo que el especificador, y otros motores FEM no permisivos | Implementa en Rust y hace pasar conformidad y benchmarks |
-| **Operador de oráculo** (interno) | Repo hermano, binario de OpenSees, manual de usuario de OpenSees para armar el modelo | Código fuente de OpenSees. No escribe código ni fixtures del motor | Corre OpenSees como caja negra y compara con nuestro CLI; resultados solo en el repo hermano |
+| **Operador de oráculo** (interno) | Repo hermano, binario de OpenSees, manual de usuario de OpenSees para armar el modelo, Stabileo (paquete npm/WASM ejecutado en el harness) y su documentación de API | Código fuente de OpenSees y Stabileo. No escribe código ni fixtures del motor | Corre OpenSees y Stabileo como cajas negras y compara con nuestro CLI; resultados solo en el repo hermano |
 | **Auditor** | Todo, solo para comparar | — | Corre similitud de código y revisa bitácoras. Nunca escribe código del motor ni dice al implementador «cómo lo hace OpenSees» |
 
 Una misma persona o sesión no puede combinar los roles de operador de oráculo o auditor con los de especificador o implementador del mismo método. Quien haya visto código o rutas prohibidas (§5) no puede escribir fichas, fixtures ni código de ningún método; solo puede actuar como auditor u operador de oráculo. Pasar de auditor a especificador exige una sesión nueva y limpia, registrada en la bitácora.
@@ -39,13 +41,26 @@ Una misma persona o sesión no puede combinar los roles de operador de oráculo 
 ## 5. Fuentes y rutas prohibidas (no abrir)
 
 - Repo `OpenSees/OpenSees`, sus forks y derivados (Xara, OpenSeesPy, Tessera, `openseesjs`…), su wiki de desarrolladores y fragmentos de código fuente en foros.
-- `lambdaclass/stabileo` (crate `dedaliano-engine`) y `node_modules/stabileo-*`.
+- `lambdaclass/stabileo` (crate `dedaliano-engine`) y `node_modules/stabileo-*`: abrir o leer su código, incluido el contenido de `node_modules/stabileo-*`, sigue prohibido. Instalar y ejecutar Stabileo en el harness dedicado del repo privado `mamut-engine-oracles` está permitido según §5.1.
 - Dentro de MAMUT: `mamut-structures/src/stabileo-adapter`, `motor-fem/engine`, `/workspace/opensees-web/spike/` y la parte de `motor-geo` que usa groundhog.
 - Otros motores con licencia GPL, LGPL, AGPL, desconocida o sin licencia (CalculiX, code_aster, OOFEM, carapace, anaStruct). Kratos solo con aprobación.
 - El manual de comandos de OpenSees **como especificación**: no define formato ni nombres. Solo lo usa el operador de oráculo.
 - Los listados de código de Davis (*Direct Methods for Sparse Linear Systems*, CSparse): se lee la prosa, no se copia el código.
 
 La lista machine-readable vivirá en `clean-room/forbidden_paths.txt` y `clean-room/forbidden_identifiers.txt` (**PENDIENTE**, se crea con ENG-GOV-005, que las consume en CI).
+
+### 5.1 Excepción: benchmark comparativo externo (ENG-BENCH-001, enmienda PROPUESTA, pendiente de aprobación de Jonathan)
+
+Referencia: issue #66. Esta enmienda requiere **aprobación directa de Jonathan en el PR o en su propio chat**, no relayada por otro agente. Solo entonces exceptúa §5 para el uso descrito de OpenSees y Stabileo; §8 sigue rigiendo la validación. Al fusionar se quita el rótulo «PROPUESTA/pendiente de aprobación».
+
+- El benchmark vive exclusivamente en el repo hermano privado `mamut-engine-oracles`, en un harness dedicado (§8). No se admite ningún directorio ni workflow de este benchmark en `mamut-engine`. Solo compara **a posteriori** desplazamientos, fuerzas internas/reacciones, periodos y tiempos de cómputo.
+- OpenSees se ejecuta como binario/ejecutable externo. Stabileo se distribuye como **npm/WASM (AGPL)**, no como binario: se carga en el harness dedicado y corre en un proceso aparte, nunca en `node_modules` de `mamut-engine`, `mamut-structures` ni de ningún repo o paquete de MAMPRO, salvo en el harness dedicado del repo privado `mamut-engine-oracles`, único lugar donde puede instalarse. Su uso interno requiere revisión de la licencia AGPL (ENG-GOV-004).
+- No se enlazan, empaquetan ni distribuyen con el Engine ni con paquetes de MAMPRO; los WASM no se redistribuyen. No se lee ni se copia su código: la prohibición de abrir fuentes de §5 sigue vigente.
+- Q2 ejecuta como operador de oráculo (§2/§3) y J4 audita. **Solo Q2** puede usar los manuales de usuario de OpenSees y la documentación de API de Stabileo para armar modelos; nunca como especificación del Engine. Sus scripts de entrada (Tcl/JS/Python) permanecen en el repo hermano y nunca entran en repositorios del Engine.
+- Las salidas y los informes se archivan en la carpeta `results/` del harness del repo privado `mamut-engine-oracles`. La cuenta GitHub `Mamut1195` y la máquina de agentes son compartidas: el aislamiento es un **control declarativo más auditoría de J4**, no una barrera técnica de acceso.
+- Quien vea un informe de benchmark o sus salidas queda **vetado permanentemente para implementar o corregir ese método**, incluso en tickets posteriores o sesiones nuevas. Una discrepancia solo permite abrir un ticket «difiere en caso X», sin valores; la corrección debe surgir de una derivación analítica propia, en una sesión limpia, por un autor no vetado.
+- Ningún código, dato, informe ni salida de estos programas puede alimentar especificaciones, pruebas, fixtures o implementación del Engine. Se prohíbe también su uso indirecto para ajustar tolerancias, elegir o descartar casos de prueba o calibrar valores por defecto.
+- Ningún método se da por validado por esta comparación. La validación del Engine usa soluciones analíticas y ejemplos publicados versionados (§8), nunca salidas de estos programas.
 
 ## 6. Nombres y formato propios
 
@@ -64,10 +79,10 @@ Por ticket, `provenance/ENG-XXX.md` a partir de `provenance/TEMPLATE.md`. La CI 
 
 ## 8. Verificación contra oráculos libres
 
-- **Validación principal (en este repo):** soluciones analíticas, libros y ejemplos publicados, versionados como fixtures con `source` y cita.
-- **Comparación complementaria:** `mamut-engine-oracles` (privado, uso interno). Corre OpenSees como caja negra; sus resultados **no** entran a los fixtures de este repo, ni es dependencia de código, CI obligatoria o release.
-- Ningún método se da por validado solo con OpenSees.
-- Uso interno de OpenSees y su viabilidad: **PENDIENTE** del memo ENG-GOV-004.
+- **Validación del Engine (en este repo):** soluciones analíticas y ejemplos publicados en libros u otras fuentes permitidas (§4), versionados como fixtures con `source` y cita; nunca salidas de OpenSees o Stabileo.
+- **Comparación complementaria:** OpenSees y Stabileo como cajas negras en `mamut-engine-oracles` (privado, uso interno), con las mismas reglas de §5.1. El benchmark no es dependencia de código, CI ni release del Engine; no tiene directorios ni workflows en `mamut-engine`.
+- Ningún método se da por validado por esta comparación.
+- Uso interno y viabilidad de ambos programas, incluida la revisión de la licencia AGPL de Stabileo: **PENDIENTE** del memo ENG-GOV-004.
 
 ## 9. Auditoría de similitud
 
