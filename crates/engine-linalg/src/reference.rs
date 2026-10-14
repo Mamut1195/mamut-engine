@@ -277,7 +277,7 @@ impl Ldlt {
         while k < n {
             let diag = (k..n)
                 .max_by(|&i, &j| a[i * n + i].abs().total_cmp(&a[j * n + j].abs()))
-                .ok_or_else(|| invalid("Referencia LDLᵀ: no hay candidato a pivote."))?;
+                .ok_or_else(|| invalid("LDLᵀ: bloque activo vacío."))?;
             let mut pair = (k, k);
             let mut offmax = 0.0;
             for i in k..n {
@@ -308,9 +308,11 @@ impl Ldlt {
                     // Todo el bloque restante es numéricamente nulo: el GDL culpable
                     // es el de menor índice original, independiente del orden de
                     // pivoteo (determinista bajo permutación de GDL).
-                    let culprit = f.permutation[k..].iter().copied().min().ok_or_else(|| {
-                        invalid("Referencia LDLᵀ: no hay GDL singular identificable.")
-                    })?;
+                    let culprit = f.permutation[k..]
+                        .iter()
+                        .copied()
+                        .min()
+                        .ok_or_else(|| invalid("LDLᵀ: permutación activa vacía."))?;
                     return Err(singular("Referencia LDLᵀ", culprit));
                 }
                 f.d[k] = d;

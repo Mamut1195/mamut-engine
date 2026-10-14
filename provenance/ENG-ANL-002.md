@@ -1,5 +1,25 @@
 # Bitácora clean-room · ENG-ANL-002
 
+## Registro de ampliación ENG-VAL-001 (2026-10-11)
+
+- Ticket / PR: ENG-ANL-002 (#61), validación modal desde ENG-VAL-001;
+  ampliación de tests, sin modificar el análisis modal.
+- Autor(es): J2 (agente, Grok Bot), etiqueta solicitada; ejecutor Codex basado
+  en GPT-6 · 2026-10-11 (America/Guayaquil).
+- Rol: implementador de fixtures y autor de derivaciones propias, sin delegación.
+- Contrato implementado: validación de `Modal::run` con APIs públicas.
+- Fuentes permitidas usadas: petición, APIs/pruebas propias del workspace,
+  `provenance/TEMPLATE.md`, `docs/CLEAN_ROOM.md`; sin red ni fuentes externas.
+- Derivaciones propias: [ENG-VAL-001, D1–D4](ENG-VAL-001.md#ampliación-dinámica-y-2º-orden).
+- Código de terceros copiado: ninguno; sin dependencias nuevas.
+- Validación: analítica, 12 fixtures nuevos; ver recuento y verificaciones en
+  ENG-VAL-001. Sin ejemplos publicados ni citas de libro inventadas.
+- Comparación con oráculo (repo hermano, informativa): no.
+- Declaración: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados".
+- Revisor clean-room: PENDIENTE (J4).
+
+## Registro previo del ticket
+
 - Ticket / PR: ENG-ANL-002 «Análisis modal», rama `j2/eng-anl-002` apilada
   sobre ENG-MASS-001 (#55 → #51, sin fusionar), ENG-ANL-001 (#52, sin
   fusionar) y la parte implementable de ENG-LA-009 (#58, sin fusionar).

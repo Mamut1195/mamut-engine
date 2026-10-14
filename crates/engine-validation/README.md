@@ -1,7 +1,8 @@
 # engine-validation · ENG-VAL-001 parcial
 
-Suite de **42 fixtures analíticos estáticos lineales**, derivados aquí en forma
-cerrada. Todos usan `StaticLinear`, elementos reales `LinearTruss` o
+Suite de **73 fixtures analíticos propios**: los **42 estáticos lineales**
+existentes permanecen intactos y se añaden **31** (12 modales, 10 P-Delta,
+9 espectrales). Los lineales usan `StaticLinear`, elementos reales `LinearTruss` o
 `EulerFrame2D`, recuperación `engine_analysis::results::CaseResults` y la
 combinación de LOAD-002. Las cuatro filas de superposición/combinación comparan
 además con un caso de cargas combinadas resuelto de manera independiente.
@@ -12,7 +13,9 @@ Ejecutar desde la raíz:
 CARGO_NET_OFFLINE=true cargo test -p engine-validation
 ```
 
-Un único test recorre `tests/support/table.rs`. Los errores incluyen nombre,
+El test lineal recorre `tests/support/table.rs`; tres tests, uno por grupo,
+recorren `tests/support/dynamic_table.rs` desde `tests/dynamic.rs`.
+Los errores incluyen nombre,
 campo, valor analítico, tolerancia, `source` y `citation`. Cada fila representa
 un problema completo; no se cuentan sus comprobaciones como fixtures distintos.
 La biblioteca es documental, sin dependencias de producción. Todas las
@@ -31,5 +34,13 @@ wasm32-unknown-unknown`; las pruebas se ejecutan en nativo. Compilar para wasm
 no implica haber ejecutado un runtime wasm.
 
 Derivaciones, convenciones, tolerancias y estado de revisión:
-[bitácora ENG-VAL-001](../../provenance/ENG-VAL-001.md). La suite completa V1,
-incluidos modal, P-Delta y espectro, queda pendiente de ANL-003/004 y ASM-002.
+[bitácora ENG-VAL-001](../../provenance/ENG-VAL-001.md#ampliación-dinámica-y-2º-orden).
+La ampliación usa `Modal`, `PDelta` y `Spectrum` de la cadena apilada. Las
+frecuencias de vigas se contrastan con soluciones continuas y refinamiento;
+el P-Delta distingue la aproximación de amplificación del contraste continuo
+exacto. Las tolerancias de cada fila explican esa diferencia.
+
+ENG-VAL-001 sigue parcial: ejemplos publicados con cita exacta **PENDIENTES**
+(no verificables sin acceso, fuera del alcance de J2), revisión clean-room
+**PENDIENTE (J4)** y ejecución en un runtime wasm **PENDIENTE**. La cobertura
+analítica de modal, P-Delta y espectro y el umbral de ≥30 fixtures están cubiertos.

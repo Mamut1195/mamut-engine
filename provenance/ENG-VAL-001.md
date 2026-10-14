@@ -1,14 +1,16 @@
 # Bitácora clean-room · ENG-VAL-001 (parcial, apilado)
 
-- Ticket / PR: ENG-VAL-001 «Suite de benchmarks estructurales V1», únicamente
-  estática lineal. Rama apilada sobre ENG-LOAD-002 (#54), ENG-RES-001 (#53),
-  ENG-ANL-001 (#52) y ENG-LOAD-001 (#51), aún sin fusionar. Sin commit ni push.
+- Ticket / PR: ENG-VAL-001 «Suite de benchmarks estructurales V1», parcial:
+  estática lineal, modal, P-Delta y espectro. Rama apilada sobre ENG-ANL-004
+  (#62), ENG-ANL-002 (#61), ENG-MASS-001 (#55), ENG-LOAD-001 (#51), con
+  ENG-ANL-003 (#59) y la entrega lineal (#57/#54/#53/#52). Sin commit ni push.
 - Autor(es): J2 (agente, Grok Bot) · identificación solicitada por el usuario;
   agente ejecutor Codex (GPT-6) · 2026-10-11 (America/Guayaquil).
 - Rol: implementador y autor de derivaciones analíticas propias.
-- Contrato implementado: crate de desarrollo `engine-validation`, un único test
+- Contrato implementado: crate de desarrollo `engine-validation`, un test lineal
   tabulado sobre `StaticLinear`, `element/1` (truss/frame),
-  `engine_analysis::results` y `engine_analysis::combination` de LOAD-002.
+  `engine_analysis::results` y `engine_analysis::combination` de LOAD-002;
+  tres tests tabulados adicionales sobre `Modal`, `PDelta` y `Spectrum`.
 - Fuentes permitidas usadas: exclusivamente la petición, APIs y pruebas propias
   del workspace y `provenance/TEMPLATE.md`. Sin red, fuentes externas, libros,
   páginas, ejemplos numéricos publicados, fuentes de otros motores ni oráculos.
@@ -53,11 +55,10 @@ posición de carga, dirección, asentamiento o factores.
 | Superposición y combinación | 4 | (α,β)=(1,1),(1.3,−.7),(−.5,2),(0,.5) |
 | **Total lineal de esta entrega** | **42** | |
 
-**ENG-VAL-001 sigue parcial.** La entrega de la suite total V1 de ≥30 fixtures,
-con la cobertura requerida de modal, P-Delta y espectro, queda pendiente de
-ANL-003/004 y ASM-002. Los 42 aquí entregados satisfacen el umbral numérico en
-estática lineal, pero no sustituyen esa cobertura. No se inventan métodos,
-contratos ni resultados de esos tickets. No se afirma cerrar VAL-001 completo.
+**ENG-VAL-001 sigue parcial.** La ampliación al final de esta nota añade 31
+fixtures: **73 en total**, supera ≥30 y cubre modal, P-Delta y espectro. Las
+42 filas anteriores no cambian. Siguen pendientes las referencias publicadas
+con cita exacta, revisión J4 y ejecución en runtime wasm; se detallan abajo.
 
 ## Datos y convenciones
 
@@ -405,5 +406,308 @@ Pruebas nativas y documentación: rustc/cargo 1.85.1 del sistema. Clippy disponi
 0.1.99. Para wasm se usó `PATH=/home/box/.cargo/bin:$PATH
 RUSTUP_TOOLCHAIN=stable`, toolchain y destino ya instalados (rustc 1.99.0), sin
 descargar componentes. Compilar para wasm no significa ejecutar un runtime wasm.
-No se modificó el índice Git real; sin commit ni push. La revisión J4, ejecución
-en runtime wasm y cobertura no lineal/dinámica siguen pendientes.
+No se modificó el índice Git real; sin commit ni push. Esta verificación
+corresponde a la entrega lineal anterior; la ampliación y su verificación se
+registran a continuación. Revisión J4 y ejecución en runtime wasm pendientes.
+
+## Ampliación dinámica y 2.º orden
+
+### Bitácora de la ampliación
+
+- Ticket / PR: ENG-VAL-001, ampliación sobre ENG-ANL-002 (#61, modal),
+  ENG-ANL-003 (#59, P-Delta) y ENG-ANL-004 (#62, espectro), cadena abierta.
+- Autor(es): J2 (agente, Grok Bot), etiqueta solicitada; ejecutor Codex
+  basado en GPT-6 · 2026-10-11 (America/Guayaquil).
+- Rol: implementador y autor de las derivaciones propias, sin delegación.
+- Contrato implementado: fixtures de validación por APIs públicas `Modal::run`,
+  `PDelta::run`, `Spectrum::run`, tablas y combinaciones espectrales, elementos
+  `EulerFrame2D` y `LinearTruss`; sin cambiar implementación de los análisis.
+- Fuentes permitidas usadas: petición del usuario, APIs/pruebas propias del
+  workspace, `provenance/TEMPLATE.md` y `docs/CLEAN_ROOM.md`. Sin red,
+  bibliografía externa, libros, páginas, ejemplos numéricos publicados u oráculos.
+- Derivaciones propias: ecuaciones D1–D12 a continuación;
+  [datos](../crates/engine-validation/tests/support/dynamic_table.rs),
+  [montaje](../crates/engine-validation/tests/support/dynamic_harness.rs) y
+  [oráculos](../crates/engine-validation/tests/dynamic.rs).
+- Código de terceros copiado: ninguno; sin dependencias nuevas.
+- Validación: exclusivamente analítica; datos SI artificiales propios.
+- Comparación con oráculo (repo hermano, informativa): no.
+- Declaración para ENG-ANL-002, ENG-ANL-003 y ENG-ANL-004 en esta sesión:
+  "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados".
+- Revisor clean-room: PENDIENTE (J4).
+
+Se conservan las declaraciones anteriores; se añade registro de esta sesión a
+ANL-002/004 y se crea registro de la validación de ANL-003, ausente en este
+checkout. Esto no atribuye a esta sesión autoría retroactiva de su implementación.
+
+### Recuento y alcance
+
+| Grupo nuevo | Filas | Problemas completos |
+|---|---:|---|
+| Modal | 12 | Cortante N=1..5; 2 pisos variables; cadena axial libre-fija; viga apoyada y voladizo con mallas 4/12; voladizo rotado |
+| P-Delta | 10 | Columna r=0,.2,.5,.8,.9,−.5,1.05; marco r=.05,.1; serie de iteración y límite |
+| Espectro | 9 | SRSS 2 pisos; desplazamiento modal con otra Sa; interpolaciones lineal/log-log; CQC separado/cercano/coincidente; dos combinaciones direccionales |
+| **Nuevos** | **31** | Un test recorre cada grupo y nombra fixture, campo, source/citation y tolerancia ante fallo |
+| Lineales existentes | 42 | Tabla y test originales intactos |
+| **Total ENG-VAL-001** | **73** | ≥30 totales y ≥24 nuevos |
+
+No se cuentan aserciones internas como fixtures. Ortogonalidad, acumulación de
+masa y participación se comprueban dentro de cada problema de cortante/cadena.
+Todos los nuevos `source/citation` remiten a esta derivación, sin citas a libros.
+No se convierten los resultados calculados por el motor en valores esperados.
+
+### Modal: derivación D1–D4
+
+**D1. Cortante uniforme.** De la energía
+`U=k/2 Σ(q_j−q_{j−1})²`, `T=m/2 Σq̇_j²`, `q_0=0`, obtenemos
+`k(2φ_j−φ_{j−1}−φ_{j+1})=mω²φ_j`. El techo libre equivale a
+`φ_{N+1}=φ_N`. Proponer `φ_j=sin(jθ)` da `ω²=4k/m sin²(θ/2)` y
+`sin((N+1)θ)=sin(Nθ)`, es decir
+
+```text
+θ_n=(2n−1)π/(2N+1), n=1..N
+ω_n=2√(k/m) sin((2n−1)π/[2(2N+1)])                    (D1)
+φ_j=sin(jθ_n)/√[m Σ_l sin²(lθ_n)].
+```
+
+Las cinco filas usan k=23 N/m, m=4 kg, N=1..5. La cadena libre-fija usa
+tres barras axiales de longitud 1, EA=31, densidad cero y masas puntuales
+de 6 kg. Su energía axial es exactamente D1 con k=EA/ℓ; un extremo fijo,
+el otro libre y desplazamientos transversales restringidos. Así verifica
+elementos reales y masas puntuales con el mismo oráculo físico.
+
+**D2. Dos pisos variables y Γ a mano.** Con k1=19, k2=7 N/m y
+m1=2, m2=5 kg:
+
+```text
+K=[[k1+k2,−k2],[−k2,k2]], M=diag(m1,m2)
+det(K−λM)=m1m2 λ²−[m2(k1+k2)+m1k2]λ+k1k2=0
+10λ²−144λ+133=0 ⇒ λ±=(144±√15416)/20
+v=(1,t), t=(k1+k2−m1λ)/k2
+s=√(m1+m2t²), φ=v/s, Γ=(m1+m2t)/s, M*=Γ².             (D2)
+```
+
+Para los dos pisos iguales de D1, `λ±=(k/m)(3±√5)/2`,
+`t=(1±√5)/2`, `s=√[m(1+t²)]`, `Γ=m(1+t)/s` y
+`M*±=m(1±2/√5)`. Su suma es `2m`. El test adapta únicamente el signo
+arbitrario del autovector al comparar Γ; el oráculo de λ, φ y M* es manual.
+
+**D3. Ortogonalidad y completitud.** Restar `φᵢᵀKφⱼ=λⱼφᵢᵀMφⱼ` y su
+traspuesta da `(λᵢ−λⱼ)φᵢᵀMφⱼ=0`; con modos distintos y normalización a masa,
+`ΦᵀMΦ=I` y `ΦᵀKΦ=diag(λ)`. Expandir la traslación rígida libre `r` en
+la base completa, `r=ΣΓ_n φ_n`, da
+
+```text
+Γ_n=φ_nᵀMr, ΣM*_n=ΣΓ_n²=rᵀMr=Σm_j.                 (D3)
+```
+
+Se calculan productos con M/K ensambladas, incluyendo todas las parejas;
+los resultados esperados son I y λ, derivados arriba. Se comparan las
+acumulaciones por modo y el informe de masa libre/total con Σm_j, sin usar
+la masa reportada como oráculo. En vigas con masa en apoyos, la igualdad de
+completitud corresponde a masa libre, no necesariamente a la masa física total;
+por ello la igualdad exacta al total se exige a los modelos de masas puntuales.
+
+**D4. Vigas y rotación.** Separar variables en `ρA v̈+EI v''''=0` da
+`v''''=β⁴v` y `ω=β²√(EI/ρA)/L²` (β adimensional). La solución espacial
+es combinación de cos, sin, cosh y sinh. Para apoyada, `v=v''=0` en ambos
+extremos ⇒ `β=nπ`. Para voladizo, `v=v'=0` en la base y `v''=v'''=0` en
+punta ⇒ determinante `cosβ coshβ+1=0`. El test obtiene las tres primeras
+raíces por 55 bisecciones en `(jπ+.1,(j+1)π)`; no usa números publicados.
+Aquí E=ρ=A=L=1, I=1e−4 ⇒ `ω=.01β²`, primeros tres modos flexionales.
+Se emplea masa consistente y elementos Hermite `EulerFrame2D` con 4/12
+elementos: márgenes relativos 1.9% / 0.03%, verificados para estas filas,
+y disminución del error >10 veces al refinar. Son márgenes de estas mallas,
+no una cota universal para cualquier viga o modo.
+
+Para α=.83 rad, `Q=[[cosα,−sinα],[sinα,cosα]]` rota coordenadas, formas y
+dirección de excitación. La congruencia ortogonal simultánea de K/M preserva
+λ y `φᵀMr`; se comparan frecuencias, |Γ|, M* y cada componente `Qφ` con
+margen numérico independiente del margen de discretización.
+
+### P-Delta: derivación D5–D8
+
+**D5. Voladizo comprimido.** El funcional
+`Π=1/2 ∫[EI(v'')²−P(v')²] dx−Hv(L)` da
+`EI v''''+P v''=0`, `v(0)=v'(0)=0`, `v''(L)=0` y
+`EI v'''(L)+P v'(L)=−H`. Integrar la solución trigonométrica da
+
+```text
+a=√(P/EI), z=aL, Pcr=π²EI/(4L²), r=P/Pcr
+v(L)=H/P [tan(aL)/a−L]
+v0=HL³/(3EI), v/v0=3(tan z−z)/z³, z=π√r/2.          (D5)
+```
+
+El polo de tan en z=π/2 corresponde a la inestabilidad. Su coeficiente
+respecto a `1/(1−r)` es `96/π⁴≈.9855`; por tanto esa amplificación es una
+aproximación incluso con malla infinita. Las filas usan EI=600 N·m²,
+L=4 m, H=.1 N y r=.2,.5,.8,.9. Se contrasta la amplificación aproximada
+con 1.6% relativo (error de modelo), y la solución D5 con 2e−6 relativo
+para 16 elementos (error de malla). Una resolución adicional con 4 elementos
+debe tener error >10 veces mayor. r=1.05 devuelve `Unstable`, una dirección
+negativa por inercia y ningún desplazamiento ni historial lateral.
+
+**D6. Tracción y cero.** Sustituir P=−T en D5 da
+`v=H/T [L−tanh(aL)/a]`, `a=√(T/EI)`; para r=−.5,
+`v/v0=3(z−tanh z)/z³<1`. Se comprueba rigidez mayor y la solución exacta
+con el mismo margen de malla. Para P=0, el desarrollo
+`tan z=z+z³/3+…` recupera `v0`; además se compara todo el vector lateral
+con `StaticLinear(H)` y se comprueba la convergencia final de cada análisis.
+
+**D7. Marco de un piso.** n=2 columnas empotradas, h=4, dintel rígido,
+giro superior cero. Para cada columna, la forma cúbica lineal
+`v=Δ(3s²−2s³)`, s=x/h, tiene energía `6EIΔ²/h³`.
+La rigidez de piso es `Kpiso=12nEI/h³`. En la idealización de cuerda,
+el trabajo de gravedad total P produce `−PΔ²/(2h)`:
+
+```text
+(Kpiso−P/h)Δ=H
+Pcr_piso=Kpiso h=12EI_c n/h²
+Δ/Δ0≈1/(1−P/Pcr_piso), Δ0=Hh³/(12nEI_c).             (D7)
+```
+
+El símbolo ≈ es esencial: la energía geométrica del campo cúbico real es
+`−(P/n)/2 ∫(v')²dx=−(P/n)·3Δ²/(5h)`, factor 6/5 frente a la cuerda.
+El análisis con Kg distribuida no puede tener exactamente el Pcr de esa
+idealización. Resolver D5 con `v'(0)=v'(h)=0` y desplazamiento terminal Δ
+da el contraste continuo de cada columna guiada:
+
+```text
+K_col(P/n)=EI a³/[2tan(z/2)−z], a=√[(P/n)/EI], z=ah
+Δ/Δ0=12[2tan(z/2)−z]/z³, z=√(12r).
+```
+
+El polo físico continuo es `Pcr=π²nEI/h²`, distinto de `12nEI/h²`.
+Las filas r=.05,.1 comparan D7 con margen 2.6%, suficiente para la diferencia
+de idealización en esos dos puntos. También comparan con la solución guiada
+continua a 1e−4 relativo. Se usan 12 elementos por columna, EA de columnas y
+EA/EI del dintel multiplicadas por 1e5; el margen continuo incluye esa
+flexibilidad finita y error de malla. Se comprueba la deriva de ambos nudos
+superiores y su simetría. No se presenta el Pcr de cuerda como el Euler exacto.
+
+**D8. Convergencia de la iteración.** Modelo escalar con k=80 N/m,
+gravedad −rk, r=.3, carga lateral F=8 N y productor `kg=k(u_g2−u_g1)=−rk`.
+El punto fijo desde u0=0 satisface `u_i=F/k+r u_{i−1}`:
+
+```text
+u_i=F/[k(1−r)](1−r^i), residual_relativo=r^i
+cambio_relativo=(F/k)r^(i−1), escala=1 y |u_i|<1.     (D8)
+```
+
+La fila comprueba cada desplazamiento, residual, cambio y el primer paso
+que cumple ambos criterios a 1e−7, con límite 32. Con límite 3 exige
+`NotConverged` sin reintento. Las columnas y marcos también exigen que
+el último residual y cambio estén dentro de la tolerancia declarada 1e−10.
+
+### Espectro: derivación D9–D12
+
+**D9. SRSS y coordenada modal máxima.** Multiplicar la ecuación dinámica
+por un modo normalizado a masa da `q̈_n+ω_n²q_n=−Γ_n a_g` (se omite el
+signo convencional en la amplitud firmada según API). La pseudoaceleración
+de la tabla produce `qmax_n=Γ_n Sa/ω_n²`; la fuerza equivalente es
+`Mφ_nΓ_nSa`. Su suma proyectada es `Vb,n=Γ_n²Sa=M*_nSa`. Por independencia:
+
+```text
+Vb²=Σ_n(M*_n Sa)², u_n=φ_nΓ_nSa/ω_n².               (D9)
+```
+
+Para los dos pisos de D2, k=23, m=4 y Sa=2.7 / 5.1 m/s²:
+`M*±=m(1±2/√5)`, `Vb²=(18/5)(mSa)²`. Cada fila comprueba Sa, coordenada
+modal máxima, cortante de cada modo, cada desplazamiento físico firmado y
+envolventes SRSS contra D2/D9, sin obtener Γ esperado del resultado modal.
+
+**D10. Tablas.** Lineal entre `(1,3),(5,11)`:
+`Sa(T)=3+(T−1)(11−3)/(5−1)` ⇒ `Sa(2.5)=6`.
+Log-log entre `(1,3),(4,48)`:
+`ln Sa=ln3+ln(T/1) ln(48/3)/ln(4/1)` ⇒ `Sa=3T²`,
+`Sa(2)=12`. También se verifican ambos extremos. No se da a la interpolación
+log-log el valor esperado de la interpolación lineal.
+
+**D11. CQC.** La ecuación WDKB 1981 es la fórmula suministrada por la
+petición; la atribución identifica esa ecuación, sin afirmar acceso al paper,
+su código o un ejemplo publicado. En el test se expande directamente:
+
+```text
+r=ω_j/ω_i
+ρ_ij=8√(ζ_iζ_j)(ζ_i+rζ_j)r^(3/2) /
+ [(1−r²)²+4ζ_iζ_jr(1+r²)+4(ζ_i²+ζ_j²)r²]
+R_CQC=√(A²+B²+2ρ_ijAB).                              (D11)
+```
+
+La fila cercana usa ω=(10,10.2), ζ=(.05,.07), A=3, B=−4; el signo de
+AB discrimina la combinación de magnitudes prematura. Se compara ρ con la
+expansión manual, su simetría y la combinación. Para modos iguales y ζ igual,
+r=1 ⇒ numerador=denominador=16ζ² ⇒ `ρ_ii=1`, `R=|A+B|`.
+Para ω=(1,100), ζ=.05, `ρ<2.1e−5`: CQC≈SRSS con margen relativo 2e−5;
+no es identidad exacta con amortiguamiento positivo y separación finita.
+Con esas frecuencias distintas y ζ=0, el numerador es cero, por tanto
+**CQC=SRSS exactamente** (dentro de margen f64). Se comprueban ambos casos.
+
+**D12. Factores direccionales.** Masa puntual isotrópica de 2 kg,
+resortes independientes kx=18, ky=50 N/m unidos a base fija: ωx=3, ωy=5.
+Excitar x/y por separado da `Vx=2Sa,x`, `Vy=2Sa,y`, `ux=Sa,x/9`,
+`uy=Sa,y/25`. Para factores de usuario ax,ay:
+
+```text
+V_ponderado=axVx+ayVy
+V_SRSS=√[(axVx)²+(ayVy)²].                            (D12)
+```
+
+Dos filas ejecutan `Spectrum::run` completo con Sa=(2,5), factores=(1.4,.35)
+y Sa=(3,4), factores=(.65,1.2), respectivamente; verifican ambos basales y
+las dos componentes de desplazamiento combinado. No hay factores normativos.
+
+### Tolerancias, portabilidad y criterios pendientes
+
+La regla sigue siendo `|a−e|≤absoluto+relativo·|e|`, con finitos obligatorios;
+cada fila tiene justificación. Las comparaciones algebraicas usan 1e−9 absoluto
+y relativo; ortogonalidad, rotación y comparación lineal usan 2e−9 absoluto
+y 2e−8 relativo para acumulación/condicionamiento f64. Los márgenes de malla,
+de idealización y del límite CQC están separados y declarados arriba. No se
+amplía una tolerancia en función del valor obtenido para hacer pasar un fallo.
+
+Los fixtures son tablas constantes y los tests solo operan en memoria. Sin
+E/S, red, hilos, procesos ni reloj. `Arc` es un requisito de la API de
+productores, no introduce hilos. La biblioteca documental no añade código que
+pueda entrar en panic/unwrap/expect; los auxiliares devuelven errores del
+catálogo `ENG-E-0012` y propagan errores públicos. Solo el límite del test
+convierte un fallo en panic con nombre, campo y provenance.
+
+Estado de los criterios de VAL-001:
+
+- **CUBIERTO:** ≥30 fixtures totales, ≥24 nuevos y cobertura analítica modal,
+  P-Delta y espectral solicitada; 73 totales / 31 nuevos.
+- **CUBIERTO:** datos tabulados, source/citation propia, tolerancias declaradas,
+  fallo con nombre y compilación de pruebas para wasm sin dependencias nuevas.
+- **PENDIENTE:** ejemplos de libro/publicados con edición, página y cita exacta:
+  no verificables sin acceso; fuera del alcance de J2. No se inventan citas.
+- **PENDIENTE:** ejecución de los tests en un runtime wasm; compilar no equivale
+  a ejecutarlos. Tampoco se declara habilitada cobertura de gran deformación,
+  plasticidad o historias temporales a partir del P-Delta elástico/espectro.
+- **Revisor clean-room: PENDIENTE (J4)**. No se declara cerrado VAL-001 completo.
+
+### Verificación de la ampliación (2026-10-11)
+
+Todos los comandos Cargo se ejecutaron con `CARGO_NET_OFFLINE=true`, sin
+descargar dependencias ni componentes:
+
+- `cargo fmt` y `cargo fmt --check`: **OK**.
+- `cargo clippy --all-targets -- -D warnings`: **OK**.
+- `cargo test --workspace`: **OK**, **294 pruebas nativas**, incluidos
+  doctests; el test lineal original recorre 42 fixtures y los tres tests nuevos
+  recorren 12/10/9 filas. Ningún fallo ni fixture existente modificado.
+- `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`: **OK**.
+- `cargo check --workspace --target wasm32-unknown-unknown`: **OK**.
+- `cargo check --workspace --all-targets --target wasm32-unknown-unknown`:
+  **OK**, incluye explícitamente las tablas, auxiliares y oráculos nuevos.
+- `bash clean-room/check.sh origin/main`: **OK**. Comprobación adicional con
+  todos los archivos nuevos reconocidos mediante índice y objetos temporales
+  en `/tmp`: **OK**, también `git diff --cached --check` en ese índice.
+- `git diff --check`: **OK**. Cargo.toml, Cargo.lock, tabla/harness/test lineales
+  originales y bibliotecas de análisis/elementos permanecen intactos.
+
+Pruebas nativas/documentación: rustc/cargo 1.85.1 del sistema; Clippy 0.1.99.
+Wasm: `PATH=/home/box/.cargo/bin:$PATH RUSTUP_TOOLCHAIN=stable`, rustc 1.99.0
+con destino ya instalado. No se ejecutó un runtime wasm. El índice Git real
+permanece intacto; **sin commit ni push**, sin red ni dependencias nuevas.
+Revisor clean-room: PENDIENTE (J4).
