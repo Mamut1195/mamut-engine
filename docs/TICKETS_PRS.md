@@ -86,7 +86,7 @@ implementación. Ninguno tiene issue con su ID en los dos exports.
 | ENG-API-001 | — | sin PR | Nueva fachada; integra results/1 y JSON canónico. |
 | ENG-SFC-002 | — | sin PR | CLI sobre base SDK-WF-007; alinear subcomandos y contrato. |
 | ENG-SFC-007 | — | sin PR | Bindings reales V1 sobre engine-api; reactivado desde Archivado/V2 en el plan. |
-| ENG-PY-001 | PR #87 | fusionado (#87) | ADR-003 propuesto; aprobación relayada vía J0 (2026-10-14 13:57 ECT; MAM-75); se confirma al fusionar Jonathan el PR #91. |
+| ENG-PY-001 | PR #87; PR #91 | fusionado (#87, #91) | ADR-003 aceptado: Jonathan fusionó personalmente #91 (commit 2a21216, 2026-10-14 14:13 ECT; MAM-75). |
 | ENG-PY-002 | — | sin PR | Scaffold PyO3/maturin, inicialmente version(). |
 | ENG-PY-003 | — | sin PR | API Python tipada para modelos, análisis, resultados y diagnóstico. |
 | ENG-PY-004 | — | sin PR | NumPy opcional, matrices y vistas de resultados. |

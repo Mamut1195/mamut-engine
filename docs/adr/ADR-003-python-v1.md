@@ -1,7 +1,7 @@
 # ADR-003: paquete Python nativo V1
 
 - **Tarea:** ENG-PY-001
-- **Estado:** Propuesto (aprobación relayada vía J0 el 2026-10-14 13:57 ECT; se confirma al fusionar Jonathan este PR)
+- **Estado:** Aceptado (Jonathan, 2026-10-14)
 - **Fecha:** 2026-10-14 (America/Guayaquil)
 
 ## Contexto
@@ -164,19 +164,20 @@ de funciones Python ya disponibles.
   exposición de capacidades requiere evaluar esos pendientes y la
   conformidad real, sin deducirla de la presencia de código.
 
-## Aceptación (pendiente de fusión)
+## Aceptación (2026-10-14)
+
+Registro de aprobación: Jonathan (cuenta Mamut1195) fusionó personalmente
+el PR #91 en GitHub (commit 2a21216, 2026-10-14 14:13 ECT); la cuenta
+compartida le impide aprobar como reviewer, por lo que la fusión hecha
+por él es la evidencia de aprobación directa (mismo precedente que
+CLEAN_ROOM §5.1 / #74 → #79). Ticket Linear: MAM-75 (ENG-PY-001).
 
 Antecedente (los relays solos no cuentan): el 2026-10-14 a las 13:57 ECT
 J0 comunicó que Jonathan aprobó ADR-003 (MAM-75 / ENG-PY-001).
 
-La evidencia de aprobación válida es la fusión personal de Jonathan de
-este PR #91 en GitHub. La cuenta compartida Mamut1195 le impide aprobar
-como reviewer; la fusión hecha por él es la aprobación directa (mismo
-precedente que CLEAN_ROOM §5.1 / #74 → #79).
-
 ## Pendientes
 
-- [ ] Aprobación de este ADR por Jonathan — antecedente relayado 2026-10-14 13:57 ECT vía J0 (MAM-75); se confirma al fusionar Jonathan este PR. Revisión clean-room independiente pendiente.
+- [x] Aprobación de este ADR por Jonathan — fusión personal del PR #91 (commit 2a21216, 2026-10-14 14:13 ECT; MAM-75). Revisión clean-room independiente pendiente.
 - [ ] Confirmar los tickets ambiguos y ENG-CORE-006 en la conciliación.
 - [ ] Implementar y verificar fachada, bindings, tipos, memoria y cancelación.
 - [ ] Resolver la convención de elevación 2D antes de anunciarla como capacidad.
