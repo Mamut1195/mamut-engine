@@ -1,6 +1,7 @@
 //! T convierte global a local; Kglobal=Tᵀ Klocal T.
 use crate::{finite, invalid, vector, Matrix};
 use engine_contracts::ElementCtx;
+use engine_core::math;
 use engine_core::{Dim, EResult, EngineError, Real};
 use engine_linalg::DMat;
 
@@ -22,7 +23,7 @@ impl Geometry {
         }
         let dx = finite(ctx.coords[1][0] - ctx.coords[0][0], "dx (m)")?;
         let dy = finite(ctx.coords[1][1] - ctx.coords[0][1], "dy (m)")?;
-        let length = finite(dx.hypot(dy), "L (m)")?;
+        let length = finite(math::hypot(dx, dy), "L (m)")?;
         if length <= 1e-12 {
             return Err(EngineError::new("ENG-E-0005", "Viga: L≤1e-12 m."));
         }

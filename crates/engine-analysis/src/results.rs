@@ -17,6 +17,7 @@
 use crate::{finite, StaticCaseResult};
 use engine_assembly::LinearSystem;
 use engine_contracts::{CaseRef, Element, ElementCtx, ElementOutput, ElementParams, MemberLoad};
+use engine_core::math;
 use engine_core::{Dim, DofIndex, EResult, EngineError, EntityRef, MemberId, NodeId, Real};
 use engine_linalg::LinAlgBackend;
 use std::collections::{BTreeMap, BTreeSet};
@@ -466,7 +467,7 @@ fn recover_member(
         };
         let dx = b[0] - a[0];
         let dy = b[1] - a[1];
-        let length = dx.hypot(dy);
+        let length = math::hypot(dx, dy);
         finite(&[dx, dy, length])?;
         if length <= 0.0 {
             return Err(error("ENG-E-0005", "Miembro de longitud nula."));

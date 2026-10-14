@@ -5,6 +5,7 @@ use engine_contracts::{
     conformance::check_element, Element, ElementCtx, ElementParams, MassKind, MemberLoad,
     UniaxialLaw, UniaxialResponse,
 };
+use engine_core::math;
 use engine_core::{ContractId, Dim, Dof, EResult, EngineError, Real};
 use engine_elements_spring::{NonlinearSpring, SpringAxes, SpringConnection};
 use std::sync::Arc;
@@ -239,7 +240,7 @@ fn axis_rotation_covariance_force_tangent_and_local_recovery() {
             let ctx = context(dim, &coords, &p);
             for delta in [-0.5, -0.1, 0.3] {
                 let mut u = vec![0.0; width * s.n_nodes()];
-                let norm = d.iter().map(|v| v * v).sum::<Real>().sqrt();
+                let norm = math::sqrt(d.iter().map(|v| v * v).sum::<Real>());
                 for a in 0..width {
                     u[width * (s.n_nodes() - 1) + a] = delta * d[a] / norm;
                 }

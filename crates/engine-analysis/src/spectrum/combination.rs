@@ -1,5 +1,6 @@
 use super::{invalid, validate_damping};
 use crate::finite;
+use engine_core::math;
 use engine_core::{EResult, EngineError, Real};
 
 /// Combinación modal componente a componente, conservando signos antes de sumar.
@@ -41,7 +42,7 @@ pub fn cqc_correlation(omega_i: Real, omega_j: Real, zi: Real, zj: Real) -> ERes
         }
         let scale = zi.max(zj);
         let (a, b) = (zi / scale, zj / scale);
-        return Ok(2.0 * a.sqrt() * b.sqrt() / (a + b));
+        return Ok(2.0 * math::sqrt(a) * math::sqrt(b) / (a + b));
     }
     let (high, low, zh, zl) = if omega_i > omega_j {
         (omega_i, omega_j, zi, zj)
@@ -49,12 +50,19 @@ pub fn cqc_correlation(omega_i: Real, omega_j: Real, zi: Real, zj: Real) -> ERes
         (omega_j, omega_i, zj, zi)
     };
     let r = low / high;
-    let root_product = zh.sqrt() * zl.sqrt();
-    let denominator_root = (1.0 - r * r)
-        .hypot(2.0 * root_product * (r * (1.0 + r * r)).sqrt())
-        .hypot(2.0 * r * zh.hypot(zl));
-    let rho =
-        8.0 * (root_product / denominator_root) * ((zh + r * zl) / denominator_root) * r * r.sqrt();
+    let root_product = math::sqrt(zh) * math::sqrt(zl);
+    let denominator_root = math::hypot(
+        math::hypot(
+            1.0 - r * r,
+            2.0 * root_product * math::sqrt(r * (1.0 + r * r)),
+        ),
+        2.0 * r * math::hypot(zh, zl),
+    );
+    let rho = 8.0
+        * (root_product / denominator_root)
+        * ((zh + r * zl) / denominator_root)
+        * r
+        * math::sqrt(r);
     finite(&[rho])?;
     // Solo redondeo en los límites matemáticos de una correlación.
     Ok(rho.clamp(0.0, 1.0))
@@ -132,14 +140,14 @@ pub(super) fn quadratic(values: &[Real], rho: &[Vec<Real>]) -> EResult<Real> {
         }
     }
     finite(&[sum])?;
-    let tolerance = 64.0 * Real::EPSILON * (values.len() as Real).powi(2);
+    let tolerance = 64.0 * Real::EPSILON * math::powi(values.len() as Real, 2);
     if sum < -tolerance {
         return Err(EngineError::new(
             "ENG-E-0012",
             "CQC: forma cuadrática negativa.",
         ));
     }
-    let result = scale * sum.max(0.0).sqrt();
+    let result = scale * math::sqrt(sum.max(0.0));
     finite(&[result])?;
     Ok(result)
 }
@@ -167,7 +175,7 @@ pub fn combine_directions(
         let term = value * factor;
         finite(&[term])?;
         result = match method {
-            DirectionalCombination::Srss => result.hypot(term),
+            DirectionalCombination::Srss => math::hypot(result, term),
             DirectionalCombination::WeightedSum => result + term,
         };
         finite(&[result])?;

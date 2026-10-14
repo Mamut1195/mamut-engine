@@ -39,6 +39,7 @@
 
 #![deny(missing_docs)]
 
+use engine_core::math;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub use engine_core::{Diagnostic, Dim, Dof, EntityRef, MemberId, NodeId, Real};
@@ -465,7 +466,7 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
                     .coordinates
                     .iter()
                     .zip(b.coordinates)
-                    .fold(0.0_f64, |length, (a, b)| length.hypot(a - b));
+                    .fold(0.0_f64, |length, (a, b)| math::hypot(length, a - b));
                 if distance <= LENGTH_TOLERANCE {
                     report(
                         &mut out,

@@ -1,6 +1,7 @@
 //! Ronda J4 r6: orientación casi paralela, torsión con redondeo, axial extremo.
 mod fixtures;
 use engine_contracts::{Element, ElementParams};
+use engine_core::math;
 use engine_elements_frame3d::EulerFrame3D;
 use fixtures::*;
 
@@ -24,7 +25,7 @@ fn slightly_oblique_orientation_stays_orthonormal_rigid_rotation_gives_no_force(
     // Ángulo pequeño pero aceptado (sen≈3e-8): la terna debe seguir ortonormal.
     let hint = [1.0, 2.0 + 1e-7, 3.0];
     let b = EulerFrame3D::new(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, hint, releases(0)).unwrap();
-    let x = [1.0, 2.0, 3.0].map(|v| v / 14f64.sqrt());
+    let x = [1.0, 2.0, 3.0].map(|v| v / math::sqrt(14f64));
     let mut u = [0.0; 12];
     for (i, v) in x.iter().enumerate() {
         u[3 + i] = 1e-3 * v;

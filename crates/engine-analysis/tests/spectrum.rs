@@ -7,6 +7,7 @@ use engine_analysis::spectrum::{
 };
 use engine_assembly::{DofMap, ElementContribution, LinearSystem, PrescribedDof};
 use engine_contracts::{Element, ElementCtx, ElementParams, MassKind, SystemView};
+use engine_core::math;
 use engine_core::{Dim, Dof, NodeId};
 use engine_elements_frame::{EulerFrame2D, MomentReleases};
 use engine_linalg::{DMat, ReferenceBackend};
@@ -266,16 +267,17 @@ fn cqc_common_general_symmetry_diagonal_bounds_and_zero_damping() {
             if zeta == 0.0 {
                 assert_eq!(actual, if r == 1.0 { 1.0 } else { 0.0 });
             } else if zeta > 1e-100 {
-                let exact = 8.0 * zeta.powi(2) * (1.0 + r) * r.powf(1.5)
-                    / ((1.0 - r * r).powi(2) + 4.0 * zeta.powi(2) * r * (1.0 + r).powi(2));
+                let exact = 8.0 * math::powi(zeta, 2) * (1.0 + r) * math::powf(r, 1.5)
+                    / (math::powi(1.0 - r * r, 2)
+                        + 4.0 * math::powi(zeta, 2) * r * math::powi(1.0 + r, 2));
                 close(actual, exact, 1e-14);
             }
         }
     }
     for (zi, zj) in [(0.02_f64, 0.07_f64), (0.0, 0.1), (0.4, 0.9)] {
         for r in [0.1_f64, 0.95, 1.0, 1.4, 12.0] {
-            let exact = 8.0 * (zi * zj).sqrt() * (zi + r * zj) * r.powf(1.5)
-                / ((1.0 - r * r).powi(2)
+            let exact = 8.0 * math::sqrt(zi * zj) * (zi + r * zj) * math::powf(r, 1.5)
+                / (math::powi(1.0 - r * r, 2)
                     + 4.0 * zi * zj * r * (1.0 + r * r)
                     + 4.0 * (zi * zi + zj * zj) * r * r);
             let actual = cqc_correlation(1.0, r, zi, zj).unwrap();
@@ -304,7 +306,7 @@ fn cqc_tends_to_srss_far_modes_and_keeps_signed_cross_terms() {
     assert!(closer > 0.9);
     close(
         combine_modal(&[3.0, -4.0], &[1.0, 1.01], &zeta, ModalCombination::Cqc).unwrap(),
-        (25.0 - 24.0 * closer).sqrt(),
+        math::sqrt(25.0 - 24.0 * closer),
         1e-14,
     );
     assert_eq!(
@@ -313,7 +315,7 @@ fn cqc_tends_to_srss_far_modes_and_keeps_signed_cross_terms() {
     );
     close(
         combine_modal(&[1e200, 1e200], &[1.0, 2.0], &zeta, ModalCombination::Srss).unwrap(),
-        2.0_f64.sqrt() * 1e200,
+        math::sqrt(2.0_f64) * 1e200,
         1e-14,
     );
 }
@@ -343,10 +345,10 @@ fn shear_building_own_closed_form_constant_and_linear_tables_all_modes() {
             for (index, actual) in result.directions[0].modes.iter().enumerate() {
                 // θ=(2n−1)π/(2N+1), ω²=4k/m sin²(θ/2), φ_j=sin(jθ).
                 let theta = (2 * index + 1) as f64 * PI / (2 * n + 1) as f64;
-                let lambda = 4.0 * k / m * (theta / 2.0).sin().powi(2);
-                let period = TAU / lambda.sqrt();
-                let raw: Vec<_> = (1..=n).map(|j| (j as f64 * theta).sin()).collect();
-                let norm = (m * raw.iter().map(|v| v * v).sum::<f64>()).sqrt();
+                let lambda = 4.0 * k / m * math::powi(math::sin(theta / 2.0), 2);
+                let period = TAU / math::sqrt(lambda);
+                let raw: Vec<_> = (1..=n).map(|j| math::sin(j as f64 * theta)).collect();
+                let norm = math::sqrt(m * raw.iter().map(|v| v * v).sum::<f64>());
                 let projection = m * raw.iter().sum::<f64>() / norm;
                 let sign = if result.modal.modes[index].free_shape[0] * raw[0] < 0.0 {
                     -1.0
@@ -391,18 +393,22 @@ fn shear_building_own_closed_form_constant_and_linear_tables_all_modes() {
             close(mass_sum, n as f64 * m, 3e-11);
             // Derivación propia: V_b,SRSS²=Σ(M*_n Sa_n)², NO Σ M*_n Sa_n.
             close(
-                result.directions[0].combined.base_shear.powi(2),
+                math::powi(result.directions[0].combined.base_shear, 2),
                 basal_squared,
                 3e-11,
             );
-            close(result.combined.base_shear.powi(2), basal_squared, 3e-11);
+            close(
+                math::powi(result.combined.base_shear, 2),
+                basal_squared,
+                3e-11,
+            );
             for (u, square) in result
                 .combined
                 .free_displacements
                 .iter()
                 .zip(displacement_squared)
             {
-                close(*u, square.sqrt(), 3e-11);
+                close(*u, math::sqrt(square), 3e-11);
             }
             assert_eq!(system.accepted_displacement(), vec![0.0; n]);
             assert_eq!(system.trial_displacement(), vec![0.0; n]);
@@ -445,7 +451,7 @@ fn direction_normalization_reversal_oblique_and_user_factors() {
         close(b.response.base_shear, a.response.base_shear * 0.5, 1e-14);
         close(
             b.response.free_displacements[0],
-            a.response.free_displacements[0] / 2.0_f64.sqrt(),
+            a.response.free_displacements[0] / math::sqrt(2.0_f64),
             1e-14,
         );
     }
@@ -453,7 +459,7 @@ fn direction_normalization_reversal_oblique_and_user_factors() {
     close(result.combined.base_shear, 1.3 * x, 1e-14);
     opt.directional_combination = DirectionalCombination::Srss;
     let srss = Spectrum::run(&mut system, &inputs, &opt).unwrap();
-    close(srss.combined.base_shear, 1.09_f64.sqrt() * x, 1e-14);
+    close(srss.combined.base_shear, math::sqrt(1.09_f64) * x, 1e-14);
     // Factores totalmente del usuario, sin 100%/30% incorporado.
     assert_eq!(
         combine_directions(
@@ -497,7 +503,7 @@ fn per_mode_damping_tables_cqc() {
     );
     close(
         d.combined.base_shear,
-        (a * a + b * b + 2.0 * rho * a * b).sqrt(),
+        math::sqrt(a * a + b * b + 2.0 * rho * a * b),
         1e-14,
     );
     for i in 0..2 {
@@ -507,7 +513,7 @@ fn per_mode_damping_tables_cqc() {
         );
         close(
             d.combined.free_displacements[i],
-            (a * a + b * b + 2.0 * rho * a * b).sqrt(),
+            math::sqrt(a * a + b * b + 2.0 * rho * a * b),
             1e-14,
         );
     }
@@ -572,7 +578,7 @@ fn consistent_mass_support_coupling_settlement_and_member_recovery() {
     close(recovered.stations[0].forces_local[0], 4.0, 1e-14);
     let member = combine_modal(
         &[recovered.stations[0].forces_local[0]],
-        &[6.0_f64.sqrt()],
+        &[math::sqrt(6.0_f64)],
         &[0.05],
         ModalCombination::Cqc,
     )
@@ -760,7 +766,7 @@ fn multiple_supports_combine_basal_after_signed_sum() {
     }];
     let result = Spectrum::run(&mut system, &inputs, &options(2, vec![1.0])).unwrap();
     // V=(4,6) ⇒ V_SRSS=√52; sumar envolventes de apoyos daría 10.
-    close(result.combined.base_shear, 52.0_f64.sqrt(), 1e-14);
+    close(result.combined.base_shear, math::sqrt(52.0_f64), 1e-14);
     let sum_envelopes: f64 = result
         .combined
         .reactions

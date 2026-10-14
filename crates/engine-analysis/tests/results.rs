@@ -9,6 +9,7 @@ use engine_contracts::{
     CaseRef, DMat, Element, ElementCtx, ElementOutput, ElementParams, ElementResponse, MassKind,
     MemberLoad,
 };
+use engine_core::math;
 use engine_core::{ContractId, Dim, Dof, EResult, EngineError, EntityRef, MemberId, NodeId};
 use engine_elements_frame::{EulerFrame2D, MomentReleases};
 use engine_elements_truss::LinearTruss;
@@ -227,11 +228,11 @@ fn simply_supported_uniform_exact_peak_outside_requested_stations() -> EResult<(
     }
     close(
         r.nodes[0].displacements[5],
-        -W * L.powi(3) / (24.0 * 200.0 * 3.0),
+        -W * math::powi(L, 3) / (24.0 * 200.0 * 3.0),
     );
     close(
         r.nodes[1].displacements[5],
-        W * L.powi(3) / (24.0 * 200.0 * 3.0),
+        W * math::powi(L, 3) / (24.0 * 200.0 * 3.0),
     );
     close(
         r.nodes.iter().map(|n| n.reactions[1]).sum::<f64>() - W * L,
@@ -294,11 +295,11 @@ fn cantilever_nodal_point_load_exact_n_v_m_and_node_reactions() -> EResult<()> {
     close(r.nodes[1].displacements[0], 5.0 * L / (200.0 * 2.0));
     close(
         r.nodes[1].displacements[1],
-        -P * L.powi(3) / (3.0 * 200.0 * 3.0),
+        -P * math::powi(L, 3) / (3.0 * 200.0 * 3.0),
     );
     close(
         r.nodes[1].displacements[5],
-        -P * L.powi(2) / (2.0 * 200.0 * 3.0),
+        -P * math::powi(L, 2) / (2.0 * 200.0 * 3.0),
     );
     close(r.nodes[0].reactions[1] - P - 7.0, 0.0);
     close(r.nodes[0].reactions[5] - P * L, 0.0);
@@ -731,7 +732,7 @@ fn recovery_rejects_omitted_or_changed_loads_and_members() -> EResult<()> {
     close(coherent.nodes[0].reactions[1], 21.0);
     close(
         extremes(member(&coherent)?, Field::Mz)?.max.value,
-        14.0_f64.powi(2) / (2.0 * W),
+        math::powi(14.0_f64, 2) / (2.0 * W),
     );
     Ok(())
 }
@@ -754,7 +755,7 @@ fn omitted_load_probe_errors_while_uniform_analytic_peak_is_twelve() -> EResult<
         &[view(&beam, &params, &loads, Some(&[]))],
     )?;
     let peak = extremes(member(&coherent)?, Field::Mz)?.max;
-    close(peak.value, W * L.powi(2) / 8.0);
+    close(peak.value, W * math::powi(L, 2) / 8.0);
     close(peak.at_station, 0.5);
     Ok(())
 }

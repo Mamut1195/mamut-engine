@@ -16,6 +16,7 @@ use engine_analysis::{
 };
 use engine_assembly::{DofMap, ElementContribution, GeometricProducer, LinearSystem};
 use engine_contracts::{CaseRef, MassKind};
+use engine_core::math;
 use engine_core::{Dim, Dof, EResult, NodeId};
 use engine_linalg::{DMat, ReferenceBackend};
 use engine_model::{DofValue, Model, NodalMass, Node};
@@ -48,7 +49,7 @@ fn orthogonal(system: &LinearSystem<ReferenceBackend>, result: &ModalResults) ->
             c.close(
                 "φᵢᵀKφⱼ / √(λᵢλⱼ)",
                 dot(system.stiffness(), &a.global_shape, &b.global_shape)?
-                    / (a.eigenvalue * b.eigenvalue).sqrt(),
+                    / math::sqrt(a.eigenvalue * b.eigenvalue),
                 if i == j { 1.0 } else { 0.0 },
             )?;
         }
@@ -70,25 +71,20 @@ fn shear_oracle(
             let [k1, k2] = [stiffness[0], stiffness[1]];
             let [m1, m2] = [masses[0], masses[1]];
             let b = m2 * (k1 + k2) + m1 * k2;
-            let root = (b * b - 4.0 * m1 * m2 * k1 * k2).sqrt();
+            let root = math::sqrt(b * b - 4.0 * m1 * m2 * k1 * k2);
             let lambda = (b + if i == 0 { -root } else { root }) / (2.0 * m1 * m2);
             (lambda, vec![1.0, (k1 + k2 - lambda * m1) / k2])
         } else {
             let theta = (2 * i + 1) as f64 * PI / (2 * n + 1) as f64;
             (
-                4.0 * stiffness[0] / masses[0] * (theta / 2.0).sin().powi(2),
+                4.0 * stiffness[0] / masses[0] * math::powi(math::sin(theta / 2.0), 2),
                 (1..=n)
-                    .map(|j| (j as f64 * theta).sin())
+                    .map(|j| math::sin(j as f64 * theta))
                     .collect::<Vec<_>>(),
             )
         };
-        c.close("ω analítica", mode.angular_frequency, lambda.sqrt())?;
-        let norm = raw
-            .iter()
-            .zip(masses)
-            .map(|(v, m)| m * v * v)
-            .sum::<f64>()
-            .sqrt();
+        c.close("ω analítica", mode.angular_frequency, math::sqrt(lambda))?;
+        let norm = math::sqrt(raw.iter().zip(masses).map(|(v, m)| m * v * v).sum::<f64>());
         let sign = if mode.free_shape[0] * raw[0] < 0.0 {
             -1.0
         } else {
@@ -136,7 +132,7 @@ fn beta(cantilever: bool) -> [f64; 3] {
         let (mut lo, mut hi) = (i as f64 * PI + 0.1, (i + 1) as f64 * PI);
         for _ in 0..55 {
             let mid = (lo + hi) / 2.0;
-            let f = |v: f64| v.cos() * v.cosh() + 1.0;
+            let f = |v: f64| math::cos(v) * math::cosh(v) + 1.0;
             if f(lo) * f(mid) <= 0.0 {
                 hi = mid;
             } else {
@@ -170,12 +166,12 @@ fn validate_modal(f: &Fixture) -> EResult<()> {
             cantilever,
             angle,
         } => {
-            let direction = [-angle.sin(), angle.cos(), 0.0];
+            let direction = [-math::sin(angle), math::cos(angle), 0.0];
             let mut s = beam(mesh, cantilever, angle, f.frame)?;
             let r = Modal::run(&mut s, 3, MassKind::Consistent, &[direction])?;
             let roots = beta(cantilever);
-            let scale = (f.frame.e * f.frame.inertia / (f.frame.density * f.frame.area)).sqrt()
-                / f.frame.length.powi(2);
+            let scale = math::sqrt(f.frame.e * f.frame.inertia / (f.frame.density * f.frame.area))
+                / math::powi(f.frame.length, 2);
             for (mode, root) in r.modes.iter().zip(roots) {
                 c.close(
                     "ω=β²√(EI/ρA)/L²",
@@ -218,8 +214,8 @@ fn validate_modal(f: &Fixture) -> EResult<()> {
                         .chunks_exact(3)
                         .flat_map(|v| {
                             [
-                                angle.cos() * v[0] - angle.sin() * v[1],
-                                angle.sin() * v[0] + angle.cos() * v[1],
+                                math::cos(angle) * v[0] - math::sin(angle) * v[1],
+                                math::sin(angle) * v[0] + math::cos(angle) * v[1],
                                 v[2],
                             ]
                         })
@@ -293,17 +289,17 @@ fn validate_pdelta(f: &Fixture) -> EResult<()> {
             completed(&r)?;
             let u = r.global_displacements.as_ref().ok_or_else(missing)?;
             let tip = u[3 * mesh + 1];
-            let linear = force * length.powi(3) / (3.0 * ei);
+            let linear = force * math::powi(length, 3) / (3.0 * ei);
             let exact = if ratio == 0.0 {
                 linear
             } else {
-                let z = PI * ratio.abs().sqrt() / 2.0;
+                let z = PI * math::sqrt(ratio.abs()) / 2.0;
                 linear
                     * 3.0
                     * if ratio > 0.0 {
-                        (z.tan() - z) / z.powi(3)
+                        (math::tan(z) - z) / math::powi(z, 3)
                     } else {
-                        (z - z.tanh()) / z.powi(3)
+                        (z - math::tanh(z)) / math::powi(z, 3)
                     }
             };
             let mesh_check = Check(Tolerance { absolute: 1e-10, relative: 2e-6,
@@ -341,14 +337,14 @@ fn validate_pdelta(f: &Fixture) -> EResult<()> {
         }
         Parameters::Portal { mesh, ratio, rigid } => {
             let n = 2.0;
-            let pcr_floor = 12.0 * ei * n / length.powi(2);
+            let pcr_floor = 12.0 * ei * n / math::powi(length, 2);
             let mut s = portal(mesh, ratio * pcr_floor, rigid, f.frame)?;
             let r = PDelta::run(&mut s, &case("G"), &case("H"), options())?;
             completed(&r)?;
             let u = r.global_displacements.as_ref().ok_or_else(missing)?;
-            let linear = force * length.powi(3) / (12.0 * ei * n);
-            let z = (12.0 * ratio).sqrt();
-            let exact = linear * 12.0 * (2.0 * (z / 2.0).tan() - z) / z.powi(3);
+            let linear = force * math::powi(length, 3) / (12.0 * ei * n);
+            let z = math::sqrt(12.0 * ratio);
+            let exact = linear * 12.0 * (2.0 * math::tan(z / 2.0) - z) / math::powi(z, 3);
             let mesh_check = Check(Tolerance { absolute: 1e-10, relative: 1e-4,
                 justification: "12 elementos por columna y rigidez/EA×1e5: solución continua con giro superior cero." });
             for id in [mesh, 2 * mesh + 1] {
@@ -408,8 +404,8 @@ fn validate_pdelta(f: &Fixture) -> EResult<()> {
             completed(&r)?;
             let mut expected_steps = 0;
             for step in 1..=limit {
-                let residual = ratio.powi(step as i32);
-                let change = force / k * ratio.powi(step as i32 - 1);
+                let residual = math::powi(ratio, step as i32);
+                let change = force / k * math::powi(ratio, step as i32 - 1);
                 if residual <= tolerance && change <= tolerance {
                     expected_steps = step;
                     break;
@@ -424,17 +420,17 @@ fn validate_pdelta(f: &Fixture) -> EResult<()> {
                 c.close(
                     "uᵢ=F/[k(1−r)](1−rⁱ)",
                     report.free_displacements[0],
-                    force / (k * (1.0 - ratio)) * (1.0 - ratio.powi(step)),
+                    force / (k * (1.0 - ratio)) * (1.0 - math::powi(ratio, step)),
                 )?;
                 c.close(
                     "residual relativo=rⁱ",
                     report.relative_free_residual,
-                    ratio.powi(step),
+                    math::powi(ratio, step),
                 )?;
                 c.close(
                     "cambio relativo=F/k rⁱ⁻¹",
                     report.relative_displacement_change,
-                    force / k * ratio.powi(step - 1),
+                    force / k * math::powi(ratio, step - 1),
                 )?;
             }
             let limited = PDelta::run(
@@ -500,11 +496,11 @@ fn validate_spectrum(f: &Fixture) -> EResult<()> {
                 // φ=(1,t)/√[m(1+t²)], t=(1±√5)/2; signo arbitrario.
                 let t =
                     (1.0 + if i == 0 {
-                        5.0_f64.sqrt()
+                        math::sqrt(5.0_f64)
                     } else {
-                        -5.0_f64.sqrt()
+                        -math::sqrt(5.0_f64)
                     }) / 2.0;
-                let norm = (m * (1.0 + t * t)).sqrt();
+                let norm = math::sqrt(m * (1.0 + t * t));
                 let gamma = m * (1.0 + t) / norm;
                 let lambda = k / m * (2.0 - t);
                 let effective_mass = gamma * gamma;
@@ -528,14 +524,18 @@ fn validate_spectrum(f: &Fixture) -> EResult<()> {
                     )?;
                     displacement2[j] += displacement * displacement;
                 }
-                vb2 += (effective_mass * sa).powi(2);
+                vb2 += math::powi(effective_mass * sa, 2);
             }
-            c.close("Vb² SRSS=Σ(M*n Sa)²", r.combined.base_shear.powi(2), vb2)?;
+            c.close(
+                "Vb² SRSS=Σ(M*n Sa)²",
+                math::powi(r.combined.base_shear, 2),
+                vb2,
+            )?;
             for (j, &d2) in displacement2.iter().enumerate() {
                 c.close(
                     "desplazamiento SRSS",
                     r.combined.global_displacements[2 * (j + 1)],
-                    d2.sqrt(),
+                    math::sqrt(d2),
                 )?;
             }
             Ok(())
@@ -571,8 +571,8 @@ fn validate_spectrum(f: &Fixture) -> EResult<()> {
         } => {
             // WDKB 1981 según fórmula de la petición, expansión directa independiente.
             let r = wj / wi;
-            let rho = 8.0 * (zi * zj).sqrt() * (zi + r * zj) * r.powf(1.5)
-                / ((1.0 - r * r).powi(2)
+            let rho = 8.0 * math::sqrt(zi * zj) * (zi + r * zj) * math::powf(r, 1.5)
+                / (math::powi(1.0 - r * r, 2)
                     + 4.0 * zi * zj * r * (1.0 + r * r)
                     + 4.0 * (zi * zi + zj * zj) * r * r);
             c.close("ρij manual WDKB", cqc_correlation(wi, wj, zi, zj)?, rho)?;
@@ -582,7 +582,7 @@ fn validate_spectrum(f: &Fixture) -> EResult<()> {
             c.close(
                 "CQC firmada manual",
                 actual,
-                (a * a + b * b + 2.0 * rho * a * b).sqrt(),
+                math::sqrt(a * a + b * b + 2.0 * rho * a * b),
             )?;
             if wj / wi >= 100.0 {
                 let srss = combine_modal(&[a, b], &[wi, wj], &[zi, zj], ModalCombination::Srss)?;
@@ -693,7 +693,7 @@ fn validate_spectrum(f: &Fixture) -> EResult<()> {
                 "factores direccionales del usuario",
                 r.combined.base_shear,
                 if srss {
-                    ((factors[0] * x).powi(2) + (factors[1] * y).powi(2)).sqrt()
+                    math::sqrt(math::powi(factors[0] * x, 2) + math::powi(factors[1] * y, 2))
                 } else {
                     factors[0] * x + factors[1] * y
                 },

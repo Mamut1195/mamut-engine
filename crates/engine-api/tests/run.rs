@@ -1,5 +1,6 @@
 //! Oráculos SI derivados a mano, sin implementación ni datos de otros motores.
 use engine_api::{canonical_json, exit_code, run, CancelToken, Outcome, Status};
+use engine_core::math;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
@@ -40,7 +41,7 @@ fn cantilever_tip_point_load_analytical_displacement_and_fixed_moment() {
     assert_eq!(o.exit_code(), 0);
     close(
         &d["cases"][0]["nodes"][1]["displacements"][1],
-        -12.0 * 4.0_f64.powi(3) / (3.0 * 200.0 * 3.0),
+        -12.0 * math::powi(4.0_f64, 3) / (3.0 * 200.0 * 3.0),
     );
     close(&d["cases"][0]["nodes"][0]["reactions"][1], 12.0);
     close(&d["cases"][0]["nodes"][0]["reactions"][5], 48.0);
@@ -464,7 +465,7 @@ fn recovery_includes_every_member_in_a_two_span_cantilever() {
     assert_eq!(d["cases"][0]["members"].as_array().unwrap().len(), 2);
     close(
         &d["cases"][0]["nodes"][2]["displacements"][1],
-        -12.0 * 4.0_f64.powi(3) / (3.0 * 200.0 * 3.0),
+        -12.0 * math::powi(4.0_f64, 3) / (3.0 * 200.0 * 3.0),
     );
     close(&d["cases"][0]["nodes"][0]["reactions"][5], 48.0);
 }

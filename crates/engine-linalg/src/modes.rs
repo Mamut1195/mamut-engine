@@ -58,7 +58,9 @@ fn count_with_valid_mass<B: LinAlgBackend + ?Sized>(
         .zip(k.dense().values())
         .zip(m.dense().values())
     {
-        // Un único redondeo reduce cancelación cerca de un autovalor.
+        // FMA explícito: un único redondeo reduce cancelación cerca de un
+        // autovalor. Se exige la semántica mul_add tanto por hardware como
+        // por software; excepción documentada en docs/DETERMINISMO.md.
         *entry = (-sigma).mul_add(mi, ki);
     }
     finite(&shifted.values)?;

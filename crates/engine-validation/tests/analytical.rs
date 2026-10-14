@@ -8,6 +8,7 @@ use engine_analysis::{
     combination::combine,
     results::{CaseResults, Field, MemberResult, NodeResult},
 };
+use engine_core::math;
 use engine_core::{EResult, MemberId, NodeId};
 use engine_model::{CaseFactor, Combination};
 use harness::{build, compare, missing, solve, Check};
@@ -65,7 +66,7 @@ fn validate(f: &Fixture) -> EResult<()> {
         Kind::CantileverPoint | Kind::CantileverUniform | Kind::CantileverMoment => {
             let (v, theta, ry, rz, mi, mj) = match f.kind {
                 Kind::CantileverPoint => (
-                    -force * l.powi(3) / (3.0 * ei),
+                    -force * math::powi(l, 3) / (3.0 * ei),
                     -force * l * l / (2.0 * ei),
                     force,
                     force * l,
@@ -73,8 +74,8 @@ fn validate(f: &Fixture) -> EResult<()> {
                     0.0,
                 ),
                 Kind::CantileverUniform => (
-                    -w * l.powi(4) / (8.0 * ei),
-                    -w * l.powi(3) / (6.0 * ei),
+                    -w * math::powi(l, 4) / (8.0 * ei),
+                    -w * math::powi(l, 3) / (6.0 * ei),
                     w * l,
                     w * l * l / 2.0,
                     -w * l * l / 2.0,
@@ -91,26 +92,27 @@ fn validate(f: &Fixture) -> EResult<()> {
             };
             let tip = node(r, 3)?;
             // Transformación inversa explícita: compara componentes globales y locales.
-            c.close("Ux rotado", tip.displacements[0], -v * p.angle.sin())?;
-            c.close("Uy rotado", tip.displacements[1], v * p.angle.cos())?;
+            c.close("Ux rotado", tip.displacements[0], -v * math::sin(p.angle))?;
+            c.close("Uy rotado", tip.displacements[1], v * math::cos(p.angle))?;
             c.close(
                 "flecha transversal invariante",
-                -p.angle.sin() * tip.displacements[0] + p.angle.cos() * tip.displacements[1],
+                -math::sin(p.angle) * tip.displacements[0]
+                    + math::cos(p.angle) * tip.displacements[1],
                 v,
             )?;
             c.close("giro punta", tip.displacements[5], theta)?;
             let base = node(r, 1)?;
-            c.close("Rx rotado", base.reactions[0], -ry * p.angle.sin())?;
-            c.close("Ry rotado", base.reactions[1], ry * p.angle.cos())?;
+            c.close("Rx rotado", base.reactions[0], -ry * math::sin(p.angle))?;
+            c.close("Ry rotado", base.reactions[1], ry * math::cos(p.angle))?;
             c.close("momento reacción", base.reactions[5], rz)?;
             moment_range(r, &c, mi.min(mj), mi.max(mj))?;
         }
         Kind::SimpleUniform | Kind::SimplePoint => {
             let (v, ta, tb, ra, rb, m) = if matches!(f.kind, Kind::SimpleUniform) {
                 (
-                    -5.0 * w * l.powi(4) / (384.0 * ei),
-                    -w * l.powi(3) / (24.0 * ei),
-                    w * l.powi(3) / (24.0 * ei),
+                    -5.0 * w * math::powi(l, 4) / (384.0 * ei),
+                    -w * math::powi(l, 3) / (24.0 * ei),
+                    w * math::powi(l, 3) / (24.0 * ei),
                     w * l / 2.0,
                     w * l / 2.0,
                     w * l * l / 8.0,
@@ -145,7 +147,7 @@ fn validate(f: &Fixture) -> EResult<()> {
                     -w * l * l / 12.0,
                     w * l / 2.0,
                     w * l / 2.0,
-                    -w * l.powi(4) / (384.0 * ei),
+                    -w * math::powi(l, 4) / (384.0 * ei),
                     w * l * l / 24.0,
                 )
             } else {
@@ -154,10 +156,10 @@ fn validate(f: &Fixture) -> EResult<()> {
                 (
                     -force * a * b * b / (l * l),
                     -force * a * a * b / (l * l),
-                    force * b * b * (3.0 * a + b) / l.powi(3),
-                    force * a * a * (a + 3.0 * b) / l.powi(3),
-                    -force * a.powi(3) * b.powi(3) / (3.0 * ei * l.powi(3)),
-                    2.0 * force * a * a * b * b / l.powi(3),
+                    force * b * b * (3.0 * a + b) / math::powi(l, 3),
+                    force * a * a * (a + 3.0 * b) / math::powi(l, 3),
+                    -force * math::powi(a, 3) * math::powi(b, 3) / (3.0 * ei * math::powi(l, 3)),
+                    2.0 * force * a * a * b * b / math::powi(l, 3),
                 )
             };
             c.close("δ biempotrada", node(r, 2)?.displacements[1], v)?;
@@ -186,12 +188,12 @@ fn validate(f: &Fixture) -> EResult<()> {
                 c.close(
                     "flecha medio",
                     node(r, 2)?.displacements[1],
-                    -w * l.powi(4) / (192.0 * ei),
+                    -w * math::powi(l, 4) / (192.0 * ei),
                 )?;
                 c.close(
                     "θ apuntalado",
                     node(r, 3)?.displacements[5],
-                    w * l.powi(3) / (48.0 * ei),
+                    w * math::powi(l, 3) / (48.0 * ei),
                 )?;
             } else {
                 c.close(
@@ -254,35 +256,35 @@ fn validate(f: &Fixture) -> EResult<()> {
             c.close(
                 "θ izquierdo",
                 node(r, 1)?.displacements[5],
-                -w * l.powi(3) / (48.0 * ei),
+                -w * math::powi(l, 3) / (48.0 * ei),
             )?;
             c.close(
                 "θ derecho",
                 node(r, 5)?.displacements[5],
-                w * l.powi(3) / (48.0 * ei),
+                w * math::powi(l, 3) / (48.0 * ei),
             )?;
             for id in [2, 4] {
                 c.close(
                     "δ medio vano",
                     node(r, id)?.displacements[1],
-                    -w * l.powi(4) / (192.0 * ei),
+                    -w * math::powi(l, 4) / (192.0 * ei),
                 )?;
             }
             moment_range(r, &c, -w * l * l / 8.0, 9.0 * w * l * l / 128.0)?;
         }
         Kind::TwoBars | Kind::Triangle | Kind::Concurrent => {
             let h = p.height;
-            let ell = l.hypot(h);
+            let ell = math::hypot(l, h);
             let horizontal = p.horizontal;
             let triangle = matches!(f.kind, Kind::Triangle);
             let concurrent = matches!(f.kind, Kind::Concurrent);
             let nb = horizontal / 2.0 + force * l / (2.0 * h);
-            let ux = horizontal * ell.powi(3) / (2.0 * ea * l * l)
+            let ux = horizontal * math::powi(ell, 3) / (2.0 * ea * l * l)
                 + if triangle { nb * l / ea } else { 0.0 };
             let uy = if concurrent {
-                -force / (2.0 * ea * h * h / ell.powi(3) + ea / h)
+                -force / (2.0 * ea * h * h / math::powi(ell, 3) + ea / h)
             } else {
-                -force * ell.powi(3) / (2.0 * ea * h * h)
+                -force * math::powi(ell, 3) / (2.0 * ea * h * h)
                     - if triangle { nb * l * l / (ea * h) } else { 0.0 }
             };
             let top = if concurrent { 4 } else { 3 };
@@ -344,14 +346,16 @@ fn validate(f: &Fixture) -> EResult<()> {
         }
         Kind::PortalLateral => {
             let h = p.height;
-            let delta = force * h.powi(3) / (24.0 * ei);
+            let delta = force * math::powi(h, 3) / (24.0 * ei);
             // Forma cerrada finita independiente del límite rígido.
             let beam_ei = ei * p.rigid_ratio;
             let column_ea = ea * p.rigid_ratio;
-            let beta = (12.0 * beam_ei / l.powi(2)) / (column_ea / h + 24.0 * beam_ei / l.powi(3));
-            let d = 4.0 * ei / h + 6.0 * beam_ei / l - 12.0 * beam_ei * beta / l.powi(2);
-            let finite_delta =
-                force / (24.0 * ei / h.powi(3) - 72.0 * ei.powi(2) / (h.powi(4) * d));
+            let beta = (12.0 * beam_ei / math::powi(l, 2))
+                / (column_ea / h + 24.0 * beam_ei / math::powi(l, 3));
+            let d = 4.0 * ei / h + 6.0 * beam_ei / l - 12.0 * beam_ei * beta / math::powi(l, 2);
+            let finite_delta = force
+                / (24.0 * ei / math::powi(h, 3)
+                    - 72.0 * math::powi(ei, 2) / (math::powi(h, 4) * d));
             let finite_theta = -6.0 * ei * finite_delta / (h * h * d);
             let finite_v = -beta * finite_theta;
             let numerical = Check(Tolerance {
@@ -392,8 +396,9 @@ fn validate(f: &Fixture) -> EResult<()> {
         }
         Kind::PortalVertical => {
             let h = p.height;
-            let gamma = (6.0 * ei / h.powi(2)) / (12.0 * ei / h.powi(3) + 2.0 * ea / l);
-            let d = 4.0 * ei / h + 2.0 * ei / l - 6.0 * ei * gamma / h.powi(2);
+            let gamma =
+                (6.0 * ei / math::powi(h, 2)) / (12.0 * ei / math::powi(h, 3) + 2.0 * ea / l);
+            let d = 4.0 * ei / h + 2.0 * ei / l - 6.0 * ei * gamma / math::powi(h, 2);
             let theta = -(w * l * l / 12.0) / d;
             let t = -gamma * theta;
             let v = -w * l * h / (2.0 * ea);
@@ -409,7 +414,7 @@ fn validate(f: &Fixture) -> EResult<()> {
             c.close(
                 "δ dintel medio",
                 node(r, 5)?.displacements[1],
-                v + l * theta / 4.0 - w * l.powi(4) / (384.0 * ei),
+                v + l * theta / 4.0 - w * math::powi(l, 4) / (384.0 * ei),
             )?;
             c.close("θ dintel medio", node(r, 5)?.displacements[5], 0.0)?;
             for id in [1, 2] {
@@ -445,12 +450,13 @@ fn validate(f: &Fixture) -> EResult<()> {
             c.close(
                 "δ combinación cerrada",
                 node(&sum, 3)?.displacements[1],
-                -alpha * force * l.powi(3) / (3.0 * ei) - beta * w * l.powi(4) / (8.0 * ei),
+                -alpha * force * math::powi(l, 3) / (3.0 * ei)
+                    - beta * w * math::powi(l, 4) / (8.0 * ei),
             )?;
             c.close(
                 "θ combinación cerrada",
                 node(&sum, 3)?.displacements[5],
-                -alpha * force * l * l / (2.0 * ei) - beta * w * l.powi(3) / (6.0 * ei),
+                -alpha * force * l * l / (2.0 * ei) - beta * w * math::powi(l, 3) / (6.0 * ei),
             )?;
             c.close(
                 "Ry combinación cerrada",

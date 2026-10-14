@@ -1,6 +1,7 @@
 //! Terna diestra explícita; T global→local, Kglobal=Tᵀ Klocal T.
 use crate::{finite, invalid, vector, Matrix};
 use engine_contracts::ElementCtx;
+use engine_core::math;
 use engine_core::{Dim, EResult, EngineError, Real};
 use engine_linalg::DMat;
 
@@ -18,7 +19,7 @@ pub(crate) fn unit(v: [Real; 3]) -> EResult<[Real; 3]> {
         return Err(invalid("Orientación: vector nulo."));
     }
     let v = v.map(|x| x / scale);
-    let norm = v[0].hypot(v[1]).hypot(v[2]);
+    let norm = math::hypot(math::hypot(v[0], v[1]), v[2]);
     Ok(v.map(|x| x / norm))
 }
 fn cross(a: [Real; 3], b: [Real; 3]) -> [Real; 3] {
@@ -43,7 +44,10 @@ impl Geometry {
                 "Diferencia coordenadas",
             )?;
         }
-        let length = finite(delta[0].hypot(delta[1]).hypot(delta[2]), "L (m)")?;
+        let length = finite(
+            math::hypot(math::hypot(delta[0], delta[1]), delta[2]),
+            "L (m)",
+        )?;
         if length <= 1e-12 {
             return Err(EngineError::new("ENG-E-0005", "Viga: L≤1e-12 m."));
         }
@@ -54,7 +58,7 @@ impl Geometry {
         // relativo de la terna sería ≥ ε/1e-8 ≈ 1e-8 y las rotaciones rígidas dejarían
         // fuerzas espurias (J4 r6): se rechaza. Además se reortogonaliza.
         let y = cross(hint, x);
-        if y[0].hypot(y[1]).hypot(y[2]) <= ORIENTATION_MIN_SIN {
+        if math::hypot(math::hypot(y[0], y[1]), y[2]) <= ORIENTATION_MIN_SIN {
             return Err(invalid(
                 "Orientación paralela o casi paralela al eje local x (sen del ángulo ≤ 1e-8).",
             ));

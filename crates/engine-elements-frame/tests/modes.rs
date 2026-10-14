@@ -1,5 +1,6 @@
 //! Vibración Euler–Bernoulli: esperados cerrados, sin oráculos ni fuentes externas.
 use engine_contracts::{Element, ElementCtx, ElementParams, MassKind};
+use engine_core::math;
 use engine_core::Dim;
 use engine_elements_frame::{EulerFrame2D, MomentReleases};
 use engine_linalg::{DMat, LinAlgBackend, ReferenceBackend, SymMatrix};
@@ -66,7 +67,7 @@ fn frequencies(elements: usize, cantilever: bool) -> Vec<f64> {
     modes
         .eigenvalues
         .iter()
-        .map(|lambda| lambda.sqrt() / (2.0 * std::f64::consts::PI))
+        .map(|lambda| math::sqrt(*lambda) / (2.0 * std::f64::consts::PI))
         .collect()
 }
 
@@ -74,7 +75,7 @@ fn check_refinement(cantilever: bool, beta: [f64; 3]) {
     let coarse = frequencies(4, cantilever);
     let fine = frequencies(12, cantilever);
     for mode in 0..3 {
-        let exact = beta[mode].powi(2) / (2.0 * std::f64::consts::PI);
+        let exact = math::powi(beta[mode], 2) / (2.0 * std::f64::consts::PI);
         let coarse_error = (coarse[mode] / exact - 1.0).abs();
         let fine_error = (fine[mode] / exact - 1.0).abs();
         // Tolerancia relativa 3e−4 en frecuencia con 12 elementos Hermite.

@@ -4,6 +4,7 @@ use engine_assembly::{DofMap, ElementContribution, LinearSystem, PrescribedDof};
 use engine_contracts::{
     conformance::check_system_view, CaseRef, Element, ElementCtx, ElementParams, SystemView,
 };
+use engine_core::math;
 use engine_core::{Dim, Dof, DofIndex, NodeId};
 use engine_elements_truss::{geometric_producer, LinearTruss};
 use engine_linalg::{DMat, ReferenceBackend, SymMatrix};
@@ -189,13 +190,13 @@ fn oblique_3d_producer_returns_global_projector() {
 // Esta fuerza analítica independiente tiene derivada K+Kg; NO se diferencia
 // respond lineal, cuya derivada es solamente K. Ver alcance en la bitácora.
 fn arch_force(v: [f64; 2], a: f64, h: f64, ea: f64, axial: f64) -> [f64; 2] {
-    let length = a.hypot(h);
+    let length = math::hypot(a, h);
     let k = ea / length;
     let natural_length = length - axial / k;
     let mut force = [0.0; 2];
     for base_x in [-a, a] {
         let r = [v[0] - base_x, h + v[1]];
-        let ell = r[0].hypot(r[1]);
+        let ell = math::hypot(r[0], r[1]);
         let n = k * (ell - natural_length);
         for i in 0..2 {
             force[i] += n * r[i] / ell;
@@ -211,7 +212,7 @@ fn symmetric_two_bar_arch_tangent_and_analytic_critical_multiplier() {
     // K=2k diag(c²,s²), Kg=2N/L diag(s²,c²).
     // λ_cr,y=-EA s²/(N c²); λ_cr,x=-EA c²/(N s²).
     let (a, h, ea, w): (f64, f64, f64, f64) = (2.0, 1.0, 400.0, -0.1);
-    let length = a.hypot(h);
+    let length = math::hypot(a, h);
     let (c, s) = (a / length, h / length);
     let k = ea / length;
     let axial = k * s * w; // -8 N.

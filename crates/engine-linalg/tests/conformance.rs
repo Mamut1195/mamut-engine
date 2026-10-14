@@ -1,4 +1,5 @@
 //! Valores esperados derivados de identidades y soluciones cerradas propias.
+use engine_core::math;
 use engine_core::{DofIndex, EngineError, EntityRef};
 use engine_linalg::*;
 
@@ -31,14 +32,14 @@ fn residual(a: &DMat, x: &DMat, b: &DMat, tol: f64) {
             let ax = (0..a.cols())
                 .map(|j| a.get(i, j).unwrap() * x.get(j, col).unwrap())
                 .sum::<f64>();
-            numerator += (ax - b.get(i, col).unwrap()).powi(2);
-            denominator += b.get(i, col).unwrap().powi(2);
+            numerator += math::powi(ax - b.get(i, col).unwrap(), 2);
+            denominator += math::powi(b.get(i, col).unwrap(), 2);
         }
         // RHS nula: norma absoluta; las cargas no nulas usan norma euclídea relativa.
         let error = if denominator == 0.0 {
-            numerator.sqrt()
+            math::sqrt(numerator)
         } else {
-            (numerator / denominator).sqrt()
+            math::sqrt(numerator / denominator)
         };
         assert!(error < tol, "residual {error} >= {tol}");
     }
@@ -215,7 +216,7 @@ fn conformidad(backend: &mut impl LinAlgBackend) {
             // Fórmula clásica de Toeplitz tridiagonal, derivación propia por seno
             // en provenance/ENG-LA-007.md; cita bibliográfica precisa PENDIENTE.
             let exact =
-                (2.0 - 2.0 * ((col + 1) as f64 * std::f64::consts::PI / 9.0).cos()) / mscale;
+                (2.0 - 2.0 * math::cos((col + 1) as f64 * std::f64::consts::PI / 9.0)) / mscale;
             close(modes.eigenvalues[col], exact, 2e-12);
             let v = mat(
                 8,

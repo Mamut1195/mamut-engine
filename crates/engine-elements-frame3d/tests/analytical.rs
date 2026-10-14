@@ -4,6 +4,7 @@ use engine_assembly::{
     assemble::assemble_matrix, DofMap, ElementContribution, ElementLoad, LinearSystem,
 };
 use engine_contracts::{CaseRef, Element, ElementParams, MassKind, SystemView};
+use engine_core::math;
 use engine_core::{Dim, Dof, DofIndex, NodeId};
 use engine_elements_frame3d::{geometric_producer, MomentReleases};
 use engine_linalg::{DMat, LinAlgBackend, ReferenceBackend, SymMatrix};
@@ -71,11 +72,11 @@ fn cantilever_biaxial_and_torsion_closed_forms_with_real_assembly() {
     let case = CaseRef("Q".into());
     let solution = system.solve(&case, 1.0).unwrap();
     let u = system.constraints().expand(&solution).unwrap();
-    close(u[7], py * L.powi(3) / (3.0 * E * IZ));
-    close(u[8], pz * L.powi(3) / (3.0 * E * IY));
+    close(u[7], py * math::powi(L, 3) / (3.0 * E * IZ));
+    close(u[8], pz * math::powi(L, 3) / (3.0 * E * IY));
     close(u[9], t * L / (G * J));
-    close(u[10], -pz * L.powi(2) / (2.0 * E * IY));
-    close(u[11], py * L.powi(2) / (2.0 * E * IZ));
+    close(u[10], -pz * math::powi(L, 2) / (2.0 * E * IY));
+    close(u[11], py * math::powi(L, 2) / (2.0 * E * IZ));
     for reaction in system.reactions(&solution, &case, 1.0).unwrap() {
         let expected = match reaction.dof {
             Dof::Ux => 0.0,
@@ -326,7 +327,7 @@ fn euler_critical_both_planes_mesh_convergence_and_mode_residual() {
             let g = SymMatrix::new(submatrix(&g, &ids, &ids)).unwrap();
             let modes = backend.generalized_eigen(&k, &g).unwrap();
             let pcr = modes.eigenvalues[0];
-            let exact = std::f64::consts::PI.powi(2) * E * inertia / (L * L);
+            let exact = math::powi(std::f64::consts::PI, 2) * E * inertia / (L * L);
             assert!(
                 (pcr / exact - 1.0).abs() < tolerance,
                 "n={count}: {pcr} vs {exact}"

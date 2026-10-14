@@ -1,6 +1,7 @@
 mod fixtures;
 
 use engine_contracts::{Element, ElementCtx, ElementParams};
+use engine_core::math;
 use engine_core::{Dim, EResult};
 use engine_elements_frame::{EulerFrame2D, MomentReleases};
 use engine_loads::{
@@ -121,10 +122,10 @@ fn center_asymmetric_and_endpoint_point_tables() -> EResult<()> {
             equivalent(&beam, &load)?,
             [
                 px * b / l,
-                p * b * b * (l + 2.0 * a) / l.powi(3),
+                p * b * b * (l + 2.0 * a) / math::powi(l, 3),
                 p * a * b * b / (l * l),
                 px * a / l,
-                p * a * a * (l + 2.0 * b) / l.powi(3),
+                p * a * a * (l + 2.0 * b) / math::powi(l, 3),
                 -p * a * a * b / (l * l),
             ],
         );
@@ -210,7 +211,7 @@ fn superposition_full_and_partial() -> EResult<()> {
 fn rotated_local_global_and_frame_element_agree() -> EResult<()> {
     let (l, angle) = (5.0, std::f64::consts::FRAC_PI_4);
     let beam = Beam2D::new(l, angle)?;
-    let (s, c) = angle.sin_cos();
+    let (s, c) = math::sin_cos(angle);
     let rotate = |[x, y]: [f64; 2]| [c * x - s * y, s * x + c * y];
     let local = [
         SpanLoad::Uniform {
@@ -247,7 +248,7 @@ fn rotated_local_global_and_frame_element_agree() -> EResult<()> {
     }
     for angle in [0.0, angle, std::f64::consts::FRAC_PI_2, -2.1] {
         let beam = Beam2D::new(l, angle)?;
-        let (s, c) = angle.sin_cos();
+        let (s, c) = math::sin_cos(angle);
         let coords = [[0.0; 3], [l * c, l * s, 0.0]];
         let params = ElementParams::default();
         let ctx = ElementCtx {

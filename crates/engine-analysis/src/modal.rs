@@ -18,6 +18,7 @@
 
 use engine_assembly::LinearSystem;
 use engine_contracts::MassKind;
+use engine_core::math;
 use engine_core::{EResult, EngineError, Real};
 use engine_linalg::{LinAlgBackend, SparseMatrix};
 use engine_loads::mass::{rigid_translation, total_mass};
@@ -182,7 +183,7 @@ impl Modal {
                 ));
             }
             for value in &mut global {
-                *value /= norm.sqrt();
+                *value /= math::sqrt(norm);
             }
             super::finite(&global)?;
             let denominator = product(matrix, &global, &global)?;
@@ -209,7 +210,7 @@ impl Modal {
                     cumulative_mass_fraction: total.cumulative_mass_fraction,
                 });
             }
-            let angular_frequency = eigenvalue.sqrt();
+            let angular_frequency = math::sqrt(eigenvalue);
             let frequency_hz = angular_frequency / std::f64::consts::TAU;
             let period = if eigenvalue == 0.0 {
                 None

@@ -3,6 +3,7 @@ use engine_contracts::{
     conformance::{check_element, check_element_factory},
     Element, ElementCtx, ElementFactory, ElementParams, JsonValue, MassKind, MemberLoad, ModelView,
 };
+use engine_core::math;
 use engine_core::{Dim, EResult, NodeId};
 use engine_elements_truss::{LinearTruss, TrussFactory};
 use engine_linalg::{DMat, LinAlgBackend, ReferenceBackend, SymMatrix};
@@ -565,7 +566,7 @@ fn geometric_and_load_covariance_and_endpoint_reversal() {
         };
         let c = ctx(dim, &coords, &p);
         let axis = if dim == Dim::D2 { 2 } else { 1 };
-        let (s, co) = 0.61_f64.sin_cos();
+        let (s, co) = math::sin_cos(0.61_f64);
         let mut r = [[0.0; 3]; 3];
         r[axis][axis] = 1.0;
         let a = (axis + 1) % 3;

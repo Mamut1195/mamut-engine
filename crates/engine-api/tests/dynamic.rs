@@ -1,5 +1,6 @@
 //! Oráculos propios: oscilador y ecuación de viga-columna, sin fuentes externas.
 use engine_api::{canonical_json, run, CancelToken, Outcome, Status};
+use engine_core::math;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
@@ -48,7 +49,7 @@ fn two_oscillators(mut v: Value) -> Value {
     v
 }
 fn column(mesh: usize, ratio: f64) -> Value {
-    let p = ratio * std::f64::consts::PI.powi(2) * 600.0 / (4.0 * 16.0);
+    let p = ratio * math::powi(std::f64::consts::PI, 2) * 600.0 / (4.0 * 16.0);
     let mut v = oscillator();
     v["model"]["nodes"] = json!((0..=mesh)
         .map(|i| json!({"id":i+1,"dim":"D2",
@@ -92,12 +93,15 @@ fn single_dof_modal_frequency_period_mass_normalization_and_full_participation()
         let (o, d) = solve(&v);
         assert_eq!(o.exit_code(), 0, "{}", o.document);
         let m = &d["modes"][0];
-        let omega = 20.0_f64.sqrt();
+        let omega = math::sqrt(20.0_f64);
         close(&m["eigenvalue"], 20.0);
         close(&m["angular_frequency"], omega);
         close(&m["period"], std::f64::consts::TAU / omega);
         close(&m["frequency_hz"], omega / std::f64::consts::TAU);
-        close(&m["shape"][1]["displacements"][0], 1.0 / 5.0_f64.sqrt());
+        close(
+            &m["shape"][1]["displacements"][0],
+            1.0 / math::sqrt(5.0_f64),
+        );
         close(&m["participation"][0]["effective_mass"], 5.0);
         close(&m["participation"][0]["mass_fraction"], 1.0);
         close(&m["participation"][0]["cumulative_mass_fraction"], 1.0);
@@ -134,8 +138,8 @@ fn pdelta_cantilever_mesh_convergence_and_euler_amplification() {
     // EI y'''(L)+P y'(L)=−H → A=3(tan α−α)/α³, α=L√(P/EI).
     // Primer polo α=π/2 → Pcr=π²EI/(4L²).
     let ratio = 0.2_f64;
-    let alpha = std::f64::consts::FRAC_PI_2 * ratio.sqrt();
-    let exact = 3.0 * (alpha.tan() - alpha) / alpha.powi(3);
+    let alpha = std::f64::consts::FRAC_PI_2 * math::sqrt(ratio);
+    let exact = 3.0 * (math::tan(alpha) - alpha) / math::powi(alpha, 3);
     let mut errors = Vec::new();
     for mesh in [4, 8] {
         let (o, d) = solve(&column(mesh, ratio));
@@ -281,7 +285,10 @@ fn mass_projection_off_axis_warns_and_ambiguous_sources_are_invalid() {
     v["model"]["masses"] = json!([]);
     let (o, d) = solve(&v);
     assert_eq!(o.exit_code(), 1, "{}", o.document);
-    close(&d["modes"][0]["eigenvalue"], 100.0 / (5.0 / 2.0_f64.sqrt()));
+    close(
+        &d["modes"][0]["eigenvalue"],
+        100.0 / (5.0 / math::sqrt(2.0_f64)),
+    );
     assert!(d["diagnostics"][0]["cause"]
         .as_str()
         .unwrap()

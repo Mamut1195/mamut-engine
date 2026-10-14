@@ -1,6 +1,7 @@
 //! Integración exacta de interpolaciones axial lineal y transversal cúbica.
 use crate::{error, finite, length};
 use engine_contracts::MemberLoad;
+use engine_core::math;
 use engine_core::{EResult, Real};
 
 /// Ejes de las dos componentes de fuerza (o fuerza por longitud).
@@ -26,7 +27,7 @@ impl Beam2D {
     pub fn new(member_length: Real, angle: Real) -> EResult<Self> {
         length(member_length)?;
         finite(&[angle])?;
-        let (s, c) = angle.sin_cos();
+        let (s, c) = math::sin_cos(angle);
         finite(&[s, c])?;
         Ok(Self {
             length: member_length,
@@ -190,7 +191,7 @@ pub fn equivalent_nodal_forces_local(beam: &Beam2D, load: &SpanLoad) -> EResult<
             Ok(result)
         }
         LocalLoad::Distributed { qi, qj, a, b } => {
-            let d = (3.0_f64 / 5.0).sqrt();
+            let d = math::sqrt(3.0_f64 / 5.0);
             let points = [
                 (0.5 * (1.0 - d), 5.0 / 18.0),
                 (0.5, 4.0 / 9.0),

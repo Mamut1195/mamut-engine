@@ -2,6 +2,7 @@
 mod fixtures;
 use engine_assembly::{DofMap, ElementContribution, LinearSystem};
 use engine_contracts::{CaseRef, Element, ElementCtx, ElementParams, MassKind};
+use engine_core::math;
 use engine_core::{Dim, Dof, NodeId};
 use engine_elements_spring::{LinearSpring, SpringAxes, SpringConnection};
 use engine_linalg::ReferenceBackend;
@@ -195,7 +196,7 @@ fn oblique_ground_support_covariance_of_assembled_solution() {
     // El resorte perpendicular elimina el mecanismo transversal sin cambiar
     // la solución u=(F/k1)d del resorte solicitado.
     for angle in [0.43_f64, 1.16, -0.71] {
-        let (sn, cs) = angle.sin_cos();
+        let (sn, cs) = math::sin_cos(angle);
         let d = [cs, sn, 0.0];
         let m = model(
             1,

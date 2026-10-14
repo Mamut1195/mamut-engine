@@ -1,5 +1,6 @@
 //! Algoritmos propios derivados de eliminación, congruencias y rotaciones.
 use crate::*;
+use engine_core::math;
 
 /// Segundo backend mínimo para demostrar intercambiabilidad y validar contratos.
 ///
@@ -7,6 +8,9 @@ use crate::*;
 /// Jacobi y reducción Cholesky de la masa. Memoria O(n²), trabajo O(n³) de
 /// eliminación y hasta O(n⁴) de búsqueda Jacobi. Se destina a referencia y
 /// pruebas, sin ordenamiento AMD ni solver productivo disperso.
+/// V1 es secuencial: productos `i,j,k`, reducciones por índice creciente y
+/// sustitución inversa por fila decreciente. Sin SIMD explícito ni selección
+/// por CPU; los desempates y el alcance portable figuran en docs/DETERMINISMO.md.
 #[derive(Default, Debug)]
 pub struct ReferenceBackend;
 
@@ -195,7 +199,7 @@ fn equilibration(values: &[Real], n: usize) -> Vec<Real> {
         }
         for (si, &m) in s.iter_mut().zip(&rows) {
             if m > 0.0 && m.is_finite() {
-                *si /= m.sqrt();
+                *si /= math::sqrt(m);
             }
         }
     }
@@ -334,7 +338,7 @@ impl Ldlt {
                 f.d[k + 1] = g;
                 f.off[k] = e;
                 let half = (d + g) * 0.5;
-                let radius = ((d - g) * 0.5).hypot(e);
+                let radius = math::hypot((d - g) * 0.5, e);
                 // Producto de autovalores = det. Elegir primero el de mayor
                 // módulo evita cancelación en half ± radius para el pequeño.
                 // La congruencia de LDLᵀ conserva los conteos de signos de A.
@@ -504,7 +508,7 @@ pub(crate) fn cholesky(m: &SymMatrix) -> EResult<DMat> {
                         ))),
                     };
                 }
-                l.values[i * n + j] = value.sqrt();
+                l.values[i * n + j] = math::sqrt(value);
             } else {
                 l.values[i * n + j] = value / l.values[j * n + j];
             }
@@ -513,7 +517,7 @@ pub(crate) fn cholesky(m: &SymMatrix) -> EResult<DMat> {
     // M = S⁻¹ B S⁻¹ con B = L_B L_Bᵀ ⇒ L = S⁻¹ L_B (filas), más la escala global.
     for (i, &e) in equil.iter().enumerate() {
         for j in 0..n {
-            l.values[i * n + j] = l.values[i * n + j] * scale.sqrt() / e;
+            l.values[i * n + j] = l.values[i * n + j] * math::sqrt(scale) / e;
         }
     }
     finite(&l.values)?;
@@ -548,8 +552,8 @@ fn jacobi(matrix: &SymMatrix) -> EResult<(Vec<Real>, DMat)> {
             break;
         }
         let tau = (a[r * n + r] - a[p * n + p]) / (2.0 * a[p * n + r]);
-        let t = if tau >= 0.0 { 1.0 } else { -1.0 } / (tau.abs() + tau.hypot(1.0));
-        let c = 1.0 / (1.0 + t * t).sqrt();
+        let t = if tau >= 0.0 { 1.0 } else { -1.0 } / (tau.abs() + math::hypot(tau, 1.0));
+        let c = 1.0 / math::sqrt(1.0 + t * t);
         let s = t * c;
         let ap = a[p * n + p];
         let ar = a[r * n + r];
@@ -624,7 +628,7 @@ pub(crate) fn normalize_modes(
                     .total_cmp(&vectors.values[j * n + col].abs())
             })
             .ok_or_else(|| invalid("Normalización modal: vector vacío."))?;
-        let divisor = norm.sqrt()
+        let divisor = math::sqrt(norm)
             * if vectors.values[pivot * n + col] < 0.0 {
                 -1.0
             } else {

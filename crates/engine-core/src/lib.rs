@@ -1,7 +1,7 @@
 //! Tipos básicos y diagnósticos estables del núcleo de cálculo.
 //!
-//! Este crate utiliza únicamente la biblioteca estándar. Los mensajes están en
-//! español y pueden evolucionar; los códigos identifican situaciones estables.
+//! Las funciones escalares se centralizan en [`math`] con libm fijada. Los
+//! mensajes están en español y pueden evolucionar; los códigos son estables.
 //!
 //! ```
 //! use engine_core::{ContractId, Diagnostic, Dim, Dof, EngineError, EResult};
@@ -20,6 +20,7 @@
 use std::fmt;
 
 pub mod catalog;
+pub mod math;
 pub mod units;
 
 /// Versión del núcleo del motor, derivada del manifiesto de `engine-core`.

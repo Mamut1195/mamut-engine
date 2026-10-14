@@ -1,0 +1,210 @@
+{
+  "schema": "engine-input/1",
+  "units": "SI",
+  "options": {},
+  "model": {
+    "axes": "Z-up",
+    "nodes": [
+      {
+        "id": 1,
+        "dim": "D2",
+        "coordinates": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Rz"
+        ]
+      },
+      {
+        "id": 2,
+        "dim": "D2",
+        "coordinates": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Rz"
+        ]
+      },
+      {
+        "id": 3,
+        "dim": "D2",
+        "coordinates": [
+          2.0,
+          0.0,
+          0.0
+        ],
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Rz"
+        ]
+      },
+      {
+        "id": 4,
+        "dim": "D2",
+        "coordinates": [
+          3.0,
+          0.0,
+          0.0
+        ],
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Rz"
+        ]
+      },
+      {
+        "id": 5,
+        "dim": "D2",
+        "coordinates": [
+          4.0,
+          0.0,
+          0.0
+        ],
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Rz"
+        ]
+      }
+    ],
+    "members": [
+      {
+        "id": 1,
+        "nodes": [
+          1,
+          2
+        ],
+        "section": "s",
+        "law": "elastic"
+      },
+      {
+        "id": 2,
+        "nodes": [
+          2,
+          3
+        ],
+        "section": "s",
+        "law": "elastic"
+      },
+      {
+        "id": 3,
+        "nodes": [
+          3,
+          4
+        ],
+        "section": "s",
+        "law": "elastic"
+      },
+      {
+        "id": 4,
+        "nodes": [
+          4,
+          5
+        ],
+        "section": "s",
+        "law": "elastic"
+      }
+    ],
+    "sections": [
+      {
+        "id": "s",
+        "properties": [
+          {
+            "name": "A",
+            "value": 2.0
+          },
+          {
+            "name": "I",
+            "value": 3.0
+          }
+        ]
+      }
+    ],
+    "laws": [
+      {
+        "name": "elastic",
+        "parameters": [
+          {
+            "name": "E",
+            "value": 200.0
+          },
+          {
+            "name": "rho",
+            "value": 0.0
+          }
+        ]
+      }
+    ],
+    "supports": [
+      {
+        "id": "fixed",
+        "node": 1,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Rz"
+        ]
+      }
+    ],
+    "masses": []
+  },
+  "cases": [
+    {
+      "name": "G",
+      "loads": [
+        {
+          "node": 5,
+          "values": [
+            {
+              "dof": "Ux",
+              "value": -18.505508252042546
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "H",
+      "loads": [
+        {
+          "node": 5,
+          "values": [
+            {
+              "dof": "Uy",
+              "value": 1.0
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "combinations": [],
+  "analyses": [
+    {
+      "method": "pDelta",
+      "options": {
+        "gravity": {
+          "case": "G",
+          "factor": 1.0
+        },
+        "lateral": {
+          "case": "H",
+          "factor": 1.0
+        },
+        "tolerance": 1e-10,
+        "max_iterations": 100,
+        "displacement_scale": 1.0,
+        "rotation_scale": 1.0
+      }
+    }
+  ]
+}

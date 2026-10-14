@@ -1,6 +1,7 @@
 //! Ejes explícitos y validación del contexto, sin inferir longitud ni dirección.
 use crate::{finite, invalid, vector, LinearSpring};
 use engine_contracts::ElementCtx;
+use engine_core::math;
 use engine_core::{Dim, Dof, EResult, Real};
 
 /// Ejes fijos del resorte; se deben rotar junto con el modelo global.
@@ -76,7 +77,7 @@ pub(crate) fn coupling(
             }
             // Escalado previo: normaliza incluso MAX o subnormales sin overflow.
             let scaled = d.map(|v| v / scale);
-            let norm = scaled.iter().fold(0.0_f64, |m, &v| m.hypot(v));
+            let norm = scaled.iter().fold(0.0_f64, |m, &v| math::hypot(m, v));
             for i in 0..3 {
                 global[i] = finite(scaled[i] / norm, "Dirección unitaria")?;
             }

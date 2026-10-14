@@ -37,6 +37,7 @@
 use crate::{assemble_nodal_loads, error, finite};
 use engine_assembly::{DofMap, LinearSystem};
 use engine_contracts::{CaseRef, MassKind};
+use engine_core::math;
 use engine_core::{Dof, DofIndex, EResult, EntityRef, NodeId, Real};
 use engine_linalg::{LinAlgBackend, SparseMatrix, Triplet};
 use engine_model::{DofValue, LoadCase, NodalMass};
@@ -75,7 +76,7 @@ fn unit(direction: [Real; 3]) -> EResult<[Real; 3]> {
         return Err(error("ENG-E-0010", "La dirección debe ser no nula."));
     }
     let scaled = direction.map(|v| v / scale);
-    let norm = scaled[0].hypot(scaled[1]).hypot(scaled[2]);
+    let norm = math::hypot(math::hypot(scaled[0], scaled[1]), scaled[2]);
     Ok(scaled.map(|v| v / norm))
 }
 

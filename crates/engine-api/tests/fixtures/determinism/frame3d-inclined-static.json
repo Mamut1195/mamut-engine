@@ -1,0 +1,253 @@
+{
+  "schema": "engine-input/1",
+  "units": "SI",
+  "options": {},
+  "model": {
+    "axes": "Z-up",
+    "nodes": [
+      {
+        "id": 1,
+        "dim": "D3",
+        "coordinates": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": 2,
+        "dim": "D3",
+        "coordinates": [
+          2.4,
+          1.8,
+          1.3
+        ],
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": 3,
+        "dim": "D3",
+        "coordinates": [
+          4.1,
+          0.7,
+          3.2
+        ],
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      }
+    ],
+    "members": [
+      {
+        "id": 7,
+        "nodes": [
+          1,
+          2
+        ],
+        "element": "frame3d.euler_elastic",
+        "section": "s",
+        "law": "elastic",
+        "orientation": [
+          0.3,
+          -0.4,
+          1.0
+        ]
+      },
+      {
+        "id": 8,
+        "nodes": [
+          2,
+          3
+        ],
+        "element": "frame3d.euler_elastic",
+        "section": "s",
+        "law": "elastic",
+        "orientation": [
+          -0.6,
+          1.0,
+          0.2
+        ]
+      }
+    ],
+    "sections": [
+      {
+        "id": "s",
+        "properties": [
+          {
+            "name": "A",
+            "value": 2.0
+          },
+          {
+            "name": "J",
+            "value": 1.5
+          },
+          {
+            "name": "Iy",
+            "value": 3.0
+          },
+          {
+            "name": "Iz",
+            "value": 5.0
+          }
+        ]
+      }
+    ],
+    "laws": [
+      {
+        "name": "elastic",
+        "parameters": [
+          {
+            "name": "E",
+            "value": 200.0
+          },
+          {
+            "name": "G",
+            "value": 80.0
+          },
+          {
+            "name": "rho",
+            "value": 0.0
+          }
+        ]
+      }
+    ],
+    "supports": [
+      {
+        "id": "fixed",
+        "node": 1,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      }
+    ],
+    "masses": [
+      {
+        "id": "m2",
+        "node": 2,
+        "values": [
+          {
+            "dof": "Ux",
+            "value": 5.0
+          },
+          {
+            "dof": "Uy",
+            "value": 6.0
+          },
+          {
+            "dof": "Uz",
+            "value": 7.0
+          },
+          {
+            "dof": "Rx",
+            "value": 1.0
+          },
+          {
+            "dof": "Ry",
+            "value": 1.5
+          },
+          {
+            "dof": "Rz",
+            "value": 2.0
+          }
+        ]
+      },
+      {
+        "id": "m3",
+        "node": 3,
+        "values": [
+          {
+            "dof": "Ux",
+            "value": 4.0
+          },
+          {
+            "dof": "Uy",
+            "value": 5.0
+          },
+          {
+            "dof": "Uz",
+            "value": 6.0
+          },
+          {
+            "dof": "Rx",
+            "value": 0.75
+          },
+          {
+            "dof": "Ry",
+            "value": 1.25
+          },
+          {
+            "dof": "Rz",
+            "value": 1.75
+          }
+        ]
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "D",
+      "loads": [
+        {
+          "node": 3,
+          "values": [
+            {
+              "dof": "Ux",
+              "value": 3.0
+            },
+            {
+              "dof": "Uy",
+              "value": -12.0
+            },
+            {
+              "dof": "Uz",
+              "value": 7.0
+            },
+            {
+              "dof": "Rx",
+              "value": 1.5
+            },
+            {
+              "dof": "Ry",
+              "value": -2.0
+            },
+            {
+              "dof": "Rz",
+              "value": 0.75
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "combinations": [],
+  "analyses": [
+    {
+      "method": "linearStatic"
+    }
+  ]
+}

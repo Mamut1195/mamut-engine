@@ -4,6 +4,7 @@ use engine_contracts::{
     conformance::{check_element, check_element_factory},
     Element, ElementFactory, ElementParams, JsonValue, MassKind, ModelView,
 };
+use engine_core::math;
 use engine_core::{Dim, DofIndex, EResult, NodeId};
 use engine_elements_frame3d::{geometric_producer, EulerFrame3D, FrameFactory, MomentReleases};
 use engine_linalg::{DMat, LinAlgBackend, ReferenceBackend, SymMatrix};
@@ -95,7 +96,7 @@ fn stiffness_symmetry_six_rigid_modes_and_total_mass() {
     let p = ElementParams::default();
     let coords = [[1.0, 2.0, 3.0], [4.0, 6.0, 8.0]];
     let c = ctx(&coords, &p);
-    let length = 3.0_f64.hypot(4.0).hypot(5.0);
+    let length = math::hypot(math::hypot(3.0_f64, 4.0), 5.0);
     for mask in 0..64 {
         let b = beam(releases(mask));
         let k = b.respond(&c, &[0.0; 12], &[]).unwrap().tangent;
@@ -131,11 +132,11 @@ fn stiffness_symmetry_six_rigid_modes_and_total_mass() {
 // Rodrigues derivado de exp(ángulo [n]×); eje genérico fuera de planos coordenados.
 fn rotation() -> [[f64; 3]; 3] {
     let n = [
-        1.0 / 14.0_f64.sqrt(),
-        2.0 / 14.0_f64.sqrt(),
-        3.0 / 14.0_f64.sqrt(),
+        1.0 / math::sqrt(14.0_f64),
+        2.0 / math::sqrt(14.0_f64),
+        3.0 / math::sqrt(14.0_f64),
     ];
-    let (s, c) = 0.73_f64.sin_cos();
+    let (s, c) = math::sin_cos(0.73_f64);
     std::array::from_fn(|i| {
         std::array::from_fn(|j| {
             let mut e = [0.0; 3];

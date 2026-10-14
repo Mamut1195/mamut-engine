@@ -2,6 +2,7 @@
 use engine_analysis::pdelta::geometric_producer;
 use engine_assembly::{DofMap, ElementContribution, GeometricProducer, LinearSystem};
 use engine_contracts::{Element, ElementCtx, ElementParams, MassKind};
+use engine_core::math;
 use engine_core::{Dim, Dof, EResult, EngineError, NodeId};
 use engine_elements_frame::{EulerFrame2D, MomentReleases};
 use engine_elements_truss::LinearTruss;
@@ -189,7 +190,7 @@ pub fn beam(
         model.nodes.push(Node::new(
             NodeId(j as u32 + 1),
             Dim::D2,
-            [x * angle.cos(), x * angle.sin(), 0.0],
+            [x * math::cos(angle), x * math::sin(angle), 0.0],
         ));
     }
     support(

@@ -19,3 +19,7 @@ engine-elements-frame = { path = "../engine-elements-frame" }
 engine-elements-frame3d = { path = "../engine-elements-frame3d" }
 engine-elements-truss = { path = "../engine-elements-truss" }
 engine-loads = { path = "../engine-loads" }
+
+[[example]]
+name = "determinism_wasm"
+crate-type = ["cdylib"]

@@ -5,6 +5,7 @@ use engine_assembly::{
     RigidDiaphragm,
 };
 use engine_contracts::{CaseRef, Element, ElementCtx, ElementParams, MassKind, SystemView};
+use engine_core::math;
 use engine_core::{Dim, Dof, DofIndex, EResult, NodeId};
 use engine_elements_frame::{EulerFrame2D, MomentReleases};
 use engine_linalg::{DMat, LinAlgBackend, ReferenceBackend, SymMatrix};
@@ -49,7 +50,7 @@ fn spring(map: &DofMap, a: u32, b: u32, dof: Dof, k: f64) -> ElementContribution
     )
 }
 fn rotate(v: [f64; 2], angle: f64) -> [f64; 2] {
-    let (s, c) = angle.sin_cos();
+    let (s, c) = math::sin_cos(angle);
     [c * v[0] - s * v[1], s * v[0] + c * v[1]]
 }
 fn three_columns(angle: f64) -> (Model, Vec<ElementContribution>, RigidDiaphragm) {

@@ -81,10 +81,11 @@ Los controles densos de Sturm y modos faltantes se implementan en ENG-LA-009.
 **Nalgebra PENDIENTE**, sin dependencia
 ni feature en esta entrega. Sprs-ldl permanece excluido.
 
-Se usan `f64::sqrt` y `hypot`; `cos` solo calcula el esperado analítico en tests.
-No se añadió libm: no es necesario para las pruebas nativas, y añadirlo como
-dependencia directa excedería la restricción de este ticket. La política de
-trascendentes y la igualdad bit a bit nativo/wasm siguen en ENG-CORE-010.
+ENG-CORE-010 centraliza las funciones escalares en `engine_core::math`, con
+libm 0.2.16 (MIT) fijada y aprobada por Jonathan el 2026-10-14. `hypot` y los
+oráculos trigonométricos de tests usan libm; `sqrt` conserva el redondeo correcto
+IEEE-754 de std dentro del módulo. Política y cruce de bits nativo/wasm en
+[docs/DETERMINISMO.md](../../docs/DETERMINISMO.md).
 
 ## Modos inferiores densos · ENG-LA-009
 

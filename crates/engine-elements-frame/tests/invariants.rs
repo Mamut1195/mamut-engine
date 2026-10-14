@@ -3,6 +3,7 @@ use engine_contracts::{
     conformance::{check_element, check_element_factory},
     Element, ElementCtx, ElementFactory, ElementParams, JsonValue, MassKind, MemberLoad, ModelView,
 };
+use engine_core::math;
 use engine_core::{Dim, EResult, NodeId};
 use engine_elements_frame::{EulerFrame2D, FrameFactory, MomentReleases};
 use engine_linalg::{DMat, LinAlgBackend, ReferenceBackend, SymMatrix};
@@ -176,7 +177,7 @@ fn matrices_from_independent_polynomial_energy_integrals() {
         for (j, &s) in ids.iter().enumerate() {
             close(
                 k.get(r, s).unwrap(),
-                600.0 / l.powi(3) * integral_product(&second[i], &second[j]),
+                600.0 / math::powi(l, 3) * integral_product(&second[i], &second[j]),
             );
             close(
                 m.get(r, s).unwrap(),
@@ -361,7 +362,7 @@ fn rotated_geometric_load_and_recovery_and_self_weight() {
     let p = ElementParams::default();
     let coords = [[0.1, -0.3, 0.0], [2.1, 1.7, 0.0]];
     let c = ctx(&coords, &p);
-    let (s, co) = 0.61_f64.sin_cos();
+    let (s, co) = math::sin_cos(0.61_f64);
     let rotate = |p: [f64; 3]| [co * p[0] - s * p[1], s * p[0] + co * p[1], p[2]];
     let rc = coords.map(rotate);
     let rotated = ctx(&rc, &p);
@@ -410,7 +411,7 @@ fn rotated_geometric_load_and_recovery_and_self_weight() {
         assert_eq!(weight.force_per_length, [0.0, -60.0, 0.0]);
         let f = b.load_vector(&c, &weight).unwrap();
         close(f[0] + f[3], 0.0);
-        close(f[1] + f[4], -60.0 * 2.0_f64.sqrt() * 2.0);
+        close(f[1] + f[4], -60.0 * math::sqrt(2.0_f64) * 2.0);
         code(b.self_weight([0.0, 0.0, -10.0]), "ENG-E-0013");
     }
 }

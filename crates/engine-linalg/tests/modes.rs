@@ -1,4 +1,5 @@
 //! Soluciones cerradas propias: cadena de resortes y matrices de espectro conocido.
+use engine_core::math;
 use engine_core::EResult;
 use engine_linalg::{
     lowest_modes, sturm_count, DMat, GeneralizedEigen, LinAlgBackend, LowestModes,
@@ -30,7 +31,7 @@ fn chain(n: usize, spring: f64, mass: f64) -> (SymMatrix, SymMatrix, Vec<f64>) {
     let exact = (1..=n)
         .map(|mode| {
             let angle = mode as f64 * std::f64::consts::PI / (2.0 * (n + 1) as f64);
-            4.0 * spring / mass * angle.sin().powi(2)
+            4.0 * spring / mass * math::powi(math::sin(angle), 2)
         })
         .collect();
     (symmetric(n, k), diagonal(&vec![mass; n]), exact)
@@ -51,10 +52,10 @@ fn check_modes(k: &SymMatrix, m: &SymMatrix, modes: &LowestModes) {
             let mv: f64 = (0..n)
                 .map(|j| m.dense().values()[row * n + j] * modes.vectors.values()[j * cols + col])
                 .sum();
-            residual += (kv - lambda * mv).powi(2);
-            magnitude += kv.powi(2) + (lambda * mv).powi(2);
+            residual += math::powi(kv - lambda * mv, 2);
+            magnitude += math::powi(kv, 2) + math::powi(lambda * mv, 2);
         }
-        assert!(residual.sqrt() <= 2e-11 * magnitude.sqrt().max(1.0));
+        assert!(math::sqrt(residual) <= 2e-11 * math::sqrt(magnitude).max(1.0));
         for other in 0..cols {
             let mut dot = 0.0;
             for i in 0..n {
@@ -233,7 +234,7 @@ fn mass_scaling_preserves_shapes_and_scales_eigenvalues() {
             .iter()
             .zip(scaled.vectors.values())
         {
-            assert!((a - b * scale.sqrt()).abs() < 2e-12);
+            assert!((a - b * math::sqrt(scale)).abs() < 2e-12);
         }
     }
 }

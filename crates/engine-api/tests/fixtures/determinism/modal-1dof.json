@@ -1,0 +1,121 @@
+{
+  "schema": "engine-input/1",
+  "units": "SI",
+  "options": {},
+  "model": {
+    "axes": "Z-up",
+    "nodes": [
+      {
+        "id": 1,
+        "dim": "D2",
+        "coordinates": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dofs": [
+          "Ux",
+          "Uy"
+        ]
+      },
+      {
+        "id": 2,
+        "dim": "D2",
+        "coordinates": [
+          4.0,
+          0.0,
+          0.0
+        ],
+        "dofs": [
+          "Ux",
+          "Uy"
+        ]
+      }
+    ],
+    "members": [
+      {
+        "id": 7,
+        "nodes": [
+          1,
+          2
+        ],
+        "section": "s",
+        "law": "elastic",
+        "element": "truss2d.linear"
+      }
+    ],
+    "sections": [
+      {
+        "id": "s",
+        "properties": [
+          {
+            "name": "A",
+            "value": 2.0
+          }
+        ]
+      }
+    ],
+    "laws": [
+      {
+        "name": "elastic",
+        "parameters": [
+          {
+            "name": "E",
+            "value": 200.0
+          },
+          {
+            "name": "rho",
+            "value": 0.0
+          }
+        ]
+      }
+    ],
+    "supports": [
+      {
+        "id": "fixed",
+        "node": 1,
+        "restrained": [
+          "Ux",
+          "Uy"
+        ]
+      },
+      {
+        "id": "guide",
+        "node": 2,
+        "restrained": [
+          "Uy"
+        ]
+      }
+    ],
+    "masses": [
+      {
+        "id": "m",
+        "node": 2,
+        "values": [
+          {
+            "dof": "Ux",
+            "value": 5.0
+          }
+        ]
+      }
+    ]
+  },
+  "cases": [],
+  "combinations": [],
+  "analyses": [
+    {
+      "method": "modal",
+      "options": {
+        "mode_count": 1,
+        "mass_kind": "lumped",
+        "directions": [
+          [
+            1.0,
+            0.0,
+            0.0
+          ]
+        ]
+      }
+    }
+  ]
+}

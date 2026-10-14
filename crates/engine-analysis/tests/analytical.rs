@@ -6,6 +6,7 @@ use counting::CountingBackend;
 use engine_analysis::{StaticLinear, StaticResults};
 use engine_assembly::{DofMap, ElementContribution, ElementLoad, LinearSystem, PrescribedDof};
 use engine_contracts::{CaseRef, Element, ElementCtx, ElementParams, MemberLoad, SystemView};
+use engine_core::math;
 use engine_core::{Dim, Dof, DofIndex, EntityRef, NodeId};
 use engine_elements_frame::{EulerFrame2D, MomentReleases};
 use engine_elements_truss::LinearTruss;
@@ -258,12 +259,12 @@ fn frame_cantilever_tip_deflection_rotation_reaction_and_global_moments() {
     let r = StaticLinear::run(&mut s, &cases(&["P", "q"])).unwrap();
     close(
         r.cases[0].global_displacements[4],
-        -P * L.powi(3) / (3.0 * E * I),
+        -P * math::powi(L, 3) / (3.0 * E * I),
         1e-12,
     );
     close(
         r.cases[0].global_displacements[5],
-        -P * L.powi(2) / (2.0 * E * I),
+        -P * math::powi(L, 2) / (2.0 * E * I),
         1e-12,
     );
     close(reaction(&r.cases[0], 1, Dof::Rz), P * L, 1e-9);
@@ -273,12 +274,12 @@ fn frame_cantilever_tip_deflection_rotation_reaction_and_global_moments() {
     close(r.cases[0].equilibrium.residual_moment[2], 0.0, 1e-9);
     close(
         r.cases[1].global_displacements[4],
-        -6.0 * L.powi(4) / (8.0 * E * I),
+        -6.0 * math::powi(L, 4) / (8.0 * E * I),
         1e-12,
     );
     close(
         r.cases[1].global_displacements[5],
-        -6.0 * L.powi(3) / (6.0 * E * I),
+        -6.0 * math::powi(L, 3) / (6.0 * E * I),
         1e-12,
     );
     close(reaction(&r.cases[1], 1, Dof::Rz), 6.0 * L * L / 2.0, 1e-9);
@@ -295,10 +296,11 @@ fn symmetric_portal_closed_form_lateral_equilibrium() {
     let h: f64 = 3.0;
     let span: f64 = 4.0;
     let ei = E * I;
-    let beta = (12.0 * ei / span.powi(2)) / (E * A / h + 24.0 * ei / span.powi(3));
-    let d = 4.0 * ei / h + 6.0 * ei / span - 12.0 * ei * beta / span.powi(2);
-    let delta = P / (24.0 * ei / h.powi(3) - 72.0 * ei.powi(2) / (h.powi(4) * d));
-    let theta = -6.0 * ei * delta / (h.powi(2) * d);
+    let beta = (12.0 * ei / math::powi(span, 2)) / (E * A / h + 24.0 * ei / math::powi(span, 3));
+    let d = 4.0 * ei / h + 6.0 * ei / span - 12.0 * ei * beta / math::powi(span, 2);
+    let delta =
+        P / (24.0 * ei / math::powi(h, 3) - 72.0 * math::powi(ei, 2) / (math::powi(h, 4) * d));
+    let theta = -6.0 * ei * delta / (math::powi(h, 2) * d);
     let v = -beta * theta;
     let mut m = model(
         &[[0.0; 3], [span, 0.0, 0.0], [0.0, h, 0.0], [span, h, 0.0]],
@@ -348,7 +350,7 @@ fn spatial_bar_all_components_and_nodal_couples() {
     // L=√29, nz=4/L => Kzz=EA*16/L³.
     close(
         r.cases[0].free_displacements[0],
-        P * 29.0_f64.powf(1.5) / (E * A * 16.0),
+        P * math::powf(29.0_f64, 1.5) / (E * A * 16.0),
         1e-12,
     );
     for (axis, expected) in [(3, 7.0), (4, -8.0), (5, 9.0)] {
@@ -416,7 +418,7 @@ fn invalid_inputs_fail_before_factorization_and_preserve_state() {
     let negative = StaticLinear::run(&mut s, &[(CaseRef("P".into()), -1.0)]).unwrap();
     close(
         negative.cases[0].global_displacements[4],
-        P * L.powi(3) / (3.0 * E * I),
+        P * math::powi(L, 3) / (3.0 * E * I),
         1e-12,
     );
     balanced(&negative);

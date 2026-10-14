@@ -10,6 +10,7 @@
 //! escala por norma de tangente y desplazamiento (umbral 1e-10 + 1e-12).
 //! Esto comprueba las muestras, no demuestra corrección para todo el dominio.
 use crate::*;
+use engine_core::math;
 use engine_core::{EntityRef, Severity};
 
 fn issue(out: &mut Vec<Diagnostic>, context: &str, detail: impl Into<String>) {
@@ -612,7 +613,7 @@ pub fn check_element(
     if translations && rotations {
         for axis in if ctx.dim == Dim::D2 { 2..3 } else { 0..3 } {
             for angle in [0.37_f64, 1.13_f64] {
-                let (s, c) = angle.sin_cos();
+                let (s, c) = math::sin_cos(angle);
                 let mut q = [[0.0; 3]; 3];
                 q[axis][axis] = 1.0;
                 let a = (axis + 1) % 3;

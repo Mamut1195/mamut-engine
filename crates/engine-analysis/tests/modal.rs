@@ -3,6 +3,7 @@
 use engine_analysis::modal::{Modal, ModalResults};
 use engine_assembly::{DofMap, ElementContribution, LinearSystem, PrescribedDof};
 use engine_contracts::{Element, ElementCtx, ElementParams, MassKind, SystemView};
+use engine_core::math;
 use engine_core::{Dim, Dof, DofIndex, EntityRef, NodeId};
 use engine_elements_frame::{EulerFrame2D, MomentReleases};
 use engine_linalg::{DMat, ReferenceBackend, SparseMatrix};
@@ -141,12 +142,12 @@ fn equal_storey_shear_closed_form_all_modes_and_participation() {
             assert_eq!(result.rigid_mode_count, 0);
             for (index, mode) in result.modes.iter().enumerate() {
                 let theta = (2 * index + 1) as f64 * PI / (2 * n + 1) as f64;
-                let omega = 2.0 * (k / m).sqrt() * (theta / 2.0).sin();
+                let omega = 2.0 * math::sqrt(k / m) * math::sin(theta / 2.0);
                 close(mode.angular_frequency, omega, 3e-12 * omega);
                 close(mode.frequency_hz, omega / TAU, 3e-12 * omega);
                 close(mode.period.unwrap(), TAU / omega, 3e-12 * TAU / omega);
-                let raw: Vec<_> = (1..=n).map(|j| (j as f64 * theta).sin()).collect();
-                let norm = (m * raw.iter().map(|v| v * v).sum::<f64>()).sqrt();
+                let raw: Vec<_> = (1..=n).map(|j| math::sin(j as f64 * theta)).collect();
+                let norm = math::sqrt(m * raw.iter().map(|v| v * v).sum::<f64>());
                 let sign = if mode.free_shape[0] * raw[0] < 0.0 {
                     -1.0
                 } else {
@@ -159,13 +160,13 @@ fn equal_storey_shear_closed_form_all_modes_and_participation() {
                 close(mode.participation[0].factor, projection, 3e-12);
                 close(
                     mode.participation[0].effective_mass,
-                    projection.powi(2),
+                    math::powi(projection, 2),
                     3e-11,
                 );
                 close(mode.participation[2].factor, -projection, 3e-12);
                 close(
                     mode.participation[2].effective_mass,
-                    projection.powi(2),
+                    math::powi(projection, 2),
                     3e-11,
                 );
                 assert_eq!(mode.participation[1].mass_fraction, None);
@@ -181,7 +182,7 @@ fn equal_storey_shear_closed_form_all_modes_and_participation() {
                 );
                 close(
                     mode.participation[0].mass_fraction.unwrap(),
-                    projection.powi(2) / (n as f64 * m),
+                    math::powi(projection, 2) / (n as f64 * m),
                     3e-12,
                 );
                 close(
@@ -223,7 +224,7 @@ fn beam(elements: usize, cantilever: bool, angle: f64) -> LinearSystem<Reference
         model.nodes.push(Node::new(
             NodeId(j as u32 + 1),
             Dim::D2,
-            [x * angle.cos(), x * angle.sin(), 0.0],
+            [x * math::cos(angle), x * math::sin(angle), 0.0],
         ));
     }
     if cantilever {
@@ -276,7 +277,7 @@ fn cantilever_beta() -> [f64; 3] {
         let mut high = (i + 1) as f64 * PI;
         for _ in 0..55 {
             let mid = (low + high) / 2.0;
-            let f = |x: f64| x.cos() * x.cosh() + 1.0;
+            let f = |x: f64| math::cos(x) * math::cosh(x) + 1.0;
             if f(low) * f(mid) <= 0.0 {
                 high = mid;
             } else {
@@ -299,7 +300,7 @@ fn frame_beams_converge_to_own_closed_form_solution() {
         let c = Modal::run(&mut coarse, 3, MassKind::Consistent, &[[0.0, 1.0, 0.0]]).unwrap();
         let f = Modal::run(&mut fine, 3, MassKind::Consistent, &[[0.0, 1.0, 0.0]]).unwrap();
         for (i, root) in beta.iter().enumerate() {
-            let exact = 0.01 * root.powi(2);
+            let exact = 0.01 * math::powi(*root, 2);
             let ce = (c.modes[i].angular_frequency / exact - 1.0).abs();
             let fe = (f.modes[i].angular_frequency / exact - 1.0).abs();
             assert!(
@@ -326,7 +327,7 @@ fn frame_beams_converge_to_own_closed_form_solution() {
 #[test]
 fn rotated_model_direction_and_modal_shapes_are_invariant() {
     let angle: f64 = 0.7;
-    let (c, s) = (angle.cos(), angle.sin());
+    let (c, s) = (math::cos(angle), math::sin(angle));
     for cantilever in [false, true] {
         let mut horizontal = beam(6, cantilever, 0.0);
         let mut rotated = beam(6, cantilever, angle);

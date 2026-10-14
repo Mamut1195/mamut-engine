@@ -1,4 +1,5 @@
 use crate::{conformance::*, examples::*, *};
+use engine_core::math;
 use std::collections::BTreeMap;
 
 fn samples() -> Vec<Vec<Real>> {
@@ -651,7 +652,7 @@ impl Element for SpatialBar {
         vector_for_test(u, 12)?;
         vector_for_test(s, 0)?;
         let delta: [Real; 3] = std::array::from_fn(|i| c.coords[1][i] - c.coords[0][i]);
-        let length = delta[0].hypot(delta[1]).hypot(delta[2]);
+        let length = math::hypot(math::hypot(delta[0], delta[1]), delta[2]);
         let mut b = [0.0; 12];
         for i in 0..3 {
             b[i] = -delta[i] / length;

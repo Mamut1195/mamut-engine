@@ -6,6 +6,7 @@ use engine_analysis::{
 };
 use engine_assembly::{DofMap, ElementContribution, ElementLoad, LinearSystem, PrescribedDof};
 use engine_contracts::{CaseRef, Element, ElementCtx, ElementParams, MemberLoad};
+use engine_core::math;
 use engine_core::{Dim, Dof, EResult, EntityRef, MemberId, NodeId};
 use engine_elements_frame::{EulerFrame2D, MomentReleases};
 use engine_linalg::ReferenceBackend;
@@ -318,7 +319,7 @@ fn fixed_end_settlement(name: &str, axial: f64, delta: f64) -> EResult<CaseResul
 #[test]
 fn repeated_settlement_rejected_against_fixed_end_beam_oracle() -> EResult<()> {
     let delta = 0.125;
-    let moment = 6.0 * 16.0 * 2.0 * delta / 2.0_f64.powi(2);
+    let moment = 6.0 * 16.0 * 2.0 * delta / math::powi(2.0_f64, 2);
     let d = fixed_end_settlement("D", 48.0, delta)?;
     close(d.members[0].stations[0].forces_local[5], moment);
     assert_eq!(d.nodes[1].prescribed_displacements[1], Some(delta));
@@ -355,7 +356,7 @@ fn repeated_settlement_rejected_against_fixed_end_beam_oracle() -> EResult<()> {
 #[test]
 fn dedicated_settlement_case_counted_once_with_explicit_factor() -> EResult<()> {
     let delta = 0.125;
-    let moment = 6.0 * 16.0 * 2.0 * delta / 2.0_f64.powi(2);
+    let moment = 6.0 * 16.0 * 2.0 * delta / math::powi(2.0_f64, 2);
     let cases = [
         fixed_end_settlement("D", 48.0, 0.0)?,
         fixed_end_settlement("L", -16.0, 0.0)?,
@@ -382,7 +383,7 @@ fn dedicated_settlement_case_counted_once_with_explicit_factor() -> EResult<()> 
             close(s.forces_local[0], axial);
             close(
                 s.forces_local[1],
-                alpha * 12.0 * 16.0 * 2.0 * delta / 2.0_f64.powi(3),
+                alpha * 12.0 * 16.0 * 2.0 * delta / math::powi(2.0_f64, 3),
             );
             close(s.forces_local[5], alpha * moment * (1.0 - 2.0 * s.position));
         }

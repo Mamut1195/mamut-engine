@@ -10,6 +10,7 @@ use engine_assembly::{
     DofMap, ElementContribution, GeometricProducer, LinearSystem, PrescribedDof,
 };
 use engine_contracts::{CaseRef, Element, ElementCtx, ElementParams, SystemView};
+use engine_core::math;
 use engine_core::{Dim, Dof, DofIndex, EResult, EngineError, EntityRef, NodeId};
 use engine_elements_frame::{EulerFrame2D, MomentReleases};
 use engine_elements_truss::LinearTruss;
@@ -137,14 +138,14 @@ fn tip(r: &PDeltaResult) -> f64 {
     u[u.len() - 2]
 }
 fn pcr() -> f64 {
-    std::f64::consts::PI.powi(2) * E * I / (4.0 * L * L)
+    math::powi(std::f64::consts::PI, 2) * E * I / (4.0 * L * L)
 }
 fn linear_tip() -> f64 {
-    H * L.powi(3) / (3.0 * E * I)
+    H * math::powi(L, 3) / (3.0 * E * I)
 }
 fn exact_compression(ratio: f64) -> f64 {
-    let z = std::f64::consts::PI * ratio.sqrt() / 2.0;
-    linear_tip() * 3.0 * (z.tan() - z) / z.powi(3)
+    let z = std::f64::consts::PI * math::sqrt(ratio) / 2.0;
+    linear_tip() * 3.0 * (math::tan(z) - z) / math::powi(z, 3)
 }
 
 #[test]
@@ -253,8 +254,8 @@ fn tension_positive_kg_stiffens_and_matches_closed_form() {
     // Continuación hiperbólica: v(L)=H/T [L-tanh(kL)/k], k²=T/EI.
     let ratio = 0.5;
     let t = ratio * pcr();
-    let z = (t / (E * I)).sqrt() * L;
-    let exact = H / t * (L - z.tanh() * L / z);
+    let z = math::sqrt(t / (E * I)) * L;
+    let exact = H / t * (L - math::tanh(z) * L / z);
     let mut s = cantilever(ReferenceBackend, 16, -t, &[]);
     let r = run(&mut s);
     assert_eq!(r.outcome, PDeltaOutcome::Completed);
@@ -315,7 +316,7 @@ fn existing_truss_producers_recover_gravity_axials_analytically() {
     let r = run(&mut s);
     assert_eq!(r.outcome, PDeltaOutcome::Completed);
     // Kxx=2(EA/5)(4/5)², N=-P/(2*3/5), Kgxx=2N/5*(3/5)².
-    let kxx = 2.0 * E * A / 5.0 * 0.8_f64.powi(2);
+    let kxx = 2.0 * E * A / 5.0 * math::powi(0.8_f64, 2);
     let kgxx = -p * 0.6 / 5.0;
     close(
         r.global_displacements.as_ref().unwrap()[4],
@@ -392,17 +393,17 @@ fn fixed_point_iteration_count_history_residual_and_no_hidden_retry() {
         assert_eq!(report.iteration, step);
         close(
             report.free_displacements[0],
-            10.0 / 75.0 * (1.0 - 0.25_f64.powi(step as i32)),
+            10.0 / 75.0 * (1.0 - math::powi(0.25_f64, step as i32)),
             1e-15,
         );
         close(
             report.relative_free_residual,
-            0.25_f64.powi(step as i32),
+            math::powi(0.25_f64, step as i32),
             1e-15,
         );
         close(
             report.relative_displacement_change,
-            0.1 * 0.25_f64.powi(i as i32),
+            0.1 * math::powi(0.25_f64, i as i32),
             1e-15,
         );
     }

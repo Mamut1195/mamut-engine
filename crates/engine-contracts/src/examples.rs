@@ -15,6 +15,7 @@
 //! # Ok::<(), EngineError>(())
 //! ```
 use crate::*; // Reutiliza tipos de contrato y núcleo.
+use engine_core::math;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Mutex,
@@ -154,7 +155,7 @@ impl LinearBar2D {
         }
         let dx = ctx.coords[1][0] - ctx.coords[0][0]; // Diferencia X de i a j.
         let dy = ctx.coords[1][1] - ctx.coords[0][1]; // Diferencia Y de i a j.
-        let length = dx.hypot(dy); // Longitud sin elevar coordenadas grandes al cuadrado.
+        let length = math::hypot(dx, dy); // Longitud sin elevar coordenadas grandes al cuadrado.
         finite(&[length])?; // Rechaza geometría desbordada.
         if length <= 1e-12 {
             return Err(EngineError::new("ENG-E-0005", "Barra de longitud nula."));

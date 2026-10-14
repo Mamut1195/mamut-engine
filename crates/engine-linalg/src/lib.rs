@@ -6,8 +6,11 @@
 //! avisos de licencia del paquete 0.24.4; véase README.md de este crate.
 //! Las magnitudes conservan las unidades SI de sus filas y columnas; este crate
 //! no convierte unidades ni conoce el mapa entre índices globales y nodos.
-//! No usa hilos. La igualdad bit a bit entre nativo y wasm queda pendiente de
-//! ENG-CORE-010: se usa `f64::sqrt`, sin añadir una dependencia directa de libm.
+//! V1 usa la referencia secuencial, sin SIMD explícito ni FMA implícito.
+//! El orden de reducción y la excepción FMA explícita de Sturm se documentan
+//! en `docs/DETERMINISMO.md` (ENG-CORE-010). Las funciones escalares pasan por
+//! `engine_core::math`: libm 0.2.16 (MIT) salvo sqrt, correctamente redondeada
+//! IEEE-754 en std. El cruce nativo/wasm verifica resultados y bits escalares.
 //!
 //! ```
 //! use engine_linalg::{DMat, LinAlgBackend, ReferenceBackend};

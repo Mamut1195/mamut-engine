@@ -38,6 +38,7 @@ use crate::{
 use combination::{correlations, quadratic};
 use engine_assembly::{LinearSystem, Reaction};
 use engine_contracts::MassKind;
+use engine_core::math;
 use engine_core::{DofIndex, EResult, EngineError, Real};
 use engine_linalg::{LinAlgBackend, SparseMatrix};
 
@@ -279,7 +280,7 @@ fn unit(direction: [Real; 3]) -> EResult<[Real; 3]> {
         return Err(invalid("Dirección de excitación nula."));
     }
     let d = direction.map(|v| v / scale);
-    let norm = d[0].hypot(d[1]).hypot(d[2]);
+    let norm = math::hypot(math::hypot(d[0], d[1]), d[2]);
     Ok(d.map(|v| v / norm))
 }
 

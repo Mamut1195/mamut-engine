@@ -1,0 +1,156 @@
+{
+  "schema": "engine-input/1",
+  "units": "SI",
+  "options": {},
+  "model": {
+    "axes": "Z-up",
+    "nodes": [
+      {
+        "id": 1,
+        "dim": "D2",
+        "coordinates": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Rz"
+        ]
+      },
+      {
+        "id": 2,
+        "dim": "D2",
+        "coordinates": [
+          4.0,
+          0.0,
+          0.0
+        ],
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Rz"
+        ]
+      }
+    ],
+    "members": [
+      {
+        "id": 7,
+        "nodes": [
+          1,
+          2
+        ],
+        "section": "s",
+        "law": "elastic"
+      }
+    ],
+    "sections": [
+      {
+        "id": "s",
+        "properties": [
+          {
+            "name": "A",
+            "value": 2.0
+          },
+          {
+            "name": "I",
+            "value": 3.0
+          }
+        ]
+      }
+    ],
+    "laws": [
+      {
+        "name": "elastic",
+        "parameters": [
+          {
+            "name": "E",
+            "value": 200.0
+          },
+          {
+            "name": "rho",
+            "value": 0.0
+          }
+        ]
+      }
+    ],
+    "supports": [
+      {
+        "id": "fixed",
+        "node": 1,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Rz"
+        ]
+      },
+      {
+        "id": "guide",
+        "node": 2,
+        "restrained": [
+          "Ux"
+        ]
+      }
+    ],
+    "masses": [
+      {
+        "id": "m",
+        "node": 2,
+        "values": [
+          {
+            "dof": "Uy",
+            "value": 5.0
+          },
+          {
+            "dof": "Rz",
+            "value": 2.0
+          }
+        ]
+      }
+    ]
+  },
+  "cases": [],
+  "combinations": [],
+  "analyses": [
+    {
+      "method": "responseSpectrum",
+      "options": {
+        "mode_count": 2,
+        "mass_kind": "lumped",
+        "modal_combination": "cqc",
+        "directional_combination": "srss",
+        "directional_factors": [
+          1.0
+        ],
+        "directions": [
+          {
+            "direction": [
+              0.0,
+              1.0,
+              0.0
+            ],
+            "spectra": [
+              {
+                "pairs": [
+                  [
+                    0.01,
+                    2.0
+                  ],
+                  [
+                    100.0,
+                    7.0
+                  ]
+                ],
+                "units": "periodSecondsAccelerationMetersPerSecondSquared",
+                "damping": 0.05,
+                "interpolation": "logLog",
+                "extrapolation": "error"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

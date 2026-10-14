@@ -3,6 +3,7 @@ use engine_contracts::{
     conformance::{check_element, check_element_factory},
     Element, ElementCtx, ElementFactory, ElementParams, JsonValue, MassKind, MemberLoad, ModelView,
 };
+use engine_core::math;
 use engine_core::{Dim, Dof, EResult, NodeId};
 use engine_elements_spring::{LinearSpring, SpringAxes, SpringConnection, SpringFactory};
 use engine_linalg::{DMat, LinAlgBackend, ReferenceBackend, SymMatrix};
@@ -126,7 +127,7 @@ fn coupled_dofs_rank_one_energy_force_recovery_and_rigid_translation() {
                 .zip(&r.internal_force)
                 .map(|(u, f)| u * f)
                 .sum::<f64>();
-        close(energy, 0.5 * 120.0 * 0.7_f64.powi(2));
+        close(energy, 0.5 * 120.0 * math::powi(0.7_f64, 2));
         for rigid in [
             [1.0, 0.0, 1.0, 0.0],
             [0.0, 1.0, 0.0, 1.0],
@@ -240,7 +241,7 @@ fn oblique_axis_reversal_scaling_and_spatial_rotation_covariance() {
             close(*a, b);
         }
     }
-    let (sn, cs) = 0.73_f64.sin_cos();
+    let (sn, cs) = math::sin_cos(0.73_f64);
     let q = [[cs, 0.0, sn], [0.0, 1.0, 0.0], [-sn, 0.0, cs]];
     let rotated_coords = coords.map(|v| rotate(&q, v));
     let rotated_u: Vec<_> = u
@@ -369,7 +370,7 @@ fn huge_tiny_zero_stiffness_and_extreme_direction_without_panics() {
         close(r.tangent.get(0, 0).unwrap(), 60.0);
     }
     let angle = std::f64::consts::FRAC_PI_4;
-    let (sn, cs) = angle.sin_cos();
+    let (sn, cs) = math::sin_cos(angle);
     let q = [[cs, sn, 0.0], [-sn, cs, 0.0], [0.0, 0.0, 1.0]];
     let coupled = spring(
         Dim::D2,

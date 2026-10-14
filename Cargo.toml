@@ -6,3 +6,6 @@ default-members = ["crates/engine-core", "crates/engine-model", "crates/engine-c
 [workspace.package]
 edition = "2021"
 rust-version = "1.85"
+
+[workspace.dependencies]
+libm = { version = "=0.2.16", default-features = false }

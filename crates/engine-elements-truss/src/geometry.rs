@@ -1,6 +1,7 @@
 //! Geometría de referencia SI, sin orientación transversal arbitraria.
 use crate::{finite, invalid};
 use engine_contracts::ElementCtx;
+use engine_core::math;
 use engine_core::{Dim, EResult, EngineError, Real};
 
 pub(crate) struct Geometry {
@@ -31,7 +32,7 @@ impl Geometry {
                 ctx.coords[1][axis] - ctx.coords[0][axis],
                 "Diferencia de coordenadas (m)",
             )?;
-            length = length.hypot(*value);
+            length = math::hypot(length, *value);
         }
         finite(length, "Longitud (m)")?;
         if length <= 1e-12 {

@@ -1,5 +1,6 @@
 use super::{invalid, validate_damping};
 use crate::finite;
+use engine_core::math;
 use engine_core::{EResult, Real};
 
 /// Unidades SI declaradas para TODOS los pares de entrada; sin conversión de g.
@@ -153,7 +154,7 @@ impl TabulatedSpectrum {
                 // ln_1p distingue periodos cercanos; la alternativa evita
                 // desbordar el cociente para intervalos muy amplios.
                 let a = log_distance(t0, period) / log_distance(t0, t1);
-                ((1.0 - a) * sa0.ln() + a * sa1.ln()).exp()
+                math::exp((1.0 - a) * math::ln(sa0) + a * math::ln(sa1))
             }
         };
         finite(&[sa])?;
@@ -164,8 +165,8 @@ impl TabulatedSpectrum {
 fn log_distance(low: Real, high: Real) -> Real {
     let relative = (high - low) / low;
     if relative.is_finite() {
-        relative.ln_1p()
+        math::ln_1p(relative)
     } else {
-        high.ln() - low.ln()
+        math::ln(high) - math::ln(low)
     }
 }

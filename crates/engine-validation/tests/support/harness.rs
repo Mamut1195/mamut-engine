@@ -6,6 +6,7 @@ use engine_analysis::{
 };
 use engine_assembly::{DofMap, ElementContribution, ElementLoad, LinearSystem, PrescribedDof};
 use engine_contracts::{CaseRef, Element, ElementCtx, ElementParams, MemberLoad};
+use engine_core::math;
 use engine_core::{Dim, Dof, EResult, EngineError, MemberId, NodeId};
 use engine_elements_frame::{EulerFrame2D, MomentReleases};
 use engine_elements_truss::LinearTruss;
@@ -108,7 +109,7 @@ impl Problem {
 }
 fn uniform(w: f64, angle: f64) -> MemberLoad {
     MemberLoad {
-        force_per_length: [w * angle.sin(), -w * angle.cos(), 0.0],
+        force_per_length: [w * math::sin(angle), -w * math::cos(angle), 0.0],
         moment_per_length: [0.0; 3],
     }
 }
@@ -236,7 +237,13 @@ pub fn build(f: &Fixture) -> EResult<Problem> {
             let x = if point { p.fraction * l } else { l / 2.0 };
             let coords: Vec<_> = [0.0, x, l]
                 .into_iter()
-                .map(|s| [2.0 + s * p.angle.cos(), 3.0 + s * p.angle.sin(), 0.0])
+                .map(|s| {
+                    [
+                        2.0 + s * math::cos(p.angle),
+                        3.0 + s * math::sin(p.angle),
+                        0.0,
+                    ]
+                })
                 .collect();
             let mut b = Problem::new(&coords, false);
             if matches!(f.kind, Kind::SimplePoint | Kind::SimpleUniform) {
@@ -280,8 +287,8 @@ pub fn build(f: &Fixture) -> EResult<Problem> {
                 Kind::CantileverPoint | Kind::SimplePoint | Kind::FixedPoint | Kind::Combination
             ) {
                 let n = if point { 2 } else { 3 };
-                b.nodal("Q", n, Dof::Ux, p.p * p.angle.sin())?;
-                b.nodal("Q", n, Dof::Uy, -p.p * p.angle.cos())?;
+                b.nodal("Q", n, Dof::Ux, p.p * math::sin(p.angle))?;
+                b.nodal("Q", n, Dof::Uy, -p.p * math::cos(p.angle))?;
                 if combo {
                     b.nodal("D", 3, Dof::Uy, -p.p * p.factors[0])?;
                 }
@@ -465,7 +472,7 @@ fn equilibrium(problem: &Problem, r: &CaseResults, c: &Check) -> EResult<()> {
             .find(|v| v.id == e.nodes[1])
             .ok_or_else(missing)?
             .coordinates;
-        let l = (b[0] - a[0]).hypot(b[1] - a[1]);
+        let l = math::hypot(b[0] - a[0], b[1] - a[1]);
         for (_, q) in e.loads.iter().filter(|(name, _)| name == &r.case.0) {
             let x = q.force_per_length[0] * l;
             let y = q.force_per_length[1] * l;

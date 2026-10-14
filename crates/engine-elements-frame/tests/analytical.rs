@@ -4,6 +4,7 @@ use engine_assembly::{
     assemble::assemble_matrix, DofMap, ElementContribution, ElementLoad, LinearSystem,
 };
 use engine_contracts::{CaseRef, Element, ElementCtx, ElementParams, MassKind, MemberLoad};
+use engine_core::math;
 use engine_core::{Dim, Dof, DofIndex, NodeId};
 use engine_elements_frame::{EulerFrame2D, MomentReleases};
 use engine_linalg::{DMat, LinAlgBackend, ReferenceBackend, SymMatrix};
@@ -133,7 +134,7 @@ fn solve(
     }
     if let Some(load) = distributed {
         for &(a, b, _) in members {
-            let l = (coords[b][0] - coords[a][0]).hypot(coords[b][1] - coords[a][1]);
+            let l = math::hypot(coords[b][0] - coords[a][0], coords[b][1] - coords[a][1]);
             let q = load.force_per_length;
             equilibrium[0] += q[0] * l;
             equilibrium[1] += q[1] * l;
@@ -177,12 +178,12 @@ fn cantilever_tip_force_and_rotation() {
     );
     close(
         s.u[4],
-        -P * L.powi(3) / (3.0 * E * I),
+        -P * math::powi(L, 3) / (3.0 * E * I),
         fixtures::STATIC.displacement_tolerance,
     );
     close(
         s.u[5],
-        -P * L.powi(2) / (2.0 * E * I),
+        -P * math::powi(L, 2) / (2.0 * E * I),
         fixtures::STATIC.displacement_tolerance,
     );
     close(s.r[0][1], P, fixtures::STATIC.force_tolerance);
@@ -217,11 +218,11 @@ fn fixed_fixed_uniform_and_point_load_by_subdivision() {
     let s = beam_fixture(false, false, Some(&load), 0.0);
     close(
         s.u[4],
-        -W * L.powi(4) / (384.0 * E * I),
+        -W * math::powi(L, 4) / (384.0 * E * I),
         fixtures::STATIC.displacement_tolerance,
     );
-    close(s.r[0][2], W * L.powi(2) / 12.0, 1e-9);
-    close(s.r[2][2], -W * L.powi(2) / 12.0, 1e-9);
+    close(s.r[0][2], W * math::powi(L, 2) / 12.0, 1e-9);
+    close(s.r[2][2], -W * math::powi(L, 2) / 12.0, 1e-9);
     // Un único tramo empotrado también recupera M parabólico exacto aunque
     // sus desplazamientos nodales sean cero (no confundir con v interior).
     let params = ElementParams::default();
@@ -247,7 +248,7 @@ fn fixed_fixed_uniform_and_point_load_by_subdivision() {
         close(station.forces_local[5], m, 1e-9);
     }
     let s = beam_fixture(false, false, None, -P);
-    close(s.u[4], -P * L.powi(3) / (192.0 * E * I), 1e-12);
+    close(s.u[4], -P * math::powi(L, 3) / (192.0 * E * I), 1e-12);
     close(s.r[0][2], P * L / 8.0, 1e-9);
     close(s.r[2][2], -P * L / 8.0, 1e-9);
 }
@@ -255,7 +256,7 @@ fn fixed_fixed_uniform_and_point_load_by_subdivision() {
 fn pinned_and_propped_uniform_load_with_released_rotations() {
     let q = uniform(-W);
     let s = beam_fixture(true, true, Some(&q), 0.0);
-    close(s.u[4], -5.0 * W * L.powi(4) / (384.0 * E * I), 1e-12);
+    close(s.u[4], -5.0 * W * math::powi(L, 4) / (384.0 * E * I), 1e-12);
     close(s.r[0][1], W * L / 2.0, 1e-9);
     close(s.r[2][1], W * L / 2.0, 1e-9);
     close(s.r[0][2], 0.0, 1e-9);
@@ -271,7 +272,7 @@ fn pinned_and_propped_uniform_load_with_released_rotations() {
     let internal = element
         .local_displacements(&c, &s.u[..6], std::slice::from_ref(&q))
         .unwrap();
-    close(internal[2], -W * L.powi(3) / (24.0 * E * I), 1e-12);
+    close(internal[2], -W * math::powi(L, 3) / (24.0 * E * I), 1e-12);
     let output = element
         .recover(&c, &s.u[..6], &[], std::slice::from_ref(&q), &[0.0, 1.0])
         .unwrap();
@@ -279,7 +280,7 @@ fn pinned_and_propped_uniform_load_with_released_rotations() {
     close(output.stations[1].forces_local[5], W * L * L / 8.0, 1e-9);
     for (ri, rj) in [(false, true), (true, false)] {
         let s = beam_fixture(ri, rj, Some(&q), 0.0);
-        close(s.u[4], -W * L.powi(4) / (192.0 * E * I), 1e-12);
+        close(s.u[4], -W * math::powi(L, 4) / (192.0 * E * I), 1e-12);
         close(s.r[0][1], if ri { 3.0 } else { 5.0 } * W * L / 8.0, 1e-9);
         close(s.r[2][1], if rj { 3.0 } else { 5.0 } * W * L / 8.0, 1e-9);
         close(s.r[0][2], if ri { 0.0 } else { W * L * L / 8.0 }, 1e-9);
@@ -292,10 +293,11 @@ fn symmetric_portal_with_finite_axial_stiffness_closed_form() {
     let h: f64 = 3.0;
     let span: f64 = 4.0;
     let ei = E * I;
-    let beta = (12.0 * ei / span.powi(2)) / (E * A / h + 24.0 * ei / span.powi(3));
-    let d = 4.0 * ei / h + 6.0 * ei / span - 12.0 * ei * beta / span.powi(2);
-    let delta = P / (24.0 * ei / h.powi(3) - 72.0 * ei.powi(2) / (h.powi(4) * d));
-    let theta = -6.0 * ei * delta / (h.powi(2) * d);
+    let beta = (12.0 * ei / math::powi(span, 2)) / (E * A / h + 24.0 * ei / math::powi(span, 3));
+    let d = 4.0 * ei / h + 6.0 * ei / span - 12.0 * ei * beta / math::powi(span, 2);
+    let delta =
+        P / (24.0 * ei / math::powi(h, 3) - 72.0 * math::powi(ei, 2) / (math::powi(h, 4) * d));
+    let theta = -6.0 * ei * delta / (math::powi(h, 2) * d);
     let v = -beta * theta;
     let s = solve(
         &[[0.0; 3], [span, 0.0, 0.0], [0.0, h, 0.0], [span, h, 0.0]],
@@ -322,7 +324,7 @@ fn symmetric_portal_with_finite_axial_stiffness_closed_form() {
 #[test]
 fn euler_pinned_column_one_and_two_elements() {
     fixtures::cited(&fixtures::BUCKLING);
-    let exact = std::f64::consts::PI.powi(2) * E * I / L.powi(2);
+    let exact = math::powi(std::f64::consts::PI, 2) * E * I / math::powi(L, 2);
     for (count, tolerance) in [(1, 0.22), (2, 0.008)] {
         // Hermite Ritz: 1 elemento sobreestima Euler 21.59%; 2, <0.8%.
         // Soportes articulados mantienen rotaciones nodales libres, condición
@@ -393,7 +395,7 @@ fn euler_pinned_column_one_and_two_elements() {
         if count == 1 {
             close(
                 pcr,
-                12.0 * E * I / L.powi(2),
+                12.0 * E * I / math::powi(L, 2),
                 fixtures::BUCKLING.force_tolerance,
             );
         }

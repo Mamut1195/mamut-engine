@@ -4,6 +4,7 @@ use engine_assembly::{DofMap, ElementContribution, ElementLoad, LinearSystem};
 use engine_contracts::{
     CaseRef, Element, ElementCtx, ElementParams, MassKind, MemberLoad, SystemView,
 };
+use engine_core::math;
 use engine_core::{Dim, Dof, NodeId};
 use engine_elements_truss::LinearTruss;
 use engine_linalg::{ReferenceBackend, SymMatrix};
@@ -18,7 +19,7 @@ fn close(a: f64, b: f64, tol: f64) {
 fn rotation(p: [f64; 3], spatial: bool) -> [f64; 3] {
     if spatial {
         // Rotación no trivial alrededor de Y; todas las bases del trípode fijas.
-        let (s, c) = 0.73_f64.sin_cos();
+        let (s, c) = math::sin_cos(0.73_f64);
         [c * p[0] + s * p[2], p[1], -s * p[0] + c * p[2]]
     } else {
         [-p[1], p[0], p[2]]
@@ -183,7 +184,7 @@ fn axial_extension_pl_over_ea_2d_and_3d() {
 
 #[test]
 fn three_bar_isostatic_triangle_and_rotated_model() {
-    let root2 = 2.0_f64.sqrt();
+    let root2 = math::sqrt(2.0_f64);
     for rotated in [false, true] {
         let (u, n, r) = solve_fixture(&fixtures::TRIANGLE, Dim::D2, rotated);
         for (actual, expected) in n.iter().zip([9.0, -3.0 * root2, -9.0 * root2]) {
@@ -217,9 +218,9 @@ fn three_bar_isostatic_triangle_and_rotated_model() {
 fn isostatic_tripod_and_rotated_model() {
     for rotated in [false, true] {
         let (u, n, r) = solve_fixture(&fixtures::TRIPOD, Dim::D3, rotated);
-        for (actual, expected) in n
-            .iter()
-            .zip([-9.0 * 2.0_f64.sqrt(), 0.0, -3.0 * 3.0_f64.sqrt()])
+        for (actual, expected) in
+            n.iter()
+                .zip([-9.0 * math::sqrt(2.0_f64), 0.0, -3.0 * math::sqrt(3.0_f64)])
         {
             close(*actual, expected, FORCE_TOL);
         }
@@ -236,8 +237,8 @@ fn isostatic_tripod_and_rotated_model() {
                 close(actual[axis], expected[axis], FORCE_TOL);
             }
         }
-        let z = -3.0 * 3.0_f64.sqrt() / 400.0 - 3.0 * 2.0_f64.sqrt() / 200.0;
-        let expected = [z + 9.0 * 2.0_f64.sqrt() / 200.0, z, z];
+        let z = -3.0 * math::sqrt(3.0_f64) / 400.0 - 3.0 * math::sqrt(2.0_f64) / 200.0;
+        let expected = [z + 9.0 * math::sqrt(2.0_f64) / 200.0, z, z];
         let expected = if rotated {
             rotation(expected, true)
         } else {
