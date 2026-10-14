@@ -1,7 +1,8 @@
 //! Análisis `static.linear`, [`newton`] (`static.newton`) y [`pdelta`], en unidades SI.
 //!
 //! `static.linear` resuelve casos independientes con una única factorización
-//! de K_ff. Incluye asentamientos sin escalarlos por el factor de carga; no modifica el estado
+//! de K_red = T_fᵀ K T_f sobre los independientes libres. Recupera dependientes
+//! y prescritos con u = T_f q_f + u_0. Incluye asentamientos sin escalarlos por el factor de carga; no modifica el estado
 //! aceptado o de prueba. El módulo `combination` superpone resultados usando
 //! combinaciones declarativas del modelo; `StaticLinear` resuelve solo casos.
 //! Con prescritos nulos, u(A+B)=u(A)+u(B); con asentamientos, se resta una vez
@@ -44,17 +45,17 @@ pub struct StaticCaseResult {
     pub case: CaseRef,
     /// Factor aplicado solo a las cargas.
     pub factor: Real,
-    /// Desplazamientos libres en orden reducido, m/rad.
+    /// Desplazamientos independientes libres en orden reducido, m/rad.
     pub free_displacements: Vec<Real>,
-    /// Desplazamientos completos en orden global, incluidos prescritos, m/rad.
+    /// Desplazamientos completos en orden global, incluidos dependientes y prescritos, m/rad.
     pub global_displacements: Vec<Real>,
     /// Reacciones en todos los GDL prescritos, N/N·m.
     pub reactions: Vec<Reaction>,
     /// Equilibrio de fuerzas y momentos globales.
     pub equilibrium: EquilibriumReport,
-    /// `‖(K u-F)_f‖∞` en componentes SI (N/N·m).
+    /// `‖T_fᵀ(K u-F)‖∞` en componentes SI (N/N·m).
     pub free_residual_norm: Real,
-    /// Norma anterior / max(1, ‖(K u)_f‖∞, ‖F_f‖∞).
+    /// Norma anterior / max(1, ‖T_fᵀ K u‖∞, ‖T_fᵀ F‖∞).
     /// Indicador numérico de componentes SI; mezcla fuerzas y momentos,
     /// por lo que no es una norma física invariante al cambio de unidades.
     pub relative_free_residual: Real,
@@ -145,21 +146,25 @@ fn free_residual<B: LinAlgBackend>(
     force: &[Real],
 ) -> EResult<(Real, Real)> {
     let k = system.stiffness();
-    let mut norm: Real = 0.0;
-    let mut scale: Real = 1.0;
-    for &index in system.constraints().free_dofs() {
-        let row = index.0 as usize;
-        let mut internal = 0.0;
+    let mut internal = vec![0.0; global.len()];
+    for (row, value) in internal.iter_mut().enumerate() {
         for p in k.row_offsets()[row]..k.row_offsets()[row + 1] {
             let term = k.values()[p] * global[k.column_indices()[p]];
             finite(&[term])?;
-            internal += term;
-            finite(&[internal])?;
+            *value += term;
+            finite(&[*value])?;
         }
-        let residual = internal - force[row];
+    }
+    let residual: Vec<_> = internal.iter().zip(force).map(|(k, f)| k - f).collect();
+    let residual = system.constraints().project_force(&residual)?;
+    let internal = system.constraints().project_force(&internal)?;
+    let external = system.constraints().project_force(force)?;
+    let mut norm: Real = 0.0;
+    let mut scale: Real = 1.0;
+    for ((residual, internal), external) in residual.into_iter().zip(internal).zip(external) {
         finite(&[residual])?;
         norm = norm.max(residual.abs());
-        scale = scale.max(internal.abs()).max(force[row].abs());
+        scale = scale.max(internal.abs()).max(external.abs());
     }
     Ok((norm, norm / scale))
 }

@@ -1,6 +1,6 @@
 //! Numeración global estable de los GDL declarados por los nodos.
 use crate::{error, finite};
-use engine_core::{Dof, DofIndex, EResult, EntityRef, NodeId, Real};
+use engine_core::{Dim, Dof, DofIndex, EResult, EntityRef, NodeId, Real};
 use engine_model::Node;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -15,7 +15,7 @@ pub struct DofMap {
     labels: Vec<(NodeId, Dof)>,
     indices: BTreeMap<(NodeId, usize), DofIndex>,
     nodes: BTreeSet<NodeId>,
-    coordinates: BTreeMap<NodeId, [Real; 3]>,
+    geometry: BTreeMap<NodeId, (Dim, [Real; 3])>,
 }
 
 impl DofMap {
@@ -58,7 +58,10 @@ impl DofMap {
             labels: Vec::new(),
             indices: BTreeMap::new(),
             nodes: ordered.keys().copied().collect(),
-            coordinates: ordered.iter().map(|(&id, n)| (id, n.coordinates)).collect(),
+            geometry: ordered
+                .iter()
+                .map(|(&id, n)| (id, (n.dim, n.coordinates)))
+                .collect(),
         };
         for (id, node) in ordered {
             for &dof in node.dim.dofs() {
@@ -87,15 +90,26 @@ impl DofMap {
     /// Z=0 por convención; D3: XYZ). No transforma ni proyecta coordenadas.
     /// ENG-E-0003 por nodo ausente.
     pub fn coordinates(&self, node: NodeId) -> EResult<[Real; 3]> {
-        self.coordinates.get(&node).copied().ok_or_else(|| {
-            let mut e = error("ENG-E-0003", "Nodo sin coordenadas en el mapa.");
-            e.entities.push(EntityRef::Node(node));
-            e
-        })
+        self.geometry
+            .get(&node)
+            .map(|&(_, coordinates)| coordinates)
+            .ok_or_else(|| {
+                let mut e = error("ENG-E-0003", "Nodo sin coordenadas en el mapa.");
+                e.entities.push(EntityRef::Node(node));
+                e
+            })
     }
 
     pub(crate) fn contains_node(&self, node: NodeId) -> bool {
         self.nodes.contains(&node)
+    }
+
+    pub(crate) fn geometry(&self, node: NodeId) -> EResult<(Dim, [Real; 3])> {
+        self.geometry.get(&node).copied().ok_or_else(|| {
+            let mut e = error("ENG-E-0003", "Nodo de diafragma inexistente.");
+            e.entities.push(EntityRef::Node(node));
+            e
+        })
     }
 
     /// Busca índice global; ENG-E-0003 por nodo ausente, ENG-E-0011 por GDL ausente.

@@ -3,8 +3,8 @@ use crate::{
     assemble::{
         assemble_matrix, assemble_model, location, missing_case, multiply, triplets, GlobalAssembly,
     },
-    error, finite, reactions, size, Constraints, DofMap, ElementContribution, PrescribedDof,
-    Reaction,
+    error, finite, reactions, size, Constraints, DiaphragmForces, DiaphragmNodalForce, DofMap,
+    ElementContribution, PrescribedDof, Reaction, RigidDiaphragm,
 };
 use engine_contracts::{CaseRef, MassKind, SystemView};
 use engine_core::{Dof, DofIndex, EResult, EngineError, EntityRef, NodeId, Real};
@@ -101,23 +101,32 @@ fn reduced<B: LinAlgBackend>(
     constraints: &Constraints,
 ) -> EResult<SymMatrix> {
     let mut entries = Vec::new();
-    for row in 0..matrix.rows() {
-        if let Some(r) = constraints.reduced_index(DofIndex(row as u32))? {
-            for p in matrix.row_offsets()[row]..matrix.row_offsets()[row + 1] {
-                if let Some(c) =
-                    constraints.reduced_index(DofIndex(matrix.column_indices()[p] as u32))?
-                {
+    for t in triplets(matrix) {
+        for &(r, a) in constraints.free_transformation_row(DofIndex(t.row as u32))? {
+            for &(c, b) in constraints.free_transformation_row(DofIndex(t.col as u32))? {
+                // Acumular una sola mitad y reflejar el resultado evita que el
+                // orden de sumas produzca asimetría de redondeo en Tᵀ K T.
+                if r >= c {
+                    let value = a * t.value * b;
+                    finite(&[value])?;
                     entries.push(Triplet {
                         row: r.0 as usize,
                         col: c.0 as usize,
-                        value: matrix.values()[p],
+                        value,
                     });
                 }
             }
         }
     }
     let n = constraints.free_dofs().len();
-    SymMatrix::new(backend.assemble(n, n, &entries)?.to_dense()?)
+    let dense = backend.assemble(n, n, &entries)?.to_dense()?;
+    let mut values = dense.values().to_vec();
+    for r in 0..n {
+        for c in 0..r {
+            values[c * n + r] = values[r * n + c];
+        }
+    }
+    SymMatrix::new(DMat::new(n, n, values)?)
 }
 
 impl<B: LinAlgBackend> LinearSystem<B> {
@@ -133,13 +142,30 @@ impl<B: LinAlgBackend> LinearSystem<B> {
     /// Propaga ENG-E-0002/0003/0008/0010/0011; ENG-E-0012 si el backend entrega
     /// un patrón incoherente con las matrices reducidas.
     pub fn from_model(
-        mut backend: B,
+        backend: B,
         model: &Model,
         elements: &[ElementContribution],
         prescribed: &[PrescribedDof],
     ) -> EResult<Self> {
+        Self::from_model_with_diaphragms(backend, model, elements, prescribed, &[])
+    }
+
+    /// Ensambla y reduce por diafragmas XY D3, sin modificar Model.
+    ///
+    /// Conserva from_model cuando la lista está vacía. Usa u = T_f q_f + u_0,
+    /// K_red = T_fᵀ K T_f y F_red = T_fᵀ F; el RHS resta T_fᵀ K u_0.
+    /// M y Kg, incluidos productores, reciben la misma transformación.
+    /// Propaga diagnósticos de from_model y Constraints::with_diaphragms.
+    pub fn from_model_with_diaphragms(
+        mut backend: B,
+        model: &Model,
+        elements: &[ElementContribution],
+        prescribed: &[PrescribedDof],
+        diaphragms: &[RigidDiaphragm],
+    ) -> EResult<Self> {
         let map = DofMap::new(&model.nodes)?;
-        let constraints = Constraints::new(&map, &model.supports, prescribed)?;
+        let constraints =
+            Constraints::with_diaphragms(&map, &model.supports, prescribed, diaphragms)?;
         let GlobalAssembly {
             k,
             lumped,
@@ -155,11 +181,10 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         let mut coordinates = Vec::new();
         for matrix in [&k, &lumped, &consistent, &kg] {
             for t in triplets(matrix) {
-                if let (Some(r), Some(c)) = (
-                    constraints.reduced_index(DofIndex(t.row as u32))?,
-                    constraints.reduced_index(DofIndex(t.col as u32))?,
-                ) {
-                    coordinates.push((r.0 as usize, c.0 as usize));
+                for &(r, _) in constraints.free_transformation_row(DofIndex(t.row as u32))? {
+                    for &(c, _) in constraints.free_transformation_row(DofIndex(t.col as u32))? {
+                        coordinates.push((r.0 as usize, c.0 as usize));
+                    }
                 }
             }
         }
@@ -203,11 +228,12 @@ impl<B: LinAlgBackend> LinearSystem<B> {
     pub fn dof_map(&self) -> &DofMap {
         &self.map
     }
-    /// Partición libre/prescrita constante del sistema.
+    /// Transformación y partición independiente libre/prescrita constantes.
     pub fn constraints(&self) -> &Constraints {
         &self.constraints
     }
-    /// Busca nodo/GDL → índice reducido; None significa GDL restringido.
+    /// Busca nodo/GDL → índice reducido; None significa prescrito o dependiente.
+    /// Para esclavos consulte constraints().free_transformation_row().
     /// ENG-E-0003 por nodo inexistente, ENG-E-0011 por componente no declarada.
     pub fn reduced_index(&self, node: NodeId, dof: Dof) -> EResult<Option<DofIndex>> {
         self.constraints
@@ -329,11 +355,16 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         let mut coordinates = Vec::new();
         for matrix in [&self.k, &self.lumped, &self.consistent, &self.kg, &kg] {
             for t in triplets(matrix) {
-                if let (Some(r), Some(c)) = (
-                    self.constraints.reduced_index(DofIndex(t.row as u32))?,
-                    self.constraints.reduced_index(DofIndex(t.col as u32))?,
-                ) {
-                    coordinates.push((r.0 as usize, c.0 as usize));
+                for &(r, _) in self
+                    .constraints
+                    .free_transformation_row(DofIndex(t.row as u32))?
+                {
+                    for &(c, _) in self
+                        .constraints
+                        .free_transformation_row(DofIndex(t.col as u32))?
+                    {
+                        coordinates.push((r.0 as usize, c.0 as usize));
+                    }
                 }
             }
         }
@@ -421,7 +452,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         Ok(result)
     }
 
-    /// RHS para solve directo: factor F_f − K_fp u_p (N/N·m).
+    /// RHS directo: T_fᵀ(factor F − K u_0) (N/N·m).
     /// u_p no se escala por factor; los errores conservan el sistema.
     pub fn reduced_rhs(&self, case: &CaseRef, factor: Real) -> EResult<Vec<Real>> {
         let force = self.global_force(case, factor)?;
@@ -429,17 +460,11 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             &self.k,
             &self.constraints.expand(&vec![0.0; self.n_free_dofs()])?,
         )?;
-        let result: Vec<_> = self
-            .constraints
-            .free_dofs()
-            .iter()
-            .map(|i| force[i.0 as usize] - shift[i.0 as usize])
-            .collect();
-        finite(&result)?;
-        Ok(result)
+        let residual: Vec<_> = force.iter().zip(shift).map(|(f, k)| f - k).collect();
+        self.constraints.project_force(&residual)
     }
 
-    /// Resuelve K_ff u_f = RHS mediante el backend, sin aceptar el resultado.
+    /// Resuelve (T_fᵀ K T_f) q_f = RHS mediante el backend, sin aceptar el resultado.
     ///
     /// Conveniencia para problemas lineales; no es un método analysis/1.
     /// Traduce los índices reducidos de ENG-E-0006 a índice global, entidad nodo
@@ -460,14 +485,17 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         Ok(solution.values().to_vec())
     }
 
-    /// Resuelve varios casos independientes con UNA factorización de K_ff.
+    /// Resuelve varios casos con UNA factorización de K_red = T_fᵀ K T_f.
     ///
     /// Conserva el orden de entrada y no acepta ni modifica pruebas. Cada RHS
-    /// es `factor F_f - K_fp u_p`: los prescritos no se escalan. Valida todos
+    /// es `T_fᵀ(factor F − K u_0)`: los prescritos no se escalan. Valida todos
     /// los casos antes de factorizar. ENG-E-0010 por lista vacía o nombres
     /// duplicados; ENG-E-0003 por caso ausente; ENG-E-0008 por no finitos.
     /// Traduce errores del backend igual que [`Self::solve`], incluidos
     /// mecanismos ENG-E-0006 con nodo/GDL y diagnósticos inválidos ENG-E-0012.
+    /// Devuelve desplazamientos independientes libres, igual que [`Self::solve`].
+    /// [`Constraints::expand`] recupera los dependientes y prescritos mediante
+    /// `u = T_f q_f + u_0`. Sin diafragmas equivale a `factor F_f − K_fp u_p`.
     pub fn solve_cases(&mut self, cases: &[(CaseRef, Real)]) -> EResult<Vec<Vec<Real>>> {
         if cases.is_empty() {
             return Err(error("ENG-E-0010", "Lista de casos vacía."));
@@ -501,9 +529,11 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             .collect()
     }
 
-    /// Recupera R = K_pf u_f + K_pp u_p − factor F_p sobre todo GDL prescrito:
+    /// Recupera R = (Tᵀ(Ku − factor F))_p sobre todo independiente prescrito:
     /// los restringidos por apoyos y los de desplazamiento impuesto (asentamiento).
-    /// No existe reacción en un GDL libre. Orden global estable; unidades
+    /// Incluye la fuerza transferida por esclavos a un maestro prescrito.
+    /// Sin diafragmas equivale a K_pf u_f + K_pp u_p − factor F_p.
+    /// No existe reacción de apoyo en un GDL libre o dependiente. Orden global estable; unidades
     /// N/N·m. No acepta ni modifica pruebas. Incluye las cargas aplicadas
     /// directamente sobre GDL prescritos.
     pub fn reactions(
@@ -521,15 +551,53 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         )
     }
 
+    /// Recupera las acciones de cada diafragma sobre esclavos y maestro.
+    /// Signos y transporte de momentos documentados en DiaphragmForces.
+    /// Propaga errores de expansión, fuerzas y productos (0003/0008/0010).
+    pub fn diaphragm_forces(
+        &self,
+        u_free: &[Real],
+        case: &CaseRef,
+        factor: Real,
+    ) -> EResult<Vec<DiaphragmForces>> {
+        let u = self.constraints.expand(u_free)?;
+        let internal = multiply(&self.k, &u)?;
+        let external = self.global_force(case, factor)?;
+        let residual: Vec<_> = internal.iter().zip(external).map(|(k, f)| k - f).collect();
+        finite(&residual)?;
+        let mut result = Vec::new();
+        for d in self.constraints.diaphragms() {
+            let (_, origin) = self.map.geometry(d.master)?;
+            let mut master = [0.0; 3];
+            let mut slaves = Vec::new();
+            for &node in &d.slaves {
+                let (_, coords) = self.map.geometry(node)?;
+                let mut values = [0.0; 3];
+                for (i, dof) in [Dof::Ux, Dof::Uy, Dof::Rz].into_iter().enumerate() {
+                    values[i] = residual[self.map.global_index(node, dof)?.0 as usize];
+                }
+                master[0] -= values[0];
+                master[1] -= values[1];
+                master[2] -= values[2] + (coords[0] - origin[0]) * values[1]
+                    - (coords[1] - origin[1]) * values[0];
+                slaves.push(DiaphragmNodalForce { node, values });
+            }
+            finite(&master)?;
+            result.push(DiaphragmForces {
+                master: DiaphragmNodalForce {
+                    node: d.master,
+                    values: master,
+                },
+                slaves,
+            });
+        }
+        Ok(result)
+    }
+
     fn evaluate(&self, u: &[Real]) -> EResult<Vec<Real>> {
         let global = self.constraints.expand(u)?;
         let internal = multiply(&self.k, &global)?;
-        Ok(self
-            .constraints
-            .free_dofs()
-            .iter()
-            .map(|i| internal[i.0 as usize])
-            .collect())
+        self.constraints.project_force(&internal)
     }
 
     fn translate_solver_error(&self, mut e: EngineError) -> EngineError {
@@ -611,12 +679,7 @@ impl<B: LinAlgBackend> SystemView for LinearSystem<B> {
     fn external_force(&self, case: &CaseRef, factor: Real, out: &mut [Real]) -> EResult<()> {
         size(out.len(), self.n_free_dofs())?;
         let force = self.global_force(case, factor)?;
-        let reduced: Vec<_> = self
-            .constraints
-            .free_dofs()
-            .iter()
-            .map(|i| force[i.0 as usize])
-            .collect();
+        let reduced = self.constraints.project_force(&force)?;
         out.copy_from_slice(&reduced);
         Ok(())
     }
@@ -630,9 +693,14 @@ impl<B: LinAlgBackend> SystemView for LinearSystem<B> {
         self.trial.clone_from(&self.accepted);
     }
     /// Precondición del contrato: d < n. El trait no puede devolver error; use
-    /// [`LinearSystem::try_dof_label`] para entradas no confiables.
+    /// [`LinearSystem::try_dof_label`] para entradas no confiables. Si se viola
+    /// la precondición devuelve el centinela (NodeId(0), Ux), sin pánico.
     fn dof_label(&self, d: DofIndex) -> (NodeId, Dof) {
-        self.try_dof_label(d)
-            .expect("Índice reducido válido requerido por SystemView")
+        match self.try_dof_label(d) {
+            Ok(label) => label,
+            // El trait no tiene canal de error. Centinela para una llamada
+            // fuera de contrato; try_dof_label devuelve ENG-E-0010.
+            Err(_) => (NodeId(0), Dof::Ux),
+        }
     }
 }

@@ -1,10 +1,12 @@
 //! Una factorización reutilizable por lote; solve conserva su semántica previa.
 #[path = "fixtures/counting.rs"]
 mod counting;
+#[path = "fixtures/rigid_cases.rs"]
+mod rigid_cases;
 use counting::CountingBackend;
 use engine_assembly::{ElementContribution, LinearSystem, PrescribedDof};
 use engine_contracts::{CaseRef, SystemView};
-use engine_core::{Dim, Dof, DofIndex, NodeId};
+use engine_core::{Dim, Dof, DofIndex, EResult, NodeId};
 use engine_linalg::DMat;
 use engine_model::{DofValue, LoadCase, Model, NodalLoad, Node, Support};
 
@@ -93,4 +95,59 @@ fn invalid_lists_and_values() {
     ] {
         assert_eq!(s.solve_cases(&cases).unwrap_err().code, code);
     }
+}
+
+#[test]
+fn rigid_diaphragm_cases_match_single_solves_and_analytic_solution() -> EResult<()> {
+    for settlement in [None, Some(0.03)] {
+        let backend = CountingBackend::default();
+        let factors = backend.factorizations.clone();
+        let solves = backend.solves.clone();
+        let mut s = rigid_cases::system(backend, settlement)?;
+        let accepted = vec![0.7; s.n_free_dofs()];
+        let trial = vec![-0.2; s.n_free_dofs()];
+        s.accept(&accepted)?;
+        s.internal_force(&trial, &mut vec![0.0; s.n_free_dofs()])?;
+        let cases = rigid_cases::cases();
+        let solutions = s.solve_cases(&cases)?;
+        assert_eq!(solutions.len(), cases.len());
+        assert_eq!(factors.get(), 1);
+        assert_eq!(solves.get(), cases.len());
+        for ((case, factor), free) in cases.iter().zip(&solutions) {
+            assert_eq!(*free, s.solve(case, *factor)?);
+            rigid_cases::verify_solution(&s, free, case, *factor, settlement)?;
+        }
+        assert_eq!(factors.get(), 1 + cases.len());
+        assert_eq!(s.accepted_displacement(), accepted);
+        assert_eq!(s.trial_displacement(), trial);
+    }
+    Ok(())
+}
+
+#[test]
+fn rigid_cases_validate_entire_batch_before_factorization() -> EResult<()> {
+    let backend = CountingBackend::default();
+    let factors = backend.factorizations.clone();
+    let solves = backend.solves.clone();
+    let mut s = rigid_cases::system(backend, Some(0.03))?;
+    let accepted = vec![0.7; s.n_free_dofs()];
+    let trial = vec![-0.2; s.n_free_dofs()];
+    s.accept(&accepted)?;
+    s.internal_force(&trial, &mut vec![0.0; s.n_free_dofs()])?;
+    for (name, factor, code) in [
+        ("A", 2.0, "ENG-E-0010"),
+        ("ausente", 1.0, "ENG-E-0003"),
+        ("B", f64::NAN, "ENG-E-0008"),
+        ("B", f64::INFINITY, "ENG-E-0008"),
+        // Las fuerzas físicas son finitas; el brazo x=3 desborda al proyectar.
+        ("B", f64::MAX / 32.0, "ENG-E-0008"),
+    ] {
+        let cases = [(CaseRef("A".into()), 1.0), (CaseRef(name.into()), factor)];
+        assert_eq!(s.solve_cases(&cases).unwrap_err().code, code);
+        assert_eq!(factors.get(), 0);
+        assert_eq!(solves.get(), 0);
+        assert_eq!(s.accepted_displacement(), accepted);
+        assert_eq!(s.trial_displacement(), trial);
+    }
+    Ok(())
 }

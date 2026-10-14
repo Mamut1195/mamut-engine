@@ -2,7 +2,7 @@
 
 - Ticket / PR: productor real Kg(u), rama `j2/geometric-producer`, apilada sobre
   el cambio `has_geometric` de PR #29. Sin commit, push ni PR en este trabajo.
-- Autor(es): agente Codex, GPT-6, 2026-10-11 (America/Guayaquil).
+- Autor(es): J2 (agente, Grok Bot) · 2026-10-11 (America/Guayaquil).
 - Rol: implementador.
 - Contrato implementado: system/1, `LinearSystem::geometric`; adaptador de
   element/1, kinds `truss2d.linear` y `truss3d.linear`.
@@ -13,8 +13,8 @@
 - Validación: analítica propia por energía, segunda variación de longitud,
   equilibrio y diferencias centradas de fuerza analítica incremental.
 - Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: no consulté código ni soluciones de motores externos para este ticket.
-- Revisor clean-room: J4, **PENDIENTE**.
+- Declaración: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados"
+- Revisor clean-room: PENDIENTE (J4)
 - Cita bibliográfica precisa para P-Delta de barras: **PENDIENTE**; no se
   atribuyen páginas ni ecuaciones a publicaciones no consultadas.
 

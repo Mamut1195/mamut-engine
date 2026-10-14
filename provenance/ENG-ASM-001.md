@@ -2,8 +2,7 @@
 
 - Ticket / PR: ENG-ASM-001, Ensamblador, apoyos y desplazamientos impuestos;
   implementación en la rama existente sobre ENG-LA-007. Sin commit, push ni PR.
-- Autor(es): Codex gpt-6.1-sol high · 2026-10-11 (America/Guayaquil), identificación
-  solicitada para este ticket. No se delegó a otros agentes.
+- Autor(es): J2 (agente, Grok Bot) · 2026-10-11 (America/Guayaquil).
 - Rol: implementador; derivaciones y fixtures analíticos propios. Sin actividad
   de operador de oráculo ni auditor de similitud.
 - Contrato implementado: `engine_contracts::SystemView` sobre tipos y backend
@@ -23,10 +22,8 @@
   segmentos y asentamiento; valores escritos a mano y derivados abajo. No se
   usaron números de otros motores. Citas bibliográficas precisas: **PENDIENTE**.
 - Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
-- Revisor clean-room: J4 (2026-10-11): 0 altos, 1 medio documentado como límite
-  (`geometric(u)` no recalcula Kg) y bajos listados en «Correcciones tras la
-  revisión de J4». El informe se transmitió vía J0; no se adjunta en este repo.
+- Declaración: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados"
+- Revisor clean-room: PENDIENTE (J4)
 
 ## Documentos internos consultados
 

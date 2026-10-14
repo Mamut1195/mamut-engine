@@ -8,7 +8,8 @@ crates internos. La teoría y los fixtures analíticos están documentados en
 `Dim::dofs()`: Ux, Uy, Rz en D2 y seis componentes en D3. Admite subconjuntos
 de GDL declarados, por ejemplo Ux para una cadena axial. Los índices globales
 no cambian al eliminar apoyos; `LinearSystem::reduced_index` devuelve el índice
-reducido o `None` para un GDL restringido.
+reducido o `None` para un GDL prescrito o dependiente. `coordinates()` consulta
+las posiciones originales del mismo mapa de geometría usado por los diafragmas.
 
 `ElementContribution` recibe `location`, K, dos clases de M opcionales, Kg
 opcional y vectores de carga por caso. Las matrices y vectores ya están en ejes
@@ -29,10 +30,20 @@ cero o restringir otro GDL; no admite duplicados dentro de ninguna lista. Los
 valores impuestos son constantes y no dependen del factor del caso. El sistema
 rechaza un modelo sin GDL libres con ENG-E-0010.
 
-El contrato `SystemView` devuelve fuerza interna física `(K u)_f`, que incluye
-`K_fp u_p`, y fuerza externa física `factor F_f`. Para resolver directamente
-`K_ff u_f = factor F_f − K_fp u_p`, use `reduced_rhs` o `solve`. La recuperación
-`reactions` devuelve la acción del apoyo sobre el nodo:
+`from_model_with_diaphragms` añade restricciones maestro-esclavo XY en D3:
+`u = T_f q_f + u_0`. Los esclavos cumplen `Ux_s = Ux_m − ry Rz_m`,
+`Uy_s = Uy_m + rx Rz_m` y `Rz_s = Rz_m`; Uz/Rx/Ry siguen independientes.
+La reducción de K/M/Kg usa `T_fᵀ A T_f`.
+
+El contrato `SystemView` devuelve fuerza interna física `T_fᵀ K u`, que incluye
+los prescritos, y fuerza externa física `factor T_fᵀ F`. Para resolver
+directamente `K_red q_f = T_fᵀ(factor F − K u_0)`, use `reduced_rhs` o `solve`.
+`solve_cases` conserva el orden del lote y reutiliza una sola factorización;
+devuelve los mismos independientes libres que `solve` caso a caso.
+`Constraints::expand` recupera dependientes y prescritos sin escalar estos últimos.
+La recuperación `reactions` devuelve `R_p = (Tᵀ(Ku − factor F))_p`, incluida
+la fuerza transferida por esclavos a un maestro prescrito. Sin diafragmas se
+obtienen `K_ff u_f = factor F_f − K_fp u_p` y
 `R_p = K_pf u_f + K_pp u_p − factor F_p`. Incluye las fuerzas sobre apoyos.
 
 K y M son constantes. Sin productores registrados, Kg es una instantánea del

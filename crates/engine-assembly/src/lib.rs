@@ -9,10 +9,20 @@
 //! [`DofMap`] numera los GDL declarados por nodo ascendente y componente de
 //! [`engine_core::Dim`]; [`Constraints`] asigna los índices reducidos conservando
 //! ese orden. Se permiten subconjuntos de GDL para problemas axiales.
+//! [`RigidDiaphragm`] transforma Ux/Uy/Rz de esclavos en planta XY D3
+//! mediante un maestro; Uz/Rx/Ry siguen independientes. Normal +Z y giros
+//! infinitesimales; D2 y otros planos no se admiten. Se declara con
+//! [`LinearSystem::from_model_with_diaphragms`], sin alterar el dominio Model.
+//! [`Constraints::transformation`] expone T, incluidos independientes prescritos;
+//! la expansión es u = T_f q_f + u_0 y la proyección de fuerzas es T_fᵀ.
+//! K, M y Kg se reducen por congruencia T_fᵀ A T_f. Reacciones de apoyo y
+//! acciones maestro/esclavos se recuperan del residuo global Ku − factor F.
+//!
 //! [`LinearSystem`] implementa [`engine_contracts::SystemView`]: fuerza interna
-//! física `(K u)_f = K_ff u_f + K_fp u_p`, externa `factor F_f` y tangente K_ff.
+//! física `T_fᵀ K u`, externa `factor T_fᵀ F` y tangente `T_fᵀ K T_f`.
 //! Para un solve directo, [`LinearSystem::reduced_rhs`] devuelve
-//! `factor F_f - K_fp u_p`. No se resta nuevamente en SystemView.
+//! `T_fᵀ(factor F − K u_0)`. Sin diafragmas equivale a
+//! `factor F_f − K_fp u_p`. No se resta nuevamente en SystemView.
 //!
 //! Las matrices globales son CSR; las reducidas son densas por el contrato
 //! actual SymMatrix de engine-linalg. El solve se delega al backend, sin
@@ -54,12 +64,14 @@
 
 pub mod assemble;
 pub mod constraints;
+pub mod diaphragm;
 pub mod dofmap;
 pub mod reactions;
 pub mod system;
 
 pub use assemble::{ElementContribution, ElementLoad};
 pub use constraints::{Constraints, PrescribedDof};
+pub use diaphragm::{DiaphragmForces, DiaphragmNodalForce, RigidDiaphragm};
 pub use dofmap::DofMap;
 pub use reactions::Reaction;
 pub use system::{GeometricEval, GeometricProducer, LinearSystem};
@@ -67,7 +79,10 @@ pub use system::{GeometricEval, GeometricProducer, LinearSystem};
 use engine_core::{EResult, EngineError, Real};
 
 fn error(code: &'static str, message: impl Into<String>) -> EngineError {
-    let mut result = EngineError::from_code(code).expect("Código del catálogo engine-core");
+    let mut result = match EngineError::from_code(code) {
+        Some(e) => e,
+        None => EngineError::new("ENG-E-0012", "Código de error no registrado."),
+    };
     result.message.push(' ');
     result.message.push_str(&message.into());
     result

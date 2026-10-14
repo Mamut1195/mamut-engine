@@ -11,7 +11,7 @@ pub struct Reaction {
     pub node: NodeId,
     /// Componente prescrita (restringida o con valor impuesto).
     pub dof: Dof,
-    /// Fuerza en N o momento en N·m: `(K u - F)_p`.
+    /// Fuerza en N o momento en N·m: `(Tᵀ(K u - F))_p`.
     pub value: Real,
 }
 
@@ -26,11 +26,13 @@ pub(crate) fn recover(
     finite(force)?;
     let u = constraints.expand(u_free)?;
     let internal = multiply(k, &u)?;
+    let residual: Vec<_> = internal.iter().zip(force).map(|(k, f)| k - f).collect();
+    let projected = constraints.project_independent(&residual)?;
     let mut result = Vec::new();
     for (i, p) in constraints.prescribed_values().iter().enumerate() {
         if p.is_some() {
             let (node, dof) = map.label(engine_core::DofIndex(i as u32))?;
-            let value = internal[i] - force[i];
+            let value = projected[i];
             finite(&[value])?;
             result.push(Reaction { node, dof, value });
         }

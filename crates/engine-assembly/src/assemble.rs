@@ -105,7 +105,7 @@ pub fn assemble_matrix_with_tolerance<B: LinAlgBackend>(
         location(order, indices)?;
         size(matrix.rows(), indices.len())?;
         size(matrix.cols(), indices.len())?;
-        let at = |i: usize, j: usize| matrix.get(i, j).expect("Dimensiones validadas");
+        let at = |i: usize, j: usize| matrix.values()[i * matrix.cols() + j];
         let scale = matrix.values().iter().fold(0.0_f64, |m, v| m.max(v.abs()));
         for i in 0..indices.len() {
             for j in 0..i {
@@ -260,7 +260,9 @@ pub(crate) fn assemble_model<B: LinAlgBackend>(
         }
     }
     for case in &model.cases {
-        let force = forces.get_mut(&case.name).expect("Casos registrados");
+        let force = forces
+            .get_mut(&case.name)
+            .ok_or_else(|| missing_case(&CaseRef(case.name.clone())))?;
         for load in &case.loads {
             // Verifica referencias incluso si la lista de componentes está vacía.
             check_node(map, load.node)?;
