@@ -1,0 +1,235 @@
+//! Fachada portable de validación y análisis de `engine-input/1`.
+//!
+//! La única frontera serde/JSON del workspace; salida canónica `results/1`.
+//! Consulte el README del crate para el alcance y las convenciones SI.
+#![deny(missing_docs)]
+
+mod analysis_input;
+mod input;
+mod json;
+mod limits;
+mod run;
+pub use limits::{
+    MAX_CASES, MAX_COMBINATIONS, MAX_INPUT_BYTES, MAX_JSON_ARRAY_ITEMS, MAX_JSON_DEPTH, MAX_LOADS,
+    MAX_MEMBERS, MAX_NODES,
+};
+pub use run::{exit_code, run, Outcome, Status};
+
+use engine_core::{catalog, EntityRef, Severity};
+use serde::Serialize;
+use serde_json::{json, Value};
+use std::fmt;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+/// Fallos de la frontera; los defectos topológicos se devuelven como diagnósticos.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(tag = "kind", content = "cause")]
+pub enum ApiError {
+    /// JSON, campos, tipos o convenciones de entrada inválidos.
+    InvalidInput(String),
+    /// Contrato de entrada desconocido o versión mayor no admitida.
+    UnsupportedSchema(String),
+    /// Documento de esquema no publicado por esta fachada.
+    UnknownSchema(String),
+    /// Código ausente del catálogo de engine-core.
+    UnknownCode(String),
+    /// Cancelación cooperativa solicitada entre etapas.
+    Cancelled,
+}
+
+impl fmt::Display for ApiError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidInput(s) => write!(f, "InvalidInput: {s}"),
+            Self::UnsupportedSchema(s) => write!(f, "UnsupportedSchema: {s}"),
+            Self::UnknownSchema(s) => write!(f, "UnknownSchema: {s}"),
+            Self::UnknownCode(s) => write!(f, "UnknownCode: {s}"),
+            Self::Cancelled => f.write_str("Cancelled"),
+        }
+    }
+}
+
+impl std::error::Error for ApiError {}
+
+/// Token reutilizable por referencia, sin runtime, hilos ni dependencia de SO.
+/// Una vez cancelado permanece cancelado. Puede compartirse mediante `Arc`.
+#[derive(Debug, Default)]
+pub struct CancelToken(AtomicBool);
+
+impl CancelToken {
+    /// Crea un token inicialmente activo.
+    pub const fn new() -> Self {
+        Self(AtomicBool::new(false))
+    }
+    /// Solicita detenerse en el próximo punto de control.
+    pub fn cancel(&self) {
+        self.0.store(true, Ordering::Relaxed);
+    }
+    /// Consulta la solicitud sin ejecutar trabajo del motor.
+    pub fn is_cancelled(&self) -> bool {
+        self.0.load(Ordering::Relaxed)
+    }
+    fn check(&self) -> Result<(), ApiError> {
+        if self.is_cancelled() {
+            Err(ApiError::Cancelled)
+        } else {
+            Ok(())
+        }
+    }
+}
+
+/// Progreso determinista al terminar una etapa, iteración o modo.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+pub struct Progress {
+    /// Operación pública en curso, `validate` o `run`.
+    pub operation: &'static str,
+    /// Etapa finalizada; incluye gravity/pdeltaIteration/modal/spectrumMode/spectrumDirection.
+    pub stage: &'static str,
+    /// Etapas completadas (los casos cuentan individualmente).
+    pub completed: usize,
+    /// Total de etapas; P-Delta reserva su máximo y puede terminar antes.
+    pub total: usize,
+}
+
+/// Diagnóstico serializable que conserva el catálogo y contexto del dominio.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct Diagnostic {
+    /// Código del dominio ENG-E-xxxx o código documentado local API-*.
+    pub code: &'static str,
+    /// `info`, `warning` o `error` según engine-core.
+    pub severity: &'static str,
+    /// Entidades `{kind, id}` en el orden del dominio.
+    pub entities: Vec<Value>,
+    /// Mensaje del diagnóstico del dominio.
+    pub cause: String,
+    /// Contexto o sugerencia original.
+    pub hint: Option<String>,
+}
+
+impl From<engine_core::Diagnostic> for Diagnostic {
+    fn from(d: engine_core::Diagnostic) -> Self {
+        let entities = d
+            .entities
+            .into_iter()
+            .map(|e| match e {
+                EntityRef::Node(id) => json!({"kind": "node", "id": id.0}),
+                EntityRef::Member(id) => json!({"kind": "member", "id": id.0}),
+                EntityRef::Dof(id) => json!({"kind": "dof", "id": id.0}),
+                EntityRef::Case(id) => json!({"kind": "case", "id": id}),
+                EntityRef::Law(id) => json!({"kind": "law", "id": id}),
+            })
+            .collect();
+        Self {
+            code: d.code,
+            severity: match d.severity {
+                Severity::Info => "info",
+                Severity::Warning => "warning",
+                Severity::Error => "error",
+            },
+            entities,
+            cause: d.message,
+            hint: d.hint,
+        }
+    }
+}
+
+/// Versión del engine en este workspace y contratos reconocidos por la fachada.
+pub fn version() -> Value {
+    json!({"engine_version": env!("CARGO_PKG_VERSION"),
+        "contracts": ["engine-input/1", "results/1"]})
+}
+
+/// Capacidades reales: estático, P-Delta, modal, espectro y combinaciones lineales.
+/// `engine` indica presencia en engine-analysis; `run` indica soporte de la fachada.
+pub fn capabilities() -> Value {
+    json!({
+        "run": true,
+        "operations": ["version", "capabilities", "schema", "explain", "validate", "run"],
+        "schemas": {"engine-input/1": {"validate": true}, "results/1": {"emit": true}},
+        "validation": "topology",
+        "combinations": {"run": true},
+        "elements": ["frame2d.euler_elastic", "frame3d.euler_elastic", "truss2d.linear", "truss3d.linear"],
+        "methods": {
+            "linearStatic": {"engine": true, "run": true},
+            "pDelta": {"engine": true, "run": true},
+            "modal": {"engine": true, "run": true},
+            "responseSpectrum": {"engine": true, "run": true}
+        }
+    })
+}
+
+/// Devuelve un documento JSON Schema estático (Draft 2020-12), sin E/S ni red.
+/// `kind` es exactamente `engine-input/1` o `results/1`.
+pub fn schema(kind: &str) -> Result<&'static str, ApiError> {
+    match kind {
+        "engine-input/1" => Ok(include_str!("../schemas/engine-input-1.json")),
+        "results/1" => Ok(include_str!("../schemas/results-1.json")),
+        _ => Err(ApiError::UnknownSchema(kind.into())),
+    }
+}
+
+/// Explicación española del catálogo del dominio y de códigos locales API-*.
+pub fn explain(code: &str) -> Result<&'static str, ApiError> {
+    run::explain(code)
+        .or_else(|| catalog::explain(code))
+        .ok_or_else(|| ApiError::UnknownCode(code.into()))
+}
+
+/// JSON compacto determinista: claves ordenadas recursivamente y -0.0 → +0.0.
+/// Conserva el orden de arrays y los floats f64 con round-trip; no es RFC 8785.
+/// Rechaza claves duplicadas, NaN/Inf, overflow y documentos con texto sobrante.
+/// Aplica los límites públicos de entrada antes de construir el árbol JSON.
+/// Los enteros léxicos deben caber en i64 (negativos) o u64 (no negativos).
+pub fn canonical_json(input_json: &str) -> Result<String, ApiError> {
+    json::canonical(input_json)
+}
+
+/// Valida el contrato, las convenciones y la topología; no comprueba estabilidad.
+/// Fallos de parseo/contrato son `Err`; defectos del modelo son diagnósticos `Ok`.
+pub fn validate(input_json: &str) -> Result<Vec<Diagnostic>, ApiError> {
+    validate_with(input_json, &CancelToken::new(), |_| {})
+}
+
+/// Variante con cancelación y callback síncrono entre etapas completas.
+/// Consulta antes de empezar y antes/después de cada callback, incluido el último.
+/// El parseo, mapeo y validador del dominio son etapas indivisibles.
+pub fn validate_with(
+    input_json: &str,
+    cancel: &CancelToken,
+    mut progress: impl FnMut(Progress),
+) -> Result<Vec<Diagnostic>, ApiError> {
+    cancel.check()?;
+    let value = json::parse(input_json)?;
+    let contract = value
+        .get("schema")
+        .and_then(Value::as_str)
+        .ok_or_else(|| ApiError::InvalidInput("schema es obligatorio y debe ser texto".into()))?;
+    if contract != "engine-input/1" {
+        return Err(ApiError::UnsupportedSchema(contract.into()));
+    }
+    checkpoint(cancel, &mut progress, "parse", 1)?;
+    let model = input::model(value)?;
+    checkpoint(cancel, &mut progress, "model", 2)?;
+    let diagnostics = engine_model::validate(&model)
+        .into_iter()
+        .map(Diagnostic::from)
+        .collect();
+    checkpoint(cancel, &mut progress, "topology", 3)?;
+    Ok(diagnostics)
+}
+
+fn checkpoint(
+    cancel: &CancelToken,
+    progress: &mut impl FnMut(Progress),
+    stage: &'static str,
+    completed: usize,
+) -> Result<(), ApiError> {
+    cancel.check()?;
+    progress(Progress {
+        operation: "validate",
+        stage,
+        completed,
+        total: 3,
+    });
+    cancel.check()
+}

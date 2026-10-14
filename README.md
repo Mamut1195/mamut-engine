@@ -11,3 +11,8 @@ Licencia dual **AGPL-3.0 + licencia comercial**, decidida por Jonathan el **2026
 - [ADR-003: Python nativo V1](docs/adr/ADR-003-python-v1.md) · [Conciliación ticket↔PR/issue](docs/TICKETS_PRS.md)
 - [Protocolo clean-room](docs/CLEAN_ROOM.md)
 - [Guía de contribución](CONTRIBUTING.md)
+
+Fachada portable [engine-api](crates/engine-api/README.md): `run()` ejecuta
+linearStatic, pDelta, modal y responseSpectrum con salida canónica results/1,
+SHA-256 de entrada y cancelación cooperativa. Las limitaciones de los
+seguimientos #78, #84, #85 y #86 están documentadas en el README del crate.

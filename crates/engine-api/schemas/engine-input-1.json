@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mamut:engine-input:1",
+  "title": "engine-input/1 — incremento 2a",
+  "description": "SI: m, kg, s, N, Pa, rad; momentos N·m. D2 en XY, Z=0; D3 con Z arriba. run: linearStatic y combinaciones. Otros métodos: Unsupported. Un solo análisis por run; opciones dinámicas explícitas. Masas nodales o fuente desde cargas, sin suma implícita; sin tolerancia de succión (#86).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "units", "model", "cases", "combinations", "analyses", "options"],
+  "properties": {
+    "schema": {"const": "engine-input/1"},
+    "units": {"const": "SI"},
+    "model": {"$ref": "#/$defs/model"},
+    "cases": {"type": "array", "maxItems": 64, "items": {"$ref": "#/$defs/case"}},
+    "combinations": {"type": "array", "maxItems": 128, "items": {"$ref": "#/$defs/combination"}},
+    "analyses": {"type": "array", "items": {"$ref": "#/$defs/analysis"}, "minItems": 1, "maxItems": 1},
+    "options": {"type": "object", "additionalProperties": false, "required": [], "properties": {}}
+  },
+  "$defs": {
+    "uniformLoad": {"type": "object", "additionalProperties": false, "required": ["member", "force_per_length", "moment_per_length"], "properties": {"member": {"$ref": "#/$defs/id"}, "force_per_length": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}, "moment_per_length": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}}},
+    "prescribed": {"type": "object", "additionalProperties": false, "required": ["node", "dof", "value"], "properties": {"node": {"$ref": "#/$defs/id"}, "dof": {"$ref": "#/$defs/dof"}, "value": {"type": "number"}}},
+    "diaphragm": {"type": "object", "additionalProperties": false, "required": ["master", "slaves"], "properties": {"master": {"$ref": "#/$defs/id"}, "slaves": {"type": "array", "items": {"$ref": "#/$defs/id"}}}},
+    "id": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+    "dof": {"enum": ["Ux", "Uy", "Uz", "Rx", "Ry", "Rz"]},
+    "method": {"enum": ["linearStatic", "pDelta", "modal", "responseSpectrum"]},
+    "node": {
+      "type": "object", "additionalProperties": false, "required": ["id", "dim", "coordinates", "dofs"], "allOf": [{"if": {"properties": {"dim": {"const": "D2"}}}, "then": {"properties": {"coordinates": {"prefixItems": [{}, {}, {"const": 0}]}}}}],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "dim": {"enum": ["D2", "D3"]},
+        "coordinates": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+        "dofs": {"type": "array", "items": {"$ref": "#/$defs/dof"}}
+      }
+    },
+    "member": {
+      "type": "object", "additionalProperties": false, "required": ["id", "nodes", "section", "law"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "nodes": {"type": "array", "items": {"$ref": "#/$defs/id"}, "minItems": 2, "maxItems": 2},
+        "section": {"type": "string"},
+        "law": {"type": "string"},
+        "element": {"type": "string", "description": "Ausente: frame2d.euler_elastic para D2, frame3d.euler_elastic para D3. Kind desconocido: Unsupported."},
+        "orientation": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}
+      }
+    },
+    "parameter": {
+      "type": "object", "additionalProperties": false, "required": ["name", "value"],
+      "properties": {
+        "name": {"type": "string"},
+        "value": {"type": "number"}
+      }
+    },
+    "section": {
+      "type": "object", "additionalProperties": false, "required": ["id", "properties"],
+      "properties": {
+        "id": {"type": "string"},
+        "properties": {"type": "array", "items": {"$ref": "#/$defs/parameter"}}
+      }
+    },
+    "law": {
+      "type": "object", "additionalProperties": false, "required": ["name", "parameters"],
+      "properties": {
+        "name": {"type": "string"},
+        "parameters": {"type": "array", "items": {"$ref": "#/$defs/parameter"}}
+      }
+    },
+    "support": {
+      "type": "object", "additionalProperties": false, "required": ["id", "node", "restrained"],
+      "properties": {
+        "id": {"type": "string"},
+        "node": {"$ref": "#/$defs/id"},
+        "restrained": {"type": "array", "items": {"$ref": "#/$defs/dof"}}
+      }
+    },
+    "dofValue": {
+      "type": "object", "additionalProperties": false, "required": ["dof", "value"],
+      "properties": {
+        "dof": {"$ref": "#/$defs/dof"},
+        "value": {"type": "number"}
+      }
+    },
+    "mass": {
+      "type": "object", "additionalProperties": false, "required": ["id", "node", "values"],
+      "properties": {
+        "id": {"type": "string"},
+        "node": {"$ref": "#/$defs/id"},
+        "values": {"type": "array", "items": {"$ref": "#/$defs/dofValue"}}
+      }
+    },
+    "load": {
+      "type": "object", "additionalProperties": false, "required": ["node", "values"],
+      "properties": {
+        "node": {"$ref": "#/$defs/id"},
+        "values": {"type": "array", "items": {"$ref": "#/$defs/dofValue"}}
+      }
+    },
+    "case": {
+      "type": "object", "additionalProperties": false, "required": ["name", "loads"],
+      "properties": {
+        "name": {"type": "string"},
+        "loads": {"type": "array", "maxItems": 16384, "description": "Como máximo 16384 registros entre loads y member_loads de todos los casos.", "items": {"$ref": "#/$defs/load"}},
+        "member_loads": {"type": "array", "maxItems": 16384, "items": {"$ref": "#/$defs/uniformLoad"}}
+      }
+    },
+    "combination": {
+      "type": "object", "additionalProperties": false, "required": ["id", "terms"],
+      "properties": {
+        "id": {"type": "string"},
+        "terms": {"type": "array", "items": {"$ref": "#/$defs/term"}}
+      }
+    },
+    "term": {
+      "type": "object", "additionalProperties": false, "required": ["case", "factor"],
+      "properties": {
+        "case": {"type": "string"},
+        "factor": {"type": "number"}
+      }
+    },
+    "analysis": {"oneOf": [{"type": "object", "additionalProperties": false, "required": ["method"], "properties": {"method": {"const": "linearStatic"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "pDelta"}, "options": {"$ref": "#/$defs/pDeltaOptions"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "modal"}, "options": {"$ref": "#/$defs/modalOptions"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "responseSpectrum"}, "options": {"$ref": "#/$defs/spectrumOptions"}}}]},
+    "model": {
+      "type": "object", "additionalProperties": false, "required": ["axes", "nodes", "members", "sections", "laws", "supports", "masses"],
+      "properties": {
+        "axes": {"const": "Z-up"},
+        "nodes": {"type": "array", "maxItems": 256, "items": {"$ref": "#/$defs/node"}},
+        "members": {"type": "array", "maxItems": 1024, "items": {"$ref": "#/$defs/member"}},
+        "sections": {"type": "array", "items": {"$ref": "#/$defs/section"}},
+        "laws": {"type": "array", "items": {"$ref": "#/$defs/law"}},
+        "supports": {"type": "array", "items": {"$ref": "#/$defs/support"}},
+        "masses": {"type": "array", "items": {"$ref": "#/$defs/mass"}},
+        "prescribed": {"type": "array", "items": {"$ref": "#/$defs/prescribed"}},
+        "diaphragms": {"type": "array", "items": {"$ref": "#/$defs/diaphragm"}}
+      }
+    },
+    "massSource": {
+      "type": "object", "additionalProperties": false, "required": ["method", "case", "factor", "direction", "gravity"],
+      "properties": {
+        "method": {"enum": ["masses_from_case", "system_case", "masses_from_system_case"]},
+        "case": {"type": "string"},
+        "factor": {"type": "number", "minimum": 0},
+        "direction": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+        "gravity": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "pDeltaOptions": {
+      "type": "object", "additionalProperties": false, "required": ["gravity", "lateral", "tolerance", "max_iterations", "displacement_scale", "rotation_scale"],
+      "properties": {
+        "gravity": {"$ref": "#/$defs/term"},
+        "lateral": {"$ref": "#/$defs/term"},
+        "tolerance": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1},
+        "max_iterations": {"type": "integer", "minimum": 1, "maximum": 16384},
+        "displacement_scale": {"type": "number", "exclusiveMinimum": 0},
+        "rotation_scale": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "modalOptions": {
+      "type": "object", "additionalProperties": false, "required": ["mode_count", "mass_kind", "directions"],
+      "properties": {
+        "mode_count": {"type": "integer", "minimum": 1, "maximum": 16384},
+        "mass_kind": {"enum": ["lumped", "consistent"]},
+        "directions": {"type": "array", "items": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}, "minItems": 1},
+        "mass_source": {"$ref": "#/$defs/massSource"}
+      }
+    },
+    "spectrumTable": {
+      "type": "object", "additionalProperties": false, "required": ["pairs", "units", "damping", "interpolation", "extrapolation"],
+      "properties": {
+        "pairs": {"type": "array", "items": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}, "minItems": 2},
+        "units": {"enum": ["periodSecondsAccelerationMetersPerSecondSquared", "frequencyHertzAccelerationMetersPerSecondSquared"]},
+        "damping": {"type": "number", "minimum": 0, "exclusiveMaximum": 1},
+        "interpolation": {"enum": ["linear", "logLog"]},
+        "extrapolation": {"enum": ["error", "plateau"]}
+      }
+    },
+    "spectrumDirection": {
+      "type": "object", "additionalProperties": false, "required": ["direction", "spectra"],
+      "properties": {
+        "direction": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+        "spectra": {"type": "array", "items": {"$ref": "#/$defs/spectrumTable"}, "minItems": 1}
+      }
+    },
+    "spectrumOptions": {
+      "type": "object", "additionalProperties": false, "required": ["mode_count", "mass_kind", "directions", "modal_combination", "directional_combination", "directional_factors"],
+      "properties": {
+        "mode_count": {"type": "integer", "minimum": 1, "maximum": 16384},
+        "mass_kind": {"enum": ["lumped", "consistent"]},
+        "directions": {"type": "array", "items": {"$ref": "#/$defs/spectrumDirection"}, "minItems": 1},
+        "modal_combination": {"enum": ["srss", "cqc"]},
+        "directional_combination": {"enum": ["srss", "weightedSum"]},
+        "directional_factors": {"type": "array", "items": {"type": "number", "minimum": 0}, "minItems": 1},
+        "mass_source": {"$ref": "#/$defs/massSource"}
+      }
+    }
+  }
+}

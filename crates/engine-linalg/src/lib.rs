@@ -55,6 +55,11 @@ pub struct FactorInfo {
 pub trait SymFactorization {
     /// Metadatos de la factorización numérica.
     fn info(&self) -> &FactorInfo;
+    /// Si la factorización usó bloques 2×2 para evaluar su inercia.
+    /// None indica que el backend no publica este dato.
+    fn uses_2x2_pivots(&self) -> Option<bool> {
+        None
+    }
     /// Resuelve todas las columnas de `b` y las reemplaza por `x` en `Ax=b`.
     ///
     /// `b.rows()` debe coincidir con el orden del factor. Cero columnas es válido.

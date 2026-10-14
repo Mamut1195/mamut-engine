@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mamut:results:1",
+  "title": "results/1 — estático, P-Delta, modal y espectro",
+  "description": "Resultados SI canónicos. Modos normalizados a masa φᵀMφ=1. P-Delta solo desplazamientos/reacciones laterales independientes de gravedad; members vacío (#84(c)). Espectro: respuestas modales firmadas y envolventes por componente, sin equilibrio simultáneo. direction/factor null marca envolvente direccional final. En errores no hay respuestas parciales; convergence conserva diagnóstico P-Delta para notConverged/unstable.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "engine_version", "contracts", "methods", "input_sha256", "status", "nodes", "members", "modes", "cases", "envelopes", "convergence", "diagnostics", "combinations"],
+  "properties": {
+    "schema": {"const": "results/1"},
+    "engine_version": {"type": "string"},
+    "contracts": {"type": "array", "items": {"type": "string"}},
+    "methods": {"type": "array", "items": {"enum": ["linearStatic", "pDelta", "modal", "responseSpectrum"]}},
+    "input_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$", "description": "SHA-256 de bytes UTF-8 canónicos del input; null si el parseo no se completó."},
+    "status": {"enum": ["ok", "invalid", "unsupported", "cancelled", "notConverged", "unstable", "warning", "timeout", "internalError"]},
+    "nodes": {"type": "array", "items": {"$ref": "#/$defs/nodeIdentity"}},
+    "members": {"type": "array", "items": {"$ref": "#/$defs/memberIdentity"}},
+    "modes": {"type": "array", "items": {"$ref": "#/$defs/mode"}},
+    "cases": {"type": "array", "items": {"$ref": "#/$defs/case"}},
+    "envelopes": {"type": "array", "items": {"$ref": "#/$defs/envelope"}},
+    "combinations": {"type": "array", "items": {"$ref": "#/$defs/combination"}},
+    "convergence": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/pDeltaConvergence"}]},
+    "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}}
+  },
+  "$defs": {
+    "nodeIdentity": {"type": "object", "additionalProperties": false, "required": ["id", "dim", "coordinates", "dofs"], "allOf": [{"if": {"properties": {"dim": {"const": "D2"}}}, "then": {"properties": {"coordinates": {"prefixItems": [{}, {}, {"const": 0}]}}}}], "properties": {"id": {"$ref": "#/$defs/id"}, "dim": {"enum": ["D2", "D3"]}, "coordinates": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}, "dofs": {"type": "array", "items": {"$ref": "#/$defs/dof"}}}},
+    "dof": {"enum": ["Ux", "Uy", "Uz", "Rx", "Ry", "Rz"]},
+    "memberIdentity": {"type": "object", "additionalProperties": false, "required": ["id", "nodes", "element", "section", "law"], "properties": {"id": {"$ref": "#/$defs/id"}, "nodes": {"type": "array", "items": {"$ref": "#/$defs/id"}, "minItems": 2, "maxItems": 2}, "element": {"type": "string"}, "section": {"type": "string"}, "law": {"type": "string"}}},
+    "combination": {"type": "object", "additionalProperties": false, "required": ["id", "results"], "properties": {"id": {"type": "string"}, "results": {"$ref": "#/$defs/case"}}},
+    "id": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+    "vector6": {"type": "array", "items": {"type": "number"}, "minItems": 6, "maxItems": 6},
+    "node": {
+      "type": "object", "additionalProperties": false, "required": ["id", "displacements", "prescribed_displacements", "reactions"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "displacements": {"$ref": "#/$defs/vector6"},
+        "prescribed_displacements": {"type": "array", "items": {"type": ["number", "null"]}, "minItems": 6, "maxItems": 6},
+        "reactions": {"$ref": "#/$defs/vector6"}
+      }
+    },
+    "station": {
+      "type": "object", "additionalProperties": false, "required": ["position", "forces_local"],
+      "properties": {
+        "position": {"type": "number", "minimum": 0, "maximum": 1},
+        "forces_local": {"$ref": "#/$defs/vector6"}
+      }
+    },
+    "extreme": {
+      "type": "object", "additionalProperties": false, "required": ["value", "at_station"],
+      "properties": {
+        "value": {"type": "number"},
+        "at_station": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "fieldExtremes": {
+      "type": "object", "additionalProperties": false, "required": ["field", "max", "min"],
+      "properties": {
+        "field": {"enum": ["N", "Vy", "Vz", "T", "My", "Mz"]},
+        "max": {"$ref": "#/$defs/extreme"},
+        "min": {"$ref": "#/$defs/extreme"}
+      }
+    },
+    "member": {
+      "type": "object", "additionalProperties": false, "required": ["id", "end_forces_local", "stations", "extremes"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "end_forces_local": {"type": "array", "items": {"type": "number"}},
+        "stations": {"type": "array", "items": {"$ref": "#/$defs/station"}},
+        "extremes": {"type": "array", "items": {"$ref": "#/$defs/fieldExtremes"}, "minItems": 6, "maxItems": 6}
+      }
+    },
+    "case": {
+      "type": "object", "additionalProperties": false, "required": ["case", "factor", "nodes", "members"],
+      "properties": {
+        "case": {"type": "string"},
+        "factor": {"type": "number"},
+        "nodes": {"type": "array", "items": {"$ref": "#/$defs/node"}},
+        "members": {"type": "array", "items": {"$ref": "#/$defs/member"}}
+      }
+    },
+    "entity": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "id"],
+      "properties": {
+        "kind": {"enum": ["node", "member", "dof", "case", "law"]},
+        "id": {"type": ["integer", "string"]}
+      }
+    },
+    "diagnostic": {
+      "type": "object", "additionalProperties": false, "required": ["code", "severity", "entities", "cause", "hint"],
+      "properties": {
+        "code": {"type": "string", "pattern": "^(ENG-E-[0-9]{4}|API-[EWI]-[A-Z-]+)$"},
+        "severity": {"enum": ["info", "warning", "error"]},
+        "entities": {"type": "array", "items": {"$ref": "#/$defs/entity"}},
+        "cause": {"type": "string"},
+        "hint": {"type": ["string", "null"]}
+      }
+    },
+    "participation": {
+      "type": "object", "additionalProperties": false, "required": ["direction", "total_mass", "free_mass", "factor", "effective_mass", "cumulative_effective_mass", "mass_fraction", "cumulative_mass_fraction"],
+      "properties": {
+        "direction": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+        "total_mass": {"type": "number"},
+        "free_mass": {"type": "number"},
+        "factor": {"type": "number"},
+        "effective_mass": {"type": "number"},
+        "cumulative_effective_mass": {"type": "number"},
+        "mass_fraction": {"type": ["number", "null"]},
+        "cumulative_mass_fraction": {"type": ["number", "null"]}
+      }
+    },
+    "spectrumResponse": {
+      "type": "object", "additionalProperties": false, "required": ["direction", "damping", "spectral_acceleration", "modal_displacement", "equivalent_forces", "nodes", "base_shear"],
+      "properties": {
+        "direction": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+        "damping": {"type": "number"},
+        "spectral_acceleration": {"type": "number"},
+        "modal_displacement": {"type": "number"},
+        "equivalent_forces": {"type": "array", "items": {"type": "number"}},
+        "nodes": {"type": "array", "items": {"$ref": "#/$defs/node"}},
+        "base_shear": {"type": "number"}
+      }
+    },
+    "mode": {
+      "type": "object", "additionalProperties": false, "required": ["mode", "eigenvalue", "angular_frequency", "frequency_hz", "period", "normalization", "shape", "participation", "spectrum_responses"],
+      "properties": {
+        "mode": {"type": "integer", "minimum": 1},
+        "eigenvalue": {"type": "number"},
+        "angular_frequency": {"type": "number"},
+        "frequency_hz": {"type": "number"},
+        "period": {"type": ["number", "null"]},
+        "normalization": {"const": "mass"},
+        "shape": {"type": "array", "items": {"$ref": "#/$defs/node"}},
+        "participation": {"type": "array", "items": {"$ref": "#/$defs/participation"}},
+        "spectrum_responses": {"type": "array", "items": {"$ref": "#/$defs/spectrumResponse"}}
+      }
+    },
+    "envelope": {
+      "type": "object", "additionalProperties": false, "required": ["direction", "factor", "nodes", "base_shear"],
+      "properties": {
+        "direction": {"oneOf": [{"type": "null"}, {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}]},
+        "factor": {"type": ["number", "null"]},
+        "nodes": {"type": "array", "items": {"$ref": "#/$defs/node"}},
+        "base_shear": {"type": "number"}
+      }
+    },
+    "caseFactor": {
+      "type": "object", "additionalProperties": false, "required": ["case", "factor"],
+      "properties": {
+        "case": {"type": "string"},
+        "factor": {"type": "number"}
+      }
+    },
+    "pDeltaIteration": {
+      "type": "object", "additionalProperties": false, "required": ["iteration", "relative_displacement_change", "free_residual_norm", "relative_free_residual"],
+      "properties": {
+        "iteration": {"type": "integer", "minimum": 1},
+        "relative_displacement_change": {"type": "number"},
+        "free_residual_norm": {"type": "number"},
+        "relative_free_residual": {"type": "number"}
+      }
+    },
+    "pDeltaConvergence": {
+      "type": "object", "additionalProperties": false, "required": ["method", "status", "gravity", "lateral", "tolerance", "max_iterations", "displacement_scale", "rotation_scale", "inertia", "inertia_uses_2x2", "iterations"],
+      "properties": {
+        "method": {"const": "pDelta"},
+        "status": {"enum": ["ok", "notConverged", "unstable"]},
+        "gravity": {"$ref": "#/$defs/caseFactor"},
+        "lateral": {"$ref": "#/$defs/caseFactor"},
+        "tolerance": {"type": "number"},
+        "max_iterations": {"type": "integer", "minimum": 1},
+        "displacement_scale": {"type": "number"},
+        "rotation_scale": {"type": "number"},
+        "inertia": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 3, "maxItems": 3},
+        "inertia_uses_2x2": {"type": ["boolean", "null"]},
+        "iterations": {"type": "array", "items": {"$ref": "#/$defs/pDeltaIteration"}}
+      }
+    }
+  }
+}

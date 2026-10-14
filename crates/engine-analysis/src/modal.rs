@@ -104,6 +104,18 @@ impl Modal {
         kind: MassKind,
         directions: &[[Real; 3]],
     ) -> EResult<ModalResults> {
+        Self::run_with(system, count, kind, directions, |_| Ok(()))
+    }
+
+    /// Variante cooperativa: callback tras el eigensolver (0) y cada modo.
+    /// La extracción de autovalores es indivisible; no acepta estado.
+    pub fn run_with<B: LinAlgBackend>(
+        system: &mut LinearSystem<B>,
+        count: usize,
+        kind: MassKind,
+        directions: &[[Real; 3]],
+        mut checkpoint: impl FnMut(usize) -> EResult<()>,
+    ) -> EResult<ModalResults> {
         if directions.is_empty() {
             return Err(EngineError::new(
                 "ENG-E-0010",
@@ -154,6 +166,7 @@ impl Modal {
             ));
         }
         let free = system.constraints().free_dofs();
+        checkpoint(0)?;
         let matrix = system.global_mass(kind);
         let mut modes = Vec::new();
         for (col, &eigenvalue) in spectrum.eigenvalues.iter().enumerate() {
@@ -216,6 +229,7 @@ impl Modal {
                 global_shape: global,
                 participation,
             });
+            checkpoint(col + 1)?;
         }
         Ok(ModalResults {
             mass_kind: kind,

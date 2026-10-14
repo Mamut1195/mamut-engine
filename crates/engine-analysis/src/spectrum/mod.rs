@@ -150,6 +150,18 @@ impl Spectrum {
         directions: &[SpectrumDirection<'_>],
         options: &SpectrumOptions,
     ) -> EResult<SpectrumResults> {
+        Self::run_with(system, directions, options, |_, _| Ok(()))
+    }
+
+    /// Variante cooperativa: etapas modal, spectrumMode y spectrumDirection.
+    /// Callback después de cada modo/dirección; el eigensolver es indivisible.
+    /// Un error detiene el análisis sin aceptar estado.
+    pub fn run_with<B: LinAlgBackend>(
+        system: &mut LinearSystem<B>,
+        directions: &[SpectrumDirection<'_>],
+        options: &SpectrumOptions,
+        mut checkpoint: impl FnMut(&'static str, usize) -> EResult<()>,
+    ) -> EResult<SpectrumResults> {
         if options.mode_count == 0 || directions.is_empty() {
             return Err(invalid("Se requieren modos y direcciones no vacíos."));
         }
@@ -165,11 +177,12 @@ impl Spectrum {
             }
         }
         let input_directions: Vec<_> = directions.iter().map(|d| d.direction).collect();
-        let modal = Modal::run(
+        let modal = Modal::run_with(
             system,
             options.mode_count,
             options.mass_kind,
             &input_directions,
+            |n| checkpoint("modal", n),
         )?;
         let frequencies: Vec<_> = modal.modes.iter().map(|m| m.angular_frequency).collect();
         let mut results = Vec::new();
@@ -230,6 +243,7 @@ impl Spectrum {
                         base_shear,
                     },
                 });
+                checkpoint("spectrumMode", d * options.mode_count + n + 1)?;
             }
             let responses: Vec<_> = modes.iter().map(|m| &m.response).collect();
             let combined = combine_responses(&responses, |v| quadratic(v, &rho))?;
@@ -239,6 +253,7 @@ impl Spectrum {
                 modes,
                 combined,
             });
+            checkpoint("spectrumDirection", d + 1)?;
         }
         let responses: Vec<_> = results.iter().map(|d| &d.combined).collect();
         let combined = combine_responses(&responses, |v| {

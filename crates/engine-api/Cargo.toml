@@ -1,0 +1,21 @@
+[package]
+name = "engine-api"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license = "AGPL-3.0-only"
+
+[dependencies]
+engine-core = { path = "../engine-core" }
+engine-model = { path = "../engine-model" }
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = { version = "=1.0.154", features = ["float_roundtrip"] }
+sha2 = "=0.10.9"
+engine-analysis = { path = "../engine-analysis" }
+engine-assembly = { path = "../engine-assembly" }
+engine-contracts = { path = "../engine-contracts" }
+engine-linalg = { path = "../engine-linalg" }
+engine-elements-frame = { path = "../engine-elements-frame" }
+engine-elements-frame3d = { path = "../engine-elements-frame3d" }
+engine-elements-truss = { path = "../engine-elements-truss" }
+engine-loads = { path = "../engine-loads" }

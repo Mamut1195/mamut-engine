@@ -78,6 +78,8 @@ pub struct PDeltaResult {
     pub lateral_factor: Real,
     /// Inercia (positivos, negativos, nulos) de `(K+Kg)_ff`, dada por LDLᵀ.
     pub inertia: (usize, usize, usize),
+    /// Bloques 2×2 usados en la inercia; None si el backend no lo informa.
+    pub inertia_uses_2x2: Option<bool>,
     /// Reportes ordenados; vacío para Unstable (no se resuelve carga lateral).
     pub iterations: Vec<PDeltaIteration>,
     /// Última prueba lateral global, o None para Unstable.
@@ -105,6 +107,18 @@ impl PDelta {
         gravity: &(CaseRef, Real),
         lateral: &(CaseRef, Real),
         options: PDeltaOptions,
+    ) -> EResult<PDeltaResult> {
+        Self::run_with(system, gravity, lateral, options, |_| Ok(()))
+    }
+
+    /// Variante cooperativa: callback tras gravedad (0) y cada iteración lateral.
+    /// Un error del callback detiene el análisis sin aceptar estado.
+    pub fn run_with<B: LinAlgBackend>(
+        system: &mut LinearSystem<B>,
+        gravity: &(CaseRef, Real),
+        lateral: &(CaseRef, Real),
+        options: PDeltaOptions,
+        mut checkpoint: impl FnMut(usize) -> EResult<()>,
     ) -> EResult<PDeltaResult> {
         finite(&[
             gravity.1,
@@ -134,6 +148,7 @@ impl PDelta {
             .ok_or_else(|| {
                 EngineError::new("ENG-E-0012", "P-Delta: falta solución de gravedad.")
             })?;
+        checkpoint(0)?;
         let kg = system.geometric_at(&gravity.free_displacements)?;
         let total = sum(system.stiffness(), &kg)?;
         let total_free = reduce(system, &total)?;
@@ -171,6 +186,7 @@ impl PDelta {
             lateral_case: lateral.0.clone(),
             lateral_factor: lateral.1,
             inertia,
+            inertia_uses_2x2: total_factor.uses_2x2_pivots(),
             iterations: Vec::new(),
             global_displacements: None,
             reactions: Vec::new(),
@@ -227,6 +243,7 @@ impl PDelta {
             });
             result.reactions = reactions(system, &internal, &force)?;
             result.global_displacements = Some(global);
+            checkpoint(iteration)?;
             if change <= options.tolerance && relative <= options.tolerance {
                 result.outcome = PDeltaOutcome::Completed;
                 break;

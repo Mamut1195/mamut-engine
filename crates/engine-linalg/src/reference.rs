@@ -404,6 +404,9 @@ impl Ldlt {
     }
 }
 impl SymFactorization for Ldlt {
+    fn uses_2x2_pivots(&self) -> Option<bool> {
+        Some(self.blocks.contains(&2))
+    }
     fn info(&self) -> &FactorInfo {
         &self.info
     }
