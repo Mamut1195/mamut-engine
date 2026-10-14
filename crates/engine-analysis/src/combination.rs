@@ -4,9 +4,17 @@
 //! `Σ factor * valor`, con multiplicación y suma f64 separadas, en el orden de
 //! los términos (sin interpolación ni redondeo adicional). `CaseResults::factor`
 //! es metadato de cargas ya escaladas: no se multiplica una segunda vez.
-//! Se superponen también los desplazamientos prescritos. La equivalencia con
-//! resolver cargas combinadas exige condiciones homogéneas o tratar por separado
-//! el aporte de los asentamientos; aquí se suman los resultados tal como llegan.
+//! Con asentamientos la respuesta es afín: `r(F) = r(0) + L(F)`. Sumar casos
+//! completos multiplicaría `r(0)` por la suma de factores (por ejemplo, 2.8 en
+//! `1.2D + 1.6L`). Los resultados no separan fuerzas/reacciones de `r(0)`;
+//! sustraerlo automáticamente exigiría ampliar el contrato de recuperación.
+//! Por seguridad se rechazan con ENG-E-0010 y entidades Case los términos con
+//! más de un caso de prescritos no nulos, incluso si tienen factor cero o los
+//! mismos valores. Se rechazan también metadatos prescritos incoherentes.
+//! Resuelva D y L con prescritos cero, y el asentamiento S sin cargas, manteniendo
+//! los mismos GDL prescritos y rigidez; combine `1.2D + 1.6L + αS`, con factor
+//! explícito `α` (1 para contar el asentamiento una vez). Un único caso con
+//! asentamiento se pondera íntegramente por su factor; no se corrige en silencio.
 //!
 //! Las entidades se emparejan por identificador, aunque su orden difiera. Cada
 //! miembro exige idénticas posiciones de estación y tamaño de acciones de extremo.
@@ -155,7 +163,10 @@ pub struct EnvelopeResults {
 /// ENG-E-0003: caso referenciado ausente, incluso con factor cero.
 /// ENG-E-0008: factor/dato no finito o desborde de producto o suma parcial.
 /// ENG-E-0010: términos/repositorio vacíos, casos o entidades duplicados,
-/// topología/tamaños/estaciones incompatibles. Se validan también los términos
+/// topología/tamaños/estaciones incompatibles, varios casos con prescritos no
+/// nulos o metadatos prescritos incoherentes (entidades Case). Todos los términos
+/// deben compartir los GDL prescritos, aunque sus valores sean distintos.
+/// Se validan también los términos
 /// de factor cero. Los casos no referenciados solo se comprueban por duplicidad.
 /// No modifica las entradas. Los extremos se calculan después de sumar.
 pub fn combine(combination: &Combination, cases: &[CaseResults]) -> EResult<CombinationResults> {
@@ -170,6 +181,7 @@ pub fn combine(combination: &Combination, cases: &[CaseResults]) -> EResult<Comb
     }
     let mut seen = BTreeSet::new();
     let mut terms = Vec::new();
+    let mut settlement_case = None;
     for term in &combination.terms {
         number(term.factor)?;
         if !seen.insert(term.case.as_str()) {
@@ -180,13 +192,39 @@ pub fn combine(combination: &Combination, cases: &[CaseResults]) -> EResult<Comb
             e.entities.push(EntityRef::Case(term.case.clone()));
             e
         })?;
-        terms.push((term.factor, layout(case)?));
+        let input = layout(case)?;
+        if case.nodes.iter().any(|node| {
+            node.prescribed_displacements
+                .iter()
+                .any(|p| p.is_some_and(|value| value != 0.0))
+        }) {
+            if let Some(previous) = settlement_case {
+                let mut e = invalid(
+                    "Varios casos con desplazamientos prescritos no nulos. Resuelva las cargas con prescritos cero y use un caso propio de asentamiento con factor explícito.",
+                );
+                e.entities.push(EntityRef::Case(previous));
+                e.entities.push(EntityRef::Case(term.case.clone()));
+                return Err(e);
+            }
+            settlement_case = Some(term.case.clone());
+        }
+        terms.push((term.factor, input));
     }
     let (_, first) = terms
         .first()
         .ok_or_else(|| invalid("Combinación sin términos."))?;
     for (_, next) in &terms {
         compatible(first, next)?;
+        for (a, b) in first.nodes.values().zip(next.nodes.values()) {
+            if a.prescribed_displacements.map(|p| p.is_some())
+                != b.prescribed_displacements.map(|p| p.is_some())
+            {
+                let mut e = invalid("Conjuntos de GDL prescritos incompatibles entre casos.");
+                e.entities.push(EntityRef::Case(first.case.into()));
+                e.entities.push(EntityRef::Case(next.case.into()));
+                return Err(e);
+            }
+        }
     }
     let mut output = CaseResults {
         case: CaseRef(combination.id.clone()),
@@ -219,6 +257,13 @@ pub fn combine(combination: &Combination, cases: &[CaseResults]) -> EResult<Comb
     }
     for m in &mut output.members {
         m.extremes = station_extremes(&m.stations)?;
+    }
+    for n in &mut output.nodes {
+        for (prescribed, &value) in n.prescribed_displacements.iter_mut().zip(&n.displacements) {
+            if prescribed.is_some() {
+                *prescribed = Some(value);
+            }
+        }
     }
     Ok(CombinationResults {
         id: combination.id.clone(),
@@ -331,6 +376,7 @@ pub fn envelope(inputs: &[EnvelopeInput<'_>]) -> EResult<EnvelopeResults> {
 }
 
 struct Layout<'a> {
+    case: &'a str,
     nodes: BTreeMap<NodeId, &'a NodeResult>,
     members: BTreeMap<MemberId, &'a MemberResult>,
 }
@@ -347,6 +393,20 @@ fn layout(results: &CaseResults) -> EResult<Layout<'_>> {
         }
         numbers(&n.displacements)?;
         numbers(&n.reactions)?;
+        for (prescribed, &value) in n.prescribed_displacements.iter().zip(&n.displacements) {
+            if let Some(prescribed) = prescribed {
+                number(*prescribed).map_err(|mut e| {
+                    e.entities.push(EntityRef::Case(results.case.0.clone()));
+                    e
+                })?;
+                if *prescribed != value {
+                    let mut e =
+                        invalid("Desplazamiento prescrito incoherente con el resultado nodal.");
+                    e.entities.push(EntityRef::Case(results.case.0.clone()));
+                    return Err(e);
+                }
+            }
+        }
     }
     let mut members = BTreeMap::new();
     for m in &results.members {
@@ -378,7 +438,11 @@ fn layout(results: &CaseResults) -> EResult<Layout<'_>> {
             numbers(&[e.max.value, e.max.at_station, e.min.value, e.min.at_station])?;
         }
     }
-    Ok(Layout { nodes, members })
+    Ok(Layout {
+        case: &results.case.0,
+        nodes,
+        members,
+    })
 }
 
 fn compatible(a: &Layout<'_>, b: &Layout<'_>) -> EResult<()> {

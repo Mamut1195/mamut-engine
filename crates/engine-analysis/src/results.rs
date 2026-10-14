@@ -86,6 +86,10 @@ pub struct NodeResult {
     pub id: NodeId,
     /// `[Ux,Uy,Uz,Rx,Ry,Rz]` en m/rad; componentes ausentes valen cero.
     pub displacements: [Real; 6],
+    /// Valores prescritos `[Ux,Uy,Uz,Rx,Ry,Rz]` en m/rad, sin factor de carga.
+    /// `None` indica un GDL libre, dependiente o ausente. Al construir resultados
+    /// manualmente se deben conservar estos datos para combinar asentamientos.
+    pub prescribed_displacements: [Option<Real>; 6],
     /// `[Fx,Fy,Fz,Mx,My,Mz]` en N/N·m; GDL libres o ausentes valen cero.
     pub reactions: [Real; 6],
 }
@@ -272,14 +276,15 @@ impl CaseResults {
             let index =
                 u32::try_from(i).map_err(|_| error("ENG-E-0010", "Índice global excede u32."))?;
             let (id, dof) = map.label(DofIndex(index))?;
-            nodes
-                .entry(id)
-                .or_insert(NodeResult {
-                    id,
-                    displacements: [0.0; 6],
-                    reactions: [0.0; 6],
-                })
-                .displacements[dof.index()] = value;
+            let node = nodes.entry(id).or_insert(NodeResult {
+                id,
+                displacements: [0.0; 6],
+                prescribed_displacements: [None; 6],
+                reactions: [0.0; 6],
+            });
+            node.displacements[dof.index()] = value;
+            node.prescribed_displacements[dof.index()] =
+                system.constraints().prescribed_values()[i];
         }
         for r in reactions {
             let node = nodes

@@ -4,7 +4,7 @@ use engine_analysis::{
     results::{CaseResults, Field, MemberRecovery, MemberResult, NodeResult, StationResult},
     StaticLinear,
 };
-use engine_assembly::{DofMap, ElementContribution, ElementLoad, LinearSystem};
+use engine_assembly::{DofMap, ElementContribution, ElementLoad, LinearSystem, PrescribedDof};
 use engine_contracts::{CaseRef, Element, ElementCtx, ElementParams, MemberLoad};
 use engine_core::{Dim, Dof, EResult, EntityRef, MemberId, NodeId};
 use engine_elements_frame::{EulerFrame2D, MomentReleases};
@@ -31,6 +31,7 @@ fn fixture(name: &str, value: f64) -> CaseResults {
         nodes: vec![NodeResult {
             id: NodeId(7),
             displacements: std::array::from_fn(|i| value * (i + 1) as f64),
+            prescribed_displacements: [None; 6],
             reactions: std::array::from_fn(|i| -value * (i + 1) as f64),
         }],
         members: vec![MemberResult {
@@ -232,6 +233,231 @@ fn cantilever(factors: [f64; 2], with_uniform: bool) -> EResult<Vec<CaseResults>
         )?);
     }
     Ok(results)
+}
+
+// Viga con giros nulos, uy(0)=0, uy(L)=δ; ux(L) libre permite resolver.
+// v=δ(3(x/L)²−2(x/L)³) => M=6EIδ/L²(1−2x/L), V=12EIδ/L³.
+fn fixed_end_settlement(name: &str, axial: f64, delta: f64) -> EResult<CaseResults> {
+    let coords = [[0.0; 3], [2.0, 0.0, 0.0]];
+    let mut model = Model::new();
+    model.nodes = vec![
+        Node::new(NodeId(1), Dim::D2, coords[0]),
+        Node::new(NodeId(2), Dim::D2, coords[1]),
+    ];
+    model.supports = vec![
+        Support {
+            id: "i".into(),
+            node: NodeId(1),
+            restrained: vec![Dof::Ux, Dof::Uy, Dof::Rz],
+        },
+        Support {
+            id: "j".into(),
+            node: NodeId(2),
+            restrained: vec![Dof::Uy, Dof::Rz],
+        },
+    ];
+    model.cases.push(LoadCase {
+        name: name.into(),
+        loads: vec![NodalLoad {
+            node: NodeId(2),
+            values: vec![DofValue {
+                dof: Dof::Ux,
+                value: axial,
+            }],
+        }],
+    });
+    let element = EulerFrame2D::new(16.0, 2.0, 2.0, 0.0, MomentReleases::default())?;
+    let params = ElementParams::default();
+    let ctx = ElementCtx {
+        dim: Dim::D2,
+        coords: &coords,
+        params: &params,
+    };
+    let map = DofMap::new(&model.nodes)?;
+    let mut location = vec![];
+    for node in [NodeId(1), NodeId(2)] {
+        for &dof in element.dofs_per_node() {
+            location.push(map.global_index(node, dof)?);
+        }
+    }
+    let contribution = ElementContribution {
+        stiffness: element.respond(&ctx, &[0.0; 6], &[])?.tangent,
+        location,
+        mass_lumped: None,
+        mass_consistent: None,
+        geometric: None,
+        loads: vec![],
+    };
+    let mut system = LinearSystem::from_model(
+        ReferenceBackend,
+        &model,
+        &[contribution],
+        &[PrescribedDof {
+            node: NodeId(2),
+            dof: Dof::Uy,
+            value: delta,
+        }],
+    )?;
+    let solutions = StaticLinear::run(&mut system, &[(CaseRef(name.into()), 1.0)])?;
+    CaseResults::recover(
+        &solutions.cases[0],
+        &system,
+        &[MemberRecovery {
+            id: MemberId(9),
+            nodes: &[NodeId(1), NodeId(2)],
+            element: &element,
+            dim: Dim::D2,
+            params: &params,
+            committed: &[],
+            loads: &[],
+            stations: None,
+        }],
+    )
+}
+
+#[test]
+fn repeated_settlement_rejected_against_fixed_end_beam_oracle() -> EResult<()> {
+    let delta = 0.125;
+    let moment = 6.0 * 16.0 * 2.0 * delta / 2.0_f64.powi(2);
+    let d = fixed_end_settlement("D", 48.0, delta)?;
+    close(d.members[0].stations[0].forces_local[5], moment);
+    assert_eq!(d.nodes[1].prescribed_displacements[1], Some(delta));
+    for other_delta in [delta, -delta, 2.0 * delta] {
+        let l = fixed_end_settlement("L", -16.0, other_delta)?;
+        close(
+            l.members[0].stations[0].forces_local[5],
+            moment * other_delta / delta,
+        );
+        if other_delta == delta {
+            // La implementación anterior produciría 2.8 M y 2.8 δ.
+            close(
+                1.2 * d.members[0].stations[0].forces_local[5]
+                    + 1.6 * l.members[0].stations[0].forces_local[5],
+                2.8 * moment,
+            );
+        }
+        for factors in [[1.2, 1.6], [1.0, 0.0], [0.0, 0.0], [1.0, -1.0]] {
+            let error = combine(
+                &declaration(&[("D", factors[0]), ("L", factors[1])]),
+                &[d.clone(), l.clone()],
+            )
+            .unwrap_err();
+            assert_eq!(error.code, "ENG-E-0010");
+            assert!(
+                matches!(error.entities.as_slice(), [EntityRef::Case(d), EntityRef::Case(l)] if d == "D" && l == "L")
+            );
+            assert!(error.message.contains("caso propio de asentamiento"));
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn dedicated_settlement_case_counted_once_with_explicit_factor() -> EResult<()> {
+    let delta = 0.125;
+    let moment = 6.0 * 16.0 * 2.0 * delta / 2.0_f64.powi(2);
+    let cases = [
+        fixed_end_settlement("D", 48.0, 0.0)?,
+        fixed_end_settlement("L", -16.0, 0.0)?,
+        fixed_end_settlement("S", 0.0, delta)?,
+    ];
+    for alpha in [1.0, 0.5, -1.0, 0.0] {
+        let c = combine(
+            &declaration(&[("D", 1.2), ("L", 1.6), ("S", alpha)]),
+            &cases,
+        )?;
+        let axial = 1.2 * 48.0 - 1.6 * 16.0;
+        close(
+            c.results.nodes[1].displacements[0],
+            axial * 2.0 / (16.0 * 2.0),
+        );
+        close(c.results.nodes[1].displacements[1], alpha * delta);
+        assert_eq!(
+            c.results.nodes[1].prescribed_displacements[1],
+            Some(alpha * delta)
+        );
+        close(c.results.nodes[0].reactions[5], -alpha * moment);
+        close(c.results.nodes[1].reactions[5], -alpha * moment);
+        for s in &c.results.members[0].stations {
+            close(s.forces_local[0], axial);
+            close(
+                s.forces_local[1],
+                alpha * 12.0 * 16.0 * 2.0 * delta / 2.0_f64.powi(3),
+            );
+            close(s.forces_local[5], alpha * moment * (1.0 - 2.0 * s.position));
+        }
+        let direct = fixed_end_settlement("directo", axial, alpha * delta)?;
+        for (actual, expected) in components(&c.results).into_iter().zip(components(&direct)) {
+            close(actual, expected);
+        }
+        // Un resultado combinado conserva los prescritos para otra combinación.
+        let nested = combine(
+            &declaration(&[("C", 1.0), ("S", 1.0)]),
+            &[c.results.clone(), cases[2].clone()],
+        );
+        if alpha == 0.0 {
+            close(nested?.results.nodes[1].displacements[1], delta);
+        } else {
+            assert_eq!(nested.unwrap_err().code, "ENG-E-0010");
+        }
+    }
+    // Un solo término con asentamiento conserva el escalado explícito íntegro;
+    // los casos no referenciados no deben activar el rechazo.
+    let lone = combine(&declaration(&[("S", 2.0)]), &cases)?;
+    close(
+        lone.results.members[0].stations[0].forces_local[5],
+        2.0 * moment,
+    );
+    Ok(())
+}
+
+#[test]
+fn incoherent_prescribed_metadata_rejected_with_case_entity() -> EResult<()> {
+    let a = fixed_end_settlement("A", 0.0, 0.125)?;
+    for prescribed in [Some(0.25), Some(f64::NAN), Some(f64::INFINITY), None] {
+        let mut b = fixed_end_settlement("B", 0.0, 0.0)?;
+        b.nodes[1].prescribed_displacements[1] = prescribed;
+        let error = combine(&declaration(&[("A", 1.0), ("B", 0.0)]), &[a.clone(), b]).unwrap_err();
+        let code = if prescribed.is_some_and(|p| !p.is_finite()) {
+            "ENG-E-0008"
+        } else {
+            "ENG-E-0010"
+        };
+        assert_eq!(error.code, code);
+        assert!(error
+            .entities
+            .iter()
+            .any(|e| matches!(e, EntityRef::Case(name) if name == "B")));
+    }
+    Ok(())
+}
+
+#[test]
+fn accumulation_follows_term_order_with_cancellation() -> EResult<()> {
+    let mut cases = [fixture("A", 0.0), fixture("B", 0.0), fixture("C", 0.0)];
+    for (case, value) in cases.iter_mut().zip([1e16, -1e16, 1.0]) {
+        case.nodes[0].displacements.fill(value);
+        case.nodes[0].reactions.fill(value);
+        case.members[0].end_forces_local.fill(value);
+        for station in &mut case.members[0].stations {
+            station.forces_local.fill(value);
+        }
+    }
+    cases.reverse(); // El repositorio no define el orden de acumulación.
+    for (terms, expected) in [
+        ([("A", 1.0), ("B", 1.0), ("C", 1.0)], 1.0),
+        ([("A", 1.0), ("C", 1.0), ("B", 1.0)], 0.0),
+    ] {
+        let output = combine(&declaration(&terms), &cases)?;
+        for actual in components(&output.results) {
+            bit_equal(actual, expected);
+        }
+        for extreme in &output.results.members[0].extremes {
+            bit_equal(extreme.max.value, expected);
+            bit_equal(extreme.min.value, expected);
+        }
+    }
+    Ok(())
 }
 
 #[test]
@@ -674,21 +900,78 @@ fn match_entities_by_id_and_sort_output() {
     a.nodes.push(node);
     let mut m = a.members[0].clone();
     m.id = MemberId(1);
+    m.end_forces_local.fill(10.0);
+    for station in &mut m.stations {
+        station.forces_local.fill(20.0);
+    }
     a.members.push(m);
     let mut b = a.clone();
     b.case.0 = "B".into();
+    b.nodes[0].displacements.fill(6.0);
+    b.nodes[0].reactions.fill(7.0);
+    b.nodes[1].displacements.fill(8.0);
+    b.nodes[1].reactions.fill(9.0);
+    b.members[0].end_forces_local.fill(30.0);
+    b.members[1].end_forces_local.fill(40.0);
+    for station in &mut b.members[0].stations {
+        station.forces_local.fill(50.0);
+    }
+    for station in &mut b.members[1].stations {
+        station.forces_local.fill(60.0);
+    }
     b.nodes.reverse();
     b.members.reverse();
     let c = combine(
-        &declaration(&[("A", 1.0), ("B", 1.0)]),
+        &declaration(&[("A", 2.0), ("B", -0.5)]),
         &[a.clone(), b.clone()],
     )
     .unwrap();
     assert_eq!(c.results.nodes[0].id, NodeId(2));
-    assert_eq!(c.results.nodes[0].displacements, [8.0; 6]);
+    assert_eq!(c.results.nodes[0].displacements, [4.0; 6]);
+    assert_eq!(
+        c.results.nodes[0].reactions,
+        a.nodes[1].reactions.map(|r| 2.0 * r - 4.5)
+    );
+    assert_eq!(c.results.nodes[1].id, NodeId(7));
+    assert_eq!(
+        c.results.nodes[1].displacements,
+        a.nodes[0].displacements.map(|u| 2.0 * u - 3.0)
+    );
+    assert_eq!(
+        c.results.nodes[1].reactions,
+        a.nodes[0].reactions.map(|r| 2.0 * r - 3.5)
+    );
     assert_eq!(c.results.members[0].id, MemberId(1));
+    assert_eq!(c.results.members[0].end_forces_local, [0.0; 6]);
+    assert_eq!(c.results.members[1].id, MemberId(13));
+    assert_eq!(
+        c.results.members[1].end_forces_local,
+        a.members[0]
+            .end_forces_local
+            .iter()
+            .map(|&f| 2.0 * f - 15.0)
+            .collect::<Vec<_>>()
+    );
+    for station in &c.results.members[0].stations {
+        assert_eq!(station.forces_local, [10.0; 6]);
+    }
+    for (actual, source) in c.results.members[1]
+        .stations
+        .iter()
+        .zip(&a.members[0].stations)
+    {
+        assert_eq!(
+            actual.forces_local,
+            source.forces_local.map(|f| 2.0 * f - 25.0)
+        );
+    }
     let e = envelope(&[EnvelopeInput::Case(&a), EnvelopeInput::Case(&b)]).unwrap();
     assert_eq!(e.nodes[0].id, NodeId(2));
     assert_eq!(e.members[0].id, MemberId(1));
-    assert_eq!(e.nodes[0].displacements[0].max.value, 4.0);
+    assert_eq!(e.nodes[0].displacements[0].max.value, 8.0);
+    assert_eq!(e.nodes[0].displacements[0].min.value, 4.0);
+    assert_eq!(e.members[0].end_forces_local[0].max.value, 40.0);
+    assert_eq!(e.members[0].end_forces_local[0].min.value, 10.0);
+    assert_eq!(e.members[1].stations[0].forces_local[0].max.value, 50.0);
+    assert_eq!(e.members[1].stations[0].forces_local[0].min.value, 1.0);
 }
