@@ -1,4 +1,4 @@
-//! Análisis `static.linear`, [`newton`] (`static.newton`) y [`pdelta`], en unidades SI.
+//! Análisis `static.linear`, [`newton`] (`static.newton`), [`pdelta`] y [`modal`], en unidades SI.
 //!
 //! `static.linear` resuelve casos independientes con una única factorización
 //! de K_red = T_fᵀ K T_f sobre los independientes libres. Recupera dependientes
@@ -18,6 +18,7 @@
 #![deny(missing_docs)]
 
 pub mod combination;
+pub mod modal;
 pub mod pdelta;
 pub mod results;
 
@@ -134,7 +135,7 @@ fn finite(values: &[Real]) -> EResult<()> {
     if values.iter().any(|v| !v.is_finite()) {
         return Err(EngineError::new(
             "ENG-E-0008",
-            "Análisis estático: entrada o resultado no finito.",
+            "Análisis: entrada o resultado no finito.",
         ));
     }
     Ok(())

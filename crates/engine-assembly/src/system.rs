@@ -250,6 +250,34 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             MassKind::Consistent => &self.consistent,
         }
     }
+
+    /// Modos inferiores de K_ff y M_ff, con el backend propio del sistema.
+    /// Ambas matrices proceden del ensamblaje global y la partición de GDL
+    /// libres. No modifica estados ni elimina GDL sin masa (ENG-LA-009/ASM).
+    /// Propaga los diagnósticos de `engine_linalg::lowest_modes`, traduciendo
+    /// índices reducidos de ENG-E-0006 a nodo/GDL global cuando se proporcionan.
+    /// Un índice diagnóstico inexistente devuelve ENG-E-0012.
+    pub fn lowest_modes(
+        &mut self,
+        kind: MassKind,
+        count: usize,
+    ) -> EResult<engine_linalg::LowestModes> {
+        let mass = match kind {
+            MassKind::Lumped => &self.lumped_free,
+            MassKind::Consistent => &self.consistent_free,
+        };
+        self.backend
+            .lowest_modes(&self.k_free, mass, count)
+            .map_err(|e| {
+                if e.code == "ENG-E-0006"
+                    && !e.entities.iter().any(|v| matches!(v, EntityRef::Dof(_)))
+                {
+                    e
+                } else {
+                    self.translate_solver_error(e)
+                }
+            })
+    }
     /// Instantánea global CSR estática recibida en from_model.
     /// No incluye sustituciones ni evaluaciones de productores registrados;
     /// consulte [`SystemView::geometric`] para Kg(u) reducida vigente.
