@@ -6,8 +6,10 @@ manifiesto del núcleo. No ofrece análisis todavía. El único crate del motor
 consumido es `engine-core`; no depende de `engine-api` ni duplica el solver.
 
 Licencia **AGPL-3.0-only**, con licencia comercial disponible con **MAMPRO SAS**.
-El texto de licencia y el aviso legal siguen pendientes en ENG-GOV-004, como
-indica el README raíz. Esta wheel es para verificación local.
+La wheel incluye el texto AGPL-3.0 en `LICENSE` y un aviso breve en `NOTICE`.
+La titularidad, el texto legal comercial y el aviso legal definitivo siguen
+pendientes en ENG-GOV-004, como indica el README raíz.
+Esta wheel es para verificación local.
 **Nada se publica en PyPI sin aprobación explícita de Jonathan.**
 
 Desde la raíz del repositorio, con Rust y maturin ya instalados y las
