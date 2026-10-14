@@ -30,6 +30,51 @@ Coordenadas en m, masa en kg, tiempo en s, fuerzas en N, momentos en N·m,
 tensiones en Pa y giros en rad. No se convierten unidades.
 Véase [convención aprobada](../../docs/CONVENCION_EJES.md).
 
+## engine-input/1 = model/1 + job/1
+
+El documento `engine-input/1` agrupa el modelo en `model` y el trabajo (job)
+en `cases`, `combinations`, `analyses` y `options`. `schema` identifica el
+documento completo y `units` fija sus unidades. Los schemas ya están publicados
+mediante `engine_api::schema("engine-input/1")` y `engine_api::schema("results/1")`;
+el subcomando CLI `mamut-engine schema` corresponde a ENG-SFC-002.
+
+El nombre definitivo (`mamut.engine.model/1`, `job/1` o
+`urn:mamut:engine:model:1.0.0`) está **PENDIENTE de confirmación de Jonathan**
+en Notion «02 · Contratos». Se conserva el nombre y la estructura actuales;
+model/1 y job/1 describen aquí las dos partes, sin publicar contratos separados.
+
+Los [fixtures válidos](fixtures/input/valid) incluyen un voladizo linearStatic,
+una viga con combinación explícita, un oscilador modal de 1 GDL, P-Delta y un
+espectro constante. La prueba recorre las carpetas y exige validate sin
+diagnósticos y run satisfactorio: salida 0 salvo la combinación, que conserva
+el aviso `API-W-COMBINED-PRESCRIBED` y salida 1 de #85. Los
+[fixtures inválidos](fixtures/input/invalid) tienen un `.expect` JSON adyacente
+con `code`, `exit_code` y el resultado de `validation` (`invalidInput`,
+`unsupportedSchema` o `diagnostics`). Se conservan los códigos publicados por
+#88: `ENG-E-0009` para contratos incompatibles, `ENG-E-0003` para referencias
+ausentes y `API-E-INPUT` para parseo/estructura. `1e400` representa el rechazo
+de un número no finito; NaN no es un literal JSON. Hay fronteras distintas para
+enteros léxicos fuera de u64 e identificadores fuera de u32.
+
+La prueba de nombres lee la lista clean-room mediante `include_str!` y examina
+schemas y fixtures completos, incluidas claves escapadas y duplicadas. Compara
+sin distinguir mayúsculas y eliminando `_` y `-`; añade claves de comandos
+ajenas al contrato. Exige nombres ASCII `^[a-z][a-z0-9_]*$` en datos de fixtures
+y bajo `properties`/`$defs`; las palabras clave de JSON Schema tienen una lista
+blanca explícita. `pattern` solo se admite como palabra clave con valor string.
+
+`element` selecciona un kind de la fábrica propia, como `truss2d.linear`, sin
+argumentos posicionales. Su excepción queda limitada a `model.members[].element`
+en fixtures y `/$defs/member/properties/element` del schema engine-input/1.
+También se conserva el campo ya publicado
+`/$defs/memberIdentity/properties/element` de results/1 mediante una excepción
+contractual exacta. Los 15 nombres camelCase existentes en `$defs` tienen
+excepciones por contrato y ruta: no se amplían a otras propiedades o fixtures.
+La decisión sobre estas excepciones contractuales está **PENDIENTE de
+Jonathan/J4**; véase [Correcciones J4 r23](../../provenance/ENG-CORE-004.md).
+
+## Validación y ejecución
+
 El parseo rechaza campos desconocidos, tipos erróneos, objetos posicionales,
 claves duplicadas (también escapadas), texto sobrante, NaN/Inf y overflow f64.
 `schema` es obligatorio: contrato desconocido produce `UnsupportedSchema` en

@@ -1,0 +1,141 @@
+{
+  "schema": "engine-input/1",
+  "units": "SI",
+  "model": {
+    "axes": "Z-up",
+    "nodes": [
+      {
+        "id": 1,
+        "dim": "D2",
+        "coordinates": [
+          0,
+          0,
+          0
+        ],
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Rz"
+        ]
+      },
+      {
+        "id": 2,
+        "dim": "D2",
+        "coordinates": [
+          4,
+          0,
+          0
+        ],
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Rz"
+        ]
+      }
+    ],
+    "members": [
+      {
+        "id": 7,
+        "nodes": [
+          1,
+          2
+        ],
+        "section": "s",
+        "law": "elastic"
+      }
+    ],
+    "sections": [
+      {
+        "id": "s",
+        "properties": [
+          {
+            "name": "A",
+            "value": 2
+          },
+          {
+            "name": "I",
+            "value": 3
+          }
+        ]
+      }
+    ],
+    "laws": [
+      {
+        "name": "elastic",
+        "parameters": [
+          {
+            "name": "E",
+            "value": 200
+          },
+          {
+            "name": "rho",
+            "value": 0
+          }
+        ]
+      }
+    ],
+    "supports": [
+      {
+        "id": "base",
+        "node": 1,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Rz"
+        ]
+      }
+    ],
+    "masses": []
+  },
+  "cases": [
+    {
+      "name": "G",
+      "loads": [
+        {
+          "node": 2,
+          "values": [
+            {
+              "dof": "Ux",
+              "value": -10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "H",
+      "loads": [
+        {
+          "node": 2,
+          "values": [
+            {
+              "dof": "Uy",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "combinations": [],
+  "analyses": [
+    {
+      "method": "pDelta",
+      "options": {
+        "gravity": {
+          "case": "G",
+          "factor": 1
+        },
+        "lateral": {
+          "case": "H",
+          "factor": 1
+        },
+        "tolerance": 1e-10,
+        "max_iterations": 100,
+        "displacement_scale": 1,
+        "rotation_scale": 1
+      }
+    }
+  ],
+  "options": {}
+}

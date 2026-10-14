@@ -1,0 +1,146 @@
+{
+  "schema": "engine-input/1",
+  "units": "SI",
+  "model": {
+    "axes": "Z-up",
+    "nodes": [
+      {
+        "id": 1,
+        "dim": "D2",
+        "coordinates": [
+          0,
+          0,
+          0
+        ],
+        "dofs": [
+          "Ux",
+          "Uy"
+        ]
+      },
+      {
+        "id": 2,
+        "dim": "D2",
+        "coordinates": [
+          4,
+          0,
+          0
+        ],
+        "dofs": [
+          "Ux",
+          "Uy"
+        ]
+      }
+    ],
+    "members": [
+      {
+        "id": 7,
+        "nodes": [
+          1,
+          2
+        ],
+        "section": "s",
+        "law": "elastic",
+        "element": "truss2d.linear"
+      }
+    ],
+    "sections": [
+      {
+        "id": "s",
+        "properties": [
+          {
+            "name": "A",
+            "value": 2
+          }
+        ]
+      }
+    ],
+    "laws": [
+      {
+        "name": "elastic",
+        "parameters": [
+          {
+            "name": "E",
+            "value": 200
+          },
+          {
+            "name": "rho",
+            "value": 0
+          }
+        ]
+      }
+    ],
+    "supports": [
+      {
+        "id": "base",
+        "node": 1,
+        "restrained": [
+          "Ux",
+          "Uy"
+        ]
+      },
+      {
+        "id": "guide",
+        "node": 2,
+        "restrained": [
+          "Uy"
+        ]
+      }
+    ],
+    "masses": [
+      {
+        "id": "m",
+        "node": 2,
+        "values": [
+          {
+            "dof": "Ux",
+            "value": 5
+          }
+        ]
+      }
+    ]
+  },
+  "cases": [],
+  "combinations": [],
+  "analyses": [
+    {
+      "method": "responseSpectrum",
+      "options": {
+        "mode_count": 1,
+        "mass_kind": "lumped",
+        "modal_combination": "srss",
+        "directional_combination": "srss",
+        "directional_factors": [
+          1
+        ],
+        "directions": [
+          {
+            "direction": [
+              1,
+              0,
+              0
+            ],
+            "spectra": [
+              {
+                "pairs": [
+                  [
+                    0,
+                    3
+                  ],
+                  [
+                    10,
+                    3
+                  ]
+                ],
+                "units": "periodSecondsAccelerationMetersPerSecondSquared",
+                "damping": 0.05,
+                "interpolation": "linear",
+                "extrapolation": "error"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "options": {}
+}
