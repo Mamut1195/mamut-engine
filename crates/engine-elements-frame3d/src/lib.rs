@@ -1,4 +1,6 @@
 //! Viga-columna espacial `frame3d.euler_elastic`, contrato element/1, versión 0.1.0.
+//! [`WinklerFrame3D`] añade un lecho transversal consistente fijo a tierra;
+//! [`WinklerFactory`] construye `frame3d.winkler` con propiedades SI.
 //!
 //! Euler–Bernoulli homogénea, infinitesimal, con torsión de Saint-Venant.
 //! Terna global diestra X-Y horizontal y Z arriba. Orden por nodo
@@ -56,14 +58,16 @@ mod producer;
 mod recover;
 mod release;
 mod stiffness;
+mod winkler;
 
 use engine_contracts::{Element, ElementCtx, ElementOutput, ElementResponse, MassKind, MemberLoad};
 use engine_core::{ContractId, Dof, EResult, EngineError, Real};
 use engine_laws::uniaxial::Elastic;
 use engine_linalg::DMat;
-pub use factory::FrameFactory;
+pub use factory::{FrameFactory, WinklerFactory};
 pub use producer::geometric_producer;
 pub use release::MomentReleases;
+pub use winkler::WinklerFrame3D;
 type Matrix = [[Real; 12]; 12];
 // Pares Hermite: v′=rz y w′=−ry.
 const PLANES: [([usize; 4], Real); 2] = [([1, 5, 7, 11], 1.0), ([2, 4, 8, 10], -1.0)];

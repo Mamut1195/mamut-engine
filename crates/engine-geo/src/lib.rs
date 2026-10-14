@@ -67,6 +67,8 @@
 
 pub use engine_core::{ContractId, Diagnostic, Real};
 
+pub mod winkler;
+
 mod profile;
 pub use profile::StratifiedProfile;
 

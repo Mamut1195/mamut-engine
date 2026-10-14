@@ -1,4 +1,6 @@
 //! Viga-columna `frame2d.euler_elastic`, contrato element/1, método 0.1.0.
+//! [`WinklerFrame2D`] añade un lecho transversal consistente fijo a tierra;
+//! [`WinklerFactory`] construye `frame2d.winkler` con propiedades SI.
 //!
 //! Euler–Bernoulli homogénea, infinitesimal, sin deformación de corte, inercia
 //! rotatoria de sección ni historia. D2 está en X-Y horizontal, Z=0; local x
@@ -52,13 +54,15 @@ mod mass;
 mod recover;
 mod release;
 mod stiffness;
+mod winkler;
 
 use engine_contracts::{Element, ElementCtx, ElementOutput, ElementResponse, MassKind, MemberLoad};
 use engine_core::{ContractId, Dof, EResult, EngineError, Real};
 use engine_laws::uniaxial::Elastic;
 use engine_linalg::DMat;
-pub use factory::FrameFactory;
+pub use factory::{FrameFactory, WinklerFactory};
 pub use release::MomentReleases;
+pub use winkler::WinklerFrame2D;
 type Matrix = [[Real; 6]; 6];
 
 /// Viga 2D elástica de dos nodos, con propiedades SI y liberaciones propietarias.

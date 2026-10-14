@@ -44,3 +44,24 @@ ENG-VAL-001 sigue parcial: ejemplos publicados con cita exacta **PENDIENTES**
 (no verificables sin acceso, fuera del alcance de J2), revisión clean-room
 **PENDIENTE (J4)** y ejecución en un runtime wasm **PENDIENTE**. La cobertura
 analítica de modal, P-Delta y espectro y el umbral de ≥30 fixtures están cubiertos.
+
+ENG-GEO-002 añade **seis fixtures Winkler** en
+`tests/support/winkler_table.rs`: viga infinita, semiinfinita y corta rígida,
+cada una en 2D y 3D. Usan fábricas `frame2d.winkler`/`frame3d.winkler`,
+refinamiento, recuperación e integración independiente de reacciones del lecho.
+Las pruebas de invariantes están en `tests/winkler_elements.rs`; la derivación,
+unidades y cotas están en [ENG-GEO-002](../../provenance/ENG-GEO-002.md).
+
+El mismo harness y tabla se ejecutan en nativo y en wasm, sin paquetes de JS:
+
+```sh
+CARGO_TARGET_DIR=/workspace/.cargo-target cargo test --offline -p engine-validation --test winkler --test winkler_elements
+CARGO_TARGET_DIR=/workspace/.cargo-target cargo build --offline -p engine-validation --example winkler_wasm --release --target wasm32-unknown-unknown
+node crates/engine-validation/scripts/run-winkler-wasm.cjs /workspace/.cargo-target/wasm32-unknown-unknown/release/examples/winkler_wasm.wasm
+```
+
+Se necesita el target wasm ya instalado y Node con WebAssembly. El export
+`winkler_benchmarks()` devuelve seis si todos los fixtures pasan, cero si falla
+alguno. El script exige ese resultado y ausencia de imports externos. Esta
+prueba ejecuta estos seis fixtures en wasm; las demás suites conservan el
+estado de ejecución documentado arriba.

@@ -70,7 +70,9 @@ pub trait SectionLaw: Send + Sync {
 /// Fuerzas N y momentos N·m globales; longitud n_nodes × dofs_per_node.len().
 /// Tangente y masa cuadradas simétricas v1; tangente consistente FD < 1e-6.
 /// Tres modos rígidos D2 y seis D3 sin fuerza interna para historia inicial sin
-/// pretensión. Covarianza de fuerzas, tangente y masa al rotar el sistema global.
+/// pretensión en elementos sin conexión externa. Un lecho Winkler fijo al terreno
+/// resiste movimientos rígidos transversales por definición de su kind. Covarianza de fuerzas, tangente y masa al rotar
+/// el sistema global.
 /// Respuesta finita y determinista; repetir el desplazamiento aceptado reproduce
 /// fuerzas aceptadas. Nunca muta self, contexto ni historia.
 /// # Errores

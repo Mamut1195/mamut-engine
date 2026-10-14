@@ -6,6 +6,8 @@ rust-version.workspace = true
 publish = false
 
 [dev-dependencies]
+engine-elements-frame3d = { path = "../engine-elements-frame3d" }
+engine-geo = { path = "../engine-geo" }
 engine-core = { path = "../engine-core" }
 engine-contracts = { path = "../engine-contracts" }
 engine-model = { path = "../engine-model" }

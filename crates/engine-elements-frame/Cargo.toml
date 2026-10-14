@@ -5,6 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+engine-geo = { path = "../engine-geo" }
 engine-core = { path = "../engine-core" }
 engine-contracts = { path = "../engine-contracts" }
 engine-laws = { path = "../engine-laws" }
