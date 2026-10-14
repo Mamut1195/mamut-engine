@@ -86,6 +86,7 @@ pub struct LinearSystem<B> {
     kg_free: SymMatrix,
     pattern: SparsityPattern,
     forces: BTreeMap<String, Vec<Real>>,
+    nodal_forces: BTreeMap<String, Vec<Real>>,
     accepted: Vec<Real>,
     trial: Vec<Real>,
     kg_reference: Vec<Real>,
@@ -172,6 +173,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             consistent,
             kg,
             forces,
+            nodal_forces,
         } = assemble_model(&mut backend, &map, model, elements)?;
         let k_free = reduced(&mut backend, &k, &constraints)?;
         let lumped_free = reduced(&mut backend, &lumped, &constraints)?;
@@ -212,6 +214,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             kg_free,
             pattern,
             forces,
+            nodal_forces,
             accepted: vec![0.0; nf],
             trial: vec![0.0; nf],
             kg_reference: vec![0.0; nf],
@@ -475,6 +478,21 @@ impl<B: LinAlgBackend> LinearSystem<B> {
     pub fn global_force(&self, case: &CaseRef, factor: Real) -> EResult<Vec<Real>> {
         finite(&[factor])?;
         let force = self.forces.get(&case.0).ok_or_else(|| missing_case(case))?;
+        let result: Vec<_> = force.iter().map(|v| v * factor).collect();
+        finite(&result)?;
+        Ok(result)
+    }
+
+    /// Cargas nodales explícitas del modelo, sin cargas equivalentes de tramo.
+    /// Mismo orden global y unidades N/N·m que [`Self::global_force`]. Se
+    /// conservan al ensamblar para verificar el equilibrio del postproceso.
+    /// ENG-E-0003 por caso ausente; ENG-E-0008 por factor/resultado no finito.
+    pub fn global_nodal_force(&self, case: &CaseRef, factor: Real) -> EResult<Vec<Real>> {
+        finite(&[factor])?;
+        let force = self
+            .nodal_forces
+            .get(&case.0)
+            .ok_or_else(|| missing_case(case))?;
         let result: Vec<_> = force.iter().map(|v| v * factor).collect();
         finite(&result)?;
         Ok(result)

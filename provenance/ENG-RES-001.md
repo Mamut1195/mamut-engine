@@ -37,9 +37,10 @@ recalcula las reacciones mediante K y las cargas físicas del sistema.
 
 El sistema ensamblado no conserva los elementos ni sus cargas originales de
 tramo. `MemberRecovery` aporta id, conectividad, elemento, dimensión, parámetros,
-historia aceptada y cargas **sin escalar** del caso concreto. Es responsabilidad
-del llamador que correspondan al sistema/caso ensamblados y que la lista incluya
-todos los miembros que desea recuperar. No hay registro implícito de miembros
+historia aceptada y cargas **sin escalar** del caso concreto. La lista debe incluir
+todos los miembros del sistema; el seguimiento #69 verifica su equilibrio nodal
+contra las cargas nodales y reacciones del mismo ensamblado, según la regla en
+[ENG-RES-001-FU](ENG-RES-001-FU.md). No hay registro implícito de miembros
 en LinearSystem: una referencia ausente se diagnostica al consultar los ids de
 CaseResults o al resolver nodos/GDL en DofMap; el identificador numérico no es
 un índice de vector. Los ids repetidos se rechazan. Las cargas de tramo se
@@ -63,9 +64,11 @@ elemento, que incluye las cargas exactamente; no se interpolan las acciones de
 extremo. La recuperación valida tamaños, estaciones y finitud de la salida.
 
 Cada campo local tiene máximo y mínimo **algebraicos**, valor y estación x/L.
-En empates se conserva la menor estación. Para los elementos actuales las
+En empates se conserva la menor estación. Para **frame2d** las
 cargas uniformes dan N/V afines y M cuadrático, por lo que extremos de tramo
-más las raíces añadidas dan extremos exactos. Para otros kinds se documenta
+más las raíces añadidas dan extremos exactos. **Frame3d no añade estaciones
+críticas interiores**: sus extremos se limitan a las estaciones recuperadas.
+Para otros kinds se documenta
 que los extremos se limitan a las estaciones recuperadas; no se promete buscar
 raíces interiores de campos arbitrarios ni se aproxima su interpolación.
 

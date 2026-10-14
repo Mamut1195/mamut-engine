@@ -5,7 +5,8 @@
 //! hashes y procedencia serializada corresponden a ENG-CORE-005, aún pendiente.
 //! Este módulo apila sobre ENG-ANL-001 y no implementa esa frontera.
 //!
-//! Las estaciones se ordenan y deduplican, siempre incluyendo los extremos.
+//! Las estaciones se normalizan de −0.0 a +0.0, se ordenan y deduplican,
+//! siempre incluyendo los extremos.
 //! Por defecto se usan `[0, 0.25, 0.5, 0.75, 1]`. En `frame2d.euler_elastic`
 //! se añaden raíces exactas de cortante y de la derivada del momento bajo cargas
 //! uniformes; para otros elementos los extremos son los de las estaciones
@@ -26,6 +27,7 @@ pub const DEFAULT_STATIONS: [Real; 5] = [0.0, 0.25, 0.5, 0.75, 1.0];
 /// Vista del miembro resuelto; debe corresponder al mismo modelo/caso del sistema.
 /// No ensambla, acepta ni modifica la historia. Las cargas se escalan una vez
 /// por `StaticCaseResult::factor`, incluidos factores nulos o negativos.
+/// La colección debe incluir todos los miembros para verificar equilibrio nodal.
 pub struct MemberRecovery<'a> {
     /// Identificador único del miembro; no se interpreta como índice de vector.
     pub id: MemberId,
@@ -203,7 +205,17 @@ impl CaseResults {
     /// Recupera un caso usando sus desplazamientos globales (incluidos prescritos).
     /// Recalcula reacciones con K y las cargas físicas del sistema; no depende
     /// de las copias reducidas o de reacciones guardadas en el resultado de análisis.
-    /// El llamador aporta todos los miembros deseados y sus cargas del caso.
+    /// El llamador aporta todos los miembros del sistema y sus cargas del caso.
+    /// Verifica por GDL global `−Σ(f_int,e − f_carga,e) + F_nodal + R = 0`:
+    /// las acciones de extremo SOBRE el miembro se calculan en global mediante
+    /// `Element::respond` y `Element::load_vector`, sin inferir ejes locales.
+    /// Incluye acciones de diafragmas cuando existen. Exige residual relativo
+    /// ≤ 1e-9 respecto a la suma de módulos de los términos de ese GDL, con
+    /// piso 1 N o 1 N·m, como las verificaciones SI del análisis. La tolerancia
+    /// admite redondeo de recuperación/ensamblaje, no diferencias de cargas.
+    /// Una incoherencia devuelve ENG-E-0010 con caso, nodo, GDL y miembros
+    /// incidentes. Es una comprobación de equilibrio, no de identidad: aportes
+    /// erróneos que se cancelen nodalmente pueden ser indistinguibles.
     /// ENG-E-0002 por ids/conectividad/GDL duplicados, ENG-E-0003 por referencias
     /// ausentes, ENG-E-0010 por tamaños/estaciones/prescritos incoherentes,
     /// ENG-E-0008 por no finitos y ENG-E-0012 por salida elemental incoherente.
@@ -230,6 +242,31 @@ impl CaseResults {
             .map(|i| global[i.0 as usize])
             .collect();
         let reactions = system.reactions(&free, &solution.case, solution.factor)?;
+        let mut balance = NodalBalance::new(map.len());
+        for (i, value) in system
+            .global_nodal_force(&solution.case, solution.factor)?
+            .into_iter()
+            .enumerate()
+        {
+            balance.add(i, value)?;
+        }
+        for r in &reactions {
+            balance.add(map.global_index(r.node, r.dof)?.0 as usize, r.value)?;
+        }
+        for diaphragm in system.diaphragm_forces(&free, &solution.case, solution.factor)? {
+            for action in std::iter::once(diaphragm.master).chain(diaphragm.slaves) {
+                for (dof, value) in [
+                    engine_core::Dof::Ux,
+                    engine_core::Dof::Uy,
+                    engine_core::Dof::Rz,
+                ]
+                .into_iter()
+                .zip(action.values)
+                {
+                    balance.add(map.global_index(action.node, dof)?.0 as usize, value)?;
+                }
+            }
+        }
         let mut nodes = BTreeMap::new();
         for (i, &value) in global.iter().enumerate() {
             let index =
@@ -258,10 +295,11 @@ impl CaseResults {
                     member.id,
                 ));
             }
-            let result = recover_member(member, map, global, solution.factor)
+            let result = recover_member(member, map, global, solution.factor, &mut balance)
                 .map_err(|e| with_member(e, member.id))?;
             recovered.insert(member.id, result);
         }
+        balance.verify(map, &solution.case, members)?;
         Ok(Self {
             case: solution.case.clone(),
             factor: solution.factor,
@@ -360,6 +398,7 @@ fn recover_member(
     map: &engine_assembly::DofMap,
     global: &[Real],
     factor: Real,
+    balance: &mut NodalBalance,
 ) -> EResult<MemberResult> {
     size(m.nodes.len(), m.element.n_nodes())?;
     size(m.committed.len(), m.element.state_len())?;
@@ -465,16 +504,98 @@ fn recover_member(
         .stations
         .into_iter()
         .map(|s| StationResult {
-            position: s.position,
+            position: canonical_station(s.position),
             forces_local: s.forces_local,
         })
         .collect();
+    let internal = m.element.respond(&ctx, &u, m.committed)?.internal_force;
+    output_size(internal.len(), u.len())?;
+    finite(&internal)?;
+    let mut global_loads = Vec::new();
+    for load in &loads {
+        let values = m.element.load_vector(&ctx, load)?;
+        output_size(values.len(), u.len())?;
+        finite(&values)?;
+        global_loads.push(values);
+    }
+    for (i, (&node, &dof)) in m
+        .nodes
+        .iter()
+        .flat_map(|node| m.element.dofs_per_node().iter().map(move |dof| (node, dof)))
+        .enumerate()
+    {
+        let index = map.global_index(node, dof)?.0 as usize;
+        balance.add(index, -internal[i])?;
+        for load in &global_loads {
+            balance.add(index, load[i])?;
+        }
+    }
     Ok(MemberResult {
         id: m.id,
         end_forces_local: output.end_forces_local,
         extremes: station_extremes(&stations)?,
         stations,
     })
+}
+
+// Escala por GDL: no mezcla fuerzas con momentos; conserva los términos previos
+// a cancelar f_int − f_carga, para admitir redondeo en extremos de momento nulo.
+struct NodalBalance {
+    residual: Vec<Real>,
+    scale: Vec<Real>,
+}
+
+impl NodalBalance {
+    fn new(size: usize) -> Self {
+        Self {
+            residual: vec![0.0; size],
+            scale: vec![0.0; size],
+        }
+    }
+
+    fn add(&mut self, index: usize, value: Real) -> EResult<()> {
+        self.residual[index] += value;
+        self.scale[index] += value.abs();
+        finite(&[self.residual[index], self.scale[index]])
+    }
+
+    fn verify(
+        &self,
+        map: &engine_assembly::DofMap,
+        case: &CaseRef,
+        members: &[MemberRecovery<'_>],
+    ) -> EResult<()> {
+        for (i, (&residual, &scale)) in self.residual.iter().zip(&self.scale).enumerate() {
+            let relative = residual.abs() / scale.max(1.0);
+            if relative > 1e-9 {
+                let index = DofIndex(
+                    u32::try_from(i)
+                        .map_err(|_| error("ENG-E-0010", "Índice global excede u32."))?,
+                );
+                let (node, dof) = map.label(index)?;
+                let mut e = error(
+                    "ENG-E-0010",
+                    &format!(
+                        "Recuperación incoherente en nodo {} / {dof:?}: residual relativo {relative:e} > 1e-9.",
+                        node.0
+                    ),
+                );
+                e.entities.extend([
+                    EntityRef::Case(case.0.clone()),
+                    EntityRef::Node(node),
+                    EntityRef::Dof(index),
+                ]);
+                for member in members {
+                    if member.nodes.contains(&node) && member.element.dofs_per_node().contains(&dof)
+                    {
+                        e.entities.push(EntityRef::Member(member.id));
+                    }
+                }
+                return Err(e);
+            }
+        }
+        Ok(())
+    }
 }
 
 /// Extremos algebraicos de las estaciones, conservando la primera en empates.
@@ -538,8 +659,29 @@ fn recover_output(
 }
 
 fn sort_stations(stations: &mut Vec<Real>) {
+    for position in stations.iter_mut() {
+        *position = canonical_station(*position);
+    }
     stations.sort_by(Real::total_cmp);
     stations.dedup_by(|a, b| *a == *b);
+}
+
+fn canonical_station(position: Real) -> Real {
+    if position == 0.0 {
+        0.0
+    } else {
+        position
+    }
+}
+
+fn output_size(actual: usize, expected: usize) -> EResult<()> {
+    if actual != expected {
+        return Err(error(
+            "ENG-E-0012",
+            "Tamaño de salida elemental incoherente.",
+        ));
+    }
+    Ok(())
 }
 
 fn size(actual: usize, expected: usize) -> EResult<()> {

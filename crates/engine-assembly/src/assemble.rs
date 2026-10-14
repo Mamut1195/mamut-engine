@@ -192,6 +192,7 @@ pub(crate) struct GlobalAssembly {
     pub consistent: SparseMatrix,
     pub kg: SparseMatrix,
     pub forces: BTreeMap<String, Vec<Real>>,
+    pub nodal_forces: BTreeMap<String, Vec<Real>>,
 }
 
 pub(crate) fn assemble_model<B: LinAlgBackend>(
@@ -209,6 +210,7 @@ pub(crate) fn assemble_model<B: LinAlgBackend>(
             return Err(e);
         }
     }
+    let mut nodal_forces = forces.clone();
     for element in elements {
         non_negative_diagonal(&element.stiffness, "Rigidez elemental negativa.")?;
         for mass in [&element.mass_lumped, &element.mass_consistent]
@@ -263,12 +265,20 @@ pub(crate) fn assemble_model<B: LinAlgBackend>(
         let force = forces
             .get_mut(&case.name)
             .ok_or_else(|| missing_case(&CaseRef(case.name.clone())))?;
+        let nodal_force = nodal_forces
+            .get_mut(&case.name)
+            .ok_or_else(|| missing_case(&CaseRef(case.name.clone())))?;
         for load in &case.loads {
             // Verifica referencias incluso si la lista de componentes está vacía.
             check_node(map, load.node)?;
             for value in &load.values {
                 assemble_vector(
                     force,
+                    &[map.global_index(load.node, value.dof)?],
+                    &[value.value],
+                )?;
+                assemble_vector(
+                    nodal_force,
                     &[map.global_index(load.node, value.dof)?],
                     &[value.value],
                 )?;
@@ -307,6 +317,7 @@ pub(crate) fn assemble_model<B: LinAlgBackend>(
         consistent,
         kg,
         forces,
+        nodal_forces,
     })
 }
 

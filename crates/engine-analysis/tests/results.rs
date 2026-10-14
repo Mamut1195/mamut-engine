@@ -5,8 +5,11 @@ use engine_analysis::{
     StaticCaseResult, StaticLinear,
 };
 use engine_assembly::{DofMap, ElementContribution, ElementLoad, LinearSystem, PrescribedDof};
-use engine_contracts::{CaseRef, Element, ElementCtx, ElementParams, MemberLoad};
-use engine_core::{Dim, Dof, EResult, EngineError, EntityRef, MemberId, NodeId};
+use engine_contracts::{
+    CaseRef, DMat, Element, ElementCtx, ElementOutput, ElementParams, ElementResponse, MassKind,
+    MemberLoad,
+};
+use engine_core::{ContractId, Dim, Dof, EResult, EngineError, EntityRef, MemberId, NodeId};
 use engine_elements_frame::{EulerFrame2D, MomentReleases};
 use engine_elements_truss::LinearTruss;
 use engine_linalg::ReferenceBackend;
@@ -677,5 +680,234 @@ fn invalid_inputs_catalog_diagnostics_without_panics() -> EResult<()> {
     }
     assert_eq!(system.accepted_displacement(), &[0.0; 3]);
     assert_eq!(system.trial_displacement(), &[0.0; 3]);
+    Ok(())
+}
+
+#[test]
+fn recovery_rejects_omitted_or_changed_loads_and_members() -> EResult<()> {
+    let mut m = simple_model();
+    // Incluye carga nodal directa en apoyo y en un GDL libre (par).
+    nodal(&mut m, IDS[0], Dof::Uy, -7.0)?;
+    nodal(&mut m, IDS[1], Dof::Rz, 8.0)?;
+    let beam = beam()?;
+    let params = ElementParams::default();
+    let loads = [uniform()];
+    let (system, solution) = solve(&m, &[contribution(&m, &beam, &IDS, &loads)?], &[], 1.0)?;
+    let changed = [MemberLoad {
+        force_per_length: [0.0, -W / 2.0, 0.0],
+        moment_per_length: [0.0; 3],
+    }];
+    for supplied in [&[][..], &changed[..]] {
+        let result =
+            CaseResults::recover(&solution, &system, &[view(&beam, &params, supplied, None)]);
+        let e = result.as_ref().err().ok_or_else(missing)?;
+        assert!(e
+            .entities
+            .iter()
+            .any(|e| matches!(e, EntityRef::Case(name) if name == "Q")));
+        assert!(e
+            .entities
+            .iter()
+            .any(|e| matches!(e, EntityRef::Node(id) if *id == IDS[0])));
+        assert!(e
+            .entities
+            .iter()
+            .any(|e| matches!(e, EntityRef::Member(id) if *id == MID)));
+        assert!(e.entities.iter().any(|e| matches!(e, EntityRef::Dof(_))));
+        assert_code(result, "ENG-E-0010");
+    }
+    assert_code(CaseResults::recover(&solution, &system, &[]), "ENG-E-0010");
+    // Elemento con rigidez distinta a la ensamblada también rompe equilibrio.
+    let wrong_beam = EulerFrame2D::new(400.0, 2.0, 3.0, 0.0, MomentReleases::default())?;
+    assert_code(
+        CaseResults::recover(
+            &solution,
+            &system,
+            &[view(&wrong_beam, &params, &loads, None)],
+        ),
+        "ENG-E-0010",
+    );
+    let coherent = CaseResults::recover(&solution, &system, &[view(&beam, &params, &loads, None)])?;
+    close(coherent.nodes[0].reactions[1], 21.0);
+    close(
+        extremes(member(&coherent)?, Field::Mz)?.max.value,
+        14.0_f64.powi(2) / (2.0 * W),
+    );
+    Ok(())
+}
+
+#[test]
+fn omitted_load_probe_errors_while_uniform_analytic_peak_is_twelve() -> EResult<()> {
+    let m = simple_model();
+    let beam = beam()?;
+    let params = ElementParams::default();
+    let loads = [uniform()];
+    let (system, solution) = solve(&m, &[contribution(&m, &beam, &IDS, &loads)?], &[], 1.0)?;
+    // Sonda #69: antes, omitir loads producía Mmax=8 en vez de wL²/8=12.
+    assert_code(
+        CaseResults::recover(&solution, &system, &[view(&beam, &params, &[], None)]),
+        "ENG-E-0010",
+    );
+    let coherent = CaseResults::recover(
+        &solution,
+        &system,
+        &[view(&beam, &params, &loads, Some(&[]))],
+    )?;
+    let peak = extremes(member(&coherent)?, Field::Mz)?.max;
+    close(peak.value, W * L.powi(2) / 8.0);
+    close(peak.at_station, 0.5);
+    Ok(())
+}
+
+#[derive(Clone, Copy)]
+enum OutputFault {
+    EndSize,
+    StationSize,
+    Position,
+    NegativeZero,
+    InternalSize,
+    LoadSize,
+}
+
+// Elemento propio de prueba: delega física al frame del repo y altera solo
+// la frontera de salida indicada; no consulta implementaciones externas.
+struct FaultyElement {
+    beam: EulerFrame2D,
+    fault: OutputFault,
+}
+
+impl Element for FaultyElement {
+    fn kind(&self) -> &'static str {
+        self.beam.kind()
+    }
+    fn contract(&self) -> ContractId {
+        self.beam.contract()
+    }
+    fn n_nodes(&self) -> usize {
+        self.beam.n_nodes()
+    }
+    fn dofs_per_node(&self) -> &'static [Dof] {
+        self.beam.dofs_per_node()
+    }
+    fn respond(
+        &self,
+        ctx: &ElementCtx<'_>,
+        u: &[f64],
+        committed: &[f64],
+    ) -> EResult<ElementResponse> {
+        let mut output = self.beam.respond(ctx, u, committed)?;
+        if matches!(self.fault, OutputFault::InternalSize) {
+            output.internal_force.pop();
+        }
+        Ok(output)
+    }
+    fn mass(&self, ctx: &ElementCtx<'_>, kind: MassKind) -> EResult<Option<DMat>> {
+        self.beam.mass(ctx, kind)
+    }
+    fn geometric_stiffness(
+        &self,
+        ctx: &ElementCtx<'_>,
+        u: &[f64],
+        committed: &[f64],
+    ) -> EResult<Option<DMat>> {
+        self.beam.geometric_stiffness(ctx, u, committed)
+    }
+    fn load_vector(&self, ctx: &ElementCtx<'_>, load: &MemberLoad) -> EResult<Vec<f64>> {
+        let mut output = self.beam.load_vector(ctx, load)?;
+        if matches!(self.fault, OutputFault::LoadSize) {
+            output.pop();
+        }
+        Ok(output)
+    }
+    fn recover(
+        &self,
+        ctx: &ElementCtx<'_>,
+        u: &[f64],
+        committed: &[f64],
+        loads: &[MemberLoad],
+        stations: &[f64],
+    ) -> EResult<ElementOutput> {
+        let mut output = self.beam.recover(ctx, u, committed, loads, stations)?;
+        match self.fault {
+            OutputFault::EndSize => {
+                output.end_forces_local.pop();
+            }
+            OutputFault::StationSize => {
+                output.stations.pop();
+            }
+            OutputFault::Position => {
+                output.stations.first_mut().ok_or_else(missing)?.position = 0.1;
+            }
+            OutputFault::NegativeZero => {
+                output.stations.first_mut().ok_or_else(missing)?.position = -0.0;
+            }
+            OutputFault::InternalSize | OutputFault::LoadSize => {}
+        }
+        Ok(output)
+    }
+}
+
+#[test]
+fn negative_zero_input_and_output_are_canonical_and_ties_choose_smallest_station() -> EResult<()> {
+    let m = simple_model();
+    let beam = beam()?;
+    let params = ElementParams::default();
+    let loads = [uniform()];
+    let (system, solution) = solve(&m, &[contribution(&m, &beam, &IDS, &loads)?], &[], 1.0)?;
+    let faulty = FaultyElement {
+        beam: self::beam()?,
+        fault: OutputFault::NegativeZero,
+    };
+    for element in [&beam as &dyn Element, &faulty as &dyn Element] {
+        let r = CaseResults::recover(
+            &solution,
+            &system,
+            &[view(element, &params, &loads, Some(&[1.0, -0.0, 0.0, 0.8]))],
+        )?;
+        let m = member(&r)?;
+        assert_eq!(m.stations[0].position.to_bits(), 0.0_f64.to_bits());
+        assert_eq!(m.stations.iter().filter(|s| s.position == 0.0).count(), 1);
+        // N, Vz, T y My son exactamente constantes: empate en todas las estaciones.
+        for field in [Field::N, Field::Vz, Field::T, Field::My] {
+            let e = extremes(m, field)?;
+            assert_eq!(e.min.at_station.to_bits(), 0.0_f64.to_bits());
+            assert_eq!(e.max.at_station.to_bits(), 0.0_f64.to_bits());
+        }
+        let query = r.query(None, None, Some(&[Field::Mz]))?;
+        assert_eq!(
+            query.members[0].stations[0].position.to_bits(),
+            0.0_f64.to_bits()
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn malformed_element_outputs_report_internal_error_with_member() -> EResult<()> {
+    let m = simple_model();
+    let beam = beam()?;
+    let params = ElementParams::default();
+    let loads = [uniform()];
+    let (system, solution) = solve(&m, &[contribution(&m, &beam, &IDS, &loads)?], &[], 1.0)?;
+    for fault in [
+        OutputFault::EndSize,
+        OutputFault::StationSize,
+        OutputFault::Position,
+        OutputFault::InternalSize,
+        OutputFault::LoadSize,
+    ] {
+        let faulty = FaultyElement {
+            beam: self::beam()?,
+            fault,
+        };
+        let result =
+            CaseResults::recover(&solution, &system, &[view(&faulty, &params, &loads, None)]);
+        let e = result.as_ref().err().ok_or_else(missing)?;
+        assert!(e
+            .entities
+            .iter()
+            .any(|e| matches!(e, EntityRef::Member(id) if *id == MID)));
+        assert_code(result, "ENG-E-0012");
+    }
     Ok(())
 }
