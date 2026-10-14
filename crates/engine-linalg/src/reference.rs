@@ -289,9 +289,10 @@ impl Ldlt {
                 }
             }
             if allow_null && a[diag * n + diag].abs().max(offmax) <= cutoff(n) {
-                if let Some(inertia) = f.info.inertia.as_mut() {
-                    inertia.2 += n - k;
-                }
+                let inertia = f.info.inertia.as_mut().ok_or_else(|| {
+                    EngineError::new("ENG-E-0012", "LDLᵀ: falta acumulador de inercia.")
+                })?;
+                inertia.2 += n - k;
                 smallest = 0.0;
                 break;
             }
@@ -313,7 +314,7 @@ impl Ldlt {
                     return Err(singular("Referencia LDLᵀ", culprit));
                 }
                 f.d[k] = d;
-                f.count(d, &mut smallest, &mut largest);
+                f.count(d, &mut smallest, &mut largest)?;
                 for i in k + 1..n {
                     f.l[i * n + k] = a[i * n + k] / d;
                 }
@@ -332,23 +333,12 @@ impl Ldlt {
                 f.off[k] = e;
                 let half = (d + g) * 0.5;
                 let radius = ((d - g) * 0.5).hypot(e);
-                // La congruencia conserva inercia. det<0: un signo de cada uno;
-                // det>0: ambos tienen el signo de la traza d+g. No basta contar
-                // diagonales de D. El bloque singular se rechaza arriba.
-                if let Some(inertia) = f.info.inertia.as_mut() {
-                    if det < 0.0 {
-                        inertia.0 += 1;
-                        inertia.1 += 1;
-                    } else if d + g < 0.0 {
-                        inertia.1 += 2;
-                    } else {
-                        inertia.0 += 2;
-                    }
-                }
-                for value in [half + radius, half - radius] {
-                    smallest = smallest.min(value.abs());
-                    largest = largest.max(value.abs());
-                }
+                // Producto de autovalores = det. Elegir primero el de mayor
+                // módulo evita cancelación en half ± radius para el pequeño.
+                // La congruencia de LDLᵀ conserva los conteos de signos de A.
+                let large = half + radius.copysign(half);
+                f.count(large, &mut smallest, &mut largest)?;
+                f.count(det / large, &mut smallest, &mut largest)?;
                 for i in k + 2..n {
                     let (v, w) = (a[i * n + k], a[i * n + k + 1]);
                     f.l[i * n + k] = (v * g - w * e) / det;
@@ -393,16 +383,22 @@ impl Ldlt {
         }
         self.permutation.swap(i, j);
     }
-    fn count(&mut self, value: Real, min: &mut Real, max: &mut Real) {
-        if let Some(inertia) = self.info.inertia.as_mut() {
-            if value > 0.0 {
-                inertia.0 += 1;
-            } else {
-                inertia.1 += 1;
-            }
+    fn count(&mut self, value: Real, min: &mut Real, max: &mut Real) -> EResult<()> {
+        finite(&[value])?;
+        let inertia =
+            self.info.inertia.as_mut().ok_or_else(|| {
+                EngineError::new("ENG-E-0012", "LDLᵀ: falta acumulador de inercia.")
+            })?;
+        if value > 0.0 {
+            inertia.0 += 1;
+        } else if value < 0.0 {
+            inertia.1 += 1;
+        } else {
+            inertia.2 += 1;
         }
         *min = min.min(value.abs());
         *max = max.max(value.abs());
+        Ok(())
     }
 }
 impl SymFactorization for Ldlt {

@@ -1,4 +1,4 @@
-//! Análisis `static.linear` y [`newton`] (`static.newton`), en unidades SI.
+//! Análisis `static.linear`, [`newton`] (`static.newton`) y [`pdelta`], en unidades SI.
 //!
 //! `static.linear` resuelve casos independientes con una única factorización
 //! de K_ff. Incluye asentamientos sin escalarlos por el factor de carga; no modifica el estado
@@ -17,6 +17,7 @@
 #![deny(missing_docs)]
 
 pub mod combination;
+pub mod pdelta;
 pub mod results;
 
 use engine_assembly::{LinearSystem, Reaction};

@@ -8,7 +8,9 @@ use crate::{
 };
 use engine_contracts::{CaseRef, MassKind, SystemView};
 use engine_core::{Dof, DofIndex, EResult, EngineError, EntityRef, NodeId, Real};
-use engine_linalg::{DMat, LinAlgBackend, SparseMatrix, SparsityPattern, SymMatrix, Triplet};
+use engine_linalg::{
+    DMat, LinAlgBackend, SparseMatrix, SparsityPattern, SymFactorization, SymMatrix, Triplet,
+};
 use engine_model::Model;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -227,6 +229,46 @@ impl<B: LinAlgBackend> LinearSystem<B> {
     /// consulte [`SystemView::geometric`] para Kg(u) reducida vigente.
     pub fn global_geometric(&self) -> &SparseMatrix {
         &self.kg
+    }
+
+    /// Evalúa Kg global vigente en u reducido total, sin alterar ningún estado.
+    /// Incluye productores y prescritos; aplica la misma regla de referencia y
+    /// validación que [`SystemView::geometric`]. Permite formar Kg_fp u_p y
+    /// reacciones de segundo orden sin perder los bloques restringidos.
+    pub fn geometric_at(&mut self, u: &[Real]) -> EResult<SparseMatrix> {
+        let global = self.constraints.expand(u)?;
+        if self.has_geometric && u != self.kg_reference.as_slice() {
+            return Err(error(
+                "ENG-E-0013",
+                "Un aporte Kg estático sin productor exige su estado de referencia.",
+            ));
+        }
+        if self.geometric_producers.is_empty() {
+            Ok(self.kg.clone())
+        } else {
+            produced_geometric(
+                &mut self.backend,
+                self.map.len(),
+                &self.geometric_elements,
+                &self.geometric_producers,
+                &global,
+            )
+        }
+    }
+
+    /// K_ff constante; no evalúa ni modifica estados de prueba.
+    pub fn reduced_stiffness(&self) -> &SymMatrix {
+        &self.k_free
+    }
+
+    /// Factoriza una rigidez reducida del mismo orden mediante el backend propio.
+    /// Traduce mecanismos a nodo/GDL como [`Self::solve`]; ENG-E-0010 por orden
+    /// incorrecto. No regulariza ni acepta estados; conserva la inercia del factor.
+    pub fn factorize_reduced(&mut self, matrix: &SymMatrix) -> EResult<Box<dyn SymFactorization>> {
+        size(matrix.order(), self.n_free_dofs())?;
+        self.backend
+            .factorize(matrix)
+            .map_err(|e| self.translate_solver_error(e))
     }
     /// Declara el estado reducido u (m/rad) en el que se evaluó la Kg estática.
     ///
@@ -556,25 +598,10 @@ impl<B: LinAlgBackend> SystemView for LinearSystem<B> {
     }
     fn geometric(&mut self, u: &[Real], out: &mut SymMatrix) -> EResult<()> {
         size(out.order(), self.n_free_dofs())?;
-        let global = self.constraints.expand(u)?;
-        // La regla de referencia sigue aplicando a cada Kg estática sin productor,
-        // aunque sea nula. Nunca devolvemos esa instantánea fuera de referencia.
-        if self.has_geometric && u != self.kg_reference.as_slice() {
-            return Err(error(
-                "ENG-E-0013",
-                "Un aporte Kg estático sin productor exige su estado de referencia.",
-            ));
-        }
+        let kg = self.geometric_at(u)?;
         let result = if self.geometric_producers.is_empty() {
             self.kg_free.clone()
         } else {
-            let kg = produced_geometric(
-                &mut self.backend,
-                self.map.len(),
-                &self.geometric_elements,
-                &self.geometric_producers,
-                &global,
-            )?;
             reduced(&mut self.backend, &kg, &self.constraints)?
         };
         *out = result;

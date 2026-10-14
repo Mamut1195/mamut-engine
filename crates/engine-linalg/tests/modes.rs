@@ -134,6 +134,40 @@ fn strict_sturm_at_roots_and_two_by_two_pivot() {
 }
 
 #[test]
+fn mixed_block_inertia_preserves_null_modes_and_factor_contract() {
+    // Bloque 2×2 indefinido de traza no nula, un negativo y un modo nulo.
+    // Las permutaciones obligan a compartir el conteo entre pivotes 1×1/2×2.
+    let entries = [
+        0.5, 2.0, 0.0, 0.0, 2.0, -0.25, 0.0, 0.0, 0.0, 0.0, -3.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    ];
+    for order in [[0, 1, 2, 3], [3, 2, 1, 0], [2, 0, 3, 1]] {
+        for scale in [1e-200, 1.0, 1e200] {
+            let mut values = vec![0.0; 16];
+            for i in 0..4 {
+                for j in 0..4 {
+                    values[4 * i + j] = scale * entries[4 * order[i] + order[j]];
+                }
+            }
+            let k = symmetric(4, values);
+            let mut backend = ReferenceBackend;
+            assert_eq!(backend.symmetric_inertia(&k).unwrap(), (1, 2, 1));
+            assert_eq!(
+                sturm_count(&mut backend, &k, &diagonal(&[1.0; 4]), 0.0).unwrap(),
+                2
+            );
+            assert_eq!(backend.factorize(&k).err().unwrap().code, "ENG-E-0006");
+        }
+    }
+    // Sin el modo nulo, FactorInfo y la consulta de Sturm coinciden.
+    let k = symmetric(3, vec![0.5, 2.0, 0.0, 2.0, -0.25, 0.0, 0.0, 0.0, -3.0]);
+    let factor = ReferenceBackend.factorize(&k).unwrap();
+    assert_eq!(factor.info().inertia, Some((1, 2, 0)));
+    assert_eq!(ReferenceBackend.symmetric_inertia(&k).unwrap(), (1, 2, 0));
+    let ratio = factor.info().min_pivot_ratio.unwrap();
+    assert!(ratio > 0.0 && ratio <= 1.0);
+}
+
+#[test]
 fn rigid_modes_are_returned_and_negative_stiffness_is_diagnosed() {
     let k = symmetric(2, vec![3.0, -3.0, -3.0, 3.0]);
     let m = diagonal(&[2.0, 2.0]);
