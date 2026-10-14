@@ -49,9 +49,13 @@ Una misma persona o sesión no puede combinar los roles de operador de oráculo 
 
 La lista machine-readable vivirá en `clean-room/forbidden_paths.txt` y `clean-room/forbidden_identifiers.txt` (**PENDIENTE**, se crea con ENG-GOV-005, que las consume en CI).
 
-### 5.1 Excepción: benchmark comparativo externo (ENG-BENCH-001, enmienda PROPUESTA, pendiente de aprobación de Jonathan)
+### 5.1 Excepción: benchmark comparativo externo (ENG-BENCH-001) — pendiente de aprobación directa de Jonathan
 
-Referencia: issue #66. Esta enmienda requiere **aprobación directa de Jonathan en el PR o en su propio chat**, no relayada por otro agente. Solo entonces exceptúa §5 para el uso descrito de OpenSees y Stabileo; §8 sigue rigiendo la validación. Al fusionar se quita el rótulo «PROPUESTA/pendiente de aprobación».
+Registro de aprobación: pendiente de aprobación directa de Jonathan en GitHub; hasta entonces esta excepción no autoriza ejecutar nada.
+
+Antecedentes (no constituyen aprobación según §5.1): el 2026-10-13 J0 relayó que Jonathan Torres (Mamut1195) escribió «APRUBO» (sic) a las 18:16 ECT y lo confirmó a las 18:22 ECT en el chat de J0.
+
+Referencia: issue #66. Esta enmienda sigue requiriendo **aprobación directa de Jonathan en el PR o en su propio chat**, no relayada por otro agente. Solo entonces exceptúa §5 para el uso descrito de OpenSees y Stabileo; §8 sigue rigiendo la validación. Al fusionar se quita el rótulo «pendiente de aprobación directa».
 
 - El benchmark vive exclusivamente en el repo hermano privado `mamut-engine-oracles`, en un harness dedicado (§8). No se admite ningún directorio ni workflow de este benchmark en `mamut-engine`. Solo compara **a posteriori** desplazamientos, fuerzas internas/reacciones, periodos y tiempos de cómputo.
 - OpenSees se ejecuta como binario/ejecutable externo. Stabileo se distribuye como **npm/WASM (AGPL)**, no como binario: se carga en el harness dedicado y corre en un proceso aparte, nunca en `node_modules` de `mamut-engine`, `mamut-structures` ni de ningún repo o paquete de MAMPRO, salvo en el harness dedicado del repo privado `mamut-engine-oracles`, único lugar donde puede instalarse. Su uso interno requiere revisión de la licencia AGPL (ENG-GOV-004).
