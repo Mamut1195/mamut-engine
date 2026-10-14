@@ -22,6 +22,9 @@ use std::fmt;
 pub mod catalog;
 pub mod units;
 
+/// Versión del núcleo del motor, derivada del manifiesto de `engine-core`.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 /// Número real utilizado en las magnitudes del modelo y sus resultados.
 pub type Real = f64;
 

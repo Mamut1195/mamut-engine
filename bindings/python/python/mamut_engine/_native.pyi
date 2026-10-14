@@ -1,0 +1,3 @@
+def version() -> str:
+    """Devuelve la versión de engine-core; no declara capacidades de análisis."""
+    ...

@@ -1,0 +1,18 @@
+[build-system]
+requires = ["maturin>=1.8,<2"]
+build-backend = "maturin"
+
+[project]
+name = "mamut-engine"
+dynamic = ["version"]
+description = "Scaffold Python local de MAMUT Engine; expone solo la versión del núcleo Rust."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "AGPL-3.0-only"
+# Licencia comercial disponible con MAMPRO SAS; texto legal pendiente (ENG-GOV-004).
+# La publicación en PyPI requiere aprobación explícita de Jonathan.
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+module-name = "mamut_engine._native"
+python-source = "python"
