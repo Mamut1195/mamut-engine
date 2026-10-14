@@ -1,4 +1,4 @@
-//! Análisis `static.linear`, [`newton`] (`static.newton`), [`pdelta`] y [`modal`], en unidades SI.
+//! Análisis `static.linear`, [`newton`] (`static.newton`), [`pdelta`], [`modal`] y [`spectrum`], en unidades SI.
 //!
 //! `static.linear` resuelve casos independientes con una única factorización
 //! de K_red = T_fᵀ K T_f sobre los independientes libres. Recupera dependientes
@@ -21,6 +21,7 @@ pub mod combination;
 pub mod modal;
 pub mod pdelta;
 pub mod results;
+pub mod spectrum;
 
 use engine_assembly::{LinearSystem, Reaction};
 use engine_contracts::CaseRef;
