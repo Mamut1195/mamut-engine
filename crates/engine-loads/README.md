@@ -81,15 +81,20 @@ traslación no nulas; una dirección Z en un modelo XY produce ENG-E-0011.
 `mass::masses_from_case(map, case, factor, d, g_usuario)` convierte cargas
 nodales en asignaciones `NodalMass`; `masses_from_system_case` incluye también
 las fuerzas equivalentes de los elementos del caso. Por nodo se calcula
-`m = |F·d̂|·factor/g_usuario` con fuerzas globales netas, antes de sumar las
-masas entre nodos. Los momentos se validan y no contribuyen. La masa escalar
+`m = (F·d̂)·factor/g_usuario` con fuerzas globales netas, después de sumar
+los aportes por nodo y antes de sumar las masas entre nodos. Una proyección
+nodal negativa (succión) se rechaza con ENG-E-0010, sin tolerancia y aun con
+factor cero; el error incluye `Node` y, en los adaptadores de caso, `Case`.
+Una proyección exactamente cero, incluida fuerza nula, produce masa cero.
+Los momentos se validan y no contribuyen. La masa escalar
 se asigna por igual a cada traslación declarada del nodo; no se crean inercias.
 La dirección selecciona el peso de origen. Para Fz=−120 N, factor=0.25,
 d=−Z y g_usuario=10 m/s², la masa es 3 kg en cada traslación.
 
 El factor debe ser finito y no negativo, y g_usuario finita y positiva; ambos
-son parámetros obligatorios. Se admiten factor cero y fuerzas de cualquier
-signo. `mass_from_force` permite la conversión escalar, y
+son parámetros obligatorios. Se admiten factor cero y componentes de fuerza de
+cualquier signo, siempre que la proyección neta nodal sea no negativa.
+`mass_from_force` permite la conversión escalar, y
 `masses_from_load_vector` recibe un vector global ya ensamblado y un prefijo
 de ids explícito. Los adaptadores de caso usan `mass:case:<nombre>:node:<id>`;
 al combinar fuentes, el llamador debe asegurar ids únicos y agregarlas
@@ -99,4 +104,6 @@ ENG-E-0010; los no finitos y desbordamientos, incluidos intermedios, ENG-E-0008.
 Una masa positiva que se reduce a cero en el producto por factor o división
 por g se rechaza con ENG-E-0010. La normalización admite direcciones grandes
 y subnormales; no se garantiza precisión relativa de cantidades subnormales.
-Derivaciones y evidencia en [ENG-MASS-001](../../provenance/ENG-MASS-001.md).
+Derivaciones y evidencia histórica en [ENG-MASS-001](../../provenance/ENG-MASS-001.md),
+con el contrato de signo corregido en
+[ENG-MASS-001-FU](../../provenance/ENG-MASS-001-FU.md).

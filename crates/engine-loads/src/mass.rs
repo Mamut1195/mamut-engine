@@ -6,14 +6,16 @@
 //! `ElementContribution` y se consultan con `LinearSystem::global_mass`.
 //! No se sustituyen matrices consistentes por sumas diagonales.
 //!
-//! La dirección de conversión selecciona el peso: m=|F·d̂|·factor/g_usuario
-//! por nodo, después de sumar sus fuerzas. Esta masa escalar se asigna a cada
-//! traslación declarada del nodo, sin inercias rotacionales. La dirección no
-//! define una masa anisótropa. Los momentos no contribuyen al peso.
+//! La dirección de conversión selecciona el peso: m=(F·d̂)·factor/g_usuario
+//! por nodo, después de sumar sus fuerzas. Una proyección negativa se rechaza;
+//! una proyección exactamente cero produce masa cero. Esta masa escalar se
+//! asigna a cada traslación declarada del nodo, sin inercias rotacionales.
+//! La dirección no define una masa anisótropa. Los momentos no contribuyen al peso.
 //! No hay gravedad, factores de norma ni combinaciones implícitos.
 //!
 //! No finitos/desbordamientos: ENG-E-0008; masas/factores negativos, gravedad
-//! no positiva, dirección nula o subdesbordamiento de masa positiva: ENG-E-0010.
+//! no positiva, dirección nula, proyección negativa o subdesbordamiento de
+//! masa positiva: ENG-E-0010.
 //! Referencias/GDL ausentes: ENG-E-0003/0011; ids repetidos: ENG-E-0002.
 //!
 //! ```
@@ -210,10 +212,17 @@ fn conversion(factor: Real, gravity: Real) -> EResult<()> {
 
 fn projected_mass(force: [Real; 3], factor: Real, d: [Real; 3], gravity: Real) -> EResult<Real> {
     finite(&force)?;
+    let projection = force.iter().zip(d).map(|(f, a)| f * a).sum::<Real>();
+    finite(&[projection])?;
+    if projection < 0.0 {
+        return Err(error(
+            "ENG-E-0010",
+            "La fuerza neta tiene proyección opuesta a la dirección de gravedad.",
+        ));
+    }
     if factor == 0.0 {
         return Ok(0.0);
     }
-    let projection = force.iter().zip(d).map(|(f, a)| f * a).sum::<Real>().abs();
     let weighted = projection * factor;
     let mass = weighted / gravity;
     finite(&[projection, weighted, mass])?;
@@ -226,9 +235,11 @@ fn projected_mass(force: [Real; 3], factor: Real, d: [Real; 3], gravity: Real) -
     Ok(mass)
 }
 
-/// Convierte fuerza global N a kg: |F·d̂|·factor/g_usuario.
+/// Convierte fuerza global N a kg: (F·d̂)·factor/g_usuario.
 /// Factor no negativo y g positiva son obligatorios, ambos finitos. Admite
-/// fuerzas de cualquier signo; normaliza la dirección sin desbordar su norma.
+/// componentes de cualquier signo; normaliza la dirección sin desbordar su norma.
+/// Proyección negativa: ENG-E-0010, incluso con factor cero, sin tolerancia.
+/// Proyección exactamente cero (incluido -0.0) produce masa cero.
 pub fn mass_from_force(
     force: [Real; 3],
     factor: Real,
@@ -240,12 +251,13 @@ pub fn mass_from_force(
 }
 
 /// Convierte un vector global de fuerzas ya ensamblado a asignaciones nodales.
-/// Suma antes de tomar el valor absoluto por nodo; no toma el absoluto de la
-/// resultante de todo el modelo. Momentos finitos se validan y no aportan masa.
+/// Proyecta la fuerza neta por nodo, sin compensar proyecciones entre nodos.
+/// Momentos finitos se validan y no aportan masa.
 /// Cada masa se asigna a todas las traslaciones declaradas, con id
 /// `id_prefix:node:<id>`. El llamador debe elegir prefijos únicos al combinar
 /// fuentes. No se añade masa de elemento ni se modifica el modelo.
-/// ENG-E-0010 por tamaño; propaga los errores de conversión y GDL.
+/// ENG-E-0010 por tamaño o proyección nodal negativa; los errores de conversión
+/// nodal incluyen Node. Propaga los errores de conversión y GDL.
 pub fn masses_from_load_vector(
     map: &DofMap,
     forces: &[Real],
@@ -276,7 +288,10 @@ pub fn masses_from_load_vector(
     nodes
         .into_iter()
         .map(|(node, (force, dofs))| {
-            let mass = projected_mass(force, factor, d, gravity)?;
+            let mass = projected_mass(force, factor, d, gravity).map_err(|mut e| {
+                e.entities.push(EntityRef::Node(node));
+                e
+            })?;
             Ok(NodalMass {
                 id: format!("{id_prefix}:node:{}", node.0),
                 node,
@@ -292,6 +307,7 @@ pub fn masses_from_load_vector(
 /// Convierte las cargas nodales de un LoadCase a masas, con factor/dirección/g
 /// explícitos. Prefijo `mass:case:<nombre>`. Valida el caso, incluidos sus
 /// momentos y duplicados; no interpreta combinaciones ni cargas de tramo.
+/// Rechaza proyección neta nodal negativa con ENG-E-0010 y entidades Node/Case.
 pub fn masses_from_case(
     map: &DofMap,
     case: &LoadCase,
@@ -317,6 +333,8 @@ pub fn masses_from_case(
 /// Convierte un caso completo del sistema, incluidas fuerzas equivalentes de
 /// elementos. Lee `global_force(case, 1)`; aplica el factor solicitado una sola
 /// vez durante la conversión. No aplica apoyos ni cambia masas del sistema.
+/// Suma aportes antes de proyectar; proyección neta nodal negativa produce
+/// ENG-E-0010 con entidades Node/Case, incluso si el total del caso es gravitatorio.
 pub fn masses_from_system_case<B: LinAlgBackend>(
     system: &LinearSystem<B>,
     case: &CaseRef,
