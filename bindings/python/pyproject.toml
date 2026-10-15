@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "mamut-engine"
 dynamic = ["version"]
-description = "Scaffold Python local de MAMUT Engine; expone solo la versión del núcleo Rust."
+description = "Bindings Python nativos sobre la fachada engine-api de MAMUT Engine."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "AGPL-3.0-only"

@@ -1,11 +1,14 @@
 """Regresiones de portabilidad y selección del SBOM (issue #94)."""
 import copy
+from contextlib import redirect_stdout
 import importlib.util
+import io
 import json
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 import zipfile
 
 SPEC = importlib.util.spec_from_file_location("artifacts", Path(__file__).parents[1] / "python-wheel-artifacts.py")
@@ -99,6 +102,12 @@ class SbomTest(unittest.TestCase):
             for name in ("SBOM.cdx.json", "THIRD_PARTY_NOTICES"):
                 self.assertEqual((first.root / name).read_bytes(), (second.root / name).read_bytes())
             sbom = json.loads((first.root / "SBOM.cdx.json").read_text())
+            compatibility = json.loads((first.root / "COMPATIBILITY.json").read_text())
+            status = compatibility["contract_status"]
+            for operation in ("validate", "run", "capabilities", "schema", "explain", "version"):
+                self.assertIn(operation, status)
+            self.assertIn({"name": "mamut:contract_status", "value": status},
+                          sbom["metadata"]["properties"])
             artifacts.check_portable(sbom)
             refs = {c["bom-ref"] for c in sbom["components"]}
             refs.add(sbom["metadata"]["component"]["bom-ref"])
@@ -119,6 +128,45 @@ class SbomTest(unittest.TestCase):
             args = self.fixture(Path(directory) / "repo", "export TARGET=/workspace/build")
             with self.assertRaisesRegex(ValueError, "dist-info/METADATA"):
                 artifacts.artifacts(args)
+
+
+class FacadeSmokeTest(unittest.TestCase):
+    def run_smoke(self, *, engine_version="0.1.0", native_version="0.1.0",
+                  contracts=None, binding_version="0.1.0", rust_tool=None):
+        facade = {"engine_version": engine_version,
+                  "contracts": contracts if contracts is not None else ["engine-input/1", "results/1"]}
+        native = dict(facade, engine_version=native_version)
+        module = SimpleNamespace(version=lambda: facade, __version__="0.1.0",
+                                 _native=SimpleNamespace(version=lambda: native))
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = Path(directory) / "COMPATIBILITY.json"
+            artifacts.write_json(manifest, {"engine_version": "0.1.0", "binding_version": "0.1.0",
+                                            "contracts": ["engine-input/1", "results/1"]})
+            output = io.StringIO()
+            with patch.dict("sys.modules", {"mamut_engine": module}), \
+                    patch("importlib.metadata.version", return_value=binding_version), \
+                    patch.object(artifacts.shutil, "which", return_value=rust_tool), \
+                    redirect_stdout(output):
+                artifacts.smoke(manifest)
+            return json.loads(output.getvalue())
+
+    def test_dict_version_produces_scalar_engine_version_and_contracts(self):
+        evidence = self.run_smoke()
+        self.assertEqual(evidence["engine_version"], "0.1.0")
+        self.assertEqual(evidence["contracts"], ["engine-input/1", "results/1"])
+        self.assertTrue(evidence["native_version_call"])
+        self.assertFalse(evidence["rust_on_path"])
+
+    def test_reject_mismatched_versions_contracts_and_visible_rust(self):
+        for changes, message in [
+            ({"engine_version": "9.0.0"}, "Versión del engine"),
+            ({"native_version": "9.0.0"}, "Versión del engine"),
+            ({"contracts": ["engine-input/9"]}, "Contratos"),
+            ({"binding_version": "9.0.0"}, "Versión de distribución"),
+            ({"rust_tool": "rustc"}, "Herramienta Rust visible"),
+        ]:
+            with self.subTest(changes=changes), self.assertRaisesRegex(ValueError, message):
+                self.run_smoke(**changes)
 
 
 class WheelPortabilityTest(unittest.TestCase):

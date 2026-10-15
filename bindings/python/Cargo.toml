@@ -12,8 +12,7 @@ crate-type = ["cdylib"]
 test = false
 doctest = false
 
-[dependencies]
-engine-core = { path = "../../crates/engine-core", version = "0.1.0" }
-
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+engine-api = { path = "../../crates/engine-api", version = "0.1.0" }
+serde_json = { version = "=1.0.154", features = ["float_roundtrip"] }
 pyo3 = { version = "=0.25.1", features = ["abi3-py310"] }

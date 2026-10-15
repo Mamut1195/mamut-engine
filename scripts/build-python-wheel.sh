@@ -69,6 +69,11 @@ cp "$scratch/REPRODUCIBILITY.json" "$scratch/dist/"
     --wheel "$scratch/dist/$wheel_name" --root "$repo" \
     --rustc-version "$rustc_version" --maturin-version "$maturin_version"
 
+# Referencia independiente de engine-api para las pruebas de la wheel instalada.
+cargo run --offline --locked --quiet -p mamut-engine-py --example facade_reference -- \
+    crates/engine-api/fixtures/input/valid/cantilever-linear-static.json \
+    > "$scratch/cantilever-rust.json"
+
 "$python" -I -m venv "$scratch/consumer"
 venv="$scratch/consumer"
 # Solo binarios del venv en PATH: ni Rust, ni Cargo, ni rustup.
@@ -76,6 +81,7 @@ venv="$scratch/consumer"
     cd "$scratch"
     export PATH="$venv/bin"
     unset PYTHONPATH PYTHONHOME
+    export MAMUT_RUST_REFERENCE="$scratch/cantilever-rust.json"
     "$venv/bin/python" -I -m pip install --no-index --no-deps --no-cache-dir \
         "$scratch/dist/$wheel_name"
     "$venv/bin/python" -I "$helper" smoke "$scratch/dist/COMPATIBILITY.json" \

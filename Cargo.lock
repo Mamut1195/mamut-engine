@@ -290,8 +290,9 @@ dependencies = [
 name = "mamut-engine-py"
 version = "0.1.0"
 dependencies = [
- "engine-core",
+ "engine-api",
  "pyo3",
+ "serde_json",
 ]
 
 [[package]]

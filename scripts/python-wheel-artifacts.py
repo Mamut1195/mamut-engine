@@ -22,6 +22,12 @@ SYSTEM_PATH = re.compile(
 )
 
 
+CONTRACT_STATUS = (
+    "Fachada completa engine-api: validate/run/capabilities/schema/explain/version; "
+    "entrada engine-input/1 y salida canónica results/1"
+)
+
+
 def digest(data):
     return hashlib.sha256(data).hexdigest()
 
@@ -120,6 +126,7 @@ def artifacts(args):
         "metadata": {"component": {"type": "application", "bom-ref": f"pkg:pypi/{project['name']}@{binding['version']}",
                                    "name": project["name"], "version": binding["version"]},
                      "properties": [{"name": "mamut:scope", "value": "Cargo closure, all targets, build and runtime; system libraries/tools excluded"},
+                                    {"name": "mamut:contract_status", "value": CONTRACT_STATUS},
                                     {"name": "mamut:legal-review", "value": "PENDIENTE (licencias, titularidad y CLA)"}]},
         "components": components,
         "dependencies": [{"ref": f"pkg:pypi/{project['name']}@{binding['version']}", "dependsOn": [refs[binding["id"]]]}]
@@ -135,7 +142,7 @@ def artifacts(args):
     compatibility = {
         "package": project["name"], "binding_version": binding["version"], "engine_version": engine["version"],
         "contracts": ["engine-input/1", "results/1"],
-        "contract_status": "Referencia del engine; binding actual solo version(), análisis PENDIENTE PY-003",
+        "contract_status": CONTRACT_STATUS,
         "wheel": wheel.name, "sha256": digest(wheel.read_bytes()), "requires_python": pkg["Requires-Python"],
         "tags": [{"python": t.split("-")[0], "abi": t.split("-")[1], "platform": t.split("-")[2]} for t in tags],
         "tested": {"os": platform.system(), "machine": platform.machine(), "implementation": platform.python_implementation(),
@@ -181,11 +188,14 @@ def smoke(manifest):
         if shutil.which(tool) is not None:
             raise ValueError(f"Herramienta Rust visible en PATH: {tool}")
     actual = mamut_engine.version()  # Llamada real a Rust mediante PyO3.
-    if not (actual == mamut_engine.__version__ == _native.version() == expected["engine_version"]):
+    if not (actual["engine_version"] == mamut_engine.__version__ == expected["engine_version"]
+            and actual == _native.version()):
         raise ValueError("Versión del engine inesperada")
+    if actual["contracts"] != expected["contracts"]:
+        raise ValueError("Contratos de la fachada inesperados")
     if version("mamut-engine") != expected["binding_version"]:
         raise ValueError("Versión de distribución inesperada")
-    print(json.dumps({"engine_version": actual, "binding_version": version("mamut-engine"),
+    print(json.dumps({"engine_version": actual["engine_version"], "contracts": actual["contracts"], "binding_version": version("mamut-engine"),
                       "python": platform.python_version(), "rust_on_path": False, "native_version_call": True}, sort_keys=True, indent=2))
 
 
