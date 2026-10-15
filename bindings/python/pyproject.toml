@@ -17,3 +17,5 @@ license-files = ["LICENSE", "NOTICE"]
 features = ["pyo3/extension-module"]
 module-name = "mamut_engine._native"
 python-source = "python"
+# maturin 1.15.0: el SBOM portable se genera junto a la wheel.
+sbom = { rust = false, auditwheel = false }
