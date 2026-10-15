@@ -102,9 +102,18 @@ fn anti_revert_rejects_inertia_whose_sum_differs_from_order() {
             .eigenvalues,
         vec![1.0]
     );
-    // El negativo sigue siendo 1: sin validar la suma, ambos caminos aceptarían
-    // estas respuestas. Se cubren déficit, exceso y desbordes en ambas sumas.
-    for inertia in [(0, 1, 0), (2, 1, 1), (usize::MAX, 1, 0), (2, 1, usize::MAX)] {
+    // Los primeros cuatro casos conservan el conteo negativo 1; sin validar la
+    // suma, ambos caminos los aceptarían. Cubren déficit, exceso y desbordes.
+    // El último suma n con wrapping_add: solo la suma comprobada lo rechaza
+    // como inercia incompatible, antes de comprobar el conteo de modos.
+    let n = k.order();
+    for inertia in [
+        (0, 1, 0),
+        (2, 1, 1),
+        (usize::MAX, 1, 0),
+        (2, 1, usize::MAX),
+        (usize::MAX, n + 1, 0),
+    ] {
         let mut backend = ContractBackend {
             inertia: Some(inertia),
             ..Default::default()

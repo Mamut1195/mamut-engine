@@ -107,3 +107,62 @@ Todas las ejecuciones Cargo usan `CARGO_NET_OFFLINE=true` y el `CARGO_TARGET_DIR
 | `cargo check --workspace --target wasm32-unknown-unknown` | OK, salida 0; comprobación de compilación, sin ejecución wasm. |
 | `bash clean-room/check.sh origin/main` | `Clean-room: OK`, salida 0; incluye el fichero nuevo en el diff mediante `git add -N`. |
 | `git diff --check` | OK, salida 0. |
+
+## J4 r40 · ENG-LA-009-FU2: desborde que envuelve al orden (MAM-70, #122)
+
+- Rama: `j2/eng-la-009-fu2`, basada en `main`; seguimiento de las pruebas
+  anti-revert incorporadas en #118.
+- Autor: Codex · 2026-10-15 (America/Guayaquil). Sin delegación.
+- Fuentes: únicamente código y contratos propios del repositorio y aritmética
+  entera elemental. Sin red, sin oráculos externos ni código de terceros copiado.
+  Dependencias nuevas: ninguna.
+- Cambio: se añade `(usize::MAX, n + 1, 0)` al test
+  `anti_revert_rejects_inertia_whose_sum_differs_from_order`, con `n = k.order()`
+  (3). Se exigen ENG-E-0007 y «inercia incompatible» por `lowest_modes` y por
+  la API pública `sturm_count`; no se necesita exponer funciones privadas.
+- Oráculo: `usize::MAX = 2^w - 1`, por lo que la suma matemática con `n + 1`
+  es `2^w + n`, fuera de rango. `checked_add` debe rechazarla; `wrapping_add`
+  devuelve `n` y elude la guarda. Los casos de desborde anteriores envuelven
+  a valores distintos de `n` y no detectan esta sustitución.
+
+### Mutación temporal comprobada
+
+Con `CARGO_NET_OFFLINE=true`, `PATH=/home/box/.cargo/bin:$PATH` y
+`CARGO_TARGET_DIR=/workspace/.cargo-target/me-geo6` exportados:
+
+```bash
+cargo test -p engine-linalg --test lowest_modes_anti_revert anti_revert_rejects_inertia_whose_sum_differs_from_order -- --exact
+```
+
+1. Biblioteca original: salida 0, **1 passed**.
+2. Se sustituye temporalmente
+   `positive.checked_add(negative).and_then(|v| v.checked_add(null)) != Some(n)`
+   por `positive.wrapping_add(negative).wrapping_add(null) != n` en `src/modes.rs`.
+   La compilación termina correctamente y el test falla con salida **101**:
+   `sturm_count` devuelve `Ok(4)`; falla el `unwrap_err` del test.
+   `lowest_modes` alcanza el control posterior de cantidad de modos, cuyo
+   diagnóstico tampoco satisface el rechazo por inercia incompatible exigido.
+3. Se restaura la biblioteca en un bloque `finally` y se repite el comando:
+   salida 0, **1 passed**.
+
+SHA-256 de `src/modes.rs` original y restaurado:
+`9451d04d90ba44b5e22b8d93d311596a58bf166b871dfeb7f25117649eafd43e`.
+`git diff --exit-code -- crates/engine-linalg/src` termina con salida 0.
+No se encontró un bug en la biblioteca ni se deja diff en ella; no se añaden
+`panic`, `unwrap` ni `expect` en código de biblioteca. No se modifican
+`docs/CLEAN_ROOM.md`, `.github/**`, `clean-room/**` ni `vendor/**`.
+
+### Verificación final de r40
+
+Todos los comandos Cargo se ejecutan sin red, con las variables exportadas
+indicadas arriba y el toolchain instalado 1.99.0.
+
+| Comando | Resultado |
+| --- | --- |
+| `cargo fmt --all -- --check` | OK, salida 0. |
+| `cargo clippy --workspace --all-targets -- -D warnings` | OK, salida 0. |
+| `cargo test --workspace` | OK, salida 0; 569 pruebas aprobadas, incluidos doctests, 0 fallos, 0 ignoradas. |
+| `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace` | OK, salida 0. |
+| `cargo check --workspace --target wasm32-unknown-unknown` | OK, salida 0; compilación comprobada, sin ejecución wasm. |
+| `bash clean-room/check.sh origin/main` | `Clean-room: OK`, salida 0. |
+| `git diff --check` | OK, salida 0. |
