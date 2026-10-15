@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Resortes `spring.linear` y `spring.nonlinear`, contrato element/1.
 //!
 //! [`NonlinearSpring`] conserva una ley `uniaxial/1` resuelta. Usa longitud y

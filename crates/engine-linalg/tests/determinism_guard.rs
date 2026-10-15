@@ -203,8 +203,93 @@ fn central_scalar_path(tokens: &[&str], i: usize, imported: bool) -> bool {
     prefix == ["engine_core", "::", "math", "::"] || (imported && prefix == ["math", "::"])
 }
 
-// include! introduce código: solo una ruta literal .rs puede pertenecer al
-// inventario inspeccionado. include_str!/include_bytes! solo introducen datos.
+// Los literales se mantienen opacos; no se interpretan escapes en rutas.
+fn literal_string(literal: &str) -> Result<&str, ()> {
+    let first = literal.find('"').ok_or(())?;
+    let last = literal.rfind('"').ok_or(())?;
+    let prefix = &literal[..first];
+    if first >= last
+        || (!prefix.is_empty()
+            && !prefix
+                .strip_prefix('r')
+                .is_some_and(|s| s.bytes().all(|c| c == b'#')))
+    {
+        return Err(());
+    }
+    Ok(&literal[first + 1..last])
+}
+
+fn literal_rust_path(literal: &str) -> Result<&str, ()> {
+    let file = literal_string(literal)?;
+    if file.contains('\\') || !file.ends_with(".rs") {
+        return Err(());
+    }
+    Ok(file)
+}
+
+// Incluye atributos internos y atributos anidados en macros, pero nunca texto
+// de comentarios/cadenas. El índice permite distinguir atributos de raíz.
+fn rust_attributes<'a, 's>(tokens: &'a [&'s str]) -> Vec<(usize, &'a [&'s str])> {
+    let mut attributes = Vec::new();
+    for (i, &token) in tokens.iter().enumerate() {
+        if token != "#" {
+            continue;
+        }
+        let open = i + 1 + usize::from(tokens.get(i + 1) == Some(&"!"));
+        if tokens.get(open) != Some(&"[") {
+            continue;
+        }
+        let mut depth = 1;
+        for (end, &t) in tokens.iter().enumerate().skip(open + 1) {
+            match t {
+                "[" => depth += 1,
+                "]" => depth -= 1,
+                _ => {}
+            }
+            if depth == 0 {
+                attributes.push((i, &tokens[open + 1..end]));
+                break;
+            }
+        }
+    }
+    attributes
+}
+
+fn comma_items<'a, 's>(tokens: &'a [&'s str]) -> Vec<&'a [&'s str]> {
+    let mut items = Vec::new();
+    let mut depth = 0;
+    let mut start = 0;
+    for (i, &token) in tokens.iter().enumerate() {
+        match token {
+            "(" | "[" | "{" => depth += 1,
+            ")" | "]" | "}" => depth -= 1,
+            "," if depth == 0 => {
+                items.push(&tokens[start..i]);
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    items.push(&tokens[start..]);
+    items
+}
+
+// cfg_attr puede contener varios atributos y otros cfg_attr. Su condición es
+// un predicado, no un atributo path/link_name, y no se visita como tal.
+fn attribute_meta_items<'a, 's>(body: &'a [&'s str]) -> Vec<&'a [&'s str]> {
+    if body.starts_with(&["cfg_attr", "("]) && body.last() == Some(&")") {
+        comma_items(&body[2..body.len() - 1])
+            .into_iter()
+            .skip(1)
+            .flat_map(attribute_meta_items)
+            .collect()
+    } else {
+        vec![body]
+    }
+}
+
+// include! y #[path] introducen código: solo rutas literales .rs pueden
+// pertenecer al inventario inspeccionado. include_str!/include_bytes! son datos.
 fn included_rust_paths<'a>(tokens: &[&'a str]) -> Result<Vec<&'a str>, ()> {
     let mut paths = Vec::new();
     for (i, &token) in tokens.iter().enumerate() {
@@ -218,27 +303,92 @@ fn included_rust_paths<'a>(tokens: &[&'a str]) -> Result<Vec<&'a str>, ()> {
             _ => return Err(()),
         };
         let literal = tokens.get(i + 3).ok_or(())?;
-        let first_quote = literal.find('"').ok_or(())?;
-        let last_quote = literal.rfind('"').ok_or(())?;
-        if first_quote >= last_quote {
-            return Err(());
-        }
-        let prefix = &literal[..first_quote];
-        if !prefix.is_empty()
-            && !prefix
-                .strip_prefix('r')
-                .is_some_and(|s| s.bytes().all(|c| c == b'#'))
-        {
-            return Err(());
-        }
-        let file = &literal[first_quote + 1..last_quote];
+        let file = literal_rust_path(literal)?;
         let end = i + 4 + usize::from(tokens.get(i + 4) == Some(&","));
-        if tokens.get(end) != Some(&close) || file.contains('\\') || !file.ends_with(".rs") {
+        if tokens.get(end) != Some(&close) {
             return Err(());
         }
         paths.push(file);
     }
+    for (_, body) in rust_attributes(tokens) {
+        for meta in attribute_meta_items(body) {
+            if meta.first() == Some(&"path") {
+                let ["path", "=", literal] = meta else {
+                    return Err(());
+                };
+                paths.push(literal_rust_path(literal)?);
+            }
+        }
+    }
     Ok(paths)
+}
+
+fn code_paths_violation(input: &str, path: &Path, inspected: &[PathBuf]) -> bool {
+    let tokens = rust_tokens(input);
+    let Ok(paths) = included_rust_paths(&tokens) else {
+        return true;
+    };
+    paths.into_iter().any(|included| {
+        // Una ruta de módulo puede resolverse de forma distinta en un módulo
+        // inline. Solo se acepta el destino comprobable relativo a la fuente.
+        !path
+            .parent()
+            .and_then(|p| p.join(included).canonicalize().ok())
+            .is_some_and(|p| inspected.contains(&p))
+    })
+}
+
+fn ffi_violation(input: &str, path: &Path) -> bool {
+    if path
+        .components()
+        .nth(1)
+        .is_some_and(|c| c.as_os_str() == "examples")
+    {
+        return false;
+    }
+    let tokens = rust_tokens(input);
+    let link_name = rust_attributes(&tokens).into_iter().any(|(_, body)| {
+        attribute_meta_items(body)
+            .iter()
+            .any(|meta| meta.first() == Some(&"link_name"))
+    });
+    link_name
+        || tokens.iter().enumerate().any(|(i, &token)| {
+            token == "extern"
+                && (tokens.get(i + 1) == Some(&"{")
+                    || (tokens.get(i + 1).is_some_and(|t| literal_string(t).is_ok())
+                        && tokens.get(i + 2) == Some(&"{")))
+        })
+}
+
+// Sin excepciones en crates/*: las 15 bibliotecas compilan sin unsafe.
+// bindings/python también compila con forbid pese a sus macros PyO3, y se
+// comprueba aparte. heap_peak.rs es un test de integración, no una biblioteca.
+const UNSAFE_LIBRARY_EXCEPTIONS: &[(&str, &str)] = &[];
+
+fn library_unsafe_policy_violation(input: &str, path: &Path) -> bool {
+    if UNSAFE_LIBRARY_EXCEPTIONS
+        .iter()
+        .any(|(exception, reason)| path == Path::new(exception) && !reason.is_empty())
+    {
+        return false;
+    }
+    let tokens = rust_tokens(input);
+    !rust_attributes(&tokens).into_iter().any(|(i, body)| {
+        let mut depth = 0;
+        for &token in &tokens[..i] {
+            match token {
+                "(" | "[" | "{" => depth += 1,
+                ")" | "]" | "}" => depth -= 1,
+                _ => {}
+            }
+        }
+        depth == 0
+            && tokens.get(i + 1) == Some(&"!")
+            && body.starts_with(&["forbid", "("])
+            && body.last() == Some(&")")
+            && comma_items(&body[2..body.len() - 1]).contains(&&["unsafe_code"][..])
+    })
 }
 
 fn scalar_source_violation(input: &str, path: &Path) -> bool {
@@ -359,22 +509,51 @@ fn engine_crates_use_only_the_central_scalar_module() -> std::io::Result<()> {
         let relative = path.strip_prefix(&crates).map_err(std::io::Error::other)?;
         assert!(
             !scalar_source_violation(&source, relative),
-            "Función escalar, FMA o include! fuera de política en {}",
+            "Función escalar, FMA, include! o #[path] fuera de política en {}",
             path.display()
         );
-        for included in included_rust_paths(&rust_tokens(&source))
-            .map_err(|()| std::io::Error::other("include! no inspeccionable"))?
-        {
-            let parent = path
-                .parent()
-                .ok_or_else(|| std::io::Error::other("Fuente sin directorio"))?;
+        assert!(
+            !code_paths_violation(&source, path, &inspected),
+            "include! o #[path] fuera del inventario Rust en {}",
+            path.display()
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn engine_crates_reject_ffi_and_require_safe_libraries() -> std::io::Result<()> {
+    let crates = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let mut paths = Vec::new();
+    files(&crates, &mut paths)?;
+    paths.sort();
+    let mut libraries = 0;
+    for path in paths {
+        let relative = path.strip_prefix(&crates).map_err(std::io::Error::other)?;
+        let source = fs::read_to_string(&path)?;
+        assert!(
+            !ffi_violation(&source, relative),
+            "#[link_name] o bloque extern prohibido en {}",
+            path.display()
+        );
+        if relative.components().count() == 3 && relative.ends_with("src/lib.rs") {
+            libraries += 1;
             assert!(
-                inspected.contains(&parent.join(included).canonicalize()?),
-                "include! fuera del inventario Rust en {}: {included}",
+                !library_unsafe_policy_violation(&source, relative),
+                "Biblioteca sin #![forbid(unsafe_code)] en {}",
                 path.display()
             );
         }
     }
+    assert!(libraries > 0, "La guardia no encontró bibliotecas");
+    let python = crates.join("../bindings/python/src/lib.rs");
+    assert!(
+        !library_unsafe_policy_violation(
+            &fs::read_to_string(python)?,
+            Path::new("bindings/python/src/lib.rs")
+        ),
+        "Binding Python sin #![forbid(unsafe_code)]"
+    );
     Ok(())
 }
 
@@ -538,5 +717,158 @@ fn scalar_guard_rejects_includes_of_uninspected_code() {
     assert!(scalar_source_violation(
         "include!(\"hidden.inc\")",
         Path::new("engine-core/src/math.rs")
+    ));
+}
+
+#[test]
+fn guard_rejects_module_paths_not_ending_in_rs() {
+    for source in [
+        "#[path = \"hidden.txt\"] mod m;",
+        "# [ path /* espacio */ = r###\"hidden.txt\"### ] mod m;",
+        "#[cfg_attr(any(), path = \"hidden.txt\")] mod m;",
+        "#[cfg_attr(all(), allow(dead_code), cfg_attr(unix, path = r#\"hidden.txt\"#))] mod m;",
+        "#[path = concat!(\"hidden\", \".rs\")] mod m;",
+        "#[path = file] mod m;",
+        "#[path = b\"hidden.rs\"] mod m;",
+        "#[path = \"hidden\\\\.rs\"] mod m;",
+    ] {
+        assert!(scalar_violation(source), "{source}");
+        assert!(
+            scalar_source_violation(source, Path::new("engine-core/src/math.rs")),
+            "{source}"
+        );
+    }
+}
+
+#[test]
+fn guard_rejects_module_paths_outside_the_inventory() -> std::io::Result<()> {
+    let crates = Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let mut paths = Vec::new();
+    files(&crates, &mut paths)?;
+    let inspected = paths
+        .iter()
+        .map(|p| p.canonicalize())
+        .collect::<std::io::Result<Vec<_>>>()?;
+    let path = crates.join("engine-linalg/src/lib.rs");
+    // Archivo real .rs fuera de crates/**; no depende de un destino inexistente.
+    for source in [
+        "#[path = \"../../../bindings/python/src/lib.rs\"] mod m;",
+        "#[cfg_attr(unix, path = r###\"../../../bindings/python/src/lib.rs\"###)] mod m;",
+        "include!(\"../../../bindings/python/src/lib.rs\");",
+        "#[path = \"missing.rs\"] mod m;",
+    ] {
+        assert!(code_paths_violation(source, &path, &inspected), "{source}");
+    }
+    for source in [
+        "#[path = \"reference.rs\"] mod m;",
+        "# [ path = r###\"reference.rs\"### ] mod m;",
+        "#[cfg_attr(any(), path = \"reference.rs\")] mod m;",
+        "#[cfg_attr(all(), allow(dead_code), cfg_attr(unix, path = \"reference.rs\"))] mod m;",
+        "#[path = \"../../engine-core/src/math.rs\"] mod m;",
+        "include!(\"reference.rs\");",
+    ] {
+        assert!(!code_paths_violation(source, &path, &inspected), "{source}");
+    }
+    Ok(())
+}
+
+#[test]
+fn guard_rejects_link_name_attributes() {
+    for source in [
+        "#[link_name = \"sin\"] fn imported();",
+        "# [ r#link_name /* espacio */ = r###\"native\"### ] static VALUE: u8;",
+        "#[cfg_attr(unix, link_name = \"native\")] fn imported();",
+        "#[cfg_attr(all(), allow(dead_code), cfg_attr(unix, link_name = \"native\"))] fn imported();",
+    ] {
+        assert!(ffi_violation(source, Path::new("engine-core/src/math.rs")), "{source}");
+        assert!(ffi_violation(source, Path::new("engine-linalg/tests/ffi.rs")), "{source}");
+        assert!(!ffi_violation(source, Path::new("engine-api/examples/ffi.rs")), "{source}");
+    }
+}
+
+#[test]
+fn guard_rejects_extern_blocks() {
+    for source in [
+        "extern \"C\" { fn imported(); }",
+        "unsafe extern /* espacio */ \"system\" { static VALUE: u8; }",
+        "extern { }",
+        "extern \"C-unwind\" {}",
+        "extern r###\"C\"### {}",
+        "#[cfg(any())] extern \"C\" {}",
+        "macro_rules! ffi { () => { extern \"C\" {} }; }",
+    ] {
+        assert!(
+            ffi_violation(source, Path::new("engine-core/src/math.rs")),
+            "{source}"
+        );
+        assert!(
+            ffi_violation(source, Path::new("engine-linalg/tests/ffi.rs")),
+            "{source}"
+        );
+        assert!(
+            !ffi_violation(source, Path::new("engine-api/examples/ffi.rs")),
+            "{source}"
+        );
+    }
+}
+
+#[test]
+fn guard_rejects_libraries_without_forbid_unsafe_code() {
+    let path = Path::new("engine-new/src/lib.rs");
+    for source in [
+        "pub fn safe() {}",
+        "#![deny(unsafe_code)]",
+        "#[forbid(unsafe_code)] mod child {}",
+        "#[cfg_attr(unix, forbid(unsafe_code))] mod child {}",
+        "#![cfg_attr(unix, forbid(unsafe_code))]",
+        "mod child { #![forbid(unsafe_code)] }",
+        "macro_rules! m { () => { #![forbid(unsafe_code)] }; }",
+        "// #![forbid(unsafe_code)]\nconst TEXT: &str = \"#![forbid(unsafe_code)]\";",
+        "/* #![forbid(unsafe_code)] */ const TEXT: &str = r###\"#![forbid(unsafe_code)]\"###;",
+    ] {
+        assert!(library_unsafe_policy_violation(source, path), "{source}");
+    }
+    for source in [
+        "#![forbid(unsafe_code)]",
+        "# ! [ forbid /* espacio */ ( r#unsafe_code, ) ]",
+        "#![forbid(missing_docs, unsafe_code, unused)]",
+    ] {
+        assert!(!library_unsafe_policy_violation(source, path), "{source}");
+    }
+}
+
+#[test]
+fn guard_allows_comments_strings_and_non_ffi_extern_items() {
+    for source in [
+        "// #[link_name = \"sin\"] extern \"C\" {} #[path = \"hidden.txt\"]",
+        "/* extern {} /* #[path = \"hidden.txt\"] */ #[link_name = \"sin\"] */",
+        "let text = \"extern {} #[link_name = \\\"sin\\\"] #[path = \\\"hidden.txt\\\"]\";",
+        "let text = r###\"extern \"C\" {} #[link_name = \"sin\"] #[path = \"hidden.txt\"]\"###;",
+        "extern crate engine_core as core;",
+        "pub extern \"C\" fn exported() {}",
+        "type Callback = extern \"C\" fn();",
+        "fn link_name() {} let path = \"hidden.txt\";",
+        "#[cfg(path = \"linux\")] mod m;",
+        "#[cfg_attr(path = \"linux\", allow(dead_code))] mod m;",
+    ] {
+        assert!(
+            !ffi_violation(source, Path::new("engine-linalg/src/lib.rs")),
+            "{source}"
+        );
+        assert!(
+            included_rust_paths(&rust_tokens(source)).is_ok(),
+            "{source}"
+        );
+    }
+    // examples/ solo exceptúa FFI; no relaja la política de código incluido.
+    assert!(scalar_source_violation(
+        "#[path = \"hidden.txt\"] mod m;",
+        Path::new("engine-api/examples/ffi.rs")
+    ));
+    assert!(rust_violation("extern crate rayon;"));
+    // Un módulo de biblioteca llamado examples no es el directorio de ejemplos.
+    assert!(ffi_violation(
+        "extern {}",
+        Path::new("engine-core/src/examples/ffi.rs")
     ));
 }

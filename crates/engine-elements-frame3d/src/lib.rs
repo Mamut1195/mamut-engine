@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Viga-columna espacial `frame3d.euler_elastic`, contrato element/1, versión 0.1.0.
 //! [`WinklerFrame3D`] añade un lecho transversal consistente fijo a tierra;
 //! [`WinklerFactory`] construye `frame3d.winkler` con propiedades SI.

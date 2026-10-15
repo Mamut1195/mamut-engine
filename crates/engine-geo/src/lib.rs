@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Tensiones geostáticas de un perfil estratificado, escrito desde cero.
 //!
 //! # Unidades, ejes e hipótesis

@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Barras homogéneas articuladas `truss2d.linear` y `truss3d.linear`, element/1.
 //!
 //! Elasticidad lineal, desplazamientos y giros infinitesimales, sin pretensión,

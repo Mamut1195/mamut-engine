@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Contratos v1 del motor y plantillas independientes del backend numérico.
 //!
 //! Entradas y salidas en SI: m, N, Pa, N·m, kg y rad; deformación axial

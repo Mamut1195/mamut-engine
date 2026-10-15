@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Ensamblaje lineal determinista, apoyos y desplazamientos impuestos en SI.
 //!
 //! Los aportes se reciben en ejes globales: no se implementan elementos finitos

@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Fachada portable de validación y análisis de `engine-input/1`.
 //!
 //! La única frontera serde/JSON del workspace; salida canónica `results/1`.

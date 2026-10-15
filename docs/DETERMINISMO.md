@@ -135,12 +135,36 @@ Dentro de macros rechaza identificadores escalares sin esa ruta, por ejemplo
 `mul_add` solo se admite en engine-linalg/src/modes.rs, también frente a
 identificadores crudos o argumentos de macros.
 
-`include!` solo admite rutas literales terminadas en .rs, cuyo destino debe
-estar en el inventario Rust inspeccionado de crates/**; rechaza otras
-extensiones y rutas calculadas (concat!/env!, etc.). `include_str!` e
-`include_bytes!` pueden incluir datos de otras extensiones. Ignora comentarios,
-cadenas normales/raw y literales char; cinco pares de fixtures de texto
-positivos/negativos cubren los huecos de FU #105, además de las variantes de
+`include!` y `#[path = "..."]` solo admiten rutas literales terminadas en .rs,
+cuyo destino, canonicalizado respecto al directorio de la fuente, debe estar
+en el inventario Rust inspeccionado de crates/**. Rechaza otras extensiones,
+rutas calculadas (concat!/env!, etc.) y destinos inexistentes o fuera del
+inventario. Comprueba también `path` dentro de `cfg_attr`, incluso anidados,
+con espacios y cadenas raw, sin exceptuar math.rs ni examples/.
+`include_str!` e `include_bytes!` pueden incluir datos de otras extensiones.
+
+FU2 #107 (J4 r27) prohíbe además los atributos `#[link_name = ...]`, también
+mediante `cfg_attr`, y los bloques `extern "..." { ... }` / `extern { ... }`
+en todos los Rust de crates/** fuera del directorio crates/*/examples/.
+`extern crate` conserva las prohibiciones previas; las funciones y tipos de
+función con ABI extern no son bloques FFI. La excepción de examples/ solo
+afecta a esta comprobación FFI.
+
+Cada biblioteca crates/*/src/lib.rs declara `#![forbid(unsafe_code)]` en la
+raíz, de forma incondicional, y la guardia comprueba su presencia. La lista
+explícita `UNSAFE_LIBRARY_EXCEPTIONS` está vacía: las quince bibliotecas
+compilan sin unsafe. El binding Python también compila con la prohibición
+pese a sus macros PyO3; se añade allí y se comprueba por separado. No se
+inspecciona vendor/**. El `unsafe impl GlobalAlloc` y sus llamadas a System
+en engine-linalg/tests/heap_peak.rs instrumentan un test de integración;
+no son código de biblioteca ni requieren exceptuar engine-linalg.
+
+La guardia ignora comentarios, cadenas normales/raw y literales char. Cinco
+pares de fixtures de texto positivos/negativos cubren FU #105; FU2 añade
+cinco tests negativos específicos (path no .rs, destino fuera del inventario,
+link_name, bloque extern y ausencia de forbid), comprobados retirando cada
+regla por separado, y positivos para comentarios, cadenas, examples/,
+atributos anidados y destinos Rust inspeccionados. Conserva las pruebas de
 aliases, espacios, macros y todas las funciones escalares de la lista.
 Es una guardia léxica conservadora, no resolución de tipos; no inspecciona
 dependencias transitivas ni código generado por build scripts. Cambiar proveedor

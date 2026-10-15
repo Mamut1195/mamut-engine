@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Modelo de dominio e inspección de entradas, escritos desde cero.
 //!
 //! **APROBADA por Jonathan 2026-10-10 22:52: X-Y horizontal, Z vertical arriba (el Engine gobierna).** Ejes globales X, Y, Z diestros, Z vertical

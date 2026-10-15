@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Análisis `static.linear`, [`newton`] (`static.newton`), [`pdelta`], [`modal`] y [`spectrum`], en unidades SI.
 //!
 //! `static.linear` resuelve casos independientes con una única factorización

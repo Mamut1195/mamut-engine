@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Casos de carga y funciones puras en SI, sin factores normativos implícitos.
 //!
 //! Se reutilizan las cargas nodales del modelo y los desplazamientos prescritos

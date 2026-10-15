@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Adaptador Python mínimo: expone únicamente la versión del núcleo Rust.
 //!
 //! En `wasm32` este crate queda vacío: PyO3 y el módulo Python solo se

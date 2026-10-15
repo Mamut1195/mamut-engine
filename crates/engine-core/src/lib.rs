@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Tipos básicos y diagnósticos estables del núcleo de cálculo.
 //!
 //! Las funciones escalares se centralizan en [`math`] con libm fijada. Los

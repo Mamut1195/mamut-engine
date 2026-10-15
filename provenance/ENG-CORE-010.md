@@ -166,3 +166,62 @@ Rust 1.99.0 (LLVM 23.1.1), sin RUSTFLAGS especiales:
     sobre cambios preparados, incluidos los diez fixtures nuevos.
 - Revisión humana clean-room: PENDIENTE (J4). Sin cambios a docs/CLEAN_ROOM.md,
   .github/** ni clean-room/**.
+
+
+## FU2 #107 · MAM-23 · J4 r27 · 2026-10-14
+
+- Solicitud: cerrar las vías de código no inspeccionado y FFI; rama
+  j2/eng-core-010-fu2 apilada sobre j2/eng-core-010-fu, PR #106,
+  commit base 101c4d1; origin/main local abe7453. Sin red ni push.
+- Fuentes: instrucciones del usuario, fuentes y documentación propias del
+  checkout, APIs std/Rust y toolchain instalado. Ningún código de terceros
+  copiado o vendorizado, ninguna dependencia nueva ni consulta a otros motores.
+- Rutas: #[path = "..."] comparte la validación de include!: literal .rs sin
+  escapes y destino canonicalizado dentro del inventario Rust de crates/**.
+  Se inspeccionan espacios, identificadores crudos, cadenas raw y atributos
+  cfg_attr con varios atributos o cfg_attr anidados, independientemente de su
+  condición. Los predicados cfg(path = "...") no son atributos de módulo.
+  Se rechazan destinos inexistentes y archivos reales fuera del inventario;
+  math.rs y examples/ no están exceptuados de esta regla.
+- FFI: se rechazan #[link_name = ...], también en cfg_attr, y los bloques
+  extern "..." { ... } / extern { ... }, incluidos ABI raw y macros, en
+  crates/** fuera de crates/*/examples/. No se confunden extern crate,
+  funciones extern ni tipos de puntero a función con bloques de importación;
+  extern crate conserva las prohibiciones anteriores de la guardia.
+- Biblioteca: se añade #![forbid(unsafe_code)] a los quince crates/*/src/lib.rs
+  y también a bindings/python/src/lib.rs: PyO3 0.25.1 compila con la prohibición,
+  por lo que no se necesita exceptuar el binding. La guardia exige el atributo
+  interno, incondicional y en la raíz de cada biblioteca, y comprueba el binding
+  por separado. Lista explícita UNSAFE_LIBRARY_EXCEPTIONS vacía, sin excepciones
+  de bibliotecas ni globs. Los atributos en comentarios, cadenas, submódulos,
+  macros o cfg_attr, y deny(unsafe_code), no satisfacen la comprobación.
+- Unsafe existente: engine-linalg/tests/heap_peak.rs implementa GlobalAlloc
+  y delega en System mediante unsafe para medir memoria; es un test de
+  integración, fuera de la biblioteca. Se conserva sin imponerle forbid y
+  no justifica una excepción para engine-linalg. No se toca vendor/**.
+- Pruebas: cinco negativos específicos para path no .rs, path fuera del
+  inventario (incluye un .rs real del binding), link_name, bloque extern y
+  lib.rs sin forbid. Positivos para rutas inspeccionadas, raw strings,
+  atributos anidados, comentarios, strings, predicados cfg y examples/;
+  la excepción examples/ no relaja rutas ni las prohibiciones anteriores.
+  Se retiró temporalmente cada una de las cinco comprobaciones: su test
+  específico falló por aserción en los cinco casos. Restaurado el código,
+  los dieciséis tests de la guardia pasan.
+- Documentación: docs/DETERMINISMO.md recoge el nuevo alcance, la lista sin
+  excepciones y la distinción entre bibliotecas y el test GlobalAlloc.
+  No se cambian algoritmos mecánicos, tolerancias ni FMA de Sturm; no se
+  añaden panic/unwrap/expect en biblioteca.
+- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados
+  para este ticket."
+- Verificación offline con CARGO_TARGET_DIR=/workspace/.cargo-target/me45
+  ya exportado, CARGO_NET_OFFLINE=true y Rust/Cargo 1.99.0:
+  - cargo fmt --all -- --check: OK.
+  - cargo clippy --offline --workspace --all-targets -- -D warnings: OK.
+  - cargo test --offline --workspace --no-fail-fast: OK, 527 pruebas incluidos
+    doctests, cero fallos/ignoradas; dieciséis tests de la guardia.
+  - RUSTDOCFLAGS="-D warnings" cargo doc --offline --no-deps --workspace: OK.
+  - cargo check --offline --workspace --target wasm32-unknown-unknown: OK.
+  - git diff --cached --check y bash clean-room/check.sh origin/main: OK,
+    sobre todos los cambios preparados.
+- Revisión humana clean-room: PENDIENTE (J4). Sin cambios a docs/CLEAN_ROOM.md,
+  .github/**, clean-room/** ni vendor/**.

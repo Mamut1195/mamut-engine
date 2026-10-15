@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Leyes constitutivas puras, sin dependencias externas.
 //!
 //! [`uniaxial::Elastic`] y [`uniaxial::MultilinearElastic`] implementan

@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Frontera numérica interna con tipos propios y errores del núcleo.
 //!
 //! `ReferenceBackend` es una implementación sencilla para pruebas y problemas

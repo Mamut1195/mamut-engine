@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Suite de benchmarks estructurales de derivación analítica propia.
 //!
 //! Crate de desarrollo: los fixtures y el ejecutor viven en pruebas; no añade

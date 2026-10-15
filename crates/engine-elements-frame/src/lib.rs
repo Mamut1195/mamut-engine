@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 //! Viga-columna `frame2d.euler_elastic`, contrato element/1, método 0.1.0.
 //! [`WinklerFrame2D`] añade un lecho transversal consistente fijo a tierra;
 //! [`WinklerFactory`] construye `frame2d.winkler` con propiedades SI.
