@@ -90,8 +90,9 @@ cambiar algoritmos, contratos, manifests ni dependencias.
    se identifican y no se presentan como éxito. Los errores de biblioteca
    son fallibles y tipados, sin `panic!`, `unwrap` ni `expect`.
 8. **Licencia dual y publicación humana.** El paquete conserva
-   **AGPL-3.0 + licencia comercial de MAMPRO SAS**, conforme a la decisión
-   del 2026-10-08 ratificada el 2026-10-13 y al alcance solicitado para este
+   **AGPL-3.0 + licencia comercial de MAMPRO SAS**, recomendada el 2026-10-08,
+   ratificada el 2026-10-13 y confirmada por Jonathan el 2026-10-15
+   (AGPL-3.0-only; titular MAMPRO SAS), y al alcance solicitado para este
    ADR. Apache-2.0 del SDK genérico no se extiende al motor; tampoco se adopta
    PolyForm. La AGPL permite uso comercial sujeto a sus obligaciones. Los
    textos legales, titularidad formal, CLA y oferta comercial requieren
