@@ -1,0 +1,1 @@
+{"engineId":"mamut-workflow","engineVersion":"0.1.0","error":{"code":"WF-E-0003","message":"Input document could not be read or parsed"},"exitCode":3,"operation":"run","outcome":"invalid_input","type":"result"}

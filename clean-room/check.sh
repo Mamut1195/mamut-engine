@@ -2,6 +2,8 @@
 # Solo requiere Bash, Git y coreutils. Incluye cambios locales de archivos conocidos por Git.
 set -euo pipefail
 export LC_ALL=C
+# J4 r31: ancla confiable de la base; no aceptar un manifiesto regenerado por el PR.
+EXPECTED_WORKFLOWS_MANIFEST_SHA256=214b71529137733aa14babaefa3eac67365f94bd986407ea7e7218bf68174c68
 
 if [[ $# -lt 1 || $# -gt 2 ]]; then
     printf 'Uso: bash clean-room/check.sh <base-del-PR> [directorio-de-listas]\n' >&2
@@ -88,10 +90,19 @@ verify_workflows() (
     cmp -s "$scratch/expected" "$scratch/actual" || exit 1
     sha256sum --check --strict MANIFEST.sha256 || exit 1
     [[ -f LICENSE ]] || exit 1
+    # Los tests CLI verbatim resuelven ../../examples bajo vendor/, fuera de esta
+    # distribución. Comparar esas copias con los originales cubiertos por el ancla.
+    [[ ! -L ../examples && ! -L ../examples/open-local ]] || exit 1
+    for file in catalog.json workflow.json; do
+        [[ -f "../examples/open-local/$file" && ! -L "../examples/open-local/$file" ]] || exit 1
+        cmp -s "examples/open-local/$file" "../examples/open-local/$file" || exit 1
+    done
+    manifest_sha256=$(sha256sum MANIFEST.sha256) || exit 1
+    [[ "${manifest_sha256%% *}" == "$EXPECTED_WORKFLOWS_MANIFEST_SHA256" ]] || exit 1
     for file in README.md NOTICE; do
         [[ -f "$file" ]] || continue
         while IFS= read -r line || [[ -n "$line" ]]; do
-            if [[ "$line" == *4cb9ecd0e1117d86444149b17a6b34d1283d9455* ]]; then
+            if [[ "$line" == *1eeb91a1ca9128ad4a02ead2ab66b6b25aa08f3d* ]]; then
                 exit 0
             fi
         done < "$file"
@@ -102,7 +113,7 @@ verify_workflows() (
 # -z preserva rutas con espacios, tabuladores, saltos de línea y caracteres Unicode.
 while IFS= read -r -d '' path; do
     [[ "$path" == crates/* ]] && touches_crates=true
-    if [[ "$path" == vendor/mamut-workflows ]] || is_workflows_path "$path"; then
+    if [[ "$path" == vendor/mamut-workflows || "$path" == vendor/examples || "$path" == vendor/examples/* ]] || is_workflows_path "$path"; then
         touches_vendor=true
     fi
 done < <(git diff --no-ext-diff --no-renames --name-only -z "$base" --)

@@ -1,0 +1,6 @@
+mamut-workflow describe
+mamut-workflow methods --catalog <file>
+mamut-workflow compile --catalog <file> --workflow <file>
+mamut-workflow validate --catalog <file> --workflow <file>
+mamut-workflow run --catalog <file> --workflow <file>
+mamut-workflow mcp --catalog <file>

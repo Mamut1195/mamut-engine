@@ -1,4 +1,4 @@
-# Modified by MAMPRO on 2026-10-14 for vendoring; see ../NOTICE.
+# Modified for mamut-engine vendoring: literal metadata, local README, no publishing; see ../NOTICE.
 [package]
 name = "mamut-canon"
 version = "0.1.0"

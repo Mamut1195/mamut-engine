@@ -304,6 +304,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "mamut-workflow-cli"
+version = "0.1.0"
+dependencies = [
+ "mamut-canon",
+ "mamut-workflow",
+ "mamut-workflow-execution",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "mamut-workflow-execution"
+version = "0.1.0"
+dependencies = [
+ "mamut-canon",
+ "mamut-workflow",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "memchr"
 version = "2.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

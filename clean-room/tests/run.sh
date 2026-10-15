@@ -57,19 +57,60 @@ new_repo trust; mkdir "$tmp/trust/clean-room"; : > "$tmp/trust/clean-room/forbid
 mkdir -p "$tmp/trust/OpenSees/OpenSees"; echo x > "$tmp/trust/OpenSees/OpenSees/a"; git -C "$tmp/trust" add clean-room OpenSees
 expect trust 1 bash "$src/check.sh" HEAD "$tmp/trust/rules"
 
+# Cada fixture tiene su propio verificador de base, con el hash de su distribución
+# inicial. Las mutaciones posteriores NO pueden actualizar esa ancla.
+pin_vendor_checker() {
+    local r="$tmp/$1" digest
+    digest=$(sha256sum "$r/vendor/mamut-workflows/MANIFEST.sha256")
+    sed "s/^EXPECTED_WORKFLOWS_MANIFEST_SHA256=.*/EXPECTED_WORKFLOWS_MANIFEST_SHA256=${digest%% *}/" \
+        "$src/check.sh" > "$r/base-check.sh"
+}
+vendor_manifest() {
+    (cd "$tmp/$1/vendor/mamut-workflows" &&
+        find . -type f ! -path './MANIFEST.sha256' -print0 |
+        sort -z | xargs -0 sha256sum > MANIFEST.sha256)
+}
 new_vendor() { # Distribución mínima válida; el identificador queda cubierto por SHA-256.
     new_repo "$1"
-    local v="$tmp/$1/vendor/mamut-workflows"
-    mkdir -p "$v"
+    local v="$tmp/$1/vendor/mamut-workflows" file
+    mkdir -p "$v/examples/open-local" "$tmp/$1/vendor/examples/open-local"
+    for file in catalog.json workflow.json; do
+        echo fixture > "$v/examples/open-local/$file"
+        cp "$v/examples/open-local/$file" "$tmp/$1/vendor/examples/open-local/$file"
+    done
     echo license > "$v/LICENSE"
-    echo 'upstream 4cb9ecd0e1117d86444149b17a6b34d1283d9455' > "$v/NOTICE"
+    echo 'upstream 1eeb91a1ca9128ad4a02ead2ab66b6b25aa08f3d' > "$v/NOTICE"
     echo 'x = geomTransf(1)' > "$v/payload.rs"
-    (cd "$v" && sha256sum ./LICENSE ./NOTICE ./payload.rs > MANIFEST.sha256)
+    vendor_manifest "$1"
     git -C "$tmp/$1" add vendor
+    pin_vendor_checker "$1"
 }
-vendor_expect() { expect "$1" "$2" bash "$src/check.sh" HEAD "$tmp/$1/rules"; }
+vendor_expect() {
+    local checker="$src/check.sh"
+    [[ ! -f "$tmp/$1/base-check.sh" ]] || checker="$tmp/$1/base-check.sh"
+    expect "$1" "$2" bash "$checker" HEAD "$tmp/$1/rules"
+}
 
 new_vendor vendor_ok; vendor_expect vendor_ok 0
+new_vendor vendor_external_fixture
+printf changed >> "$tmp/vendor_external_fixture/vendor/examples/open-local/catalog.json"
+vendor_expect vendor_external_fixture 1
+new_vendor vendor_external_only
+# Una modificación solo en el fixture externo también activa verify_workflows.
+git -C "$tmp/vendor_external_only" add vendor
+git -C "$tmp/vendor_external_only" commit -qm vendor
+printf changed >> "$tmp/vendor_external_only/vendor/examples/open-local/workflow.json"
+vendor_expect vendor_external_only 1
+new_vendor vendor_external_symlink
+mv "$tmp/vendor_external_symlink/vendor/examples" "$tmp/vendor_external_symlink/copy-examples"
+ln -s ../copy-examples "$tmp/vendor_external_symlink/vendor/examples"
+vendor_expect vendor_external_symlink 1
+# Ataque r31: payload cambiado y manifiesto coherente, pero distinto del ancla de base.
+new_vendor vendor_rehashed
+echo changed >> "$tmp/vendor_rehashed/vendor/mamut-workflows/payload.rs"
+vendor_manifest vendor_rehashed
+(cd "$tmp/vendor_rehashed/vendor/mamut-workflows" && sha256sum --check --strict MANIFEST.sha256 >/dev/null) || exit 1
+vendor_expect vendor_rehashed 1
 new_vendor vendor_edit; git -C "$tmp/vendor_edit" commit -qm vendor
 echo changed >> "$tmp/vendor_edit/vendor/mamut-workflows/payload.rs"
 vendor_expect vendor_edit 1
@@ -108,19 +149,29 @@ git -C "$tmp/vendor_root_symlink" add -A vendor
 vendor_expect vendor_root_symlink 1
 # Metadatos obligatorios aun si los hashes y el inventario coinciden.
 new_vendor vendor_no_commit
-(cd "$tmp/vendor_no_commit/vendor/mamut-workflows" && echo attribution > NOTICE && sha256sum ./LICENSE ./NOTICE ./payload.rs > MANIFEST.sha256)
+(cd "$tmp/vendor_no_commit/vendor/mamut-workflows" && echo attribution > NOTICE)
+vendor_manifest vendor_no_commit
+pin_vendor_checker vendor_no_commit
 vendor_expect vendor_no_commit 1
 new_vendor vendor_old_commit
-(cd "$tmp/vendor_old_commit/vendor/mamut-workflows" && echo 'upstream 5c4e75af21564edc1a3b900d565a2ab90447ac1c' > NOTICE && sha256sum ./LICENSE ./NOTICE ./payload.rs > MANIFEST.sha256)
+(cd "$tmp/vendor_old_commit/vendor/mamut-workflows" && echo 'upstream 4cb9ecd0e1117d86444149b17a6b34d1283d9455' > NOTICE)
+vendor_manifest vendor_old_commit
+pin_vendor_checker vendor_old_commit
 vendor_expect vendor_old_commit 1
 new_vendor vendor_short_commit
-(cd "$tmp/vendor_short_commit/vendor/mamut-workflows" && echo 'upstream 4cb9ecd' > NOTICE && sha256sum ./LICENSE ./NOTICE ./payload.rs > MANIFEST.sha256)
+(cd "$tmp/vendor_short_commit/vendor/mamut-workflows" && echo 'upstream 1eeb91a' > NOTICE)
+vendor_manifest vendor_short_commit
+pin_vendor_checker vendor_short_commit
 vendor_expect vendor_short_commit 1
 new_vendor vendor_readme
-(cd "$tmp/vendor_readme/vendor/mamut-workflows" && mv NOTICE README.md && sha256sum ./LICENSE ./README.md ./payload.rs > MANIFEST.sha256)
+(cd "$tmp/vendor_readme/vendor/mamut-workflows" && mv NOTICE README.md)
+vendor_manifest vendor_readme
+pin_vendor_checker vendor_readme
 vendor_expect vendor_readme 0
 new_vendor vendor_no_license
-(cd "$tmp/vendor_no_license/vendor/mamut-workflows" && rm LICENSE && sha256sum ./NOTICE ./payload.rs > MANIFEST.sha256)
+(cd "$tmp/vendor_no_license/vendor/mamut-workflows" && rm LICENSE)
+vendor_manifest vendor_no_license
+pin_vendor_checker vendor_no_license
 vendor_expect vendor_no_license 1
 # Nunca ejecutar el script del PR, aunque prometa validar la distribución.
 new_vendor vendor_untrusted_script

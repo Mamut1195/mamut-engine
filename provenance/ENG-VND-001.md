@@ -184,3 +184,158 @@ adaptados) y de LICENSE contra `git show 4cb9ecd:<ruta>`: idénticos. Solo
 cambian README.md, NOTICE (procedencia), MANIFEST.sha256 (por esos dos) y el
 commit exigido en `clean-room/check.sh` y sus pruebas. Edición documental hecha
 por J2 (sin Codex: no hay código nuevo).
+
+
+## Re-vendorizado a 1eeb91a · MAM-481 / MAM-493 (2026-10-15)
+
+- Fecha: 2026-10-15 (America/Guayaquil).
+- Autor: Codex gpt-6.1-sol high. Rol: implementador.
+- Rama: `j2/eng-vnd-001-wf-1eeb91a`, ya creada y limpia al comenzar,
+  desde `c290b10984b9f7d929e4bca4c17e6481fe4a670a` (origin/main).
+- Origen: `1eeb91a1ca9128ad4a02ead2ab66b6b25aa08f3d`, commit de main de
+  mamut-workflows, PR #6 y #7; SDK-WF-012 / MAM-493, puntos de extensión CLI
+  requeridos por SFC-002. Este es el origen vigente de la distribución.
+- Historia: `5c4e75a → 585f32d → 4cb9ecd → 1eeb91a`; los SHA completos y
+  decisiones previas se conservan en las entradas históricas y README/NOTICE.
+- Fuente local `/workspace/mamut-workflows`, solo lectura. Cada copia se obtiene
+  **siempre** de `git -C /workspace/mamut-workflows show 1eeb91a:<ruta>`;
+  no se usa el árbol de trabajo. Estado upstream limpio antes y después.
+- Licencia: Apache-2.0; LICENSE idéntico al blob del commit fijado.
+- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+- Sin red, sin commit ni push en el Engine. No se modifican `crates/`, bindings
+  ni `.github/`. Revisión del dueño clean-room/vendor: PENDIENTE (Jonathan).
+
+Se incluyen íntegramente `mamut-canon`, `mamut-workflow`,
+`mamut-workflow-execution` y `mamut-workflow-cli`, con todos sus archivos,
+README propio, tests y snapshots. Los cuatro son members/default-members.
+Se excluyen deliberadamente `mamut-workflow-run` (binario/fachada) y
+`mamut-tool-conformance` (herramienta de conformidad), ajenos a este alcance
+bibliotecario y sin ser dependencias de los cuatro incluidos.
+
+Únicas modificaciones respecto a upstream: los cuatro Cargo.toml. Se usan
+literales version 0.1.0, edition 2021, license Apache-2.0, rust-version 1.83 y
+repository https://github.com/Mamut1195/mamut-workflows; se fija
+readme="../README.md", publish=false y un comentario de modificación.
+Las dependencias internas ya son path entre hermanos, sin cambios.
+Se comparó el TOML parseado de cada manifiesto contra upstream sustituyendo
+únicamente esos campos: todos los demás campos y dependencias son idénticos.
+Cargo.lock se actualizó mediante `cargo check --workspace --offline`:
+solo añade los dos paquetes locales, sin cambiar dependencias externas.
+Toda la caché necesaria estaba disponible.
+
+No se excluyen tests ni se parchea Rust. `tests/extensions.rs` de la CLI usa
+rutas literales hacia `examples/open-local/{catalog,workflow}.json` de la raíz
+upstream. Se copian ambos blobs a `vendor/mamut-workflows/examples/open-local/`,
+cubiertos por el manifiesto, y a `vendor/examples/open-local/`, donde resuelven
+las rutas originales. Ambos verificadores comparan esas copias con los blobs
+cubiertos por el ancla y rechazan enlaces en sus rutas. Los cambios solo en
+`vendor/examples/` también activan verify_workflows; no se amplía la excepción
+al escaneo de identificadores. No se necesita el binario mamut-workflow.
+MAM-490 no reproducido: los tests nuevos usan CARGO_TARGET_TMPDIR, y se
+verifican con CARGO_TARGET_DIR fuera del árbol.
+
+Se actualizan README/NOTICE y el inventario completo (46 archivos), además de
+scripts/check-vendor.sh, que exige PINNED_COMMIT completo en ambos documentos.
+J4 r31: clean-room/check.sh fija el SHA-256 del propio MANIFEST.sha256 en
+EXPECTED_WORKFLOWS_MANIFEST_SHA256:
+`214b71529137733aa14babaefa3eac67365f94bd986407ea7e7218bf68174c68`.
+Se conservan inventario físico, ausencia de enlaces, rutas canónicas, hashes
+estrictos, commit completo y LICENSE. El ancla debe revisarse en el validador
+confiable de la base; el resultado local del script del árbol no constituye
+aprobación del cambio por el dueño.
+
+Las pruebas clean-room usan distribuciones sintéticas con un verificador de
+base que fija su manifiesto inicial, sin actualizarlo tras mutaciones. Se
+comprueba que un payload alterado con manifiesto regenerado y hashes coherentes
+falla. Los casos de commit anterior/abreviado/ausente fijan expresamente el
+manifiesto sintético correspondiente para comprobar también el rechazo por
+metadatos de forma independiente. Se añaden casos de fixture externo alterado,
+cambio solo externo y directorio enlazado. Continúan pasando los controles de
+inventario, rutas, enlaces, licencia y scripts no confiables.
+
+### Comparación verbatim, archivo por archivo
+
+Se obtiene cada blob con `git -C /workspace/mamut-workflows show 1eeb91a:<ruta>`
+a un archivo temporal bajo /tmp y se ejecuta `cmp -- <temporal> <destino>`.
+La tabla registra el código de salida real de cada comparación: **42 archivos
+idénticos**, incluidos los dos fixtures duplicados. También se comparó el
+inventario de cada crate contra `git ls-tree -r --name-only 1eeb91a`: sin
+archivos omitidos ni extras. Los cuatro Cargo.toml son las únicas excepciones
+verificadas arriba; ningún archivo Rust se reformateó.
+
+| Ruta upstream en 1eeb91a | Destino en el Engine | cmp |
+| --- | --- | --- |
+| `crates/mamut-canon/src/lib.rs` | `vendor/mamut-workflows/mamut-canon/src/lib.rs` | 0 |
+| `crates/mamut-workflow/src/catalog.rs` | `vendor/mamut-workflows/mamut-workflow/src/catalog.rs` | 0 |
+| `crates/mamut-workflow/src/compiler.rs` | `vendor/mamut-workflows/mamut-workflow/src/compiler.rs` | 0 |
+| `crates/mamut-workflow/src/contract.rs` | `vendor/mamut-workflows/mamut-workflow/src/contract.rs` | 0 |
+| `crates/mamut-workflow/src/descriptor.rs` | `vendor/mamut-workflows/mamut-workflow/src/descriptor.rs` | 0 |
+| `crates/mamut-workflow/src/error.rs` | `vendor/mamut-workflows/mamut-workflow/src/error.rs` | 0 |
+| `crates/mamut-workflow/src/lib.rs` | `vendor/mamut-workflows/mamut-workflow/src/lib.rs` | 0 |
+| `crates/mamut-workflow/src/registry.rs` | `vendor/mamut-workflows/mamut-workflow/src/registry.rs` | 0 |
+| `crates/mamut-workflow/src/workflow.rs` | `vendor/mamut-workflows/mamut-workflow/src/workflow.rs` | 0 |
+| `crates/mamut-workflow/tests/two_step.rs` | `vendor/mamut-workflows/mamut-workflow/tests/two_step.rs` | 0 |
+| `crates/mamut-workflow-execution/src/cli_run.rs` | `vendor/mamut-workflows/mamut-workflow-execution/src/cli_run.rs` | 0 |
+| `crates/mamut-workflow-execution/src/executor.rs` | `vendor/mamut-workflows/mamut-workflow-execution/src/executor.rs` | 0 |
+| `crates/mamut-workflow-execution/src/exit_codes.rs` | `vendor/mamut-workflows/mamut-workflow-execution/src/exit_codes.rs` | 0 |
+| `crates/mamut-workflow-execution/src/lib.rs` | `vendor/mamut-workflows/mamut-workflow-execution/src/lib.rs` | 0 |
+| `crates/mamut-workflow-execution/src/manifest.rs` | `vendor/mamut-workflows/mamut-workflow-execution/src/manifest.rs` | 0 |
+| `crates/mamut-workflow-execution/src/mcp.rs` | `vendor/mamut-workflows/mamut-workflow-execution/src/mcp.rs` | 0 |
+| `crates/mamut-workflow-execution/src/method.rs` | `vendor/mamut-workflows/mamut-workflow-execution/src/method.rs` | 0 |
+| `crates/mamut-workflow-execution/src/observe.rs` | `vendor/mamut-workflows/mamut-workflow-execution/src/observe.rs` | 0 |
+| `crates/mamut-workflow-execution/src/registered.rs` | `vendor/mamut-workflows/mamut-workflow-execution/src/registered.rs` | 0 |
+| `crates/mamut-workflow-execution/src/tests.rs` | `vendor/mamut-workflows/mamut-workflow-execution/src/tests.rs` | 0 |
+| `crates/mamut-workflow-cli/README.md` | `vendor/mamut-workflows/mamut-workflow-cli/README.md` | 0 |
+| `crates/mamut-workflow-cli/src/config.rs` | `vendor/mamut-workflows/mamut-workflow-cli/src/config.rs` | 0 |
+| `crates/mamut-workflow-cli/src/lib.rs` | `vendor/mamut-workflows/mamut-workflow-cli/src/lib.rs` | 0 |
+| `crates/mamut-workflow-cli/src/parser.rs` | `vendor/mamut-workflows/mamut-workflow-cli/src/parser.rs` | 0 |
+| `crates/mamut-workflow-cli/tests/extensions.rs` | `vendor/mamut-workflows/mamut-workflow-cli/tests/extensions.rs` | 0 |
+| `crates/mamut-workflow-cli/tests/fixtures/compile.txt` | `vendor/mamut-workflows/mamut-workflow-cli/tests/fixtures/compile.txt` | 0 |
+| `crates/mamut-workflow-cli/tests/fixtures/describe.txt` | `vendor/mamut-workflows/mamut-workflow-cli/tests/fixtures/describe.txt` | 0 |
+| `crates/mamut-workflow-cli/tests/fixtures/help.txt` | `vendor/mamut-workflows/mamut-workflow-cli/tests/fixtures/help.txt` | 0 |
+| `crates/mamut-workflow-cli/tests/fixtures/methods.txt` | `vendor/mamut-workflows/mamut-workflow-cli/tests/fixtures/methods.txt` | 0 |
+| `crates/mamut-workflow-cli/tests/fixtures/missing.txt` | `vendor/mamut-workflows/mamut-workflow-cli/tests/fixtures/missing.txt` | 0 |
+| `crates/mamut-workflow-cli/tests/fixtures/run-document.txt` | `vendor/mamut-workflows/mamut-workflow-cli/tests/fixtures/run-document.txt` | 0 |
+| `crates/mamut-workflow-cli/tests/fixtures/run-method.txt` | `vendor/mamut-workflows/mamut-workflow-cli/tests/fixtures/run-method.txt` | 0 |
+| `crates/mamut-workflow-cli/tests/fixtures/run-usage.txt` | `vendor/mamut-workflows/mamut-workflow-cli/tests/fixtures/run-usage.txt` | 0 |
+| `crates/mamut-workflow-cli/tests/fixtures/run-validation.txt` | `vendor/mamut-workflows/mamut-workflow-cli/tests/fixtures/run-validation.txt` | 0 |
+| `crates/mamut-workflow-cli/tests/fixtures/run.txt` | `vendor/mamut-workflows/mamut-workflow-cli/tests/fixtures/run.txt` | 0 |
+| `crates/mamut-workflow-cli/tests/fixtures/unknown.txt` | `vendor/mamut-workflows/mamut-workflow-cli/tests/fixtures/unknown.txt` | 0 |
+| `crates/mamut-workflow-cli/tests/fixtures/validate.txt` | `vendor/mamut-workflows/mamut-workflow-cli/tests/fixtures/validate.txt` | 0 |
+| `LICENSE` | `vendor/mamut-workflows/LICENSE` | 0 |
+| `examples/open-local/catalog.json` | `vendor/mamut-workflows/examples/open-local/catalog.json` | 0 |
+| `examples/open-local/catalog.json` | `vendor/examples/open-local/catalog.json` | 0 |
+| `examples/open-local/workflow.json` | `vendor/mamut-workflows/examples/open-local/workflow.json` | 0 |
+| `examples/open-local/workflow.json` | `vendor/examples/open-local/workflow.json` | 0 |
+
+### Resultados de verificación offline
+
+Toolchain local Rust/cargo 1.99.0; PATH=/home/box/.cargo/bin:$PATH,
+CARGO_NET_OFFLINE=true, CARGO_TARGET_DIR=/tmp/eng-vnd2-target.
+El target wasm32-unknown-unknown está instalado. Todos los comandos Cargo que
+resuelven dependencias se ejecutan con --offline; sin descargas ni dependencias
+faltantes. Logs de esta sesión: /tmp/eng-vnd2-*.log (no se incorporan al repo).
+
+- `cargo fmt --check` y `cargo fmt --all -- --check`: OK. Sin exclusiones.
+- `cargo clippy --workspace --all-targets --offline -- -D warnings`: OK.
+- `cargo test --workspace --offline`: OK, 597 tests, 0 fallos/ignorados,
+  incluidos doctests. Vendor: canon 7, workflow 6 + two_step 5, execution 10,
+  CLI 1 + extensions 16 + doctest 1 (46 en total).
+- `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace --offline`: OK.
+- `bash scripts/check-vendor.sh`: OK, inventario de 46 archivos, hashes,
+  commit y copias externas de fixtures.
+- `bash clean-room/tests/run.sh`: OK, 41 pruebas, 0 fallos.
+- `bash clean-room/check.sh origin/main`: OK. Ejecutado expresamente con
+  el check.sh del árbol modificado, contra origin/main=c290b10, como solicitado;
+  no con la versión previa del validador obtenida de la base.
+- `cargo check --workspace --target wasm32-unknown-unknown --offline`: OK.
+- `cargo metadata --offline --locked --no-deps --format-version 1`: OK;
+  cuatro members/default-members, publish=false, metadatos y readme local.
+- Determinismo: `cargo build --offline -p engine-api --example determinism_wasm
+  --target wasm32-unknown-unknown`, `cargo run --offline -p engine-api
+  --example determinism_native` y `node scripts/check-determinism.mjs
+  /tmp/eng-vnd2-target/wasm32-unknown-unknown/debug/examples/determinism_wasm.wasm
+  /tmp/eng-vnd2-native.txt`: OK, 16 casos, diez corridas por caso,
+  SHA-256 idénticos entre nativo y wasm (perfil debug).
+- `bash -n clean-room/check.sh clean-room/tests/run.sh scripts/check-vendor.sh`
+  y `git diff --check`: OK.

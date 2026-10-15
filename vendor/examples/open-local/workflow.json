@@ -1,0 +1,14 @@
+{
+  "profile": "example.v1",
+  "version": 1,
+  "steps": [
+    {
+      "capability_slot": "only",
+      "method_id": "sample",
+      "method_version": 1,
+      "parameters": {
+        "n": 2.0
+      }
+    }
+  ]
+}

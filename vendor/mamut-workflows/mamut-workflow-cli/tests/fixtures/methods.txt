@@ -1,0 +1,1 @@
+[{"method_id":"sample","method_version":1,"capability_slot":"only","dimensions":{"inputs":[{"name":"in","dimension":"1","unit":"1"}],"outputs":[{"name":"out","dimension":"1","unit":"1"}]},"consumes":["urn:mamut:example:sample:1.0.0"],"produces":["urn:mamut:example:sample:1.0.0"],"parameters":[{"name":"n","required":true,"dimension":"1","unit":"1"}]}]

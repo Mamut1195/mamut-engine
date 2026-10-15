@@ -1,0 +1,1 @@
+{"engineId":"mamut-workflow","engineVersion":"0.1.0","error":{"code":"WF-E-0005","message":"Method execution failed without a semantic classification"},"exitCode":5,"operation":"run","outcome":"unknown","type":"result"}

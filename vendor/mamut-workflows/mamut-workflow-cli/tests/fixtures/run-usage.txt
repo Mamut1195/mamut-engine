@@ -1,0 +1,1 @@
+{"engineId":"mamut-workflow","engineVersion":"0.1.0","error":{"code":"WF-E-0002","message":"Invalid command or arguments"},"exitCode":2,"operation":"run","outcome":"usage","type":"result"}

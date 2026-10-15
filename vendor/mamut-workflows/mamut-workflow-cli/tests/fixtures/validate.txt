@@ -1,0 +1,1 @@
+{"profile":"example.v1","steps":[{"capability_slot":"only","index":0,"method_id":"sample","method_version":1}],"valid":true,"version":1}

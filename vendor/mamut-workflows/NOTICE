@@ -1,37 +1,59 @@
-Mamut Workflows — mamut-canon (SDK-WF-002) and mamut-workflow (SDK-WF-003)
+Mamut Workflows — mamut-canon, mamut-workflow, mamut-workflow-execution,
+and mamut-workflow-cli (SDK-WF-012 / MAM-493).
 Copyright 2026 Mamut1195 / MAMPRO SAS.
 Licensed under the Apache License, Version 2.0 (Apache-2.0); see LICENSE.
-The upstream LICENSE also retains its original "Copyright 2026 MAMUT" notice.
+The upstream LICENSE retains its original "Copyright 2026 MAMUT" notice.
 
 Origin: https://github.com/Mamut1195/mamut-workflows
-Source: main commit 4cb9ecd0e1117d86444149b17a6b34d1283d9455
+Source: main commit 1eeb91a1ca9128ad4a02ead2ab66b6b25aa08f3d (PR #6 and #7)
 Declared version: 0.1.0
 The v0.1.0 tag does NOT identify this commit; it points to
-5c4e75af21564edc1a3b900d565a2ab90447ac1c. That tag emits jcs-rfc8785 instead
-of the contract-required rfc8785-jcs and its manifest does not conform to
-execution-manifest/1. The pinned commit corrects both upstream issues.
-Vendored into mamut-engine on 2026-10-14 (ENG-VND-001).
-History: initially pinned to 5c4e75af21564edc1a3b900d565a2ab90447ac1c;
-repinned to 585f32dc3455208566a0ffb894ad03ce3816b888 by J0/Jonathan's decision
-on 2026-10-14 for these contract corrections. Within the two included crates,
-only mamut-canon/src/lib.rs changed, copied verbatim via git show; LICENSE
-is unchanged. Repinned again to 4cb9ecd0e1117d86444149b17a6b34d1283d9455
-(main, PR #5: VPS CI and MAM-490 fix) on 2026-10-14; the vendored library
-files and LICENSE are byte-identical to 585f32d. Upstream's manifest emitter is outside these two vendored crates.
-Upstream does not supply a NOTICE; this file was written for this distribution.
+5c4e75af21564edc1a3b900d565a2ab90447ac1c.
+Re-vendored into mamut-engine on 2026-10-15 (MAM-481 / ENG-VND-001).
+History:
+5c4e75af21564edc1a3b900d565a2ab90447ac1c ->
+585f32dc3455208566a0ffb894ad03ce3816b888 ->
+4cb9ecd0e1117d86444149b17a6b34d1283d9455 ->
+1eeb91a1ca9128ad4a02ead2ab66b6b25aa08f3d.
+585f32d corrected the canonicalization identifier and execution-manifest/1;
+4cb9ecd retained the same two library crates and LICENSE. The current pin
+adds the shared execution and reusable CLI libraries, including extension
+points needed by SFC-002. All files come from git show of the pinned commit
+in the read-only /workspace/mamut-workflows repository, not its working tree.
+Upstream does not supply a NOTICE; this file is a distribution addition.
 
-Files modified relative to upstream (paths relative to this directory):
+Files modified relative to upstream (relative to this directory):
 - mamut-canon/Cargo.toml
 - mamut-workflow/Cargo.toml
+- mamut-workflow-execution/Cargo.toml
+- mamut-workflow-cli/Cargo.toml
 
-Changes: replace inherited workspace package metadata with pinned-commit literals
+Changes: replace inherited workspace metadata with pinned-commit literals
 (version 0.1.0, edition 2021, license Apache-2.0, rust-version 1.83,
-repository https://github.com/Mamut1195/mamut-workflows), point readme to
-../README.md, set publish = false, and add a modification notice comment.
-No dependency between these two crates exists at this upstream commit.
-All Rust source and test files are copied verbatim; no logic changes.
+repository https://github.com/Mamut1195/mamut-workflows), set
+readme = "../README.md", publish = false, and add a modification comment.
+Internal dependencies already use sibling paths; they remain unchanged.
+All Rust source, tests, snapshots and mamut-workflow-cli/README.md are verbatim.
+No logic changes, test exclusions, formatting exclusions or Clippy exceptions.
+
+External test fixtures: tests/extensions.rs uses upstream root
+examples/open-local/catalog.json and workflow.json. Exact copies are included
+under examples/open-local/ in this distribution and covered by MANIFEST.sha256.
+The unchanged test paths resolve to vendor/examples/open-local/ in the Engine;
+those two extra verbatim copies are checked against the manifested originals
+by scripts/check-vendor.sh and the trusted inline clean-room verifier. Linked
+fixture paths are rejected. No binary or other external fixture is needed;
+all integration tests remain enabled. Tests use CARGO_TARGET_TMPDIR, so no
+MAM-490 ../../target workaround is applied.
+
+Excluded crates: mamut-workflow-run (upstream binary/compatibility facade) and
+mamut-tool-conformance (conformance tool) are outside the requested library
+scope and are not dependencies of the four included crates.
 
 Distribution additions: NOTICE, README.md, MANIFEST.sha256. LICENSE is an exact
-copy of the upstream root LICENSE. Engine integration and verification live
-outside this directory (root Cargo.toml/Cargo.lock, scripts/check-vendor.sh,
-provenance/ENG-VND-001.md).
+copy of the upstream root LICENSE. The two examples are copied verbatim from
+upstream, with the duplicate paths described above. Engine integration and
+verification live outside this directory (root Cargo.toml/Cargo.lock,
+scripts/check-vendor.sh, clean-room/check.sh, clean-room/tests/run.sh,
+provenance/ENG-VND-001.md). The trusted base check pins the SHA-256 of
+MANIFEST.sha256 itself (J4 r31), in addition to inventory and content checks.

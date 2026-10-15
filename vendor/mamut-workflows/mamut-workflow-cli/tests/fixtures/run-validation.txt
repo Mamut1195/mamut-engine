@@ -1,0 +1,1 @@
+{"engineId":"mamut-workflow","engineVersion":"0.1.0","error":{"code":"WF-E-0004","message":"Workflow does not match the catalog"},"exitCode":4,"operation":"run","outcome":"invalid_input","type":"result"}

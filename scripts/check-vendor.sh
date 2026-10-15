@@ -2,6 +2,7 @@
 # ENG-VND-001: verify the complete vendored file inventory and SHA-256 hashes.
 set -euo pipefail
 export LC_ALL=C
+PINNED_COMMIT=1eeb91a1ca9128ad4a02ead2ab66b6b25aa08f3d
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 cd -- "$script_dir/../vendor/mamut-workflows"
@@ -19,4 +20,15 @@ if [[ ! -s "$scratch/expected" ]]; then
 fi
 diff -u "$scratch/expected" "$scratch/actual"
 sha256sum --check --strict MANIFEST.sha256
+for file in README.md NOTICE; do
+    grep -Fq -- "$PINNED_COMMIT" "$file" || {
+        printf 'Vendor: pinned commit missing from %s\n' "$file" >&2
+        exit 1
+    }
+done
+[[ ! -L ../examples && ! -L ../examples/open-local ]]
+for file in catalog.json workflow.json; do
+    [[ -f "../examples/open-local/$file" && ! -L "../examples/open-local/$file" ]]
+    cmp -- "examples/open-local/$file" "../examples/open-local/$file"
+done
 printf 'Vendor: OK\n'

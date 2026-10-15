@@ -1,0 +1,17 @@
+# Modified for mamut-engine vendoring: literal metadata, local README, no publishing; see ../NOTICE.
+[package]
+name = "mamut-workflow-execution"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+rust-version = "1.83"
+repository = "https://github.com/Mamut1195/mamut-workflows"
+description = "Shared execution implementation for the CLI and compatibility facade."
+readme = "../README.md"
+publish = false
+
+[dependencies]
+mamut-canon = { path = "../mamut-canon" }
+mamut-workflow = { path = "../mamut-workflow" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
