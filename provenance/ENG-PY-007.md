@@ -186,3 +186,138 @@ herramientas y plataforma locales indicadas, sin afirmar igualdad entre
 toolchains distintas. Sin cambios de licencia ni nuevos textos legales;
 sin cambios en `docs/CLEAN_ROOM.md`, `.github/**`, `clean-room/**` o `vendor/**`.
 Sin red, publicación ni push.
+
+## J4 r39 — Más rutas locales en el chequeo de portabilidad (#121)
+
+Seguimiento MAM-85 / ENG-PY-007-FU, 2026-10-15, rama
+`j2/eng-py-007-fu` basada en `origin/main`. Se amplía el patrón de bytes
+compartido por `check_portable` y `check_wheel_portable` para rechazar
+`/opt`, `/Users`, `/var`, UNC con contrabarras (`\\servidor\recurso`)
+o barras (`//servidor/recurso`) y `~/`. El script Bash ya aplica ese
+chequeo a ambos builds y a la generación de artefactos; no requiere
+duplicar el patrón. Se conservan los rechazos de `file://` y `path+`.
+
+El límite izquierdo de UNC excluye los separadores de esquema de URLs
+como `https://` y `http://`. Se exige un nombre de servidor con letras,
+dígitos, guiones, puntos o guiones bajos: una alternativa inicial más
+permisiva coincidía con instrucciones de `_native.abi3.so`, no con una
+ruta. El patrón final pasa sobre todos los miembros de la wheel real,
+sin decodificar binarios ni omitir bytes. Se mantienen los límites de
+palabra de los directorios para admitir `optional`, `UsersGuide` y `variant`.
+
+Las **18 pruebas de artefactos** pasan. Hay una regresión individual por
+cada una de las seis formas nuevas, con valores recursivos de texto y
+bytes no UTF-8/NUL, y otra para referencias Cargo `path+file:///build/…`
+en los campos `purl` y `bom-ref`. La matriz ZIP se amplía a **84 casos**
+(14 patrones por seis miembros), incluidos METADATA, RECORD, SBOM anidado,
+otro miembro de dist-info, `.so` y datos. También se rechazan nombres de
+miembro con las seis formas nuevas y se aceptan URLs, referencias portables
+y la secuencia binaria que produjo la coincidencia espuria. Antes de
+ampliar el patrón, las nuevas regresiones produjeron 48 fallos esperados.
+
+Verificación offline con `CARGO_TARGET_DIR=/workspace/.cargo-target/mamut-engine`
+exportado, Rust 1.99.0 instalado, maturin 1.15.0 y CPython 3.13.5 en Linux x64:
+
+| Comprobación | Resultado |
+| --- | --- |
+| `cargo fmt --all -- --check` | OK |
+| `cargo clippy --offline --locked --workspace --all-targets -- -D warnings` | OK |
+| `cargo test --offline --locked --workspace --no-fail-fast` | OK; 569 pruebas/doctests, 0 fallidos, 0 ignorados |
+| `RUSTDOCFLAGS="-D warnings" cargo doc --offline --locked --no-deps --workspace` | OK |
+| `cargo check --offline --locked --workspace --target wasm32-unknown-unknown` | OK |
+| `bash -n scripts/build-python-wheel.sh` | OK |
+| Pruebas de artefactos, también dentro del script completo | OK; 18 pruebas |
+| Script completo: dos builds independientes, chequeos ZIP, venv y binding | OK; llamada nativa y prueba del binding |
+| `sha256sum --check SHA256SUMS` | OK para wheel y todos los artefactos |
+| `bash clean-room/check.sh origin/main` | OK |
+| `git diff --cached --check` | OK |
+
+Wheel `mamut_engine-0.1.0-cp310-abi3-manylinux_2_34_x86_64.whl`;
+los dos builds independientes producen el mismo SHA-256:
+`3ab15573289adb3dd3109c9cbf0d1f2d51705b820bbd2fa5fe0db5cd6470841f`.
+Artefactos locales en `/tmp/eng-py-007-r39-dist/`; registros
+`/tmp/eng-py-007-r39-{wheel,artifacts,fmt,clippy,test,doc,wasm}.log`
+y `/tmp/eng-py-007-r39-regressions-before.log`.
+Se conserva el alcance local de reproducibilidad descrito en r37.
+Sin cambios de licencias ni en `docs/CLEAN_ROOM.md`, `.github/**`,
+`clean-room/**` o `vendor/**`. Sin red, publicación ni push.
+
+## J4 r4x — `~/` en contexto textual binario y `path+` aislado (#121)
+
+Seguimiento MAM-85 / PR #124, 2026-10-15, rama `j2/eng-py-007-fu`.
+El patrón estricto de texto confundía los bytes `7e 2f` del `.so` real de
+#119 con una ruta. Se conserva ese patrón para valores Python `str` y para
+contenido UTF-8 válido sin NUL, independientemente de la extensión del miembro.
+Se consideran binarios los bytes que contienen NUL o UTF-8 inválido; se
+inspeccionan completos, sin descartar bytes ni usar decodificación con pérdida.
+
+En binarios, **solo `~/`** exige ahora estas condiciones simultáneas:
+
+- Izquierda: inicio de datos, espacio ASCII, comilla simple/doble, `=` o `:`,
+  o un byte fuera del intervalo ASCII imprimible `0x20..0x7e`.
+- Después de `~/`: una secuencia de **al menos dos** bytes de
+  `[A-Za-z0-9._/-]`.
+- Esa secuencia debe terminar en fin de datos, NUL, espacio, tabulador, CR,
+  LF, comilla simple/doble o uno de `= : ; , ( ) [ ] { }`.
+
+El delimitador derecho evita otra coincidencia real de #119: `~/xs` seguido
+de `0xc8`, en los offsets 238255 y 270823. Exigir solo dos caracteres de ruta
+no bastaba. Los demás patrones mantienen sus límites y rechazo estricto;
+no necesitaron relajarse para que pasara la wheel real.
+
+Las **23 pruebas** de `python3 -m unittest discover -s scripts/tests` pasan.
+Las regresiones incluyen las ventanas reales de 32 bytes `[96871:96903]` y
+`[238239:238271]` de `mamut_engine/_native.abi3.so`, incrustadas en hex en el
+test, sin añadir binarios. La primera contiene `~/` en 96887 seguido de dos
+NUL; el chequeo anterior rechaza esa ventana en el byte relativo 16.
+Ambas pasan ahora, tanto directamente como dentro de una wheel sintética.
+`b"\x00~/secreto/x\x00"` en un `.so` sintético sigue fallando en el byte 1.
+También se cubren los límites izquierdos/derechos, el mínimo de dos bytes
+y el rechazo estricto en texto. Los casos `path+/ruta/local` y `path+C:\x`
+fallan por `path+` sin `file://` ni otro patrón que pueda ocultar su ausencia;
+se incluyen en la matriz ZIP ampliada a **96 combinaciones**.
+
+Se ejecutó el script propio de `/workspace/me-geo6`, detached en
+`ffb8a6775d3660cd1d3f9fe6334ac430221e7d8b` (#119), sin modificar ni hacer
+commit en ese worktree. **Limitación del entorno:** el intento con
+`CARGO_TARGET_DIR=/workspace/.cargo-target/me-geo6` exportado falló antes de
+compilar: `mktemp: Read-only file system`. Ese directorio queda fuera de las
+raíces permitidas por el sandbox. Para completar la comprobación se repitió
+el mismo script, sin cambios, con
+`CARGO_TARGET_DIR=/tmp/eng-py-007-r4x-me-geo6-target` exportado y salida
+`/tmp/eng-py-007-r4x-geo6-dist/`. El script completo pasó: dos builds con SHA
+idéntica y 12 pruebas del binding instalado. La wheel tiene SHA-256
+`0841090a11bc0030644bdd95188bcbe19b1b6089f1f96d25ee4095e6a80bc0e2`.
+
+Sobre esa wheel se importó directamente
+`/workspace/mamut-engine/scripts/python-wheel-artifacts.py` de **esta rama**
+y se ejecutó `check_wheel_portable`: **OK en los 9 miembros**, incluido el
+`.so` de 2016360 bytes. Se extrajeron de esa build las dos ventanas y se
+comprobó su igualdad exacta con las fixtures. El worktree de #119 siguió limpio.
+
+Verificación de esta rama, offline, con Rust 1.99.0 local, maturin 1.15.0,
+CPython 3.13.5 y `CARGO_TARGET_DIR=/workspace/.cargo-target/mamut-engine` exportado:
+
+| Comprobación | Resultado |
+| --- | --- |
+| `cargo fmt --all -- --check` | OK |
+| `cargo clippy --offline --locked --workspace --all-targets -- -D warnings` | OK |
+| `cargo test --offline --locked --workspace --no-fail-fast` | OK; 569 pruebas/doctests, 0 fallidos, 0 ignorados |
+| `RUSTDOCFLAGS="-D warnings" cargo doc --offline --locked --no-deps --workspace` | OK |
+| `cargo check --offline --locked --workspace --target wasm32-unknown-unknown` | OK |
+| `bash -n scripts/build-python-wheel.sh` | OK |
+| `python3 -m unittest discover -s scripts/tests` | OK; 23 pruebas |
+| Script completo con la regla final: dos builds independientes, ZIP, venv y binding | OK |
+| `sha256sum --check SHA256SUMS`, ambas salidas | OK |
+| `bash clean-room/check.sh origin/main` | OK |
+| `git diff --cached --check` | OK |
+
+Wheel de esta rama: `mamut_engine-0.1.0-cp310-abi3-manylinux_2_34_x86_64.whl`;
+SHA-256 idéntica en los dos builds independientes:
+`3ab15573289adb3dd3109c9cbf0d1f2d51705b820bbd2fa5fe0db5cd6470841f`.
+Salida final: `/tmp/eng-py-007-r4x-dist-final/`. Registros:
+`/tmp/eng-py-007-r4x-{wheel-final,artifacts,fmt,clippy,test,doc,wasm,clean-room}.log`
+y `/tmp/eng-py-007-r4x-geo6-{wheel,cross-check}.log`.
+Se conserva el alcance local de reproducibilidad descrito en r37.
+Sin red, cambios de licencias ni cambios en `docs/CLEAN_ROOM.md`, `.github/**`,
+`clean-room/**` o `vendor/**`. Sin publicación ni push; solo el commit local.

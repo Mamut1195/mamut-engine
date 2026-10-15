@@ -1,4 +1,4 @@
-"""Regresiones de portabilidad y selección del SBOM (issue #94)."""
+"""Regresiones de portabilidad y selección del SBOM (issues #94 y #121)."""
 import copy
 from contextlib import redirect_stdout
 import importlib.util
@@ -52,6 +52,45 @@ class SbomTest(unittest.TestCase):
 
     def test_accept_portable_refs_and_contracts(self):
         artifacts.check_portable({"bom-ref": "pkg:cargo/pyo3@0.25.1", "contracts": ["engine-input/1", "results/1"]})
+
+    def assert_reject_path(self, path):
+        # La variante binaria evita que el chequeo adicional de strings oculte
+        # un hueco del patrón de bytes que inspecciona la wheel.
+        for value in ("prefix=" + path, b"\xff\x00prefix=" + path.encode() + b"\x00\xfe"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                artifacts.check_portable({"components": [{"bom-ref": value}]})
+
+    def test_reject_opt_path(self):
+        self.assert_reject_path("/opt/build")
+
+    def test_reject_users_path(self):
+        self.assert_reject_path("/Users/builder/repo")
+
+    def test_reject_var_path(self):
+        self.assert_reject_path("/var/build")
+
+    def test_reject_unc_backslash_path(self):
+        self.assert_reject_path(r"\\servidor\recurso")
+
+    def test_reject_unc_slash_path(self):
+        self.assert_reject_path("//servidor/recurso")
+
+    def test_reject_home_relative_path(self):
+        self.assert_reject_path("~/build")
+
+    def test_reject_cargo_path_refs(self):
+        for key in ("purl", "bom-ref"):
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                artifacts.check_portable({"components": [{key: "path+file:///build/repo#engine@0.1.0"}]})
+
+    def test_reject_path_plus_without_file_url(self):
+        # Ningún otro patrón debe ocultar la ausencia accidental de path+:
+        # /ruta no es un prefijo vigilado; la unidad C: va precedida de '+'.
+        for path in ("path+/ruta/local", r"path+C:\x"):
+            self.assert_reject_path(path)
+            for pattern in (artifacts.SYSTEM_PATH, artifacts.BINARY_SYSTEM_PATH):
+                with self.subTest(path=path, pattern=pattern):
+                    self.assertEqual(pattern.search(path.encode()).group(), b"path+")
 
     def test_reject_identity_collision(self):
         metadata = self.metadata("/tmp/repo")
@@ -175,7 +214,10 @@ class WheelPortabilityTest(unittest.TestCase):
                    "pkg-0.1.dist-info/sboms/pkg.cyclonedx.json",
                    "pkg-0.1.dist-info/other/nested", "pkg/_native.abi3.so", "pkg/data")
         paths = (b"/workspace/repo", b"/home/user", b"/tmp/build", b"/root/.cargo",
-                 b"file:///build", b"path+file:///workspace/repo", b"C:\\Users\\build", b"D:/build")
+                 b"file:///build", b"path+file:///build/repo", b"C:\\Users\\build", b"D:/build",
+                 b"/opt/build", b"/Users/builder/repo", b"/var/build",
+                 rb"\\servidor\recurso", b"//servidor/recurso", b"~/build",
+                 b"path+/ruta/local", rb"path+C:\x")
         with tempfile.TemporaryDirectory() as directory:
             wheel = Path(directory) / "synthetic.whl"
             for member in members:
@@ -188,20 +230,83 @@ class WheelPortabilityTest(unittest.TestCase):
                         with self.assertRaisesRegex(ValueError, member):
                             artifacts.check_wheel_portable(wheel)
 
-    def test_reject_absolute_member_name(self):
+    def test_accept_real_pr119_machine_code(self):
+        # #119, ffb8a67, mamut_engine/_native.abi3.so: ventanas de 32 bytes.
+        # ~/ está en 96887 y 238255 (16 en cada ventana); la segunda secuencia
+        # reaparece en 270823 y tiene >=2 caracteres de ruta pero no fin textual.
+        windows = (
+            "011d3208a301003a2e00006816a301007e2f0000ad010abf0101b7010e00007f",
+            "cbb2261fa707ad97d0a7a74613a400207e2f7873c824cc5e82c8280c8c6600d4",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            wheel = Path(directory) / "synthetic.whl"
+            for hex_window in windows:
+                with self.subTest(window=hex_window):
+                    window = bytes.fromhex(hex_window)
+                    self.assertEqual(window[16:18], b"~/")
+                    artifacts.check_portable(window)
+                    with zipfile.ZipFile(wheel, "w") as archive:
+                        archive.writestr("pkg/_native.abi3.so", window)
+                    artifacts.check_wheel_portable(wheel)
+
+    def test_reject_home_relative_c_string_in_binary(self):
         with tempfile.TemporaryDirectory() as directory:
             wheel = Path(directory) / "synthetic.whl"
             with zipfile.ZipFile(wheel, "w") as archive:
-                archive.writestr("/root/build/data", b"portable")
-            with self.assertRaisesRegex(ValueError, "miembro /root/build/data"):
+                archive.writestr("pkg/_native.abi3.so", b"\x00~/secreto/x\x00")
+            with self.assertRaisesRegex(ValueError, r"pkg/_native.abi3.so.*byte 1"):
                 artifacts.check_wheel_portable(wheel)
+
+    def test_binary_home_relative_context(self):
+        # Separadores izquierdos admitidos, incluidos ambos extremos ASCII.
+        for prefix in (b"", b" ", b"'", b'"', b"=", b":", b"\x00", b"\x1f", b"\x7f", b"\xff"):
+            with self.subTest(prefix=prefix), self.assertRaises(ValueError):
+                artifacts.check_portable(prefix + b"~/ab\x00")
+        for suffix in (b"", b"\x00", b" ", b"\t", b"\r", b"\n", b"'", b'"', b"=", b":",
+                       b";", b",", b"(", b")", b"[", b"]", b"{", b"}"):
+            with self.subTest(suffix=suffix), self.assertRaises(ValueError):
+                artifacts.check_portable(b"\xff~/AZaz09._/-" + suffix)
+        for data in (b"a~/ab\x00", b"/~/ab\x00", b"(~/ab\x00", b"\x00~/a\x00",
+                     b"\x00~/\x00", b"\x00~/a!\x00", b"\x00~/\xffab\x00", b"\x00~/abc\xc8\x00"):
+            with self.subTest(data=data):
+                artifacts.check_portable(data)
+        with self.assertRaises(ValueError):
+            artifacts.check_portable(b"\xff~/ab")  # UTF-8 inválido sin NUL.
+
+    def test_text_keeps_strict_home_relative_check(self):
+        for value in ("a~/", "~/x", "\x00a~/\x00", b"a~/", b"~/x"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                artifacts.check_portable(value)
+        with tempfile.TemporaryDirectory() as directory:
+            wheel = Path(directory) / "synthetic.whl"
+            for member in ("pkg/README.txt", "pkg-0.1.dist-info/METADATA", "pkg/_native.abi3.so"):
+                with self.subTest(member=member):
+                    with zipfile.ZipFile(wheel, "w") as archive:
+                        archive.writestr(member, b"a~/x")
+                    with self.assertRaisesRegex(ValueError, "miembro"):
+                        artifacts.check_wheel_portable(wheel)
+
+    def test_reject_absolute_member_name(self):
+        with tempfile.TemporaryDirectory() as directory:
+            wheel = Path(directory) / "synthetic.whl"
+            for member in ("/root/build/data", "/opt/build/data", "/Users/builder/data", "/var/build/data",
+                           r"\\servidor\recurso\data", "//servidor/recurso/data", "~/build/data"):
+                with self.subTest(member=member):
+                    with zipfile.ZipFile(wheel, "w") as archive:
+                        archive.writestr(member, b"portable")
+                    with self.assertRaisesRegex(ValueError, "miembro"):
+                        artifacts.check_wheel_portable(wheel)
 
     def test_accept_portable_members_and_urls(self):
         with tempfile.TemporaryDirectory() as directory:
             wheel = Path(directory) / "synthetic.whl"
             with zipfile.ZipFile(wheel, "w") as archive:
-                archive.writestr("pkg/_native.abi3.so", b"\xff\x00cargo-home/src/lib.rs\x00\xfe")
-                archive.writestr("pkg-0.1.dist-info/METADATA", b"Home-page: https://example.org/\n")
+                archive.writestr("pkg/_native.abi3.so", b"\xff\x00cargo-home/src/lib.rs\x00\xfe"
+                                 b"\\\\\xebCf\xc7\x03\\0\xeb<A\x00")
+                archive.writestr("pkg-0.1.dist-info/METADATA",
+                                 b"Home-page: https://example.org/\nProject-URL: Source, http://example.org/repo\n")
+                archive.writestr("pkg/data", b"pkg:cargo/pyo3@0.25.1\nengine-input/1\nresults/1\n"
+                                 b"relative/optional\nrelative/UsersGuide\nrelative/variant\n")
                 archive.writestr("pkg-0.1.dist-info/RECORD", b"pkg/_native.abi3.so,sha256=abcd,24\n")
             artifacts.check_wheel_portable(wheel)
 

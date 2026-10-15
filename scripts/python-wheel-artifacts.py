@@ -16,9 +16,26 @@ import zipfile
 
 
 # Bytes: también se inspeccionan binarios sin decodificar ni ignorar errores UTF-8.
-# El límite izquierdo Windows evita confundir https:// con una unidad s:/.
-SYSTEM_PATH = re.compile(
-    rb"/(?:workspace|home|tmp|root)\b|(?<![A-Za-z0-9+.-])[A-Za-z]:[\\/]|file://|path\+"
+# Los límites izquierdos de unidades y UNC evitan confundir URLs https://
+# con una unidad s:/ o una ruta //servidor/recurso.
+# UNC exige un nombre de servidor para no confundir instrucciones del binario.
+SYSTEM_PATH_PREFIX = (
+    rb"/(?:workspace|home|tmp|root|opt|Users|var)\b"
+    rb"|(?<![A-Za-z0-9+.-])[A-Za-z]:[\\/]"
+    rb"|(?<![A-Za-z0-9+.:/\\-])(?:\\\\[\w.-]+\\|//[\w.-]+/)[^\\/\s\x00]+"
+    rb"|file://|path\+"
+)
+SYSTEM_PATH = re.compile(SYSTEM_PATH_PREFIX + rb"|~/")
+# Solo ~/ necesita contexto adicional: son dos bytes frecuentes en código máquina.
+# Izquierda: inicio, espacio, comilla simple/doble, =, : o byte fuera de ASCII
+# imprimible (0x20..0x7e). Derecha: al menos 2 bytes de [A-Za-z0-9._/-],
+# terminados por fin de datos, NUL o un separador textual ASCII explícito.
+# Así tampoco se acepta ~/xs seguido de 0xc8 en el .so real de #119.
+# Los demás patrones conservan sus límites y el rechazo estricto existente.
+BINARY_SYSTEM_PATH = re.compile(
+    SYSTEM_PATH_PREFIX
+    + rb"|(?:^|(?<=[ '\"=:\x00-\x1f\x7f-\xff]))~/"
+    rb"(?=[A-Za-z0-9._/-]{2,}(?:$|[\x00\t\r\n '\"=:;,()\[\]{}]))"
 )
 
 
@@ -36,8 +53,12 @@ def write_json(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
 
 
-def check_portable(value):
-    """Rechaza rutas del sistema en bytes o metadatos recursivos."""
+def check_portable(value, *, binary=None):
+    """Rechaza rutas; bytes con NUL o UTF-8 inválido se consideran binarios.
+
+    Los str y los bytes UTF-8 sin NUL mantienen el patrón estricto de texto.
+    No se descartan ni decodifican con pérdida los bytes de un binario.
+    """
     if isinstance(value, dict):
         for key, item in value.items():
             check_portable(key)
@@ -46,11 +67,18 @@ def check_portable(value):
         for item in value:
             check_portable(item)
     elif isinstance(value, str):
-        check_portable(value.encode("utf-8"))
+        check_portable(value.encode("utf-8"), binary=False)
         if re.search(r"(?:^|[\s(=])/(?!/)", value):
             raise ValueError(f"Ruta del sistema en artefacto: {value!r}")
     elif isinstance(value, bytes):
-        match = SYSTEM_PATH.search(value)
+        if binary is None:
+            binary = b"\x00" in value
+            if not binary:
+                try:
+                    value.decode("utf-8")
+                except UnicodeDecodeError:
+                    binary = True
+        match = (BINARY_SYSTEM_PATH if binary else SYSTEM_PATH).search(value)
         if match:
             raise ValueError(f"Ruta del sistema en artefacto, byte {match.start()}: {value[match.start():match.end() + 80]!r}")
 
