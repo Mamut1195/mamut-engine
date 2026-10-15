@@ -7,10 +7,24 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   clean-room:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, contabo, engine]
+    timeout-minutes: 10
     steps:
+      - name: Entorno aislado del job (HOME, CARGO_HOME)
+        run: |
+          mkdir -p "$RUNNER_TEMP/home" "$RUNNER_TEMP/cargo-home"
+          {
+            echo "HOME=$RUNNER_TEMP/home"
+            echo "CARGO_HOME=$RUNNER_TEMP/cargo-home"
+            echo "PATH=/opt/rust/bin:/usr/local/bin:/usr/bin:/bin"
+            echo "RUSTUP_TOOLCHAIN="
+          } >> "$GITHUB_ENV"
       # Fuente confiable: validador y listas de la rama BASE, en carpeta aparte.
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -40,15 +54,39 @@ jobs:
         env:
           PR_BASE: ${{ github.event.pull_request.base.sha }}
         run: bash "$TRUSTED/check.sh" "$PR_BASE" "$TRUSTED"
+      - name: Limpieza final (procesos sobrantes y RUNNER_TEMP)
+        if: always()
+        run: |
+          # Mata procesos del usuario del runner que no sean el propio runner ni este shell.
+          keep=" $$ $PPID "
+          p=$PPID; while [ "$p" -gt 1 ]; do p=$(ps -o ppid= -p "$p" | tr -d ' '); keep="$keep$p "; done
+          for pid in $(pgrep -u "$(id -u)"); do
+            case "$keep" in *" $pid "*) continue ;; esac
+            comm=$(ps -o comm= -p "$pid" 2>/dev/null) || continue
+            case "$comm" in Runner.Listener|Runner.Worker|runsvc.sh|run.sh|run-helper.sh) continue ;; esac
+            kill -9 "$pid" 2>/dev/null || true
+          done
+          find "$RUNNER_TEMP" -mindepth 1 -delete 2>/dev/null || true
+
 
   protected-review:
     # Falla si el PR toca clean-room/**, workflows, CODEOWNERS o docs/CLEAN_ROOM.md
     # sin una aprobación vigente (sobre el último commit) de un dueño.
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, contabo, engine]
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: read
     steps:
+      - name: Entorno aislado del job (HOME, CARGO_HOME)
+        run: |
+          mkdir -p "$RUNNER_TEMP/home" "$RUNNER_TEMP/cargo-home"
+          {
+            echo "HOME=$RUNNER_TEMP/home"
+            echo "CARGO_HOME=$RUNNER_TEMP/cargo-home"
+            echo "PATH=/opt/rust/bin:/usr/local/bin:/usr/bin:/bin"
+            echo "RUSTUP_TOOLCHAIN="
+          } >> "$GITHUB_ENV"
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -70,3 +108,16 @@ jobs:
           if [ "$(printf '%s\n' "$ok" | awk '{t+=$1} END{print t+0}')" -ge 1 ]; then echo "Aprobado por $OWNER."; exit 0; fi
           echo "::error::Cambios en archivos protegidos sin aprobación vigente de @$OWNER."
           exit 1
+      - name: Limpieza final (procesos sobrantes y RUNNER_TEMP)
+        if: always()
+        run: |
+          # Mata procesos del usuario del runner que no sean el propio runner ni este shell.
+          keep=" $$ $PPID "
+          p=$PPID; while [ "$p" -gt 1 ]; do p=$(ps -o ppid= -p "$p" | tr -d ' '); keep="$keep$p "; done
+          for pid in $(pgrep -u "$(id -u)"); do
+            case "$keep" in *" $pid "*) continue ;; esac
+            comm=$(ps -o comm= -p "$pid" 2>/dev/null) || continue
+            case "$comm" in Runner.Listener|Runner.Worker|runsvc.sh|run.sh|run-helper.sh) continue ;; esac
+            kill -9 "$pid" 2>/dev/null || true
+          done
+          find "$RUNNER_TEMP" -mindepth 1 -delete 2>/dev/null || true
