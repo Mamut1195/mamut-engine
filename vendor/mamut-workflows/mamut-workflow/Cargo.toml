@@ -1,0 +1,15 @@
+# Modified by MAMPRO on 2026-10-14 for vendoring; see ../NOTICE.
+[package]
+name = "mamut-workflow"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+rust-version = "1.83"
+repository = "https://github.com/Mamut1195/mamut-workflows"
+description = "Method registry and workflow compiler for Mamut engines."
+readme = "../README.md"
+publish = false
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

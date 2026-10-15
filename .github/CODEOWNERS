@@ -1,5 +1,6 @@
 # Archivos que definen o ejecutan las reglas clean-room: requieren revisión del dueño.
 /clean-room/**          @Mamut1195
+/vendor/mamut-workflows/ @Mamut1195
 /.github/workflows/**   @Mamut1195
 /.github/CODEOWNERS     @Mamut1195
 /docs/CLEAN_ROOM.md     @Mamut1195

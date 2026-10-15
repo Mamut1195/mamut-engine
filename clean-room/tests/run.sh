@@ -56,5 +56,87 @@ expect cr2 0 bash "$src/check.sh" HEAD "$tmp/cr2/rules"
 new_repo trust; mkdir "$tmp/trust/clean-room"; : > "$tmp/trust/clean-room/forbidden_paths.txt"; : > "$tmp/trust/clean-room/forbidden_identifiers.txt"
 mkdir -p "$tmp/trust/OpenSees/OpenSees"; echo x > "$tmp/trust/OpenSees/OpenSees/a"; git -C "$tmp/trust" add clean-room OpenSees
 expect trust 1 bash "$src/check.sh" HEAD "$tmp/trust/rules"
+
+new_vendor() { # Distribución mínima válida; el identificador queda cubierto por SHA-256.
+    new_repo "$1"
+    local v="$tmp/$1/vendor/mamut-workflows"
+    mkdir -p "$v"
+    echo license > "$v/LICENSE"
+    echo 'upstream 4cb9ecd0e1117d86444149b17a6b34d1283d9455' > "$v/NOTICE"
+    echo 'x = geomTransf(1)' > "$v/payload.rs"
+    (cd "$v" && sha256sum ./LICENSE ./NOTICE ./payload.rs > MANIFEST.sha256)
+    git -C "$tmp/$1" add vendor
+}
+vendor_expect() { expect "$1" "$2" bash "$src/check.sh" HEAD "$tmp/$1/rules"; }
+
+new_vendor vendor_ok; vendor_expect vendor_ok 0
+new_vendor vendor_edit; git -C "$tmp/vendor_edit" commit -qm vendor
+echo changed >> "$tmp/vendor_edit/vendor/mamut-workflows/payload.rs"
+vendor_expect vendor_edit 1
+# Incluso extras no rastreados o ignorados deben aparecer en el inventario físico.
+new_vendor vendor_extra; echo extra > "$tmp/vendor_extra/vendor/mamut-workflows/extra"
+vendor_expect vendor_extra 1
+new_vendor vendor_ignored; echo '*.hidden' > "$tmp/vendor_ignored/.gitignore"; echo extra > "$tmp/vendor_ignored/vendor/mamut-workflows/extra.hidden"
+vendor_expect vendor_ignored 1
+new_vendor vendor_missing; rm "$tmp/vendor_missing/vendor/mamut-workflows/payload.rs"
+vendor_expect vendor_missing 1
+new_vendor vendor_deleted; git -C "$tmp/vendor_deleted" commit -qm vendor
+git -C "$tmp/vendor_deleted" rm -qr vendor
+vendor_expect vendor_deleted 1
+new_vendor vendor_no_manifest; rm "$tmp/vendor_no_manifest/vendor/mamut-workflows/MANIFEST.sha256"
+vendor_expect vendor_no_manifest 1
+new_vendor vendor_empty; : > "$tmp/vendor_empty/vendor/mamut-workflows/MANIFEST.sha256"
+vendor_expect vendor_empty 1
+new_vendor vendor_malformed; echo invalid >> "$tmp/vendor_malformed/vendor/mamut-workflows/MANIFEST.sha256"
+vendor_expect vendor_malformed 1
+new_vendor vendor_duplicate; head -n 1 "$tmp/vendor_duplicate/vendor/mamut-workflows/MANIFEST.sha256" >> "$tmp/vendor_duplicate/vendor/mamut-workflows/MANIFEST.sha256"
+vendor_expect vendor_duplicate 1
+new_vendor vendor_traversal
+(cd "$tmp/vendor_traversal/vendor/mamut-workflows" && sha256sum ./../../README.md >> MANIFEST.sha256)
+vendor_expect vendor_traversal 1
+new_vendor vendor_symlink; ln -s payload.rs "$tmp/vendor_symlink/vendor/mamut-workflows/link"
+vendor_expect vendor_symlink 1
+new_vendor vendor_listed_symlink
+(cd "$tmp/vendor_listed_symlink/vendor/mamut-workflows" && ln -s payload.rs link && sha256sum ./link >> MANIFEST.sha256)
+vendor_expect vendor_listed_symlink 1
+new_vendor vendor_dir_symlink; ln -s ../.. "$tmp/vendor_dir_symlink/vendor/mamut-workflows/escape"
+vendor_expect vendor_dir_symlink 1
+new_vendor vendor_root_symlink
+mv "$tmp/vendor_root_symlink/vendor/mamut-workflows" "$tmp/vendor_root_symlink/copy"
+ln -s ../copy "$tmp/vendor_root_symlink/vendor/mamut-workflows"
+git -C "$tmp/vendor_root_symlink" add -A vendor
+vendor_expect vendor_root_symlink 1
+# Metadatos obligatorios aun si los hashes y el inventario coinciden.
+new_vendor vendor_no_commit
+(cd "$tmp/vendor_no_commit/vendor/mamut-workflows" && echo attribution > NOTICE && sha256sum ./LICENSE ./NOTICE ./payload.rs > MANIFEST.sha256)
+vendor_expect vendor_no_commit 1
+new_vendor vendor_old_commit
+(cd "$tmp/vendor_old_commit/vendor/mamut-workflows" && echo 'upstream 5c4e75af21564edc1a3b900d565a2ab90447ac1c' > NOTICE && sha256sum ./LICENSE ./NOTICE ./payload.rs > MANIFEST.sha256)
+vendor_expect vendor_old_commit 1
+new_vendor vendor_short_commit
+(cd "$tmp/vendor_short_commit/vendor/mamut-workflows" && echo 'upstream 4cb9ecd' > NOTICE && sha256sum ./LICENSE ./NOTICE ./payload.rs > MANIFEST.sha256)
+vendor_expect vendor_short_commit 1
+new_vendor vendor_readme
+(cd "$tmp/vendor_readme/vendor/mamut-workflows" && mv NOTICE README.md && sha256sum ./LICENSE ./README.md ./payload.rs > MANIFEST.sha256)
+vendor_expect vendor_readme 0
+new_vendor vendor_no_license
+(cd "$tmp/vendor_no_license/vendor/mamut-workflows" && rm LICENSE && sha256sum ./NOTICE ./payload.rs > MANIFEST.sha256)
+vendor_expect vendor_no_license 1
+# Nunca ejecutar el script del PR, aunque prometa validar la distribución.
+new_vendor vendor_untrusted_script
+mkdir "$tmp/vendor_untrusted_script/scripts"
+echo 'exit 0' > "$tmp/vendor_untrusted_script/scripts/check-vendor.sh"
+echo changed >> "$tmp/vendor_untrusted_script/vendor/mamut-workflows/payload.rs"
+vendor_expect vendor_untrusted_script 1
+# La excepción solo cubre el prefijo exacto; las rutas prohibidas se revisan antes.
+for name in otro mamut-workflows-x; do
+    new_repo "vendor_$name"; mkdir -p "$tmp/vendor_$name/vendor/$name"
+    echo 'geomTransf(1)' > "$tmp/vendor_$name/vendor/$name/a.rs"
+    git -C "$tmp/vendor_$name" add vendor
+    vendor_expect "vendor_$name" 1
+done
+new_vendor vendor_forbidden_path
+printf 'vendor/mamut-workflows/payload.rs\n' > "$tmp/vendor_forbidden_path/rules/forbidden_paths.txt"
+vendor_expect vendor_forbidden_path 1
 printf '%d pruebas, %d fallos\n' "$n" "$fails"
 [[ $fails == 0 ]]

@@ -1,0 +1,17 @@
+# Modified by MAMPRO on 2026-10-14 for vendoring; see ../NOTICE.
+[package]
+name = "mamut-canon"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+rust-version = "1.83"
+repository = "https://github.com/Mamut1195/mamut-workflows"
+description = "RFC 8785 JSON canonicalization and SHA-256 fingerprints."
+readme = "../README.md"
+publish = false
+
+[dependencies]
+json-canon = "0.1.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10.9"

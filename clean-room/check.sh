@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Solo requiere Bash y Git. Incluye cambios locales de archivos conocidos por Git.
+# Solo requiere Bash, Git y coreutils. Incluye cambios locales de archivos conocidos por Git.
 set -euo pipefail
 export LC_ALL=C
 
@@ -51,11 +51,66 @@ git diff --no-ext-diff --no-renames --name-only "$base" -- > /dev/null
 touches_crates=false
 has_provenance=false
 failed=false
+touches_vendor=false
+
+# Git entrega rutas relativas canónicas; no ampliar la excepción a alias con ./ o ../.
+is_workflows_path() {
+    [[ "$1" == vendor/mamut-workflows/* ]] || return 1
+    case "/$1/" in *//*|*/./*|*/../*) return 1 ;; esac
+}
+
+# Código confiable de la base en CI: nunca ejecutar el verificador del árbol del PR.
+verify_workflows() (
+    [[ ! -L vendor && ! -L vendor/mamut-workflows ]] || exit 1
+    cd -- vendor/mamut-workflows || exit 1
+    [[ -f MANIFEST.sha256 && -s MANIFEST.sha256 && ! -L MANIFEST.sha256 ]] || exit 1
+    scratch=$(mktemp -d) || exit 1
+    trap 'rm -rf -- "$scratch"' EXIT
+    shopt -s globstar dotglob nullglob
+    # Inventario físico, incluidos archivos ignorados por Git. Rechazar enlaces
+    # (también directorios enlazados) evita verificar contenido fuera del vendor.
+    for file in **/*; do
+        [[ ! -L "$file" ]] || exit 1
+        if [[ -f "$file" && "$file" != MANIFEST.sha256 ]]; then
+            printf './%s\0' "$file"
+        fi
+    done > "$scratch/actual"
+    while IFS= read -r entry || [[ -n "$entry" ]]; do
+        [[ "$entry" =~ ^[0-9a-f]{64}\ \ \./.+$ ]] || exit 1
+        file=${entry:66}
+        # Solo nombres canónicos internos; sin autorreferencia ni duplicados.
+        case "/${file#./}/" in *//*|*/./*|*/../*) exit 1 ;; esac
+        [[ "$file" != ./MANIFEST.sha256 ]] || exit 1
+        printf '%s\0' "$file"
+    done < MANIFEST.sha256 > "$scratch/expected"
+    sort -z -o "$scratch/actual" "$scratch/actual" || exit 1
+    sort -z -o "$scratch/expected" "$scratch/expected" || exit 1
+    cmp -s "$scratch/expected" "$scratch/actual" || exit 1
+    sha256sum --check --strict MANIFEST.sha256 || exit 1
+    [[ -f LICENSE ]] || exit 1
+    for file in README.md NOTICE; do
+        [[ -f "$file" ]] || continue
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            if [[ "$line" == *4cb9ecd0e1117d86444149b17a6b34d1283d9455* ]]; then
+                exit 0
+            fi
+        done < "$file"
+    done
+    exit 1
+)
 
 # -z preserva rutas con espacios, tabuladores, saltos de línea y caracteres Unicode.
 while IFS= read -r -d '' path; do
     [[ "$path" == crates/* ]] && touches_crates=true
+    if [[ "$path" == vendor/mamut-workflows ]] || is_workflows_path "$path"; then
+        touches_vendor=true
+    fi
 done < <(git diff --no-ext-diff --no-renames --name-only -z "$base" --)
+
+if [[ "$touches_vendor" == true ]] && ! verify_workflows; then
+    printf 'Integridad vendor/mamut-workflows: manifiesto, inventario, hashes, commit o LICENSE inválidos.\n' >&2
+    failed=true
+fi
 
 while IFS= read -r -d '' path; do
     if [[ "$path" == provenance/ENG-*.md && "$path" != provenance/TEMPLATE.md ]]; then
@@ -74,6 +129,7 @@ while IFS= read -r -d '' path; do
     case "$path" in
         clean-room/*|docs/CLEAN_ROOM.md|provenance/*) continue ;;
     esac
+    is_workflows_path "$path" && continue
     patch=$(git diff --no-ext-diff --no-textconv --no-renames --unified=0 "$base" -- ":(literal)$path")
     in_hunk=false
     while IFS= read -r line; do

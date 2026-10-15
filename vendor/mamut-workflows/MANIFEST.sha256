@@ -1,0 +1,15 @@
+c45835868868fd900e6d987e39a6d95f44742e733743470638e033935f70f14b  ./LICENSE
+9bf296312f8857ef3e184c942381acb9ea107c2b6f05a2951f07467ef77b5587  ./NOTICE
+8330fa0f44ea0b08d97141b6cf0cb8556cb14c5d104737bd1848b47c159958d6  ./README.md
+025872008d1849f2775016cfb982c421ebf407add7b70f049ac16d591e5a45e7  ./mamut-canon/Cargo.toml
+0b3c73be303be26d60b5cdf2109d6cf18617acb6dda6919337e51f92de7feeaa  ./mamut-canon/src/lib.rs
+93048e07b5331b52988d3ccc01d997d0dc1ff02cddd0996227bc6d4c599f50fd  ./mamut-workflow/Cargo.toml
+50263002d662834fb16cbfdbf2c90856cec217c33b5a9f621546273bdcab4960  ./mamut-workflow/src/catalog.rs
+403d878559407145b94c32cfb4cc9308e4b065672028df164b64b1c1603d1120  ./mamut-workflow/src/compiler.rs
+7590b5a363087cea568395b6dc4e3d39f4bc6a4fa980ccd3fb0a3865dbc2a4bb  ./mamut-workflow/src/contract.rs
+91d6d14e6966531778a1c50924f93ac2ed5feb697ff9e706b384f0da6fd3dc61  ./mamut-workflow/src/descriptor.rs
+73ada2833b164cb4cf5c50444b02dd346abb26ee2c808f736723002d225958e2  ./mamut-workflow/src/error.rs
+2de47b5a84e9799e8ab58b60d3ac68256840fc1f70737835d752cd2ec8e18be6  ./mamut-workflow/src/lib.rs
+7841d8a71db5f176f029956f41e6484106473a1ccd9982e296fb2d720c321f4f  ./mamut-workflow/src/registry.rs
+45f4983c18092efc1e952f4434fee0aecec11c634d7362980d240890ed0788e5  ./mamut-workflow/src/workflow.rs
+525de9f2ecd287ecd3a0cdddcbab32f7dab1be2f423ca76352096593e9eb5e24  ./mamut-workflow/tests/two_step.rs
