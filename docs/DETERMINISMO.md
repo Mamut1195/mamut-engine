@@ -143,12 +143,38 @@ inventario. Comprueba también `path` dentro de `cfg_attr`, incluso anidados,
 con espacios y cadenas raw, sin exceptuar math.rs ni examples/.
 `include_str!` e `include_bytes!` pueden incluir datos de otras extensiones.
 
-FU2 #107 (J4 r27) prohíbe además los atributos `#[link_name = ...]`, también
-mediante `cfg_attr`, y los bloques `extern "..." { ... }` / `extern { ... }`
-en todos los Rust de crates/** fuera del directorio crates/*/examples/.
-`extern crate` conserva las prohibiciones previas; las funciones y tipos de
-función con ABI extern no son bloques FFI. La excepción de examples/ solo
-afecta a esta comprobación FFI.
+FU2 #107 (J4 r27) añadió la prohibición de `#[link_name = ...]` y bloques
+`extern`, con una excepción general para examples/. FU3 (J4 r29/r30) elimina
+esa excepción general: en **todos los Rust de crates/** rechaza `link_name`,
+`export_name`, bloques `extern "..." { ... }` / `extern { ... }` y las macros
+`asm!`, `global_asm!`, `naked_asm!`, incluidas rutas `core::arch::` y
+`std::arch::`, espacios e identificadores crudos. Visita atributos `cfg_attr`
+anidados y envoltorios `#[unsafe(...)]` con independencia de la condición.
+También rechaza atributos con metavariables (`#[$attr]`, `#[$($a)*]`, etc.)
+y `extern` con ABI/tokens variables (`extern $abi {}`, `extern $($t)*`,
+`extern "C" $body`), incluso dentro de `macro_rules!`. No necesita expandir
+macros para cerrar esas vías de código no inspeccionado.
+
+Hasta este cambio, la excepción de unsafe para tests/examples era convencional:
+FU2 exigía `forbid(unsafe_code)` en bibliotecas, sin codificar los permisos de
+esos directorios, y exceptuaba examples/ en bloque de su comprobación FFI.
+Ahora la guardia prohíbe unsafe, ensamblador, export_name, no_mangle, link_name
+y bloques o funciones/tipos extern en crates/*/tests/** y crates/*/examples/**,
+salvo la lista explícita `SOURCE_POLICY_EXCEPTIONS`, por ruta exacta y por
+construcción:
+
+- `engine-linalg/tests/heap_peak.rs`: solo unsafe para instrumentar GlobalAlloc.
+- `engine-api/examples/determinism_wasm.rs`: solo no_mangle y funciones públicas
+  extern "C" para su ABI wasm; sin permiso de unsafe.
+- `engine-validation/examples/winkler_wasm.rs`: los mismos dos permisos para
+  su ABI wasm; sin permiso de unsafe.
+
+La guardia falla si desaparece un archivo de la lista o si deja de usar
+**cualquiera** de las construcciones autorizadas, aunque conserve otra.
+Ninguna excepción permite ensamblador, export_name, link_name, bloques extern,
+atributos/extern variables ni relaja las reglas de include!/path o escalares.
+`extern crate` conserva las prohibiciones previas. En src/, las funciones y
+tipos con ABI extern siguen distinguiéndose de los bloques de importación.
 
 Cada biblioteca crates/*/src/lib.rs declara `#![forbid(unsafe_code)]` en la
 raíz, de forma incondicional, y la guardia comprueba su presencia. La lista
@@ -163,9 +189,14 @@ La guardia ignora comentarios, cadenas normales/raw y literales char. Cinco
 pares de fixtures de texto positivos/negativos cubren FU #105; FU2 añade
 cinco tests negativos específicos (path no .rs, destino fuera del inventario,
 link_name, bloque extern y ausencia de forbid), comprobados retirando cada
-regla por separado, y positivos para comentarios, cadenas, examples/,
-atributos anidados y destinos Rust inspeccionados. Conserva las pruebas de
-aliases, espacios, macros y todas las funciones escalares de la lista.
+regla por separado, y positivos para comentarios, cadenas,
+atributos anidados y destinos Rust inspeccionados. FU3 añade negativos por
+construcción, directamente y dentro de macros con tres delimitadores, en src/,
+tests/ y examples/; también comprueba permisos mínimos, rutas exactas y
+excepciones obsoletas por permiso o por archivo. Se comprueban retirando sus
+reglas individualmente; se conservan positivos sin falsos positivos para
+comentarios, strings normales/raw y atributos no relacionados. Conserva las
+pruebas de aliases, espacios, macros y todas las funciones escalares de la lista.
 Es una guardia léxica conservadora, no resolución de tipos; no inspecciona
 dependencias transitivas ni código generado por build scripts. Cambiar proveedor
 requiere revisión.

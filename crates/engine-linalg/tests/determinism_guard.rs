@@ -283,6 +283,8 @@ fn attribute_meta_items<'a, 's>(body: &'a [&'s str]) -> Vec<&'a [&'s str]> {
             .skip(1)
             .flat_map(attribute_meta_items)
             .collect()
+    } else if body.starts_with(&["unsafe", "("]) && body.last() == Some(&")") {
+        attribute_meta_items(&body[2..body.len() - 1])
     } else {
         vec![body]
     }
@@ -338,27 +340,131 @@ fn code_paths_violation(input: &str, path: &Path, inspected: &[PathBuf]) -> bool
     })
 }
 
-fn ffi_violation(input: &str, path: &Path) -> bool {
-    if path
-        .components()
-        .nth(1)
-        .is_some_and(|c| c.as_os_str() == "examples")
-    {
-        return false;
-    }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Construction {
+    GeneratedAttribute,
+    GeneratedExtern,
+    ExportName,
+    Assembly,
+    LinkName,
+    ExternBlock,
+    Unsafe,
+    NoMangle,
+    ExternCFunction,
+    OtherExtern,
+}
+
+// Se inspecciona también el transcriptor de macro_rules, sin expandirlo.
+// Un atributo con metavariables podría generar path, link_name, etc.; un
+// extern con tokens variables podría generar un bloque o cambiar su ABI.
+fn restricted_constructions(input: &str) -> Vec<Construction> {
     let tokens = rust_tokens(input);
-    let link_name = rust_attributes(&tokens).into_iter().any(|(_, body)| {
-        attribute_meta_items(body)
+    let mut found = Vec::new();
+    for (_, body) in rust_attributes(&tokens) {
+        if body.contains(&"$") {
+            found.push(Construction::GeneratedAttribute);
+        }
+        for meta in attribute_meta_items(body) {
+            match meta.first() {
+                Some(&"export_name") => found.push(Construction::ExportName),
+                Some(&"link_name") => found.push(Construction::LinkName),
+                Some(&"no_mangle") => found.push(Construction::NoMangle),
+                _ => {}
+            }
+        }
+    }
+    for (i, &token) in tokens.iter().enumerate() {
+        if matches!(token, "asm" | "global_asm" | "naked_asm") && tokens.get(i + 1) == Some(&"!") {
+            found.push(Construction::Assembly);
+        }
+        if token == "unsafe" {
+            found.push(Construction::Unsafe);
+        }
+        if token != "extern" || tokens.get(i + 1) == Some(&"crate") {
+            continue;
+        }
+        let abi = tokens.get(i + 1).and_then(|t| literal_string(t).ok());
+        let after_abi = i + 1 + usize::from(abi.is_some());
+        if tokens.get(after_abi) == Some(&"$") {
+            found.push(Construction::GeneratedExtern);
+        } else if tokens.get(after_abi) == Some(&"{") {
+            found.push(Construction::ExternBlock);
+        } else if abi == Some("C")
+            && tokens.get(after_abi) == Some(&"fn")
+            && i > 0
+            && tokens[i - 1] == "pub"
+        {
+            // Solo funciones públicas, no bloques ni punteros a función.
+            found.push(Construction::ExternCFunction);
+        } else {
+            found.push(Construction::OtherExtern);
+        }
+    }
+    found
+}
+
+struct SourcePolicyException {
+    path: &'static str,
+    allowed: &'static [Construction],
+    reason: &'static str,
+}
+
+// Rutas relativas a crates/, sin globs. Cada permiso debe seguir usándose;
+// ni los ejemplos wasm necesitan unsafe ni la instrumentación necesita FFI.
+const SOURCE_POLICY_EXCEPTIONS: &[SourcePolicyException] = &[
+    SourcePolicyException {
+        path: "engine-linalg/tests/heap_peak.rs",
+        allowed: &[Construction::Unsafe],
+        reason: "GlobalAlloc de instrumentación de memoria, delegado en System",
+    },
+    SourcePolicyException {
+        path: "engine-api/examples/determinism_wasm.rs",
+        allowed: &[Construction::NoMangle, Construction::ExternCFunction],
+        reason: "ABI pública wasm para comparar hashes nativos/wasm",
+    },
+    SourcePolicyException {
+        path: "engine-validation/examples/winkler_wasm.rs",
+        allowed: &[Construction::NoMangle, Construction::ExternCFunction],
+        reason: "ABI pública wasm para ejecutar los benchmarks Winkler",
+    },
+];
+
+fn is_test_or_example(path: &Path) -> bool {
+    path.components()
+        .nth(1)
+        .is_some_and(|c| matches!(c.as_os_str().to_str(), Some("tests" | "examples")))
+}
+
+fn ffi_violation(input: &str, path: &Path) -> bool {
+    let found = restricted_constructions(input);
+    if is_test_or_example(path) {
+        let allowed = SOURCE_POLICY_EXCEPTIONS
             .iter()
-            .any(|meta| meta.first() == Some(&"link_name"))
-    });
-    link_name
-        || tokens.iter().enumerate().any(|(i, &token)| {
-            token == "extern"
-                && (tokens.get(i + 1) == Some(&"{")
-                    || (tokens.get(i + 1).is_some_and(|t| literal_string(t).is_ok())
-                        && tokens.get(i + 2) == Some(&"{")))
-        })
+            .find(|exception| path == Path::new(exception.path))
+            .map_or(&[][..], |exception| exception.allowed);
+        return found.iter().any(|kind| !allowed.contains(kind))
+            || allowed.iter().any(|kind| !found.contains(kind));
+    }
+    found.iter().any(|kind| {
+        matches!(
+            kind,
+            Construction::GeneratedAttribute
+                | Construction::GeneratedExtern
+                | Construction::ExportName
+                | Construction::Assembly
+                | Construction::LinkName
+                | Construction::ExternBlock
+        )
+    })
+}
+
+fn exception_inventory_violation(inspected: &[PathBuf]) -> bool {
+    SOURCE_POLICY_EXCEPTIONS.iter().any(|exception| {
+        exception.reason.is_empty()
+            || exception.allowed.is_empty()
+            || !is_test_or_example(Path::new(exception.path))
+            || !inspected.iter().any(|p| p == Path::new(exception.path))
+    })
 }
 
 // Sin excepciones en crates/*: las 15 bibliotecas compilan sin unsafe.
@@ -527,13 +633,22 @@ fn engine_crates_reject_ffi_and_require_safe_libraries() -> std::io::Result<()> 
     let mut paths = Vec::new();
     files(&crates, &mut paths)?;
     paths.sort();
+    let relative_paths = paths
+        .iter()
+        .map(|p| p.strip_prefix(&crates).map(Path::to_path_buf))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(std::io::Error::other)?;
+    assert!(
+        !exception_inventory_violation(&relative_paths),
+        "Excepción de tests/examples sin archivo inspeccionado o justificación"
+    );
     let mut libraries = 0;
     for path in paths {
         let relative = path.strip_prefix(&crates).map_err(std::io::Error::other)?;
         let source = fs::read_to_string(&path)?;
         assert!(
             !ffi_violation(&source, relative),
-            "#[link_name] o bloque extern prohibido en {}",
+            "Construcción prohibida o excepción obsoleta en {}",
             path.display()
         );
         if relative.components().count() == 3 && relative.ends_with("src/lib.rs") {
@@ -782,7 +897,7 @@ fn guard_rejects_link_name_attributes() {
     ] {
         assert!(ffi_violation(source, Path::new("engine-core/src/math.rs")), "{source}");
         assert!(ffi_violation(source, Path::new("engine-linalg/tests/ffi.rs")), "{source}");
-        assert!(!ffi_violation(source, Path::new("engine-api/examples/ffi.rs")), "{source}");
+        assert!(ffi_violation(source, Path::new("engine-api/examples/ffi.rs")), "{source}");
     }
 }
 
@@ -806,7 +921,7 @@ fn guard_rejects_extern_blocks() {
             "{source}"
         );
         assert!(
-            !ffi_violation(source, Path::new("engine-api/examples/ffi.rs")),
+            ffi_violation(source, Path::new("engine-api/examples/ffi.rs")),
             "{source}"
         );
     }
@@ -860,7 +975,7 @@ fn guard_allows_comments_strings_and_non_ffi_extern_items() {
             "{source}"
         );
     }
-    // examples/ solo exceptúa FFI; no relaja la política de código incluido.
+    // La lista de excepciones tampoco relaja la política de código incluido.
     assert!(scalar_source_violation(
         "#[path = \"hidden.txt\"] mod m;",
         Path::new("engine-api/examples/ffi.rs")
@@ -871,4 +986,294 @@ fn guard_allows_comments_strings_and_non_ffi_extern_items() {
         "extern {}",
         Path::new("engine-core/src/examples/ffi.rs")
     ));
+}
+
+// Cada caso se comprueba en src/, tests/ y examples/, tanto directamente como
+// dentro de una macro con cada delimitador. Los textos son datos, no código
+// generado fuera del inventario.
+fn assert_scope_policy(source: &str, library_violation: bool) {
+    for source in [
+        source.to_owned(),
+        format!("macro_rules! m {{ () => {{ {source} }}; }}"),
+        format!("macro_rules! m [ () => {{ {source} }}; ];"),
+        format!("macro_rules! m ( () => {{ {source} }}; );"),
+    ] {
+        assert_eq!(
+            ffi_violation(&source, Path::new("engine-new/src/lib.rs")),
+            library_violation,
+            "{source}"
+        );
+        for path in [
+            "engine-new/tests/policy.rs",
+            "engine-new/examples/policy.rs",
+        ] {
+            assert!(ffi_violation(&source, Path::new(path)), "{path}: {source}");
+        }
+    }
+}
+
+#[test]
+fn guard_rejects_generated_attributes() {
+    for source in [
+        "#[$attr] mod m;",
+        "# ! [ $attr ]",
+        "#[$name = \"hidden.rs\"] mod m;",
+        "#[cfg_attr(unix, $attr)] mod m;",
+        "macro_rules! m { ($attr:meta) => { #[$attr] mod m; }; }",
+    ] {
+        assert_scope_policy(source, true);
+    }
+}
+
+#[test]
+fn guard_rejects_repeated_generated_attributes() {
+    for source in [
+        "#[$($a)*] mod m;",
+        "#[$($a)+] mod m;",
+        "#[cfg_attr(unix, $($a),*)] mod m;",
+        "macro_rules! m { ($($a:tt)*) => { #[$($a)*] mod m; }; }",
+    ] {
+        assert_scope_policy(source, true);
+    }
+}
+
+#[test]
+fn guard_rejects_generated_extern_abi() {
+    for source in [
+        "extern $abi {}",
+        "extern $abi { fn imported(); }",
+        "extern \"C\" $body",
+        "macro_rules! m { ($abi:literal) => { extern $abi {} }; }",
+    ] {
+        assert_scope_policy(source, true);
+    }
+}
+
+#[test]
+fn guard_rejects_repeated_generated_extern_tokens() {
+    for source in [
+        "extern $($t)*",
+        "extern $($t)+",
+        "extern $(\"C\")? {}",
+        "macro_rules! m { ($($t:tt)*) => { extern $($t)* }; }",
+    ] {
+        assert_scope_policy(source, true);
+    }
+}
+
+#[test]
+fn guard_rejects_export_name() {
+    for source in [
+        "#[export_name = \"sin\"] pub fn exported() {}",
+        "# [ r#export_name = r###\"native\"### ] fn exported() {}",
+        "#[cfg_attr(unix, export_name = \"native\")] fn exported() {}",
+        "#[cfg_attr(all(), allow(dead_code), cfg_attr(unix, export_name = \"native\"))] fn f() {}",
+        "#[unsafe(export_name = \"native\")] fn exported() {}",
+        "#[cfg_attr(unix, unsafe(export_name = \"native\"))] fn exported() {}",
+    ] {
+        assert_scope_policy(source, true);
+    }
+}
+
+#[test]
+fn guard_rejects_asm() {
+    for source in [
+        "asm!(\"nop\");",
+        "core::arch::asm!(\"nop\");",
+        "std :: arch :: r#asm ! (\"nop\");",
+    ] {
+        assert_scope_policy(source, true);
+    }
+}
+
+#[test]
+fn guard_rejects_global_asm() {
+    for source in [
+        "global_asm!(\"nop\");",
+        "core::arch::global_asm!(\"nop\");",
+        "std::arch::r#global_asm![\"nop\"]; ",
+    ] {
+        assert_scope_policy(source, true);
+    }
+}
+
+#[test]
+fn guard_rejects_naked_asm() {
+    for source in [
+        "naked_asm!(\"ret\");",
+        "core::arch::naked_asm!(\"ret\");",
+        "std::arch::r#naked_asm!{\"ret\"}",
+    ] {
+        assert_scope_policy(source, true);
+    }
+}
+
+#[test]
+fn guard_rejects_test_example_unsafe_outside_the_list() {
+    for source in [
+        "unsafe {}",
+        "unsafe fn f() {}",
+        "unsafe impl Trait for Type {}",
+    ] {
+        assert_scope_policy(source, false);
+    }
+}
+
+#[test]
+fn guard_rejects_test_example_no_mangle_outside_the_list() {
+    for source in [
+        "#[no_mangle] fn exported() {}",
+        "#[cfg_attr(unix, r#no_mangle)] fn exported() {}",
+        "#[unsafe(no_mangle)] fn exported() {}",
+    ] {
+        assert_scope_policy(source, false);
+    }
+}
+
+#[test]
+fn guard_rejects_test_example_extern_functions_outside_the_list() {
+    for source in [
+        "pub extern \"C\" fn exported() {}",
+        "pub extern r###\"C\"### fn f() {}",
+    ] {
+        assert_scope_policy(source, false);
+    }
+}
+
+#[test]
+fn guard_rejects_test_example_other_extern_outside_the_list() {
+    for source in [
+        "pub extern \"system\" fn exported() {}",
+        "extern fn exported() {}",
+        "type Callback = extern \"C\" fn();",
+    ] {
+        assert_scope_policy(source, false);
+    }
+}
+
+#[test]
+fn guard_rejects_test_example_link_name_outside_the_list() {
+    assert_scope_policy("#[link_name = \"native\"] fn imported();", true);
+}
+
+#[test]
+fn guard_rejects_test_example_extern_blocks_outside_the_list() {
+    for source in ["extern {}", "extern \"C\" {}", "extern r###\"C\"### {}"] {
+        assert_scope_policy(source, true);
+    }
+}
+
+#[test]
+fn guard_rejects_stale_unsafe_exception() {
+    assert!(ffi_violation(
+        "// unsafe {}\nconst TEXT: &str = r#\"unsafe impl GlobalAlloc\"#;",
+        Path::new("engine-linalg/tests/heap_peak.rs")
+    ));
+}
+
+#[test]
+fn guard_rejects_stale_no_mangle_exception() {
+    for exception in &SOURCE_POLICY_EXCEPTIONS[1..] {
+        assert!(ffi_violation(
+            "pub extern \"C\" fn f() {}",
+            Path::new(exception.path)
+        ));
+    }
+}
+
+#[test]
+fn guard_rejects_stale_extern_exception() {
+    for exception in &SOURCE_POLICY_EXCEPTIONS[1..] {
+        assert!(ffi_violation(
+            "#[no_mangle] pub fn f() {}",
+            Path::new(exception.path)
+        ));
+    }
+}
+
+#[test]
+fn guard_rejects_exception_without_inspected_file() {
+    let paths: Vec<_> = SOURCE_POLICY_EXCEPTIONS
+        .iter()
+        .map(|e| PathBuf::from(e.path))
+        .collect();
+    assert!(!exception_inventory_violation(&paths));
+    for removed in 0..paths.len() {
+        let mut missing = paths.clone();
+        missing.remove(removed);
+        assert!(exception_inventory_violation(&missing));
+    }
+}
+
+#[test]
+fn guard_limits_exceptions_to_the_constructions_actually_used() {
+    let wasm = "#[no_mangle] pub extern \"C\" fn f() {}";
+    let heap = "unsafe impl GlobalAlloc for Counter {}";
+    for exception in SOURCE_POLICY_EXCEPTIONS {
+        let path = Path::new(exception.path);
+        let source = if exception.allowed == [Construction::Unsafe] {
+            heap
+        } else {
+            wasm
+        };
+        assert!(!ffi_violation(source, path), "{}", exception.path);
+        let other = if source == heap { wasm } else { heap };
+        assert!(
+            ffi_violation(&format!("{source} {other}"), path),
+            "{}",
+            exception.path
+        );
+        for forbidden in [
+            "#[link_name = \"native\"] fn f();",
+            "#[export_name = \"native\"] fn f() {}",
+            "asm!(\"nop\");",
+            "global_asm!(\"nop\");",
+            "naked_asm!(\"ret\");",
+            "extern {}",
+            "extern \"C\" {}",
+            "extern $abi {}",
+            "extern $($t)*",
+            "#[$attr] fn f() {}",
+            "#[$($a)*] fn f() {}",
+            "pub extern \"system\" fn f() {}",
+            "type Callback = extern \"C\" fn();",
+        ] {
+            assert!(
+                ffi_violation(&format!("{source} {forbidden}"), path),
+                "{}: {forbidden}",
+                exception.path
+            );
+        }
+        // Nombres idénticos en otro crate o subdirectorio no heredan permisos.
+        let filename = path.file_name().unwrap();
+        for dir in [
+            "engine-new/tests",
+            "engine-new/examples",
+            "engine-api/examples/nested",
+        ] {
+            assert!(ffi_violation(source, &Path::new(dir).join(filename)));
+        }
+    }
+}
+
+#[test]
+fn guard_allows_policy_words_in_comments_strings_and_unrelated_attributes() {
+    for source in [
+        "// unsafe {} #[export_name = \"x\"] #[no_mangle] asm!() extern $abi {} #[$attr]",
+        "/* global_asm!() /* naked_asm!() */ extern $($t)* #[$($a)*] */",
+        "let text = \"unsafe asm!() #[export_name = \\\"x\\\"] #[no_mangle] extern \\\"C\\\" {}\";",
+        "let text = r###\"#[$attr] #[$($a)*] extern $abi {} extern $($t)* core::arch::asm!() std::arch::global_asm!() naked_asm!()\"###;",
+        "let text = r#\"unsafe #[export_name = \"x\"] #[no_mangle] #[link_name = \"x\"] extern {}\"#;",
+        "#[cfg(export_name = \"x\")] fn f() {}",
+        "#[cfg_attr(no_mangle, allow(dead_code))] fn f() {}",
+        "#[allow(unsafe_code)] fn asm() {} fn export_name() {} fn no_mangle() {}",
+        "extern crate engine_core;",
+        "macro_rules! define { ($name:ident) => { #[derive(Debug)] struct $name; }; }",
+        "let text = '\"'; let text = '\\'';",
+    ] {
+        assert!(restricted_constructions(source).is_empty(), "{source}");
+        for path in ["engine-new/src/lib.rs", "engine-new/tests/policy.rs", "engine-new/examples/policy.rs"] {
+            assert!(!ffi_violation(source, Path::new(path)), "{path}: {source}");
+        }
+    }
 }

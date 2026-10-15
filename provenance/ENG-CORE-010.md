@@ -225,3 +225,60 @@ Rust 1.99.0 (LLVM 23.1.1), sin RUSTFLAGS especiales:
     sobre todos los cambios preparados.
 - Revisión humana clean-room: PENDIENTE (J4). Sin cambios a docs/CLEAN_ROOM.md,
   .github/**, clean-room/** ni vendor/**.
+
+## FU3 · MAM-23 · J4 r29/r30 · 2026-10-15
+
+- Solicitud: cerrar atributos/extern generados por macro_rules, export_name,
+  ensamblador y la excepción implícita de tests/examples; rama
+  j2/eng-core-010-fu3 basada en main 800ef3f, que incluye #106 y #108.
+- Fuentes: instrucciones del usuario, guardia, fuentes y documentación propias
+  del checkout, APIs std/Rust y toolchain local. Trabajo offline, sin consultar
+  fuentes de otros motores, copiar código de terceros ni añadir dependencias.
+- Guardia: rechaza atributos con metavariables, incluidas repeticiones y
+  cfg_attr, y extern con ABI/cuerpo/tokens variables dentro de macro_rules.
+  Rechaza export_name y asm!/global_asm!/naked_asm! en crates/**, incluidas
+  rutas core::arch/std::arch, identificadores crudos y delimitadores de macro.
+  Los atributos cfg_attr anidados y los envoltorios unsafe(...) se inspeccionan
+  sin depender de condiciones de compilación; se mantiene path/link_name,
+  inventario de includes y forbid(unsafe_code) en bibliotecas.
+- Tests/examples: SOURCE_POLICY_EXCEPTIONS sustituye la convención de unsafe
+  y la excepción FFI general de examples/ por tres rutas exactas, justificadas
+  y con permisos mínimos: heap_peak.rs solo unsafe (GlobalAlloc delegado en
+  System); determinism_wasm.rs y winkler_wasm.rs solo no_mangle y funciones
+  públicas extern "C". Los ejemplos actuales no usan unsafe y no lo permiten.
+  No se permiten bloques extern, link_name, export_name ni ensamblador en
+  ninguna excepción. No se heredan permisos por nombre o subdirectorio.
+  La guardia falla si desaparece un archivo exceptuado o cualquiera de sus
+  construcciones autorizadas, aunque siga usando las demás.
+- Pruebas: veinte tests nuevos, treinta y seis en la guardia. Negativos por
+  construcción en src/tests/examples y dentro de macros con tres delimitadores;
+  permisos extra, rutas fuera de lista, permisos obsoletos y archivo desaparecido.
+  Positivos para las excepciones mínimas, comentarios anidados, strings
+  normales/raw, caracteres, atributos inocuos y macros con atributos fijos.
+  Mutación temporal: 61 ejecuciones negativas confirmadas por fallo de aserción
+  del test seleccionado, sin contar errores de compilación ni tests vacíos.
+  Se retiró cada detector; también se omitieron cuerpos de macros, se restituyó
+  por separado una excepción general de tests/ y examples/, y se retiraron las
+  comprobaciones de permisos mínimos/obsoletos e inventario. Código restaurado.
+- Documentación: docs/DETERMINISMO.md distingue la convención anterior de la
+  nueva política codificada y detalla la lista exacta y su control de vigencia.
+  Sin cambios en bibliotecas, algoritmos mecánicos, tolerancias ni FMA de Sturm;
+  no se añaden panic/unwrap/expect en biblioteca.
+- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados
+  para este ticket."
+- Verificación offline con CARGO_TARGET_DIR=/workspace/.cargo-target/me45
+  conservado del entorno y CARGO_NET_OFFLINE=true:
+  - Guardia inicial y 61 ejecuciones por mutación: Rust/Cargo 1.85.1 del PATH
+    inicial; todos los negativos fallaron en su aserción seleccionada.
+  - Verificación completa con Rust/Cargo 1.99.0 ya instalado localmente,
+    incluido su target wasm32; sin descargar ni instalar componentes:
+    cargo fmt --all -- --check: OK;
+    cargo clippy --offline --workspace --all-targets -- -D warnings: OK;
+    cargo test --offline --workspace --no-fail-fast: OK, 565 pruebas incluidos
+    doctests, cero fallos/ignoradas, treinta y seis tests de la guardia;
+    RUSTDOCFLAGS="-D warnings" cargo doc --offline --no-deps --workspace: OK;
+    cargo check --offline --workspace --target wasm32-unknown-unknown: OK.
+  - git diff --cached --check y bash clean-room/check.sh origin/main: OK
+    sobre los tres archivos preparados para el commit.
+- Revisión humana clean-room: PENDIENTE (J4). Sin cambios a docs/CLEAN_ROOM.md,
+  .github/**, clean-room/** ni vendor/**. Sin red ni push.
