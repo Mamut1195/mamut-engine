@@ -2,6 +2,7 @@
 use engine_contracts::{
     Element, ElementCtx, ElementFactory, ElementParams, JsonValue, MassKind, MemberLoad, ModelView,
 };
+use engine_core::math;
 use engine_core::{Dim, EResult, NodeId};
 use engine_elements_frame::{EulerFrame2D, WinklerFrame2D};
 use engine_elements_frame3d::{EulerFrame3D, WinklerFrame3D};
@@ -71,14 +72,14 @@ fn bed(spatial: bool, orientation: [f64; 3], k: [f64; 2]) -> Box<dyn Element> {
 }
 fn rotate(p: [f64; 3]) -> [f64; 3] {
     // Qz(.47) Qx(.63), propia; para D2 se usa Qz por separado.
-    let (s, c) = 0.63_f64.sin_cos();
+    let (s, c) = math::sin_cos(0.63_f64);
     let y = c * p[1] - s * p[2];
     let z = s * p[1] + c * p[2];
-    let (s, c) = 0.47_f64.sin_cos();
+    let (s, c) = math::sin_cos(0.47_f64);
     [c * p[0] - s * y, s * p[0] + c * y, z]
 }
 fn rotate2(p: [f64; 3]) -> [f64; 3] {
-    let (s, c) = 0.47_f64.sin_cos();
+    let (s, c) = math::sin_cos(0.47_f64);
     [c * p[0] - s * p[1], s * p[0] + c * p[1], p[2]]
 }
 fn rotated(spatial: bool, v: &[f64]) -> Vec<f64> {
@@ -134,7 +135,7 @@ fn foundation_is_exact_hermite_gram_and_positive_definite_on_each_transverse_pla
                             gram[i][j] - (0..j).map(|p| chol[i][p] * chol[j][p]).sum::<f64>();
                         if i == j {
                             assert!(residual > 0.0);
-                            chol[i][j] = residual.sqrt();
+                            chol[i][j] = math::sqrt(residual);
                         } else {
                             chol[i][j] = residual / chol[j][j];
                         }
@@ -626,9 +627,9 @@ fn recovery_with_distributed_loads_matches_independent_quadrature_of_soil_force(
                 let mut torque = 0.0;
                 // Gauss sobre [0,x], independiente de los antiderivados de producción.
                 for (r, weight) in [
-                    (0.5 - (3.0_f64 / 5.0).sqrt() / 2.0, 5.0 / 18.0),
+                    (0.5 - math::sqrt(3.0_f64 / 5.0) / 2.0, 5.0 / 18.0),
                     (0.5, 4.0 / 9.0),
-                    (0.5 + (3.0_f64 / 5.0).sqrt() / 2.0, 5.0 / 18.0),
+                    (0.5 + math::sqrt(3.0_f64 / 5.0) / 2.0, 5.0 / 18.0),
                 ] {
                     let s = r * x;
                     let t = s / l;

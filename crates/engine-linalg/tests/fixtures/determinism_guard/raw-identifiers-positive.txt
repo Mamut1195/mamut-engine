@@ -1,0 +1,3 @@
+engine_core::r#math::r#sin(x);
+let r#value = x.abs();
+let text = r###"x.r#sin() mul_add include!(\"hidden.inc\")"###;

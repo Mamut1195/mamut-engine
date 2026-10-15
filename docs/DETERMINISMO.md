@@ -123,13 +123,28 @@ protecciones frente a overflow/underflow.
 hilos sobre `crates/*/src/**/*.rs`: rechaza HashMap, HashSet, thread, rayon y
 rayon_*. Añade una guardia escalar sobre **todos los archivos Rust en crates/**,
 incluidos tests y ejemplos y crates futuros. Solo exceptúa
-engine-core/src/math.rs. Rechaza métodos como `x.sin()`, UFCS/referencias como
-`f64::sin` o `Real::sin`, y acceso directo/imports de libm fuera del módulo.
-También exige centralizar sqrt. Ignora comentarios, cadenas normales/raw y
-literales char; prueba aliases, espacios, macros y funciones escalares de la
-lista. Es una guardia léxica conservadora, no resolución de tipos: reconoce
-`math::función` como acceso al módulo; no inspecciona dependencias transitivas
-ni código generado por build scripts. Cambiar proveedor requiere revisión.
+engine-core/src/math.rs para trascendentes y libm. Rechaza métodos como
+`x.sin()` y `x.r#sin()`, UFCS/referencias como `f64::sin` o `Real::sin`,
+y acceso directo/imports de libm fuera del módulo. También exige centralizar
+sqrt. Autoriza `engine_core::math::función` y la abreviatura `math::función`
+solo con `use engine_core::math;` sin alias: rechaza `as math`, alias de
+primitivos, imports sueltos de funciones y redefiniciones del nombre reservado
+math. Comprueba la ruta completa, sin aceptar `other::math::función`.
+Dentro de macros rechaza identificadores escalares sin esa ruta, por ejemplo
+`call!(x, exp)`; conserva receptores de datos como `log.acceleration(...)`.
+`mul_add` solo se admite en engine-linalg/src/modes.rs, también frente a
+identificadores crudos o argumentos de macros.
+
+`include!` solo admite rutas literales terminadas en .rs, cuyo destino debe
+estar en el inventario Rust inspeccionado de crates/**; rechaza otras
+extensiones y rutas calculadas (concat!/env!, etc.). `include_str!` e
+`include_bytes!` pueden incluir datos de otras extensiones. Ignora comentarios,
+cadenas normales/raw y literales char; cinco pares de fixtures de texto
+positivos/negativos cubren los huecos de FU #105, además de las variantes de
+aliases, espacios, macros y todas las funciones escalares de la lista.
+Es una guardia léxica conservadora, no resolución de tipos; no inspecciona
+dependencias transitivas ni código generado por build scripts. Cambiar proveedor
+requiere revisión.
 
 `engine-api/tests/determinism.rs` ejecuta diez veces once entradas válidas:
 Status::Ok, canonización idempotente, SHA-256 del documento completo y también
@@ -200,9 +215,9 @@ Node con WebAssembly/BigInt. El cruce es adicional a cargo test/check:
 Cruce real offline el 2026-10-14: Rust 1.99.0 (LLVM 23.1.1),
 x86_64-unknown-linux-gnu frente a wasm32-unknown-unknown en Node v22.19.0,
 CARGO_TARGET_DIR=/workspace/.cargo-target/me45, sin RUSTFLAGS especiales.
-**Ampliación J4 r25: debug y release, 16 hashes completos iguales nativo/wasm,
-diez corridas por caso/target.** Además, cmp de las salidas nativas debug/release confirma los
-mismos 16 hashes entre perfiles. Los trece hashes de la suite anterior
+**ampliación tras J4 r25, reproducida por J4 r26: debug y release, 16 hashes
+completos iguales nativo/wasm, diez corridas por caso/target.** Además, cmp de
+las salidas nativas debug/release confirma los mismos 16 hashes entre perfiles. Los trece hashes de la suite anterior
 (fccda4d) permanecen iguales.
 
 La evidencia cubre once análisis V1 y cinco casos de bits escalares; no

@@ -118,3 +118,51 @@ Rust 1.99.0 (LLVM 23.1.1), sin RUSTFLAGS especiales:
   cambios preparados, incluidos los dos fixtures nuevos. Revisión humana
   PENDIENTE (J4). Sin cambios a docs/CLEAN_ROOM.md, .github/** ni clean-room/**;
   sin red ni push. No se añaden panic/unwrap/expect a biblioteca.
+
+
+## FU #105 · MAM-23 · J4 r26 · 2026-10-14
+
+- Solicitud: cerrar los cinco huecos de la guardia escalar de #98; rama
+  j2/eng-core-010-fu sobre main abe7453, sin red ni push.
+- Fuentes: instrucciones del usuario, guardia y fuentes propias del checkout,
+  APIs std/Rust y toolchain local. Ningún código de terceros copiado o
+  vendorizado, ninguna dependencia nueva ni consulta a otros motores.
+- Guardia: distingue r#identificador de cadenas raw y normaliza el nombre;
+  exige la ruta engine_core::math:: o el import exacto sin alias del módulo
+  para la abreviatura math::. Rechaza aliases de primitivos, as math y
+  redefiniciones/imports alternativos de math, además de rutas con otro prefijo.
+  Los argumentos escalares sin ruta dentro de macros son rechazados;
+  receptores de datos como log.acceleration(...) siguen permitidos.
+- FMA: excepción limitada al archivo engine-linalg/src/modes.rs, sin exceptuar
+  tests u otros archivos llamados modes.rs; ni math.rs permite mul_add.
+- include!: solo rutas literales .rs con destino dentro del inventario Rust
+  inspeccionado de crates/**, comprobado tras canonicalizar rutas. Rechaza
+  ficheros de otras extensiones y rutas dinámicas; include_str!/include_bytes!
+  de datos permanecen permitidos. La excepción escalar de math.rs no exceptúa
+  la comprobación de includes.
+- Fixtures propios: cinco pares de textos .txt, positivos y negativos,
+  consumidos como datos por cinco tests específicos. Pruebas adicionales para
+  todas las funciones de la lista con identificadores crudos y tres delimitadores
+  de macros, rutas completas, aliases equivalentes, comentarios y cadenas raw.
+- Integración: main contiene usos std de sqrt/sin_cos en los tests de Winkler
+  de engine-validation que la guardia previa también rechazaba. Se centralizan
+  en engine_core::math en winkler_elements.rs y support/winkler_harness.rs;
+  sqrt conserva su excepción IEEE y sin_cos usa el proveedor libm ya fijado.
+  Sin cambios en biblioteca, algoritmos mecánicos, tolerancias ni FMA de Sturm;
+  no se añaden panic/unwrap/expect en biblioteca.
+- Documentación: se explicita el alcance de la guardia y se corrige la atribución
+  a «ampliación tras J4 r25, reproducida por J4 r26» en docs/DETERMINISMO.md.
+- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados
+  para este ticket."
+- Verificación offline con el CARGO_TARGET_DIR exportado
+  (/workspace/.cargo-target/me45), CARGO_NET_OFFLINE=true:
+  - cargo fmt --all -- --check: OK.
+  - cargo clippy --offline --workspace --all-targets -- -D warnings: OK.
+  - cargo test --offline --workspace: OK, 520 pruebas incluidos doctests,
+    cero fallos/ignoradas; los nueve tests de la guardia pasan.
+  - RUSTDOCFLAGS="-D warnings" cargo doc --offline --no-deps --workspace: OK.
+  - cargo check --offline --workspace --target wasm32-unknown-unknown: OK.
+  - git diff --cached --check y bash clean-room/check.sh origin/main: OK,
+    sobre cambios preparados, incluidos los diez fixtures nuevos.
+- Revisión humana clean-room: PENDIENTE (J4). Sin cambios a docs/CLEAN_ROOM.md,
+  .github/** ni clean-room/**.

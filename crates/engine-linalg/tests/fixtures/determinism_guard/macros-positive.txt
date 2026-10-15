@@ -1,0 +1,7 @@
+use engine_core::math;
+call!(x, engine_core::math::exp);
+call![x, math::exp];
+macro_rules! central { ($x:expr) => { engine_core::math::exp($x) }; }
+// call!(x, exp)
+let text = "call!(x, exp)";
+assert_eq!(log.acceleration(0.0), 2.0);

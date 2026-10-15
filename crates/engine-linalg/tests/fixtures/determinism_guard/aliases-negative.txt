@@ -1,0 +1,2 @@
+use core::primitive::f64 as math;
+math::cos(x);

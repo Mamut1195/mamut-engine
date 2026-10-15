@@ -1,0 +1,5 @@
+use engine_core::math;
+math::cos(x);
+::engine_core::math::sin(x);
+let (sin, cos) = math::sin_cos(x);
+let value = sin + cos;

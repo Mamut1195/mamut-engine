@@ -5,6 +5,7 @@ use engine_assembly::{DofMap, ElementContribution, LinearSystem};
 use engine_contracts::{
     CaseRef, Element, ElementCtx, ElementFactory, ElementParams, JsonValue, ModelView,
 };
+use engine_core::math;
 use engine_core::{Dim, Dof, EResult, EngineError, NodeId};
 use engine_linalg::ReferenceBackend;
 use engine_model::{DofValue, LoadCase, Model, NodalLoad, Node, Support};
@@ -175,9 +176,9 @@ fn solve(f: &Fixture, n: usize, length: f64) -> EResult<Observation> {
             let sign = if plane == 0 { 1.0 } else { -1.0 };
             // Gauss de 3 puntos: exacto para v cúbica y x·v cuártica.
             for (t, weight) in [
-                (0.5 - (3.0_f64 / 5.0).sqrt() / 2.0, 5.0 / 18.0),
+                (0.5 - math::sqrt(3.0_f64 / 5.0) / 2.0, 5.0 / 18.0),
                 (0.5, 4.0 / 9.0),
-                (0.5 + (3.0_f64 / 5.0).sqrt() / 2.0, 5.0 / 18.0),
+                (0.5 + math::sqrt(3.0_f64 / 5.0) / 2.0, 5.0 / 18.0),
             ] {
                 let v = (1.0 - 3.0 * t * t + 2.0 * t * t * t) * u[shear]
                     + h * (t - 2.0 * t * t + t * t * t) * sign * u[rotation]
@@ -255,7 +256,7 @@ fn solve(f: &Fixture, n: usize, length: f64) -> EResult<Observation> {
     Ok(observation)
 }
 pub fn validate(f: &Fixture) -> EResult<()> {
-    let lambda = (f.k[0] / (4.0 * f.ei[0])).sqrt().sqrt();
+    let lambda = math::sqrt(math::sqrt(f.k[0] / (4.0 * f.ei[0])));
     let length = match f.kind {
         Kind::Infinite => 20.0 / lambda,
         Kind::SemiInfinite => 12.0 / lambda,
@@ -267,7 +268,7 @@ pub fn validate(f: &Fixture) -> EResult<()> {
     for (level, &n) in f.meshes.iter().enumerate() {
         let result = solve(f, n, length)?;
         for plane in 0..planes {
-            let lambda = (f.k[plane] / (4.0 * f.ei[plane])).sqrt().sqrt();
+            let lambda = math::sqrt(math::sqrt(f.k[plane] / (4.0 * f.ei[plane])));
             let exact_w = match f.kind {
                 Kind::Infinite => f.p[plane] * lambda / (2.0 * f.k[plane]),
                 Kind::SemiInfinite => 2.0 * f.p[plane] * lambda / f.k[plane],

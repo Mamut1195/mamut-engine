@@ -1,0 +1,6 @@
+include!("already_scanned.rs");
+include! { r#"already_scanned.rs"# }
+include_str!("input.json");
+include_bytes!("input.bin");
+// include!("hidden.inc")
+let text = r##"include!("hidden.inc")"##;
