@@ -1,5 +1,9 @@
 #![forbid(unsafe_code)]
-//! Tensiones geostáticas de un perfil estratificado, escrito desde cero.
+//! Geotecnia: perfiles estratificados y consolidación incremental, desde cero.
+//!
+//! [`consolidation`] resuelve Terzaghi 1D multicapa por elementos finitos;
+//! [`winkler`] aporta el lecho elástico. Las hipótesis que siguen describen
+//! exclusivamente el perfil de tensiones geostáticas.
 //!
 //! # Unidades, ejes e hipótesis
 //!
@@ -70,6 +74,8 @@ pub use engine_core::{ContractId, Diagnostic, Real};
 
 pub mod winkler;
 
+pub mod consolidation;
+
 mod profile;
 pub use profile::StratifiedProfile;
 
@@ -88,7 +94,7 @@ pub enum Provenance {
 /// Valor y origen inseparables; la unidad depende del campo que lo recibe.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Parameter {
-    /// Valor en m para zw o en kN/m³ para un peso unitario.
+    /// Valor en las unidades explícitas del campo que lo recibe.
     pub value: Real,
     /// Origen explícito del valor; no certifica la calidad de una medición.
     pub provenance: Provenance,

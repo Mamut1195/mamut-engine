@@ -413,6 +413,11 @@ struct SourcePolicyException {
 // ni los ejemplos wasm necesitan unsafe ni la instrumentación necesita FFI.
 const SOURCE_POLICY_EXCEPTIONS: &[SourcePolicyException] = &[
     SourcePolicyException {
+        path: "engine-validation/examples/consolidation_wasm.rs",
+        allowed: &[Construction::NoMangle, Construction::ExternCFunction],
+        reason: "ABI pública wasm para comparar consolidación nativa/wasm",
+    },
+    SourcePolicyException {
         path: "engine-linalg/tests/heap_peak.rs",
         allowed: &[Construction::Unsafe],
         reason: "GlobalAlloc de instrumentación de memoria, delegado en System",
