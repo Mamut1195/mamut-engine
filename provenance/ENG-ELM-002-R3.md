@@ -9,5 +9,5 @@
 - Código de terceros copiado: ninguno
 - Validación: analítico (viga doblemente articulada sin carga: V=M=0)
 - Comparación con oráculo: no
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+- Declaración: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados para este ticket (docs/CLEAN_ROOM.md §5)."
 - Revisor clean-room: PENDIENTE (J4)

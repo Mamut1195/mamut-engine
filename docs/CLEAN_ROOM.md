@@ -44,6 +44,7 @@ Una misma persona o sesión no puede combinar los roles de operador de oráculo 
 - `lambdaclass/stabileo` (crate `dedaliano-engine`) y `node_modules/stabileo-*`: abrir o leer su código, incluido el contenido de `node_modules/stabileo-*`, sigue prohibido. Instalar y ejecutar Stabileo en el harness dedicado del repo privado `mamut-engine-oracles` está permitido según §5.1.
 - Dentro de MAMUT: `mamut-structures/src/stabileo-adapter`, `motor-fem/engine`, `/workspace/opensees-web/spike/` y la parte de `motor-geo` que usa groundhog.
 - Otros motores con licencia GPL, LGPL, AGPL, desconocida o sin licencia (CalculiX, code_aster, OOFEM, carapace, anaStruct). Kratos solo con aprobación.
+- Bibliotecas de álgebra lineal numérica cuyo código no se consulta ni se copia: LAPACK, Eigen, faer y nalgebra (solo prosa/teoría; las dependencias se rigen por ENG-GOV-005).
 - El manual de comandos de OpenSees **como especificación**: no define formato ni nombres. Solo lo usa el operador de oráculo.
 - Los listados de código de Davis (*Direct Methods for Sparse Linear Systems*, CSparse): se lee la prosa, no se copia el código.
 

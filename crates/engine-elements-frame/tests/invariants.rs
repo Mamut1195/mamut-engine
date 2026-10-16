@@ -748,7 +748,7 @@ fn double_release_shear_is_exact_for_ei_1e12_and_1e30() {
     // sin poner a cero la flexión elástica condensada aparece cortante espurio
     // (~EI/L³·ε), con el arreglo es exactamente cero.
     let p = ElementParams::default();
-    let mut spurious_without_fix_possible = 0;
+    let mut cases_checked = 0;
     for ei in [1e12, 1e20, 1e30] {
         for length in [3.1, 0.7, 11.3, 2.0 / 3.0] {
             let coords = [[0.0; 3], [length, 0.0, 0.0]];
@@ -766,9 +766,9 @@ fn double_release_shear_is_exact_for_ei_1e12_and_1e30() {
                     assert_eq!(s.forces_local[1], 0.0, "EI={ei} L={length}");
                     assert_eq!(s.forces_local[5], 0.0, "EI={ei} L={length}");
                 }
-                spurious_without_fix_possible += 1;
+                cases_checked += 1;
             }
         }
     }
-    assert_eq!(spurious_without_fix_possible, 36);
+    assert_eq!(cases_checked, 36);
 }
