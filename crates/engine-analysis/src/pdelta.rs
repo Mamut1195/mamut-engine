@@ -23,6 +23,7 @@ use std::{collections::BTreeSet, sync::Arc};
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PDeltaOptions {
     /// Tolerancia relativa positiva y menor que uno, para cambio y residual.
+    /// El residual admite además el piso de redondeo documentado en PDeltaIteration.
     pub tolerance: Real,
     /// Máximo de pasos laterales; positivo. La gravedad no cuenta como paso.
     pub max_iterations: usize,
@@ -35,7 +36,7 @@ pub struct PDeltaOptions {
 /// Terminación física/numerérica del método, distinta de errores de entrada.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PDeltaOutcome {
-    /// Cambio y residual relativos cumplen la tolerancia del usuario.
+    /// Cambio relativo y residual por GDL con piso de redondeo cumplen el criterio.
     Completed,
     /// Se agotó exactamente max_iterations; no se aceptó ningún estado.
     NotConverged,
@@ -56,11 +57,27 @@ pub struct PDeltaIteration {
     /// ‖Δu/s‖∞ / max(1, ‖u_nuevo/s‖∞, ‖u_previo/s‖∞).
     /// s es displacement_scale o rotation_scale según el GDL.
     pub relative_displacement_change: Real,
-    /// ‖((K+Kg)u−F)_f‖∞ en componentes SI N/N·m.
+    /// ‖((K+Kg)u−F)_f‖∞; mezcla fuerzas y momentos (N/N·m en SI).
     pub free_residual_norm: Real,
     /// Residual / max(1, ‖((K+Kg)u)_f‖∞, ‖F_f‖∞).
     /// Indicador SI mixto; no es una norma física invariante de unidades.
+    /// Se conserva como diagnóstico; no determina la convergencia.
     pub relative_free_residual: Real,
+    /// max_i |((K+Kg)u−F)_i| / (tolerance·ref_g + piso_i), en GDL libres.
+    /// ref_g = max_j(|F_j|, (|K+Kg||u|)_j) para libres del mismo grupo:
+    /// traslaciones (fuerzas) o giros (momentos), sin escala unitaria absoluta.
+    /// piso_i = 64·m_i·eps·(|K+Kg||u|)_i, con m_i el número de entradas
+    /// CSR de la fila global (incluye prescritos y ceros almacenados), mínimo 1.
+    /// eps = Real::EPSILON; el factor 64 cubre acumulación y resolución previas
+    /// además del producto final (derivación en ENG-ANL-003.md).
+    /// Debe ser <= 1, junto al criterio de cambio de desplazamiento.
+    /// Cerca del pandeo, el residuo aceptado equivale a un error de desplazamiento
+    /// amplificado por ~1/(1−P/Pcr): la tolerancia efectiva en u se afloja así.
+    /// En la práctica el piso solo es activo con desplazamientos prescritos;
+    /// el estancamiento W14x48 lo resuelven las referencias fuerza/momento.
+    /// 0/0 se reporta como 0; denominador subdesbordado con residual no nulo,
+    /// como Real::MAX (no converge).
+    pub residual_convergence_ratio: Real,
 }
 
 /// Resultado lateral y gravedad usada como pretensión, sin aceptación implícita.
@@ -232,7 +249,14 @@ impl PDelta {
             let current = solution.values().to_vec();
             let global = system.constraints().expand(&current)?;
             let internal = multiply(&total, &global)?;
-            let (norm, relative) = residual(system, &internal, &force)?;
+            let (norm, relative, residual_ratio) = residual(
+                system,
+                &total,
+                &global,
+                &internal,
+                &force,
+                options.tolerance,
+            )?;
             let change = displacement_change(&current, &previous, &scales)?;
             result.iterations.push(PDeltaIteration {
                 iteration,
@@ -240,11 +264,12 @@ impl PDelta {
                 relative_displacement_change: change,
                 free_residual_norm: norm,
                 relative_free_residual: relative,
+                residual_convergence_ratio: residual_ratio,
             });
             result.reactions = reactions(system, &internal, &force)?;
             result.global_displacements = Some(global);
             checkpoint(iteration)?;
-            if change <= options.tolerance && relative <= options.tolerance {
+            if change <= options.tolerance && residual_ratio <= 1.0 {
                 result.outcome = PDeltaOutcome::Completed;
                 break;
             }
@@ -376,19 +401,53 @@ fn displacement_change(current: &[Real], previous: &[Real], scales: &[Real]) -> 
 
 fn residual<B: LinAlgBackend>(
     system: &LinearSystem<B>,
+    matrix: &SparseMatrix,
+    u: &[Real],
     internal: &[Real],
     force: &[Real],
-) -> EResult<(Real, Real)> {
+    tolerance: Real,
+) -> EResult<(Real, Real, Real)> {
     let mut norm: Real = 0.0;
     let mut scale: Real = 1.0;
-    for index in system.constraints().free_dofs() {
+    let mut references: [Real; 2] = [0.0; 2];
+    let mut rows = Vec::with_capacity(system.n_free_dofs());
+    for (free, index) in system.constraints().free_dofs().iter().enumerate() {
         let i = index.0 as usize;
         let value = internal[i] - force[i];
         finite(&[value])?;
         norm = norm.max(value.abs());
         scale = scale.max(internal[i].abs()).max(force[i].abs());
+        let (_, dof) = system.try_dof_label(DofIndex(free as u32))?;
+        let group = usize::from(dof.index() >= 3);
+        let start = matrix.row_offsets()[i];
+        let end = matrix.row_offsets()[i + 1];
+        let mut absolute_product = 0.0;
+        for p in start..end {
+            // Producto de la fila global: incluye desplazamientos prescritos.
+            absolute_product += (matrix.values()[p] * u[matrix.column_indices()[p]]).abs();
+            finite(&[absolute_product])?;
+        }
+        references[group] = references[group].max(force[i].abs()).max(absolute_product);
+        // O(m eps) del producto escalar, con margen para ensamblaje y solve.
+        let floor = 64.0 * (end - start).max(1) as Real * Real::EPSILON * absolute_product;
+        finite(&[floor])?;
+        rows.push((value.abs(), group, floor));
     }
-    Ok((norm, norm / scale))
+    let mut convergence_ratio: Real = 0.0;
+    for (value, group, floor) in rows {
+        let bound = tolerance * references[group] + floor;
+        finite(&[bound])?;
+        let ratio = if value == 0.0 {
+            0.0
+        } else if bound == 0.0 {
+            Real::MAX
+        } else {
+            value / bound
+        };
+        finite(&[ratio])?;
+        convergence_ratio = convergence_ratio.max(ratio);
+    }
+    Ok((norm, norm / scale, convergence_ratio))
 }
 
 fn reactions<B: LinAlgBackend>(

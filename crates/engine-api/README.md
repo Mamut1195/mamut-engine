@@ -145,6 +145,15 @@ ejemplos siguientes. No hay resultados parciales en errores o cancelación;
 P-Delta conserva únicamente el reporte de convergencia cuando termina con
 notConverged/unstable. Las combinaciones de cargas requieren linearStatic.
 
+En cada iteración P-Delta, `residual_convergence_ratio` compara el residual de
+cada GDL libre con `tolerance·ref_grupo + 64·m_i·eps·(|K+Kg||u|)_i`.
+Las referencias son los máximos de `|F|` y `|K+Kg||u|` en GDL libres de
+traslación (fuerza) o giro (momento), separados; `m_i` cuenta las entradas CSR
+de la fila global (mínimo 1). Completar exige un cociente máximo `<= 1` y
+`relative_displacement_change <= tolerance`. `relative_free_residual` conserva
+su normalización mixta histórica solo como diagnóstico y puede superar la
+tolerancia aun cuando el análisis complete. Véase `provenance/ENG-ANL-003.md`.
+
 Cada miembro mantiene `section` y `law`. `element` es opcional: por defecto
 `frame2d.euler_elastic` en D2 y `frame3d.euler_elastic` en D3. También se admiten
 `truss2d.linear` y `truss3d.linear`; kind desconocido produce Unsupported. Los

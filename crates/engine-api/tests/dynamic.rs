@@ -156,7 +156,9 @@ fn pdelta_cantilever_mesh_convergence_and_euler_amplification() {
         close(&d["cases"][0]["nodes"][0]["reactions"][1], -1.0);
         let steps = d["convergence"]["iterations"].as_array().unwrap();
         assert!(steps.len() > 1);
-        assert!(num(&steps.last().unwrap()["relative_free_residual"]) <= 1e-10);
+        let last = steps.last().unwrap();
+        assert!(num(&last["residual_convergence_ratio"]) <= 1.0);
+        assert!(num(&last["relative_displacement_change"]) <= 1e-10);
     }
     assert!(errors[1] < errors[0], "{errors:?}");
     assert!(errors[1] < 1e-5, "{errors:?}");

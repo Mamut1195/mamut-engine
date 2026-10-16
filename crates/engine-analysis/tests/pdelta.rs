@@ -148,6 +148,186 @@ fn exact_compression(ratio: f64) -> f64 {
     linear_tip() * 3.0 * (math::tan(z) - z) / math::powi(z, 3)
 }
 
+// W14x48, kip e in: fixture del ticket de cancelación del residual.
+const W14_E: f64 = 29_000.0;
+const W14_A: f64 = 14.1;
+const W14_I: f64 = 484.0;
+const W14_L: f64 = 336.0;
+const W14_H: f64 = 1.0;
+const W14_P: f64 = 200.0;
+
+fn w14x48(mesh: u32) -> LinearSystem<ReferenceBackend> {
+    w14x48_in_units(mesh, 1.0, 1.0)
+}
+
+fn w14x48_in_units(mesh: u32, force: f64, length: f64) -> LinearSystem<ReferenceBackend> {
+    let mut m = Model::new();
+    for i in 0..=mesh {
+        m.nodes.push(Node::new(
+            NodeId(i + 1),
+            Dim::D2,
+            [W14_L * length * i as f64 / mesh as f64, 0.0, 0.0],
+        ));
+    }
+    support(&mut m, 1, Dim::D2.dofs());
+    load(&mut m, "G", mesh + 1, Dof::Ux, -W14_P * force);
+    load(&mut m, "H", mesh + 1, Dof::Uy, W14_H * force);
+    let element: Arc<dyn Element> = Arc::new(
+        EulerFrame2D::new(
+            W14_E * force / math::powi(length, 2),
+            W14_A * math::powi(length, 2),
+            W14_I * math::powi(length, 4),
+            0.0,
+            MomentReleases::default(),
+        )
+        .unwrap(),
+    );
+    let (elements, producers): (Vec<_>, Vec<_>) = (1..=mesh)
+        .map(|i| member(&m, element.clone(), i, i + 1))
+        .unzip();
+    let mut s = LinearSystem::from_model(ReferenceBackend, &m, &elements, &[]).unwrap();
+    s.set_geometric_producers(producers).unwrap();
+    s
+}
+
+#[test]
+fn w14x48_convergence_is_invariant_between_kip_in_and_newton_metre() {
+    // Conversiones exactas: el mismo P=200 kip (~0.65 Pcr) en ambos sistemas.
+    // La carga lateral pequeña deja referencias < 1 en kip/in y hace observable
+    // una regresión a max(1, ref_g), aun manteniendo el criterio de cambio de u.
+    const KIP_TO_NEWTON: f64 = 4448.2216152605;
+    const INCH_TO_METRE: f64 = 0.0254;
+    for lateral_factor in [1.0, 1e-6] {
+        let solve = |force, length| {
+            let mut s = w14x48_in_units(8, force, length);
+            PDelta::run(
+                &mut s,
+                &(case("G"), 1.0),
+                &(case("H"), lateral_factor),
+                PDeltaOptions {
+                    displacement_scale: length,
+                    rotation_scale: 0.01,
+                    ..options()
+                },
+            )
+            .unwrap()
+        };
+        let imperial = solve(1.0, 1.0);
+        let si = solve(KIP_TO_NEWTON, INCH_TO_METRE);
+        assert_eq!(imperial.outcome, PDeltaOutcome::Completed);
+        assert_eq!(si.outcome, imperial.outcome);
+        assert_eq!(
+            si.iterations.len(),
+            imperial.iterations.len(),
+            "factor lateral={lateral_factor}"
+        );
+        // Indicador adimensional: se comprueba al principio para evitar que la
+        // cancelación cerca del equilibrio domine la comparación entre unidades.
+        close(
+            si.iterations[0].residual_convergence_ratio
+                / imperial.iterations[0].residual_convergence_ratio,
+            1.0,
+            1e-9,
+        );
+        for (i, (&u_si, &u_imperial)) in si
+            .global_displacements
+            .as_ref()
+            .unwrap()
+            .iter()
+            .zip(imperial.global_displacements.as_ref().unwrap())
+            .enumerate()
+        {
+            let converted = if i % 3 < 2 {
+                u_si / INCH_TO_METRE
+            } else {
+                u_si
+            };
+            close(converted, u_imperial, 1e-8 * u_imperial.abs() + 1e-18);
+        }
+    }
+}
+
+#[test]
+fn w14x48_cantilever_converges_with_separate_force_and_moment_references() {
+    let k = math::sqrt(W14_P / (W14_E * W14_I));
+    let exact = W14_H * (math::tan(k * W14_L) - k * W14_L) / (W14_P * k);
+    // El error de discretización cúbica con 8 elementos es 2.51e-6;
+    // bajar la tolerancia iterativa no lo reduce. Véase ENG-ANL-003.md.
+    for (mesh, tolerance, mesh_error) in [(32, 1e-10, 1e-6), (8, 1e-12, 3e-6)] {
+        let mut s = w14x48(mesh);
+        let settings = PDeltaOptions {
+            tolerance,
+            displacement_scale: 1.0,
+            rotation_scale: 0.01,
+            ..options()
+        };
+        let r = PDelta::run(&mut s, &(case("G"), 1.0), &(case("H"), 1.0), settings).unwrap();
+        let last = r.iterations.last().unwrap();
+        assert_eq!(r.outcome, PDeltaOutcome::Completed, "mesh={mesh}: {last:?}");
+        assert!(
+            (tip(&r) / exact - 1.0).abs() < mesh_error,
+            "mesh={mesh}: tip={}, exact={exact}, error={:e}",
+            tip(&r),
+            (tip(&r) / exact - 1.0).abs()
+        );
+        assert!(last.relative_displacement_change <= tolerance);
+        assert!(last.residual_convergence_ratio <= 1.0);
+
+        // Resolución directa independiente de la iteración: comprueba que
+        // el criterio no oculta error iterativo ni error de discretización.
+        let n = s.n_free_dofs();
+        let mut kg = SymMatrix::zeros(n).unwrap();
+        s.geometric(&r.gravity.free_displacements, &mut kg).unwrap();
+        let total = SymMatrix::new(
+            DMat::new(
+                n,
+                n,
+                s.reduced_stiffness()
+                    .dense()
+                    .values()
+                    .iter()
+                    .zip(kg.dense().values())
+                    .map(|(k, g)| k + g)
+                    .collect(),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let rhs = DMat::new(n, 1, s.reduced_rhs(&case("H"), 1.0).unwrap()).unwrap();
+        let direct = s.factorize_reduced(&total).unwrap().solve(&rhs).unwrap();
+        assert!((tip(&r) / direct.values()[n - 2] - 1.0).abs() < 1e-8);
+
+        let limited = PDelta::run(
+            &mut s,
+            &(case("G"), 1.0),
+            &(case("H"), 1.0),
+            PDeltaOptions {
+                max_iterations: 2,
+                ..settings
+            },
+        )
+        .unwrap();
+        assert_eq!(limited.outcome, PDeltaOutcome::NotConverged);
+        assert_eq!(limited.iterations.len(), 2);
+        assert!(
+            limited
+                .iterations
+                .last()
+                .unwrap()
+                .relative_displacement_change
+                > tolerance
+        );
+        assert!(
+            limited
+                .iterations
+                .last()
+                .unwrap()
+                .residual_convergence_ratio
+                > 1.0
+        );
+    }
+}
+
 #[test]
 fn near_euler_exact_solution_mesh_refinement_and_declared_amplification_tolerance() {
     // EI v''''+P v''=0, v(0)=v'(0)=0, v''(L)=0,
@@ -173,7 +353,9 @@ fn near_euler_exact_solution_mesh_refinement_and_declared_amplification_toleranc
                 assert!((tip(&r) / approximate - 1.0).abs() < 0.02);
             }
             let last = r.iterations.last().unwrap();
-            assert!(last.relative_free_residual <= options().tolerance);
+            // El residual mixto histórico puede exceder la tolerancia por
+            // cancelación; el criterio nuevo usa referencias por tipo y piso.
+            assert!(last.residual_convergence_ratio <= 1.0);
             assert!(last.relative_displacement_change <= options().tolerance);
             // Cada miembro recibe el mismo axial N=-P de la gravedad recuperada.
             let dx = L / mesh as f64;
@@ -435,6 +617,112 @@ fn geometric_prescribed_shift_and_reactions_use_total_stiffness() {
     close(u[0], 0.03, 1e-15);
     close(u[1], 0.03 + 10.0 / 75.0, 1e-10);
     close(r.reactions[0].value, -10.0, 1e-8);
+}
+
+#[test]
+fn roundoff_floor_accepts_stationary_solution_with_prescribed_shift() {
+    let mut s = scalar(ReferenceBackend, -25.0, 0.03);
+    let settings = PDeltaOptions {
+        tolerance: 1e-20,
+        ..options()
+    };
+    let r = PDelta::run(&mut s, &(case("G"), 1.0), &(case("H"), 1.0), settings).unwrap();
+    assert_eq!(r.outcome, PDeltaOutcome::Completed);
+    let last = r.iterations.last().unwrap();
+    assert_eq!(last.relative_displacement_change, 0.0);
+    assert!(last.relative_free_residual > settings.tolerance);
+    // Fila libre [-75, 75]: |Kt||u| incluye el prescrito de 0.03.
+    let u = r.global_displacements.as_ref().unwrap();
+    let absolute_product = 75.0 * u[0].abs() + 75.0 * u[1].abs();
+    let floor = 64.0 * 2.0 * f64::EPSILON * absolute_product;
+    let expected = last.free_residual_norm / (settings.tolerance * absolute_product + floor);
+    close(last.residual_convergence_ratio, expected, 1e-15);
+    assert!(last.residual_convergence_ratio <= 1.0);
+
+    let mut zero = scalar(ReferenceBackend, -25.0, 0.0);
+    let r = PDelta::run(&mut zero, &(case("G"), 1.0), &(case("H"), 0.0), settings).unwrap();
+    assert_eq!(r.outcome, PDeltaOutcome::Completed);
+    assert_eq!(r.iterations.len(), 1);
+    assert_eq!(r.iterations[0].residual_convergence_ratio, 0.0);
+}
+
+#[test]
+fn force_and_moment_references_cannot_mask_each_others_residual() {
+    // Dos resortes independientes, Ux y Rz. La carga grande ya equilibrada
+    // no debe ocultar el residual del otro grupo aunque el cambio global pase.
+    for small in 0..2 {
+        let mut m = Model::new();
+        for id in 1..=2 {
+            let mut node = Node::new(NodeId(id), Dim::D2, [id as f64, 0.0, 0.0]);
+            node.dofs = vec![Dof::Ux, Dof::Rz];
+            m.nodes.push(node);
+        }
+        support(&mut m, 1, &[Dof::Ux, Dof::Rz]);
+        load(&mut m, "G", 2, Dof::Ux, 0.0);
+        m.cases.push(LoadCase {
+            name: "H".into(),
+            loads: vec![NodalLoad {
+                node: NodeId(2),
+                values: [Dof::Ux, Dof::Rz]
+                    .into_iter()
+                    .enumerate()
+                    .map(|(group, dof)| DofValue {
+                        dof,
+                        value: if group == small { 1.0 } else { 1e12 },
+                    })
+                    .collect(),
+            }],
+        });
+        let location: Vec<_> = (0..4).map(DofIndex).collect();
+        let spring = |group: usize, k: f64| {
+            let mut values = vec![0.0; 16];
+            for (i, j, sign) in [
+                (group, group, 1.0),
+                (group, group + 2, -1.0),
+                (group + 2, group, -1.0),
+                (group + 2, group + 2, 1.0),
+            ] {
+                values[i * 4 + j] = sign * k;
+            }
+            DMat::new(4, 4, values).unwrap()
+        };
+        let stiffness = DMat::new(
+            4,
+            4,
+            vec![
+                100.0, 0.0, -100.0, 0.0, 0.0, 100.0, 0.0, -100.0, -100.0, 0.0, 100.0, 0.0, 0.0,
+                -100.0, 0.0, 100.0,
+            ],
+        )
+        .unwrap();
+        let element = ElementContribution {
+            location: location.clone(),
+            stiffness,
+            mass_lumped: None,
+            mass_consistent: None,
+            geometric: None,
+            loads: vec![],
+        };
+        let mut s = LinearSystem::from_model(ReferenceBackend, &m, &[element], &[]).unwrap();
+        let kg = spring(small, -25.0);
+        s.set_geometric_producers(vec![GeometricProducer {
+            location,
+            eval: Box::new(move |_| Ok(kg.clone())),
+        }])
+        .unwrap();
+        let settings = PDeltaOptions {
+            tolerance: 1e-6,
+            max_iterations: 2,
+            displacement_scale: 1.0,
+            rotation_scale: 1.0,
+        };
+        let r = PDelta::run(&mut s, &(case("G"), 1.0), &(case("H"), 1.0), settings).unwrap();
+        let last = r.iterations.last().unwrap();
+        assert_eq!(r.outcome, PDeltaOutcome::NotConverged);
+        assert!(last.relative_displacement_change <= settings.tolerance);
+        assert!(last.relative_free_residual <= settings.tolerance);
+        assert!(last.residual_convergence_ratio > 1.0);
+    }
 }
 
 #[test]

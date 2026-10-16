@@ -222,7 +222,8 @@ pub(crate) fn pdelta(context: MethodContext<'_>) -> Result<(), Failure> {
         "inertia_uses_2x2":result.inertia_uses_2x2,
         "iterations":result.iterations.iter().map(|i| json!({"iteration":i.iteration,
             "relative_displacement_change":i.relative_displacement_change,
-            "free_residual_norm":i.free_residual_norm,"relative_free_residual":i.relative_free_residual})).collect::<Vec<_>>()});
+            "free_residual_norm":i.free_residual_norm,"relative_free_residual":i.relative_free_residual,
+                    "residual_convergence_ratio":i.residual_convergence_ratio})).collect::<Vec<_>>()});
     if status != Status::Ok {
         return Err(Failure(
             status,

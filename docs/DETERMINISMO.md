@@ -319,6 +319,13 @@ volver a ejecutar el cruce. Ante diferencias registrar entrada exacta,
 versiones/flags, hashes y campo/valores afectados; una tolerancia numérica no
 sustituye igualdad bit a bit.
 
+MAM-581 (#134, tras #103 en main 5d0139c): los resultados P-Delta añaden
+`residual_convergence_ratio` por iteración y la parada usa el criterio por GDL con
+piso de redondeo. Cambian solo `pdelta` (980bf21b…56ca → f2cc535e…6740) y
+`pdelta-inclined` (9b5a4584…a16b → 70825cf7…978b); los otros 14 hashes siguen iguales.
+Cruce offline 2026-10-15 con stable, Node: 16 casos nativo=wasm en debug y release,
+diez corridas por caso; `cmp` debug/release OK.
+
 SHA-256 de cruce (análisis sin `target`; bits escalares íntegros), iguales en
 nativo/wasm y debug/release:
 
@@ -327,10 +334,10 @@ nativo/wasm y debug/release:
 | cantilever | `dc3e62defc8012b55ceba0108b76930bc73f9d805329f272631233d80a1ea153` |
 | inclined-cantilever | `d28509b76b283de84be528b593295c2fc735c62aa222c53d8374bcfb256a2492` |
 | modal-1dof | `bf52691f1eafd4c963e6f3947b141d8210faace668533b5673343d1926073da3` |
-| pdelta | `980bf21b60a5b931a0f0c137ebc782a4a878abb95f7e8bce880c91c4374f56ca` |
+| pdelta | `f2cc535ed32fb2ed071a3ed8048ebf53c2cd81083efe8ba528e5c95d8cf46740` |
 | modal-coupled | `5e7f69005b39e8f4e93189aef46895770b5d1c1d4fe99d14d95b9a6ea9d8a86b` |
 | spectrum-log-cqc | `f68278ad240accbbc99bd58d0db43b161d74884af9d4cce05fab0b408c6f7dd2` |
-| pdelta-inclined | `9b5a4584e2151bb4d72c34933f564e8642e85600d44662e78ea376a61541a16b` |
+| pdelta-inclined | `70825cf724a03f9b82f1fd21c76175645a78bc4fcaea648504a7bfc6fd3b978b` |
 | modal-inclined | `d0ba8d1aefa2287fa6f7c2361864958aba0b1db89d68ec6e39583bf0d20913d7` |
 | spectrum-inclined | `aac5433acbe9f3a22fa5b610b1aac1d7842508503b30c8bc369c81e03b7d8baf` |
 | frame3d-inclined-static | `44e60765807c2dd654fb3f018cc11993c510d61f86da737cc29387e96c2c8da1` |

@@ -259,7 +259,7 @@ fn completed(r: &engine_analysis::pdelta::PDeltaResult) -> EResult<()> {
     let last = r.iterations.last().ok_or_else(missing)?;
     require(
         last.relative_displacement_change <= r.options.tolerance
-            && last.relative_free_residual <= r.options.tolerance,
+            && last.residual_convergence_ratio <= 1.0,
         "Iteración final fuera de tolerancia",
     )
 }

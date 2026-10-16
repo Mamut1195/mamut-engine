@@ -158,7 +158,8 @@
         "iteration": {"type": "integer", "minimum": 1},
         "relative_displacement_change": {"type": "number"},
         "free_residual_norm": {"type": "number"},
-        "relative_free_residual": {"type": "number"}
+        "relative_free_residual": {"type": "number"},
+        "residual_convergence_ratio": {"type": "number", "minimum": 0, "description": "Máximo por GDL libre de |r_i|/(tolerance·ref_grupo + 64·m_i·eps·(|K+Kg||u|)_i); fuerzas y momentos tienen referencias separadas. Converge si <= 1 y cumple el cambio relativo de desplazamiento."}
       }
     },
     "pDeltaConvergence": {
