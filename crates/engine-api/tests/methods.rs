@@ -39,29 +39,32 @@ fn dispatch_resolves_id_and_contract_with_sdk_major_compatibility() {
 }
 
 #[test]
-fn experimental_requires_explicit_job_opt_in_before_any_calculation() {
-    assert!(method_descriptor("pDelta", INPUT, false).is_err());
-    assert_eq!(
-        method_descriptor("pDelta", INPUT, true).unwrap().status,
-        MethodStatus::Experimental
-    );
-    for options in [json!({}), json!({"allow_experimental": false})] {
+fn pdelta_is_stable_and_runs_without_experimental_opt_in() {
+    for allow_experimental in [false, true] {
+        assert_eq!(
+            method_descriptor("pDelta", INPUT, allow_experimental)
+                .unwrap()
+                .status,
+            MethodStatus::Stable
+        );
+    }
+    for options in [
+        json!({}),
+        json!({"allow_experimental": false}),
+        json!({"allow_experimental": true}),
+    ] {
         let mut input: Value = serde_json::from_str(PDELTA).unwrap();
         input["options"] = options;
         let mut progress = Vec::new();
         let o = run(&input.to_string(), &CancelToken::new(), |p| {
             progress.push(p)
         });
-        assert_eq!(o.status, Status::Invalid);
-        assert_eq!(o.exit_code(), 2);
-        assert!(progress.is_empty());
+        assert_eq!(o.status, Status::Ok, "{}", o.document);
+        assert_eq!(o.exit_code(), 0);
+        assert!(!progress.is_empty());
         let d: Value = serde_json::from_str(&o.document).unwrap();
-        assert_eq!(d["cases"], json!([]));
-        assert_eq!(d["diagnostics"][0]["code"], "API-E-INPUT");
-        let cause = d["diagnostics"][0]["cause"].as_str().unwrap();
-        for expected in ["pDelta", "Experimental", "options.allow_experimental"] {
-            assert!(cause.contains(expected), "{cause}");
-        }
+        assert_eq!(d["convergence"]["method"], "pDelta");
+        assert!(!d["cases"].as_array().unwrap().is_empty());
     }
     let allowed = run(PDELTA, &CancelToken::new(), |_| {});
     assert_eq!(allowed.status, Status::Ok, "{}", allowed.document);
@@ -105,6 +108,15 @@ fn capabilities_are_deterministic_compatible_and_backed_by_evidence() {
         ]
     );
     assert_eq!(a["method_descriptors"], json!(descriptors));
+    let pdelta = descriptors
+        .iter()
+        .find(|d| d.workflow.method_id == "pDelta")
+        .unwrap();
+    assert_eq!(pdelta.status, MethodStatus::Stable);
+    assert!(pdelta
+        .citations
+        .iter()
+        .any(|citation| citation.contains("ENG-BENCH-002 (PR #132)")));
     let bytes = serde_json::to_vec(&a).unwrap();
     for _ in 0..8 {
         assert_eq!(serde_json::to_vec(&capabilities()).unwrap(), bytes);
@@ -135,4 +147,10 @@ fn capabilities_are_deterministic_compatible_and_backed_by_evidence() {
         let document: Value = serde_json::from_str(schema(name).unwrap()).unwrap();
         assert_eq!(document["additionalProperties"], false);
     }
+    let descriptor_schema: Value =
+        serde_json::from_str(schema("method-descriptor/1").unwrap()).unwrap();
+    assert!(descriptor_schema["properties"]["status"]["enum"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("Stable")));
 }

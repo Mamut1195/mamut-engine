@@ -265,3 +265,124 @@ status.txt y fingerprint-audit.json; auditoría temporal fuera del repo.
 No se modifican docs/CLEAN_ROOM.md, .github/**, clean-room/** ni vendor/**.
 El índice conserva sus entradas unmerged hasta que J2 marque la resolución.
 Revisión humana clean-room pendiente (J4).
+
+## MAM-582 · pDelta estable · 2026-10-15
+
+Esta nota sustituye la política Experimental de P-Delta descrita en las
+secciones históricas de #103. Preparada sobre HEAD `78c4f00` y reconciliada
+con origin/main `00e2b48` (#134/MAM-581 y #132), pDelta se publica como
+`Stable` y se habilita por defecto, con `options: {}` o
+`options.allow_experimental: false`. Se conservan el booleano y su valor
+predeterminado false en engine-input/1, el argumento de resolución y el gate
+para futuros métodos Experimental. Los otros métodos conservan Validated.
+Stable no certifica modelos arbitrarios ni cierra los límites #78/#84.
+
+Justificación suministrada en MAM-582:
+[ENG-BENCH-002 (PR #132)](ENG-BENCH-002.md), AISC 360-16 Comm. C2,
+casos 1 y 2 pasan con error ≤0.27%, dentro de tolerancias de 3% en momentos M
+y 5% en desplazamientos Δ. Se registra esta evidencia del ticket;
+el merge incorpora el benchmark de #132 en
+`crates/engine-analysis/tests/bench_pdelta.rs`; se verifica con la suite
+del workspace, sin consultar la red. No se consultó código de motores externos.
+La promoción a Stable no cambia fórmulas, solvers, tolerancias, dependencias
+ni funciones escalares; el merge incorpora el criterio de convergencia MAM-581 y
+se conserva engine_core::math como único acceso a la matemática escalar.
+
+La prueba de integración acepta pDelta sin la opción, con false y con true,
+verifica Stable en resolución y capabilities y su publicación en el esquema.
+Como no quedan métodos Experimental en el registro de producción, una prueba
+unitaria aplica la misma función de política usada por resolve a un descriptor
+Experimental de prueba: rechaza false con InvalidInput, nombre y opción
+requerida; acepta true. También comprueba que los demás estados no exigen la
+opción. No se registra un método ficticio en la API pública.
+
+Se retira allow_experimental del ejemplo válido y los dos fixtures de
+determinismo P-Delta. Auditoría temporal anterior al merge, frente a #103,
+mediante engine_api::run, con git_commit null y target x86_64-unknown-linux-gnu: todos los campos del
+resultado salvo input_sha256 son idénticos en los tres casos. El estado y la
+cita nuevos solo afectan a capabilities/1, fuera de los hashes de results/1.
+
+### Hashes anteriores → nuevos
+
+SHA-256 de cruce de docs/DETERMINISMO.md: results/1 canónico tras validar y
+retirar exclusivamente target; git_commit null, input_sha256 conservado.
+
+| Caso | Main `00e2b48` (MAM-581) | Merge (MAM-581 + MAM-582) |
+| --- | --- | --- |
+| pdelta | `f2cc535ed32fb2ed071a3ed8048ebf53c2cd81083efe8ba528e5c95d8cf46740` | `d0f5475fbd1123cb33699ae7f6fc41828907629c0bb0ac55fe29561e8b9b2b53` |
+| pdelta-inclined | `70825cf724a03f9b82f1fd21c76175645a78bc4fcaea648504a7bfc6fd3b978b` | `8ca08c230d5f8888a46bd60d7e5acf988267dab57d3da86a6ea3763304c3df06` |
+
+Los otros catorce hashes de cruce no cambian frente a main. Los hashes
+combinados incluyen `residual_convergence_ratio` y el criterio de parada
+MAM-581, además del `input_sha256` de los fixtures con options vacío; por eso
+ya no recuperan los hashes históricos de #104.
+
+Huellas JCS de entrada (input_sha256 de results/1; no son hashes de salida):
+
+| Fixture (relativo a crates/engine-api/) | Anterior | Nuevo |
+| --- | --- | --- |
+| tests/fixtures/determinism/pdelta.json | `06203cc969a0da17c9289014b81de32aabab113d3e5d98796571c2efcedec88e` | `93887960a5cc262e58eefbe32a1942dc3910570c389c950d74472dc5108765de` |
+| tests/fixtures/determinism/pdelta-inclined.json | `c10e197c32b64a35b9a9a4880f7564d3480ea95ebf6d5d7abf698794b6ed86e8` | `ea61ee74c64f263cda128ad360208d3c1ce846f1380b0b3bf46a8626329ad422` |
+| fixtures/input/valid/p-delta.json | `78d598e6c7d855a9534f8ff23cbc9406a991c01d867c17ed1ed57b59ed37fc84` | `a76ae5636f2a24be92fa7e6a02c6a148ae2e3736d891888d90f455e111aecbea` |
+
+Registro histórico anterior al merge, frente a #103: SHA-256 del documento
+results/1 completo, incluido target nativo. Estos valores no son los hashes
+combinados actuales ni la proyección de cruce anterior:
+
+| Fixture (relativo a crates/engine-api/) | Anterior | Nuevo |
+| --- | --- | --- |
+| tests/fixtures/determinism/pdelta.json | `94f0264c274abaae1209f382f260cbcf63d5abe5c525c6d92dbed952cc6eeb8d` | `44ec010eefbe28c5b05159fd134a318523cd38db449afdfaa3d2e8bb56d3b3f9` |
+| tests/fixtures/determinism/pdelta-inclined.json | `3310bd8dda26da74974a43cd4e81912972eb9337d90189092e0e99f787891bd8` | `cd2c88b45ba6121012e4a9f44a7e57e1f75268ecd7f92e1110a7510d07a62070` |
+| fixtures/input/valid/p-delta.json | `880375ccbe0db091b3f4a5009a539efd9882022b234eb7b5cea66a77889b3422` | `fbc577746fde54e1f0af140bd698417ea24e51156f9909dc3d0a8003efe95a2d` |
+
+### Verificación local MAM-582 anterior al merge
+
+Todo sin red, con PATH=/home/box/.cargo/bin:$PATH, CARGO_NET_OFFLINE=true,
+MAMUT_ENGINE_GIT_COMMIT sin definir y CARGO_TARGET_DIR=/tmp/mam253-target
+(el valor heredado quedaba fuera de las rutas escribibles). Rust 1.99.0
+(LLVM 23.1.1), Node v22.19.0, sin flags numéricos especiales.
+
+- `cargo fmt --all`: OK.
+- `cargo clippy --workspace --all-targets -- -D warnings`: OK.
+- `cargo test --workspace`: OK, 622 pruebas y doctests, cero fallos e ignoradas;
+  incluye guardia escalar, gate unitario, registro y determinismo.
+- Procedimiento de docs/DETERMINISMO.md: build/run offline de los ejemplos
+  determinism_wasm y determinism_native, debug y release, ejecución de
+  scripts/check-determinism.mjs en ambos perfiles y cmp de las salidas nativas:
+  OK, 16 casos con diez corridas por caso/target/perfil. Tabla verificada contra
+  los 16 hashes ejecutados; solo cambian los dos P-Delta.
+- Auditoría de los tres fixtures antes/después: OK, sin cambios mecánicos.
+- `git diff --check`: OK.
+
+Evidencia temporal en /tmp/mam253-evidence/: before.jsonl, after.jsonl,
+clippy.log, test.log, native-debug.txt, native-release.txt, node-debug.log y
+node-release.log. El ejemplo temporal de auditoría se eliminó. No se realizan
+commits ni push. No se modifican vendor/**, clean-room/**, .github/** ni
+la política docs/CLEAN_ROOM.md.
+
+### Verificación del merge MAM-581 + MAM-582 · 2026-10-15
+
+Reejecución offline con origin/main `00e2b48` en el árbol del merge,
+MAMUT_ENGINE_GIT_COMMIT sin definir (`git_commit: null`),
+CARGO_NET_OFFLINE=true y CARGO_TARGET_DIR=/tmp/mam253-target;
+Rust 1.99.0 (LLVM 23.1.1), Node v22.19.0, sin flags numéricos especiales.
+
+- `cargo fmt --all`: OK.
+- `cargo clippy --workspace --all-targets -- -D warnings`: OK.
+- `cargo test --workspace`: OK, 630 pruebas y doctests, cero fallos e ignoradas;
+  incluye los benchmarks publicados de #132 y
+  `pdelta_nonconvergence_and_instability_return_four_with_iteration_report`
+  de `crates/engine-api/tests/dynamic.rs`.
+- `cargo run --offline -p engine-api --example determinism_native` y
+  `cargo build --offline -p engine-api --example determinism_wasm --target wasm32-unknown-unknown`,
+  repetidos con `--release`, y `node scripts/check-determinism.mjs` por perfil:
+  OK, 16 hashes iguales nativo/wasm, diez corridas por caso/target/perfil.
+  `cmp` de salidas nativas debug/release: OK. Los hashes completos están en
+  la tabla combinada anterior y en docs/DETERMINISMO.md; frente a main solo
+  cambian `pdelta` y `pdelta-inclined`, los otros 14 permanecen iguales.
+- El benchmark de #132 pasa a [ENG-BENCH-002](ENG-BENCH-002.md) para evitar
+  colisión con ENG-BENCH-001, la excepción CLEAN_ROOM §5.1.
+
+Evidencia temporal de esta reejecución: `/tmp/mam582-merge-evidence/`
+(native-debug.txt, native-release.txt, node-debug.log, node-release.log,
+logs de build/run, fmt.log, clippy.log y test.log). Sin red, commit, rebase ni push.

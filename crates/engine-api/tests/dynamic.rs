@@ -52,7 +52,6 @@ fn two_oscillators(mut v: Value) -> Value {
 fn column(mesh: usize, ratio: f64) -> Value {
     let p = ratio * math::powi(std::f64::consts::PI, 2) * 600.0 / (4.0 * 16.0);
     let mut v = oscillator();
-    v["options"]["allow_experimental"] = json!(true);
     v["model"]["nodes"] = json!((0..=mesh)
         .map(|i| json!({"id":i+1,"dim":"D2",
         "coordinates":[4.0*i as f64/mesh as f64,0.0,0.0],"dofs":["Ux","Uy","Rz"]}))

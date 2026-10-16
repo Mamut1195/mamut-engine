@@ -1,4 +1,4 @@
-# ENG-BENCH-001 · Benchmarks publicados de P-Delta (MAM-253)
+# ENG-BENCH-002 · Benchmarks publicados de P-Delta (MAM-582)
 
 Pruebas: `crates/engine-analysis/tests/bench_pdelta.rs`. Oráculo: solo valores publicados y
 soluciones cerradas de la ecuación diferencial de la viga-columna. Clean-room: no se abrió ni usó

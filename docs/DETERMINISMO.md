@@ -207,10 +207,14 @@ Status::Ok, canonización idempotente, SHA-256 del documento completo y también
 igualdad directa de bytes. Se mantienen voladizo, voladizo inclinado, modal de
 un GDL, P-Delta, modal de dos GDL acoplados y espectro log-log/CQC; se añaden
 P-Delta, modal y espectro con geometría inclinada (coordenadas 0,8x/0,6x),
-incluyendo las cargas rotadas de P-Delta. Ambos fixtures P-Delta declaran
-`options.allow_experimental: true`: el método permanece Experimental hasta
-BENCH-001 por decisión de Jonathan; incluirlo en esta suite no lo certifica
-como Validated. Se añaden dos entradas frame3d del
+incluyendo las cargas rotadas de P-Delta. Ambos fixtures P-Delta usan
+`options: {}` desde MAM-582: pDelta es `Stable` por
+[ENG-BENCH-002 (PR #132)](../provenance/ENG-BENCH-002.md),
+AISC 360-16 Comm. C2 casos 1 y 2, error ≤0.27% con tolerancias 3% M / 5% Δ.
+Esta justificación procede de la evidencia suministrada para el ticket;
+la suite de determinismo comprueba repetibilidad, no repite esos benchmarks.
+`allow_experimental` permanece en el esquema para futuros métodos Experimental.
+Se añaden dos entradas frame3d del
 mismo pórtico espacial: `frame3d-inclined-static` (linearStatic) y
 `frame3d-inclined-modal` (seis modos, masas nodales en los seis GDL de cada nodo
 libre y participación en X/Y/Z). La API exige un análisis por entrada.
@@ -288,26 +292,27 @@ Node con WebAssembly/BigInt. El cruce es adicional a cargo test/check:
 
 ## Evidencia y límites
 
-Cruce real offline el 2026-10-15 al reconciliar #103 (HEAD 67c54d3) con
-#104 (MERGE_HEAD 6a4b58d; origin/main 19c3ae5), sin finalizar el merge:
-Rust 1.99.0 (LLVM 23.1.1), x86_64-unknown-linux-gnu frente a
-wasm32-unknown-unknown en Node v22.19.0,
-CARGO_TARGET_DIR=/workspace/.cargo-target/me-geo6, flags Cargo habituales
-y MAMUT_ENGINE_GIT_COMMIT sin definir (`git_commit: null`).
+Cruce real offline el 2026-10-15 para MAM-582, con el merge en curso de
+origin/main `00e2b48` (#134/MAM-581 y #132): Rust 1.99.0 (LLVM 23.1.1),
+x86_64-unknown-linux-gnu frente a wasm32-unknown-unknown en Node v22.19.0,
+flags Cargo habituales y MAMUT_ENGINE_GIT_COMMIT sin definir
+(`git_commit: null`). Se usa CARGO_TARGET_DIR=/tmp/mam253-target.
 **Debug y release: 16 hashes iguales nativo/wasm, diez corridas por caso/target**;
 para análisis se valida y excluye únicamente `target`. `cmp` de las salidas
-nativas confirma los mismos 16 hashes entre perfiles.
+nativas confirma los mismos 16 hashes entre perfiles. Salidas y logs locales:
+`/tmp/mam582-merge-evidence/`.
 
-Frente a #103 cambian los once hashes de análisis por la huella JCS y la
-incorporación de `git_commit: null` (`target` no participa en el cruce).
-Los cinco hashes escalares permanecen idénticos. Nueve análisis coinciden
-con la tabla de #104. Solo `pdelta` y `pdelta-inclined` difieren de #104:
-los fixtures de #103 añaden `options.allow_experimental: true` y cambia
-`input_sha256`. Sustituir únicamente ese campo por la huella JCS del fixture
-de #104 reproduce exactamente ambos hashes de #104; no cambian otros campos
-ni resultados mecánicos. El registro publica `method_descriptors` en
-capabilities/1, fuera de esta suite. La tabla anterior/nueva y las huellas
-P-Delta están en [ENG-CORE-006](../provenance/ENG-CORE-006.md).
+MAM-582 retira `options.allow_experimental: true` de los dos fixtures P-Delta;
+esto cambia su huella JCS `input_sha256`, conservada en los hashes de cruce.
+La auditoría previa a este merge, frente a #103, comprobó que los tres fixtures
+modificados (incluido el ejemplo válido) solo cambiaban `input_sha256` en
+results/1 y recuperaban los hashes de #104. Los hashes combinados actuales
+incluyen además el reporte y el criterio de convergencia de MAM-581 (#134).
+Los otros catorce hashes permanecen idénticos. El registro publica `Stable`
+y la justificación de [ENG-BENCH-002 (PR #132)](../provenance/ENG-BENCH-002.md)
+en capabilities/1, fuera de esta suite.
+La tabla anterior/nueva y las huellas P-Delta están en la
+[nota MAM-582 de ENG-CORE-006](../provenance/ENG-CORE-006.md#mam-582--pdelta-estable--2026-10-15).
 La evidencia anterior de #98/#103 y #104 se conserva en las bitácoras
 ENG-CORE-006 y ENG-CORE-005, respectivamente.
 
@@ -326,6 +331,24 @@ piso de redondeo. Cambian solo `pdelta` (980bf21b…56ca → f2cc535e…6740) y
 Cruce offline 2026-10-15 con stable, Node: 16 casos nativo=wasm en debug y release,
 diez corridas por caso; `cmp` debug/release OK.
 
+MAM-582 combinado con MAM-581, antes → después desde main `00e2b48`:
+
+| Caso | Main (MAM-581) | Merge (MAM-581 + MAM-582) |
+| --- | --- | --- |
+| pdelta | `f2cc535ed32fb2ed071a3ed8048ebf53c2cd81083efe8ba528e5c95d8cf46740` | `d0f5475fbd1123cb33699ae7f6fc41828907629c0bb0ac55fe29561e8b9b2b53` |
+| pdelta-inclined | `70825cf724a03f9b82f1fd21c76175645a78bc4fcaea648504a7bfc6fd3b978b` | `8ca08c230d5f8888a46bd60d7e5acf988267dab57d3da86a6ea3763304c3df06` |
+
+Los otros 14 hashes no cambian frente a main.
+
+Cerca o por encima del pandeo, P-Delta puede terminar `unstable` o
+`notConverged`: salida 4, sin resultados mecánicos; se conserva el reporte
+de convergencia. El test
+[`pdelta_nonconvergence_and_instability_return_four_with_iteration_report`](../crates/engine-api/tests/dynamic.rs)
+comprueba `notConverged` con P/Pcr=0,2 al limitar `max_iterations=1`
+(una iteración reportada y `cases: []`) e `unstable` con P/Pcr=1,2
+(sin iteraciones y `modes: []`), ambos con salida 4. El primer caso prueba
+el límite de iteraciones, no un umbral cercano al pandeo.
+
 SHA-256 de cruce (análisis sin `target`; bits escalares íntegros), iguales en
 nativo/wasm y debug/release:
 
@@ -334,10 +357,10 @@ nativo/wasm y debug/release:
 | cantilever | `dc3e62defc8012b55ceba0108b76930bc73f9d805329f272631233d80a1ea153` |
 | inclined-cantilever | `d28509b76b283de84be528b593295c2fc735c62aa222c53d8374bcfb256a2492` |
 | modal-1dof | `bf52691f1eafd4c963e6f3947b141d8210faace668533b5673343d1926073da3` |
-| pdelta | `f2cc535ed32fb2ed071a3ed8048ebf53c2cd81083efe8ba528e5c95d8cf46740` |
+| pdelta | `d0f5475fbd1123cb33699ae7f6fc41828907629c0bb0ac55fe29561e8b9b2b53` |
 | modal-coupled | `5e7f69005b39e8f4e93189aef46895770b5d1c1d4fe99d14d95b9a6ea9d8a86b` |
 | spectrum-log-cqc | `f68278ad240accbbc99bd58d0db43b161d74884af9d4cce05fab0b408c6f7dd2` |
-| pdelta-inclined | `70825cf724a03f9b82f1fd21c76175645a78bc4fcaea648504a7bfc6fd3b978b` |
+| pdelta-inclined | `8ca08c230d5f8888a46bd60d7e5acf988267dab57d3da86a6ea3763304c3df06` |
 | modal-inclined | `d0ba8d1aefa2287fa6f7c2361864958aba0b1db89d68ec6e39583bf0d20913d7` |
 | spectrum-inclined | `aac5433acbe9f3a22fa5b610b1aac1d7842508503b30c8bc369c81e03b7d8baf` |
 | frame3d-inclined-static | `44e60765807c2dd654fb3f018cc11993c510d61f86da737cc29387e96c2c8da1` |

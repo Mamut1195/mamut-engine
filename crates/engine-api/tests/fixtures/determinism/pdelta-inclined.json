@@ -1,7 +1,7 @@
 {
   "schema": "engine-input/1",
   "units": "SI",
-  "options": {"allow_experimental": true},
+  "options": {},
   "model": {
     "axes": "Z-up",
     "nodes": [

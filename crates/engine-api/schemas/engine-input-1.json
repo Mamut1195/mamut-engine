@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:mamut:engine-input:1",
   "title": "engine-input/1 — incremento 2a",
-  "description": "SI: m, kg, s, N, Pa, rad; momentos N·m. D2 en XY, Z=0; D3 con Z arriba. run: linearStatic, pDelta, modal, responseSpectrum y combinaciones. pDelta Experimental requiere options.allow_experimental=true. Un solo análisis por run; opciones dinámicas explícitas. Masas nodales o fuente desde cargas, sin suma implícita; sin tolerancia de succión (#86).",
+  "description": "SI: m, kg, s, N, Pa, rad; momentos N·m. D2 en XY, Z=0; D3 con Z arriba. run: linearStatic, pDelta, modal, responseSpectrum y combinaciones. pDelta es Stable y está habilitado por defecto (ENG-BENCH-002 (PR #132), provenance/ENG-BENCH-002.md). options.allow_experimental habilita futuros métodos Experimental. Un solo análisis por run; opciones dinámicas explícitas. Masas nodales o fuente desde cargas, sin suma implícita; sin tolerancia de succión (#86).",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "units", "model", "cases", "combinations", "analyses", "options"],

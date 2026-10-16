@@ -17,6 +17,8 @@ const PROFILE: &str = "engine.run";
 pub enum MethodStatus {
     /// Requiere consentimiento explícito en las opciones del job.
     Experimental,
+    /// Habilitado por defecto con evidencia de benchmarks dentro de su alcance.
+    Stable,
     /// Cuenta con los fixtures analíticos indicados, dentro de su alcance.
     Validated,
     /// Se conserva por compatibilidad; su evidencia explica la sustitución.
@@ -137,12 +139,18 @@ pub(crate) fn resolve(
         .next()
         .ok_or_else(|| ApiError::InvalidInput("Plan Engine sin método".into()))?
         .instance;
-    if method.descriptor.status == MethodStatus::Experimental && !allow_experimental {
+    enforce_policy(&method.descriptor, allow_experimental)?;
+    Ok(method)
+}
+
+fn enforce_policy(descriptor: &MethodDescriptor, allow_experimental: bool) -> Result<(), ApiError> {
+    if descriptor.status == MethodStatus::Experimental && !allow_experimental {
+        let method_id = &descriptor.workflow.method_id;
         return Err(ApiError::InvalidInput(format!(
             "Método {method_id} Experimental: requiere options.allow_experimental = true"
         )));
     }
-    Ok(method)
+    Ok(())
 }
 
 type Runner = for<'a> fn(run::MethodContext<'a>) -> Result<(), run::Failure>;
@@ -214,10 +222,10 @@ fn combinations(_: &NumericParameters) -> Result<EngineMethod, String> {
 }
 fn pdelta(_: &NumericParameters) -> Result<EngineMethod, String> {
     builtin(
-        "pDelta", MethodStatus::Experimental, "engine-input/1",
+        "pDelta", MethodStatus::Stable, "engine-input/1",
         run::advanced::pdelta, run::advanced::pdelta_budget,
         "crates/engine-api/fixtures/input/valid/p-delta.json",
-        "provenance/ENG-API-001.md · Incremento 2c: viga-columna, Pcr y convergencia de malla; límites #78/#84",
+        "provenance/ENG-CORE-006.md · MAM-582: ENG-BENCH-002 (PR #132), provenance/ENG-BENCH-002.md; AISC 360-16 Comm. C2 casos 1 y 2; error ≤0.27%, tolerancias 3% M / 5% Δ; límites #78/#84",
         "provenance/ENG-ANL-003.md",
     )
 }
@@ -244,4 +252,36 @@ fn spectrum(_: &NumericParameters) -> Result<EngineMethod, String> {
         "provenance/ENG-API-001.md · Incremento 2c: q=Gamma Sa/omega², u=Sa/omega² y V=m Sa",
         "provenance/ENG-ANL-004.md",
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn experimental_policy_requires_opt_in_and_preserves_other_statuses() {
+        let mut descriptor = pdelta(&NumericParameters::new()).unwrap().descriptor;
+        descriptor.workflow.method_id = "testExperimental".into();
+        descriptor.status = MethodStatus::Experimental;
+        let error = enforce_policy(&descriptor, false).unwrap_err();
+        assert!(matches!(error, ApiError::InvalidInput(_)));
+        let cause = error.to_string();
+        for expected in [
+            "testExperimental",
+            "Experimental",
+            "options.allow_experimental = true",
+        ] {
+            assert!(cause.contains(expected), "{cause}");
+        }
+        assert!(enforce_policy(&descriptor, true).is_ok());
+        for status in [
+            MethodStatus::Stable,
+            MethodStatus::Validated,
+            MethodStatus::Deprecated,
+        ] {
+            descriptor.status = status;
+            assert!(enforce_policy(&descriptor, false).is_ok());
+            assert!(enforce_policy(&descriptor, true).is_ok());
+        }
+    }
 }

@@ -41,12 +41,19 @@ API pública:
 `engine-input/1` exige los campos de su [esquema](schemas/engine-input-1.json):
 `schema`, `units: "SI"`, `model`, `cases`, `combinations`, `analyses`, `options`.
 Colecciones vacías: `[]`; `options`: `{}` por defecto.
-P-Delta tiene estado `Experimental`: requiere `options: {"allow_experimental": true}`.
-Sin esa opción, `run` devuelve `invalid`, código `API-E-INPUT`, salida 2 y causa
-que nombra el método y la opción requerida, antes del ensamblaje. `false` también
-lo rechaza. Los demás métodos son `Validated` dentro de los fixtures publicados;
-`Deprecated` se reserva para métodos mantenidos por compatibilidad. No hay métodos
-deprecados actualmente. Los estados no cierran los seguimientos #78/#84/#85/#86.
+P-Delta tiene estado `Stable` y se ejecuta con `options: {}`; no requiere
+`allow_experimental`. La promoción MAM-582 se apoya en
+[ENG-BENCH-002 (PR #132)](../../provenance/ENG-BENCH-002.md):
+AISC 360-16 Comm. C2, casos 1 y 2, con error ≤0.27% frente a tolerancias de
+3% en momentos M y 5% en desplazamientos Δ, según la evidencia suministrada
+para el ticket. Véase la [nota de provenance](../../provenance/ENG-CORE-006.md#mam-582--pdelta-estable--2026-10-15).
+Los demás métodos son `Validated` dentro de los fixtures publicados.
+La opción booleana `options.allow_experimental` se conserva (por defecto `false`)
+para futuros métodos `Experimental`: sin consentimiento `true`, `run` devuelve
+`invalid`, código `API-E-INPUT`, salida 2 y causa con el método y la opción
+requerida, antes del ensamblaje. Actualmente no hay métodos `Experimental`.
+`Deprecated` se reserva para compatibilidad; no hay métodos deprecados.
+Los estados no cierran los seguimientos #78/#84/#85/#86 ni certifican modelos arbitrarios.
 `validate` conserva su alcance de contrato/topología y no ejecuta ni habilita métodos.
  `model.axes`: `"Z-up"`, terna diestra,
 X-Y horizontal, Z arriba. D2 exige Z=0 y usa Ux, Uy, Rz; D3 admite los seis GDL.
@@ -143,7 +150,15 @@ requiere al menos un caso; modal y responseSpectrum pueden usar `cases: []`.
 Los métodos dinámicos requieren `options` dentro de esa entrada, según los
 ejemplos siguientes. No hay resultados parciales en errores o cancelación;
 P-Delta conserva únicamente el reporte de convergencia cuando termina con
-notConverged/unstable. Las combinaciones de cargas requieren linearStatic.
+`notConverged`/`unstable`. Cerca o por encima del pandeo, P-Delta puede
+terminar con esos estados: código de salida 4, sin resultados mecánicos.
+El test
+[`pdelta_nonconvergence_and_instability_return_four_with_iteration_report`](tests/dynamic.rs)
+comprueba `notConverged` con P/Pcr=0,2 y `max_iterations=1` (una iteración
+reportada y `cases: []`), y `unstable` con P/Pcr=1,2 (sin iteraciones y
+`modes: []`); ambos devuelven 4. El caso de no convergencia comprueba el límite
+de iteraciones, no un umbral de pandeo.
+Las combinaciones de cargas requieren linearStatic.
 
 En cada iteración P-Delta, `residual_convergence_ratio` compara el residual de
 cada GDL libre con `tolerance·ref_grupo + 64·m_i·eps·(|K+Kg||u|)_i`.

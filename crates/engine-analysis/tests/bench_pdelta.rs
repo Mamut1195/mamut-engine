@@ -1,4 +1,4 @@
-//! ENG-BENCH-001: benchmarks publicados de P-Delta/P-δ (fuentes en provenance/ENG-BENCH-001.md).
+//! ENG-BENCH-002: benchmarks publicados de P-Delta/P-δ (fuentes en provenance/ENG-BENCH-002.md).
 //! Sistema de unidades consistente kip, in (como la referencia).
 use engine_analysis::pdelta::{
     geometric_producer, PDelta, PDeltaOptions, PDeltaOutcome, PDeltaResult,

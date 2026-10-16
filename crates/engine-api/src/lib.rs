@@ -147,7 +147,8 @@ pub fn version() -> Value {
 /// Capacidades reales: estático, P-Delta, modal, espectro y combinaciones lineales.
 /// `engine` indica presencia en engine-analysis; `run` indica soporte de la fachada.
 /// `method_descriptors` publica estado, contratos y evidencia desde el registro SDK;
-/// Experimental requiere options.allow_experimental al ejecutar el job.
+/// pDelta es Stable y se habilita por defecto; solo Experimental requiere
+/// options.allow_experimental al ejecutar el job.
 pub fn capabilities() -> Value {
     let mut capabilities = json!({
         "run": true,
