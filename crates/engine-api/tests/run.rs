@@ -1,8 +1,9 @@
 //! Oráculos SI derivados a mano, sin implementación ni datos de otros motores.
-use engine_api::{canonical_json, exit_code, run, CancelToken, Outcome, Status};
+use engine_api::{canonical_json, exit_code, CancelToken, Outcome, Status};
 use engine_core::math;
 use serde_json::{json, Value};
-use sha2::{Digest, Sha256};
+mod support;
+use support::checked_run as run;
 
 fn input() -> Value {
     json!({"schema": "engine-input/1", "units": "SI", "options": {},
@@ -141,12 +142,9 @@ fn deterministic_bytes_and_sha_with_recursive_key_permutation_and_negative_zero(
     let document: Value = serde_json::from_str(&first.document).unwrap();
     assert_eq!(
         document["input_sha256"],
-        format!(
-            "{:x}",
-            Sha256::digest(canonical_json(&a).unwrap().as_bytes())
-        )
+        mamut_canon::fingerprint(&a).unwrap().value
     );
-    for key in ["git_commit", "target", "timestamp", "path"] {
+    for key in ["timestamp", "path"] {
         assert!(document.get(key).is_none());
     }
 }
@@ -468,6 +466,30 @@ fn recovery_includes_every_member_in_a_two_span_cantilever() {
         -12.0 * math::powi(4.0_f64, 3) / (3.0 * 200.0 * 3.0),
     );
     close(&d["cases"][0]["nodes"][0]["reactions"][5], 48.0);
+    let selected = o
+        .query(&engine_api::ResultQuery {
+            node_ids: Some(&[engine_core::NodeId(3), engine_core::NodeId(1)]),
+            member_ids: Some(&[engine_core::MemberId(8)]),
+            fields: None,
+        })
+        .unwrap();
+    support::assert_results(&selected);
+    assert_eq!(
+        selected["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| n["id"].as_u64().unwrap())
+            .collect::<Vec<_>>(),
+        [1, 3]
+    );
+    assert_eq!(selected["members"].as_array().unwrap().len(), 1);
+    assert_eq!(selected["members"][0]["id"], 8);
+    assert_eq!(selected["members"][0]["nodes"], json!([2, 3]));
+    assert_eq!(
+        selected["cases"][0]["members"],
+        json!([d["cases"][0]["members"][1]])
+    );
 }
 
 #[test]

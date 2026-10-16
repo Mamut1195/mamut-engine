@@ -1,4 +1,4 @@
-//! Emite SHA-256 de results/1 y de bits escalares para comparación con wasm.
+//! Emite SHA-256 de results/1 sin target y de bits escalares para cruce con wasm.
 #[path = "../tests/support/determinism.rs"]
 mod fixtures;
 

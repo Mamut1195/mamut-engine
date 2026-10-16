@@ -12,7 +12,6 @@ use engine_core::{Dim, EngineError, EntityRef, Severity};
 use engine_linalg::ReferenceBackend;
 use serde::Serialize;
 use serde_json::{json, Value};
-use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -126,10 +125,13 @@ struct Member {
 /// Parseo, modelo validado, ensamblado, cada caso, combinaciones y serialización
 /// son indivisibles. El callback es síncrono y debe retornar normalmente.
 /// Un fallo elimina todos los resultados parciales; input_sha256 es null si no
-/// se completó el parseo. Los métodos iterativos consultan entre pasos/modos.
+/// se completó el parseo/huella RFC 8785 con mamut-canon. Los métodos iterativos
+/// consultan entre pasos/modos.
 pub fn run(input_json: &str, cancel: &CancelToken, mut progress: impl FnMut(Progress)) -> Outcome {
     let mut document = json!({
         "schema": "results/1", "engine_version": env!("CARGO_PKG_VERSION"),
+        "git_commit": option_env!("MAMUT_ENGINE_BUILD_COMMIT"),
+        "target": env!("MAMUT_ENGINE_TARGET"),
         "contracts": ["engine-input/1", "results/1", "element/1", "system/1"],
         "methods": [], "input_sha256": null, "status": "ok",
         "nodes": [], "members": [], "cases": [], "combinations": [],
@@ -183,7 +185,10 @@ fn internal_document() -> String {
     format!(concat!("{{\"cases\":[],\"combinations\":[],\"contracts\":[\"engine-input/1\",\"results/1\"],",
         "\"convergence\":null,\"diagnostics\":[{{\"cause\":\"Error al serializar results/1\",\"code\":\"ENG-E-0012\",",
         "\"entities\":[],\"hint\":null,\"severity\":\"error\"}}],\"engine_version\":\"{}\",\"envelopes\":[],",
-        "\"input_sha256\":null,\"members\":[],\"methods\":[],\"modes\":[],\"nodes\":[],\"schema\":\"results/1\",\"status\":\"internalError\"}}"), env!("CARGO_PKG_VERSION"))
+        "\"git_commit\":{},\"input_sha256\":null,\"members\":[],\"methods\":[],\"modes\":[],\"nodes\":[],\"schema\":\"results/1\",\"status\":\"internalError\",\"target\":\"{}\"}}"),
+        env!("CARGO_PKG_VERSION"),
+        option_env!("MAMUT_ENGINE_BUILD_COMMIT").map_or_else(|| "null".into(), |s| format!("\"{s}\"")),
+        env!("MAMUT_ENGINE_TARGET"))
 }
 
 fn step(
@@ -212,8 +217,9 @@ fn execute(
 ) -> Result<(), Failure> {
     cancel.check()?;
     let value = crate::json::parse(input_json)?;
-    let canonical = crate::json::canonical_value(value.clone())?;
-    document["input_sha256"] = json!(format!("{:x}", Sha256::digest(canonical.as_bytes())));
+    let fingerprint = mamut_canon::fingerprint_value(&value)
+        .map_err(|e| ApiError::InvalidInput(format!("Huella RFC 8785: {e}")))?;
+    document["input_sha256"] = json!(fingerprint.value);
     let total = advanced::step_budget(&value);
     step(cancel, progress, "parse", 1, total)?;
     let schema = value

@@ -1,7 +1,6 @@
 //! Casos propios: hash de bits binary64, sin pasar por JSON ni tolerancias.
 use engine_core::math;
 use engine_loads::Beam2D;
-use sha2::{Digest, Sha256};
 
 pub const NAMES: &[&str] = &[
     "scalar-trig",
@@ -133,9 +132,9 @@ pub fn hash(index: usize) -> Result<[u8; 32], String> {
     if values.is_empty() || values.iter().any(|x| !x.is_finite()) {
         return Err("Caso escalar vacío o no finito".into());
     }
-    let mut hash = Sha256::new();
+    let mut bytes = Vec::with_capacity(values.len() * 8);
     for x in values {
-        hash.update(x.to_bits().to_be_bytes());
+        bytes.extend_from_slice(&x.to_bits().to_be_bytes());
     }
-    Ok(hash.finalize().into())
+    Ok(super::sha256(&bytes))
 }

@@ -2,8 +2,9 @@
 
 Misma entrada, versión del motor, backend, opciones y entorno de compilación
 deben producir los mismos bytes canónicos de `results/1`, incluido su SHA-256
-externo. El campo `input_sha256` identifica la entrada canónica: no es el hash
-del resultado. No hay relojes, rutas ni estado aleatorio en `run`.
+externo. Esto incluye `git_commit` y `target`: al cambiar de target cambia
+la procedencia y puede cambiar el hash del documento completo. El campo
+`input_sha256` identifica la entrada canónica: no es el hash del resultado. No hay relojes, rutas ni estado aleatorio en `run`.
 
 ## Auditoría inicial de main y #88
 
@@ -216,8 +217,8 @@ Iy=3 e Iz=5 evitan simetría de flexión. El test nativo comprueba recuperación
 de los doce esfuerzos locales por miembro, seis modos positivos y que cambiar
 las orientaciones cambia los resultados mecánicos de ambos análisis.
 Son variantes de fixtures propios, sin datos de otros motores.
-**Winkler no está implementado en origin/main
-(d0031f8) ni en esta rama**; no se puede cubrir una ruta inexistente.
+La suite de #98 no incluye Winkler, incorporado posteriormente por #99.
+Su cobertura de validación es independiente de estas once entradas.
 
 Los ejemplos nativo y cdylib wasm comparten esas once entradas y cinco casos
 adicionales: scalar-trig, scalar-exp-log, scalar-powers-norm, load-rotation-bits
@@ -234,6 +235,18 @@ El envoltorio sobre libm::sincos y su uso al calcular seno/coseno del mismo
 ángulo en el motor ya estaban presentes en fccda4d; se conservan.
 Solo incluyen resultados finitos y verifican que las listas no estén vacías.
 
+Desde ENG-CORE-005, los hashes de cruce se calculan sobre `results/1` después
+de comprobar que `target` coincide con el target de Cargo y retirar únicamente
+ese campo. Se vuelve a serializar con `engine_api::canonical_json`, conservando
+el contrato de salida; no se aplica JCS a los resultados. `git_commit`,
+`input_sha256` y todos los campos numéricos permanecen en la comparación.
+La prueba nativa de diez corridas sigue comparando los bytes y el hash del
+**documento completo**, incluido `target`. La prueba de proyección rechaza target
+ausente/incorrecto y comprueba que todos los demás campos se conservan.
+`mamut_canon::sha256_hex` hashea los bytes recibidos sin canonicalización;
+los helpers decodifican su hex a los mismos 32 bytes del ABI anterior. Los casos
+escalares concatenan exactamente los mismos bytes big-endian, sin JSON.
+
 ABI C: `fixture_count()`, `fixture_name_hash(index,word)`, `run_status(index)` y
 `run_hash(index,word)`. Cuatro u64 big-endian forman cada SHA-256; cada palabra
 calcula de nuevo el caso, sin estado mutable global. Node recibe u64 como BigInt
@@ -246,20 +259,25 @@ Reproducción local con Node (conservar el CARGO_TARGET_DIR ya exportado):
 ```bash
 export PATH=/home/box/.cargo/bin:$PATH
 export CARGO_NET_OFFLINE=true
+unset MAMUT_ENGINE_GIT_COMMIT # tabla reproducida con git_commit: null
 cargo test --offline -p engine-linalg --test determinism_guard
 cargo test --offline -p engine-api --test determinism
 cargo build --offline -p engine-api --example determinism_wasm --target wasm32-unknown-unknown
-cargo run --offline -p engine-api --example determinism_native > /tmp/eng-core-010-native-debug.txt
+cargo run --offline -p engine-api --example determinism_native > /tmp/eng-core-005-native-debug.txt
 node scripts/check-determinism.mjs \
   "$CARGO_TARGET_DIR/wasm32-unknown-unknown/debug/examples/determinism_wasm.wasm" \
-  /tmp/eng-core-010-native-debug.txt
+  /tmp/eng-core-005-native-debug.txt
 cargo build --offline --release -p engine-api --example determinism_wasm --target wasm32-unknown-unknown
-cargo run --offline --release -p engine-api --example determinism_native > /tmp/eng-core-010-native-release.txt
+cargo run --offline --release -p engine-api --example determinism_native > /tmp/eng-core-005-native-release.txt
 node scripts/check-determinism.mjs \
   "$CARGO_TARGET_DIR/wasm32-unknown-unknown/release/examples/determinism_wasm.wasm" \
-  /tmp/eng-core-010-native-release.txt
-cmp /tmp/eng-core-010-native-debug.txt /tmp/eng-core-010-native-release.txt
+  /tmp/eng-core-005-native-release.txt
+cmp /tmp/eng-core-005-native-debug.txt /tmp/eng-core-005-native-release.txt
 ```
+
+Tras integrar #99, la guardia escalar falla por
+engine-validation/tests/support/winkler_harness.rs (corrección separada en
+PR #106); no bloquea la ejecución independiente de los comandos de cruce.
 
 Se requiere toolchain con wasm32-unknown-unknown, dependencias provisionadas y
 Node con WebAssembly/BigInt. El cruce es adicional a cargo test/check:
@@ -269,11 +287,17 @@ Node con WebAssembly/BigInt. El cruce es adicional a cargo test/check:
 
 Cruce real offline el 2026-10-14: Rust 1.99.0 (LLVM 23.1.1),
 x86_64-unknown-linux-gnu frente a wasm32-unknown-unknown en Node v22.19.0,
-CARGO_TARGET_DIR=/workspace/.cargo-target/me45, sin RUSTFLAGS especiales.
-**ampliación tras J4 r25, reproducida por J4 r26: debug y release, 16 hashes
-completos iguales nativo/wasm, diez corridas por caso/target.** Además, cmp de
-las salidas nativas debug/release confirma los mismos 16 hashes entre perfiles. Los trece hashes de la suite anterior
-(fccda4d) permanecen iguales.
+CARGO_TARGET_DIR=/workspace/.cargo-target/mamut-engine, sin RUSTFLAGS especiales
+y sin MAMUT_ENGINE_GIT_COMMIT (`git_commit: null`). Base: ampliación tras J4 r25, reproducida por J4 r26.
+Reejecución ENG-CORE-005 tras
+el merge 3d10b33: **debug y release, 16 hashes iguales nativo/wasm, diez corridas
+por caso/target**; para análisis se excluye únicamente `target` tras validarlo.
+`cmp` de las salidas nativas confirma los mismos 16 hashes entre perfiles.
+Cambian los once hashes de análisis de #98 por la huella JCS y los metadatos
+nuevos; los cinco hashes escalares permanecen idénticos. La tabla anterior/nueva
+y la justificación se registran en provenance/ENG-CORE-005.md.
+Reejecución 2026-10-15 tras el merge 8fda97c (main 19c3ae5): debug y release,
+16 hashes nativo/wasm iguales y **sin cambios** respecto de esta tabla.
 
 La evidencia cubre once análisis V1 y cinco casos de bits escalares; no
 certifica todos los inputs/arquitecturas ni los bits intermedios del solver.
@@ -283,21 +307,22 @@ volver a ejecutar el cruce. Ante diferencias registrar entrada exacta,
 versiones/flags, hashes y campo/valores afectados; una tolerancia numérica no
 sustituye igualdad bit a bit.
 
-SHA-256, iguales en nativo/wasm y debug/release:
+SHA-256 de cruce (análisis sin `target`; bits escalares íntegros), iguales en
+nativo/wasm y debug/release:
 
 | Entrada / caso de bits | Hash |
 | --- | --- |
-| cantilever | `d993e74910a942cdd27f727e635e3f109d7eac65ad8c0da69cec63a37afd1861` |
-| inclined-cantilever | `3378d324bd96923bab07640a17c9afd1fff18f69842a1f21bbc06152c8d76eed` |
-| modal-1dof | `2ba08c590e219f982b9b33f0955d9c790b2183b5d1af6309f09b579d43c92a71` |
-| pdelta | `5bcea296b5fd2652f75aac339b80bffa82e2076b06279f4020db817644a31101` |
-| modal-coupled | `59499893099017bbb13ffcea8bed513537a059d929cddebc5511bee9a2de2f4e` |
-| spectrum-log-cqc | `a403028d3dc23b3d1e3312492866c7eacd9dd0431c2b50f5563bdefd83c25eb1` |
-| pdelta-inclined | `efd49f53009742c13ff5dbc66fcbf43e063cbfb707cc61dbe23ee043aaf4614f` |
-| modal-inclined | `b3c4b92d66bc3894b2400354bb3518d78a8c224a6870cfc7aadd2861e2c0e480` |
-| spectrum-inclined | `a03dea7b4d9dd115cbef6b74cdf68e739e0d4655197957064d03a58a11bd0ac8` |
-| frame3d-inclined-static | `152dc9c3a40210634053378061c25668b93bf2eb018223e90b8b18712d9e754f` |
-| frame3d-inclined-modal | `58e6c5f1733a576a969d323164bf7dbee19155974688a33c73036b2462d4f060` |
+| cantilever | `dc3e62defc8012b55ceba0108b76930bc73f9d805329f272631233d80a1ea153` |
+| inclined-cantilever | `d28509b76b283de84be528b593295c2fc735c62aa222c53d8374bcfb256a2492` |
+| modal-1dof | `bf52691f1eafd4c963e6f3947b141d8210faace668533b5673343d1926073da3` |
+| pdelta | `426db50197873a7a8cafb586233ac7af70d8953c22d3a718fe6dbbb51b4637f0` |
+| modal-coupled | `5e7f69005b39e8f4e93189aef46895770b5d1c1d4fe99d14d95b9a6ea9d8a86b` |
+| spectrum-log-cqc | `f68278ad240accbbc99bd58d0db43b161d74884af9d4cce05fab0b408c6f7dd2` |
+| pdelta-inclined | `f08ff9c7264cb64c8209956d97da0b2e99343479854f11d39d75773b6ec7c71c` |
+| modal-inclined | `d0ba8d1aefa2287fa6f7c2361864958aba0b1db89d68ec6e39583bf0d20913d7` |
+| spectrum-inclined | `aac5433acbe9f3a22fa5b610b1aac1d7842508503b30c8bc369c81e03b7d8baf` |
+| frame3d-inclined-static | `44e60765807c2dd654fb3f018cc11993c510d61f86da737cc29387e96c2c8da1` |
+| frame3d-inclined-modal | `c74d3acbdd2299dc4a7b2ed99223e31f78d7bcf304057c1ae2400e1188816d53` |
 | scalar-trig | `99dd07ae2d88c8d218ab3b7c029b87c23cb3c7b952164f1327ffe46c7b7a7667` |
 | scalar-exp-log | `aabcfc5827b7eb9c7ad318f728959f09f54ff44d20aa596d09ef41d2656e3ceb` |
 | scalar-powers-norm | `63ce475e83d8fdbf276556f7481f68f03e62026131ae83d349d4409a0cd52b2c` |

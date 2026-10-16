@@ -1,8 +1,9 @@
 //! Oráculos propios: oscilador y ecuación de viga-columna, sin fuentes externas.
-use engine_api::{canonical_json, run, CancelToken, Outcome, Status};
+use engine_api::{canonical_json, CancelToken, Outcome, Status};
 use engine_core::math;
 use serde_json::{json, Value};
-use sha2::{Digest, Sha256};
+mod support;
+use support::checked_run as run;
 
 fn oscillator() -> Value {
     json!({"schema":"engine-input/1","units":"SI","options":{},
@@ -310,10 +311,7 @@ fn dynamic_determinism_canonical_bytes_and_input_sha() {
         assert_eq!(a.document, canonical_json(&a.document).unwrap());
         assert_eq!(
             d["input_sha256"],
-            format!(
-                "{:x}",
-                Sha256::digest(canonical_json(&v.to_string()).unwrap().as_bytes())
-            )
+            mamut_canon::fingerprint_value(&v).unwrap().value
         );
         let pretty = serde_json::to_string_pretty(&v).unwrap();
         assert_eq!(a, run(&pretty, &CancelToken::new(), |_| {}));

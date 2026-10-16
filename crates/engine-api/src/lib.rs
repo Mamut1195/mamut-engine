@@ -9,11 +9,13 @@ mod analysis_input;
 mod input;
 mod json;
 mod limits;
+mod query;
 mod run;
 pub use limits::{
     MAX_CASES, MAX_COMBINATIONS, MAX_INPUT_BYTES, MAX_JSON_ARRAY_ITEMS, MAX_JSON_DEPTH, MAX_LOADS,
     MAX_MEMBERS, MAX_NODES,
 };
+pub use query::ResultQuery;
 pub use run::{exit_code, run, Outcome, Status};
 
 use engine_core::{catalog, EntityRef, Severity};

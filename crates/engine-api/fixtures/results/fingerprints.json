@@ -1,0 +1,26 @@
+[
+  {
+    "input": "{\"v\":1.0}",
+    "canonical": "{\"v\":1}",
+    "input_sha256": "afbf9d0f3560b0fd7795e81c42a0a79ee6b6fc67e064f77826aee642cad28d91",
+    "previous_sha256": "f3c8be97307d38261061fa08e74365e54a239cddb1d189f3bea18022adbe2f35"
+  },
+  {
+    "input": "{\"v\":-0.0}",
+    "canonical": "{\"v\":0}",
+    "input_sha256": "ec4f95abcb4e2e3dbe856c3eb2f81995eacb3823d40aa2e78ed4c5e1798f664d",
+    "previous_sha256": "00cf0771ebfa14f2e5e9387f1f2d1fdf8fbfcc042830ae95519088ef8c2a8946"
+  },
+  {
+    "input": "{\"v\":1e-7}",
+    "canonical": "{\"v\":1e-7}",
+    "input_sha256": "3a28f15de586a90e5f896f27e39cd7d7e4022dcccc3a795c373d64a52661987f",
+    "previous_sha256": "3a28f15de586a90e5f896f27e39cd7d7e4022dcccc3a795c373d64a52661987f"
+  },
+  {
+    "input": "{\"v\":9007199254740993}",
+    "canonical": "{\"v\":9007199254740992}",
+    "input_sha256": "e7b4b245a4ee0feb03c7c89a9f9a4fff2ef33d95b8fc40b016cd2620d49842bd",
+    "previous_sha256": "b33840c3287663f6da0c495884bd8d587474de0391f249e29a4115fd1229b6e1"
+  }
+]

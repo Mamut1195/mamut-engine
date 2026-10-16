@@ -82,9 +82,9 @@ dependencies = [
  "engine-linalg",
  "engine-loads",
  "engine-model",
+ "mamut-canon",
  "serde",
  "serde_json",
- "sha2",
 ]
 
 [[package]]

@@ -3,7 +3,6 @@
 mod fixtures;
 use engine_api::{canonical_json, run, CancelToken, Status};
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 
 #[test]
 fn v1_results_are_identical_in_ten_runs() {
@@ -13,7 +12,7 @@ fn v1_results_are_identical_in_ten_runs() {
             let outcome = run(input, &CancelToken::new(), |_| {});
             assert_eq!(outcome.status, Status::Ok, "{name}: {}", outcome.document);
             assert_eq!(outcome.document, canonical_json(&outcome.document).unwrap());
-            let hash = Sha256::digest(outcome.document.as_bytes());
+            let hash = mamut_canon::sha256_hex(outcome.document.as_bytes());
             if let Some((document, previous_hash)) = &first {
                 assert_eq!(&hash, previous_hash, "{name}, corrida {iteration}");
                 assert_eq!(&outcome.document, document, "{name}, corrida {iteration}");
@@ -21,6 +20,22 @@ fn v1_results_are_identical_in_ten_runs() {
                 first = Some((outcome.document, hash));
             }
         }
+    }
+}
+
+#[test]
+fn cross_target_comparison_checks_target_and_preserves_all_other_fields() {
+    let outcome = run(fixtures::FIXTURES[0].1, &CancelToken::new(), |_| {});
+    let mut original: Value = serde_json::from_str(&outcome.document).unwrap();
+    let compared = fixtures::comparison_document(&outcome.document).unwrap();
+    original.as_object_mut().unwrap().remove("target");
+    assert_eq!(serde_json::from_str::<Value>(&compared).unwrap(), original);
+    assert!(original.get("git_commit").is_some());
+    assert!(original.get("input_sha256").is_some());
+    assert!(fixtures::comparison_document(&original.to_string()).is_err());
+    for wrong_target in [serde_json::json!("wrong-target"), Value::Null] {
+        original["target"] = wrong_target;
+        assert!(fixtures::comparison_document(&original.to_string()).is_err());
     }
 }
 

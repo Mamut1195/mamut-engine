@@ -1,7 +1,6 @@
 //! ABI de prueba sin wasm-bindgen, WASI, imports ni estado mutable compartido.
 #[path = "../tests/support/determinism.rs"]
 mod fixtures;
-use sha2::{Digest, Sha256};
 
 #[no_mangle]
 pub extern "C" fn fixture_count() -> u32 {
@@ -24,7 +23,7 @@ pub extern "C" fn fixture_name_hash(index: u32, word: u32) -> u64 {
     let Some(name) = fixtures::case_name(index as usize) else {
         return 0;
     };
-    hash_word(&Sha256::digest(name.as_bytes()), word)
+    hash_word(&fixtures::sha256(name.as_bytes()), word)
 }
 
 // Cada palabra se obtiene de una ejecución nueva; los cuatro u64 contienen

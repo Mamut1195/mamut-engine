@@ -1,8 +1,8 @@
 # engine-api · ENG-API-001 · incremento 2c
 
-Fachada Rust portable a wasm32, sin E/S ni dependencias de Python. Es el único
-crate del workspace que depende de serde/serde_json; SHA-256 usa sha2 del registro
-local. Los crates numéricos conservan sus tipos propios. Versión del engine: 0.1.0.
+Fachada Rust portable a wasm32, sin E/S ni dependencias de Python. La frontera
+del engine depende de serde/serde_json; la huella usa mamut-canon v0.1.0 vendorizado
+(SDK-WF-002). Los crates numéricos conservan sus tipos propios. Versión: 0.1.0.
 
 API pública:
 
@@ -19,6 +19,8 @@ API pública:
 - `run(input_json, &CancelToken, progress: impl FnMut(Progress)) -> Outcome`:
   devuelve `status` y `document: String` con los bytes UTF-8 canónicos de results/1,
   también ante errores. `Outcome::exit_code()` y `exit_code(Status)` son públicos.
+- `Outcome::query(&ResultQuery) -> Result<Value, ApiError>`: filtra IDs de nodos
+  y miembros y proyecta rutas de campos sobre resultados ya calculados.
 - `canonical_json(input_json) -> Result<String, ApiError>`: UTF-8 compacto,
   claves ordenadas recursivamente, arrays en orden de entrada y -0.0 → +0.0.
 
@@ -184,15 +186,74 @@ Los seguimientos de J4 permanecen abiertos:
   proyección negativa (succión), ENG-E-0010 → invalid/2. No se añade tolerancia:
   con gravedad no alineada a ejes puede rechazar por redondeo.
 
-results/1 incluye schema, engine_version, contracts, methods, input_sha256,
+results/1 incluye schema, engine_version, git_commit, target, contracts, methods, input_sha256,
 status, nodes, members, cases, combinations y diagnostics. `nodes` y `members`
 superiores describen identidad/geometría; respuestas numéricas dentro de cada
 caso o `combinations[].results`. Vectores nodales: Ux,Uy,Uz,Rx,Ry,Rz;
 reacciones: Fx,Fy,Fz,Mx,My,Mz. Resultantes de estación: N,Vy,Vz,T,My,Mz.
 Acciones locales de extremo sobre el miembro, por nodo y GDL del elemento.
 El [esquema results/1](schemas/results-1.json) describe también los fallos sin
-resultados: input_sha256 es null si no se completó el parseo; después es SHA-256
-de los bytes UTF-8 canónicos del input, aunque falle el contrato o el cálculo.
+resultados: input_sha256 es null si no se completó el parseo/huella; después es
+SHA-256 de los bytes UTF-8 RFC 8785 (JCS) del input, aunque falle el contrato o el
+cálculo. Se usa exclusivamente `mamut_canon::fingerprint_value` sobre el árbol
+del parseo estricto, que mantiene rechazo de duplicados/overflow y límites.
+
+**Cambio de huella en ENG-CORE-005:** sustituye la representación propia de #88.
+JCS serializa `1.0` como `1`, `-0.0` como `0`, ordena claves por UTF-16 y convierte
+números a binary64 (incluidos enteros mayores que 2⁵³). Por tanto pueden cambiar
+los hashes de las mismas entradas. Los vectores fijos con hashes anteriores y
+nuevos están en [fingerprints.json](fixtures/results/fingerprints.json);
+incluyen sondas de JSON que se rechazan como engine-input/1 después de la huella.
+Por ejemplo `{"v":1.0}` pasa de
+`f3c8be97307d38261061fa08e74365e54a239cddb1d189f3bea18022adbe2f35` a
+`afbf9d0f3560b0fd7795e81c42a0a79ee6b6fc67e064f77826aee642cad28d91`.
+Las pruebas de estático y dinámica ahora usan la huella del SDK.
+
+La serialización de `results/1` y `canonical_json` conservan el formato propio
+publicado: claves por orden escalar, floats round-trip y -0.0 → 0.0. No usan JCS,
+porque migrarlas cambiaría la representación de resultados y enteros exactos.
+`input_sha256` no se calcula con `canonical_json`.
+
+`git_commit` es una revisión hexadecimal de 40/64 caracteres suministrada por
+`MAMUT_ENGINE_GIT_COMMIT` al compilar; ausente o inválida produce `null`.
+`target` es el triple `TARGET` real de Cargo capturado por build.rs. No se invoca
+git, no hay red, rutas ni relojes. Ambos campos se emiten también en errores y
+son opcionales en el schema para aceptar documentos publicados antes del cambio.
+
+### Consultas Rust y validación del contrato
+
+```rust
+use engine_api::{Outcome, ResultQuery};
+use engine_core::{NodeId, MemberId};
+
+fn reactions(outcome: &Outcome) -> Result<serde_json::Value, engine_api::ApiError> {
+    outcome.query(&ResultQuery {
+        node_ids: Some(&[NodeId(2)]),
+        member_ids: Some(&[MemberId(7)]),
+        fields: Some(&["cases.nodes.reactions", "cases.members.stations.forces_local"]),
+    })
+}
+```
+
+`None` selecciona todo y `Some(&[])` selecciona nada. Los IDs filtran identidades,
+casos, combinaciones, formas modales, respuestas espectrales y envolventes,
+conservando orden; las selecciones de nodos/miembros son independientes.
+La selección no altera el original ni recalcula agregados; conserva referencias
+geométricas, diagnósticos y procedencia del análisis completo. Por ello un
+miembro retenido puede referenciar un nodo que no esté seleccionado.
+Las rutas atraviesan arrays sin índices; seleccionar una rama devuelve todos
+sus descendientes. Se retiene `id` en cada objeto proyectado. Las rutas ausentes
+no aportan campos y las mal formadas producen `InvalidInput`. La proyección es
+un fragmento JSON y puede omitir campos requeridos por results/1; sin `fields`
+se conserva el sobre completo, válido contra el schema.
+
+Las pruebas nativas comprueban todas las salidas de run estático/dinámico contra
+el schema, incluidos errores y cancelación, mediante un validador de pruebas
+sin E/S del subconjunto Draft 2020-12 utilizado. Keywords/patrones desconocidos
+fallan explícitamente; mutaciones negativas comprueban restricciones, referencias,
+tipos y condiciones. Los mismos tests se comprueban con `cargo check --offline
+-p engine-api --tests --target wasm32-unknown-unknown` (compilación, sin ejecutar
+wasm). La validación mediante CLI queda pendiente de ENG-SFC-002: aún no existe.
 
 | Status | Código de salida |
 | --- | --- |

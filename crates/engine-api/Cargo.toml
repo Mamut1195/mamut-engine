@@ -10,7 +10,7 @@ engine-core = { path = "../engine-core" }
 engine-model = { path = "../engine-model" }
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = { version = "=1.0.154", features = ["float_roundtrip"] }
-sha2 = "=0.10.9"
+mamut-canon = { path = "../../vendor/mamut-workflows/mamut-canon", version = "=0.1.0" }
 engine-analysis = { path = "../engine-analysis" }
 engine-assembly = { path = "../engine-assembly" }
 engine-contracts = { path = "../engine-contracts" }

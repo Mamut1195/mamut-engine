@@ -1,4 +1,4 @@
-// Sin dependencias npm ni wasm-bindgen. Entrada: módulo wasm y salida nativa.
+// Sin npm ni wasm-bindgen. Hashes de cruce: results/1 sin target o bits escalares.
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import assert from 'node:assert/strict';
@@ -43,4 +43,4 @@ for (const required of [
 ]) {
   assert(names.has(required), `Falta cobertura obligatoria: ${required}`);
 }
-console.log(`OK: ${count} casos, SHA-256 completos idénticos entre targets`);
+console.log(`OK: ${count} casos, SHA-256 de cruce idénticos entre targets`);
