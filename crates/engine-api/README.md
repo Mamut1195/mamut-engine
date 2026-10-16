@@ -1,8 +1,10 @@
 # engine-api · ENG-API-001 · incremento 2c
 
-Fachada Rust portable a wasm32, sin E/S ni dependencias de Python. La frontera
-del engine depende de serde/serde_json; la huella usa mamut-canon v0.1.0 vendorizado
-(SDK-WF-002). Los crates numéricos conservan sus tipos propios. Versión: 0.1.0.
+Fachada Rust portable a wasm32, sin E/S ni dependencias de Python. Los tipos JSON
+y la extensión de dominio se mantienen en engine-api, con serde/serde_json.
+El SDK vendorizado mamut-workflow aporta registro y compilador; mamut-canon
+v0.1.0 (SDK-WF-002) aporta la huella JCS y SHA-256. Los crates numéricos
+conservan sus tipos propios. Versión del engine: 0.1.0.
 
 API pública:
 
@@ -10,8 +12,20 @@ API pública:
 - `capabilities() -> Value`: operaciones, esquemas, elementos y métodos reales.
   `linearStatic`, `pDelta`, `modal` y `responseSpectrum` tienen `engine: true,
   run: true`; las combinaciones de cargas se ejecutan con linearStatic.
+  El array adicional `method_descriptors` contiene los cinco métodos, en orden
+  del registro SDK, con contratos, estado, fixtures, citas propias y provenance.
+- `method_descriptors()` y `method_descriptor(id, input_contract, allow_experimental)`:
+  descubrimiento y resolución mediante `MethodRegistry`/`WorkflowCompiler` de
+  mamut-workflow v0.1.0. El Engine extiende el descriptor SDK con evidencia;
+  no mantiene otro índice de métodos. Versión de método: 1.
+  La entrada de los análisis usa `urn:mamut:engine:engine-input:1.0.0`;
+  `combinations` es postproceso y consume `urn:mamut:engine:results:1.0.0`.
+  Todos producen este último contrato. Las URN adaptan los nombres JSON
+  existentes al formato del SDK; no cambian los documentos de entrada/salida.
+  El SDK compara dominio, nombre y versión mayor antes de crear el adaptador;
+  las opciones mecánicas permanecen en el documento tipado consumido.
 - `schema(kind) -> Result<&'static str, ApiError>`: JSON Schema Draft 2020-12
-  local, kind exacto `engine-input/1` o `results/1`.
+  local, kind exacto `engine-input/1`, `results/1`, `method-descriptor/1` o `capabilities/1`.
 - `explain(code)`: catálogo de engine-core y códigos locales documentados abajo;
   código ausente produce `UnknownCode`.
 - `validate(input_json) -> Result<Vec<Diagnostic>, ApiError>` y `validate_with`
@@ -26,7 +40,15 @@ API pública:
 
 `engine-input/1` exige los campos de su [esquema](schemas/engine-input-1.json):
 `schema`, `units: "SI"`, `model`, `cases`, `combinations`, `analyses`, `options`.
-Colecciones vacías: `[]`; `options`: `{}`. `model.axes`: `"Z-up"`, terna diestra,
+Colecciones vacías: `[]`; `options`: `{}` por defecto.
+P-Delta tiene estado `Experimental`: requiere `options: {"allow_experimental": true}`.
+Sin esa opción, `run` devuelve `invalid`, código `API-E-INPUT`, salida 2 y causa
+que nombra el método y la opción requerida, antes del ensamblaje. `false` también
+lo rechaza. Los demás métodos son `Validated` dentro de los fixtures publicados;
+`Deprecated` se reserva para métodos mantenidos por compatibilidad. No hay métodos
+deprecados actualmente. Los estados no cierran los seguimientos #78/#84/#85/#86.
+`validate` conserva su alcance de contrato/topología y no ejecuta ni habilita métodos.
+ `model.axes`: `"Z-up"`, terna diestra,
 X-Y horizontal, Z arriba. D2 exige Z=0 y usa Ux, Uy, Rz; D3 admite los seis GDL.
 Coordenadas en m, masa en kg, tiempo en s, fuerzas en N, momentos en N·m,
 tensiones en Pa y giros en rad. No se convierten unidades.

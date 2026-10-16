@@ -137,5 +137,5 @@
       }
     }
   ],
-  "options": {}
+  "options": {"allow_experimental": true}
 }

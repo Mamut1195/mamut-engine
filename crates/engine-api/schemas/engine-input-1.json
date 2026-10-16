@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:mamut:engine-input:1",
   "title": "engine-input/1 — incremento 2a",
-  "description": "SI: m, kg, s, N, Pa, rad; momentos N·m. D2 en XY, Z=0; D3 con Z arriba. run: linearStatic y combinaciones. Otros métodos: Unsupported. Un solo análisis por run; opciones dinámicas explícitas. Masas nodales o fuente desde cargas, sin suma implícita; sin tolerancia de succión (#86).",
+  "description": "SI: m, kg, s, N, Pa, rad; momentos N·m. D2 en XY, Z=0; D3 con Z arriba. run: linearStatic, pDelta, modal, responseSpectrum y combinaciones. pDelta Experimental requiere options.allow_experimental=true. Un solo análisis por run; opciones dinámicas explícitas. Masas nodales o fuente desde cargas, sin suma implícita; sin tolerancia de succión (#86).",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "units", "model", "cases", "combinations", "analyses", "options"],
@@ -13,7 +13,7 @@
     "cases": {"type": "array", "maxItems": 64, "items": {"$ref": "#/$defs/case"}},
     "combinations": {"type": "array", "maxItems": 128, "items": {"$ref": "#/$defs/combination"}},
     "analyses": {"type": "array", "items": {"$ref": "#/$defs/analysis"}, "minItems": 1, "maxItems": 1},
-    "options": {"type": "object", "additionalProperties": false, "required": [], "properties": {}}
+    "options": {"type": "object", "additionalProperties": false, "required": [], "properties": {"allow_experimental": {"type": "boolean", "default": false, "description": "Habilita métodos Experimental explícitamente para este job."}}}
   },
   "$defs": {
     "uniformLoad": {"type": "object", "additionalProperties": false, "required": ["member", "force_per_length", "moment_per_length"], "properties": {"member": {"$ref": "#/$defs/id"}, "force_per_length": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}, "moment_per_length": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}}},

@@ -83,6 +83,7 @@ dependencies = [
  "engine-loads",
  "engine-model",
  "mamut-canon",
+ "mamut-workflow",
  "serde",
  "serde_json",
 ]

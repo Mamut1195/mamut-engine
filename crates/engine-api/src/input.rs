@@ -46,8 +46,7 @@ struct Input {
     cases: Vec<Object<Case>>,
     combinations: Vec<Object<Combination>>,
     analyses: Vec<Object<Analysis>>,
-    #[serde(rename = "options")]
-    _options: Object<Options>,
+    options: Object<Options>,
 }
 
 string_enum!(Units { SI => "SI" });
@@ -72,7 +71,10 @@ use crate::analysis_input::Analysis;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Options {}
+struct Options {
+    #[serde(default)]
+    allow_experimental: bool,
+}
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -233,6 +235,7 @@ struct Diaphragm {
 
 pub(crate) struct Execution {
     pub model: domain::Model,
+    pub allow_experimental: bool,
     pub methods: Vec<&'static str>,
     pub analyses: Vec<Analysis>,
     pub elements: Vec<(String, Option<[f64; 3]>)>,
@@ -403,6 +406,7 @@ pub(crate) fn decode(value: Value) -> Result<Execution, ApiError> {
         }
     }
     Ok(Execution {
+        allow_experimental: input.options.0.allow_experimental,
         model,
         methods,
         analyses,

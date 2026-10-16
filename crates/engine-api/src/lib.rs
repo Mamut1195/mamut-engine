@@ -9,6 +9,8 @@ mod analysis_input;
 mod input;
 mod json;
 mod limits;
+mod methods;
+pub use methods::{method_descriptor, method_descriptors, MethodDescriptor, MethodStatus};
 mod query;
 mod run;
 pub use limits::{
@@ -144,8 +146,10 @@ pub fn version() -> Value {
 
 /// Capacidades reales: estático, P-Delta, modal, espectro y combinaciones lineales.
 /// `engine` indica presencia en engine-analysis; `run` indica soporte de la fachada.
+/// `method_descriptors` publica estado, contratos y evidencia desde el registro SDK;
+/// Experimental requiere options.allow_experimental al ejecutar el job.
 pub fn capabilities() -> Value {
-    json!({
+    let mut capabilities = json!({
         "run": true,
         "operations": ["version", "capabilities", "schema", "explain", "validate", "run"],
         "schemas": {"engine-input/1": {"validate": true}, "results/1": {"emit": true}},
@@ -158,15 +162,28 @@ pub fn capabilities() -> Value {
             "modal": {"engine": true, "run": true},
             "responseSpectrum": {"engine": true, "run": true}
         }
-    })
+    });
+    match method_descriptors() {
+        Ok(descriptors) => {
+            capabilities["method_descriptors"] = json!(descriptors);
+        }
+        Err(error) => {
+            capabilities["run"] = json!(false);
+            capabilities["registry_error"] = json!(error.to_string());
+            capabilities["method_descriptors"] = json!([]);
+        }
+    }
+    capabilities
 }
 
 /// Devuelve un documento JSON Schema estático (Draft 2020-12), sin E/S ni red.
-/// `kind` es exactamente `engine-input/1` o `results/1`.
+/// `kind` admite engine-input/1, results/1, method-descriptor/1 y capabilities/1.
 pub fn schema(kind: &str) -> Result<&'static str, ApiError> {
     match kind {
         "engine-input/1" => Ok(include_str!("../schemas/engine-input-1.json")),
         "results/1" => Ok(include_str!("../schemas/results-1.json")),
+        "capabilities/1" => Ok(include_str!("../schemas/capabilities-1.json")),
+        "method-descriptor/1" => Ok(include_str!("../schemas/method-descriptor-1.json")),
         _ => Err(ApiError::UnknownSchema(kind.into())),
     }
 }

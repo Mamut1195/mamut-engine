@@ -1,5 +1,6 @@
 //! Ejecución y serialización, sin E/S.
-mod advanced;
+pub(crate) mod advanced;
+pub(crate) mod static_linear;
 use crate::{input, ApiError, CancelToken, Diagnostic, Progress};
 use engine_analysis::{
     combination::combine, results::CaseResults, results::MemberRecovery, StaticLinear,
@@ -68,7 +69,19 @@ impl Outcome {
     }
 }
 
-struct Failure(Status, Vec<Diagnostic>);
+pub(crate) struct MethodContext<'a> {
+    pub execution: &'a input::Execution,
+    pub members: &'a [Member],
+    pub contributions: &'a [ElementContribution],
+    pub system: &'a mut LinearSystem<ReferenceBackend>,
+    pub cancel: &'a CancelToken,
+    pub progress: &'a mut dyn FnMut(Progress),
+    pub document: &'a mut Value,
+    pub total: usize,
+    pub cases: &'a [CaseResults],
+}
+
+pub(crate) struct Failure(Status, Vec<Diagnostic>);
 impl From<EngineError> for Failure {
     fn from(e: EngineError) -> Self {
         let status = match e.code {
@@ -110,7 +123,7 @@ fn diagnostic(code: &'static str, severity: &'static str, cause: String) -> Diag
     }
 }
 
-struct Member {
+pub(crate) struct Member {
     id: engine_core::MemberId,
     nodes: [engine_core::NodeId; 2],
     dim: Dim,
@@ -193,7 +206,7 @@ fn internal_document() -> String {
 
 fn step(
     cancel: &CancelToken,
-    progress: &mut impl FnMut(Progress),
+    progress: &mut dyn FnMut(Progress),
     stage: &'static str,
     completed: usize,
     total: usize,
@@ -212,7 +225,7 @@ fn step(
 fn execute(
     input_json: &str,
     cancel: &CancelToken,
-    progress: &mut impl FnMut(Progress),
+    progress: &mut dyn FnMut(Progress),
     document: &mut Value,
 ) -> Result<(), Failure> {
     cancel.check()?;
@@ -220,8 +233,6 @@ fn execute(
     let fingerprint = mamut_canon::fingerprint_value(&value)
         .map_err(|e| ApiError::InvalidInput(format!("Huella RFC 8785: {e}")))?;
     document["input_sha256"] = json!(fingerprint.value);
-    let total = advanced::step_budget(&value);
-    step(cancel, progress, "parse", 1, total)?;
     let schema = value
         .get("schema")
         .and_then(Value::as_str)
@@ -230,6 +241,16 @@ fn execute(
         return Err(ApiError::UnsupportedSchema(schema.into()).into());
     }
     let execution = input::decode(value)?;
+    if execution.methods.len() != 1 {
+        return Err(ApiError::InvalidInput("Se requiere exactamente un análisis".into()).into());
+    }
+    let method = crate::methods::resolve(
+        execution.methods[0],
+        crate::methods::INPUT_CONTRACT,
+        execution.allow_experimental,
+    )?;
+    let total = (method.budget)(&execution);
+    step(cancel, progress, "parse", 1, total)?;
     let model = &execution.model;
     document["methods"] = json!(execution.methods);
     let diagnostics: Vec<_> = engine_model::validate(model)
@@ -241,15 +262,6 @@ fn execute(
     }
     document["diagnostics"] = json!(diagnostics);
     step(cancel, progress, "model", 2, total)?;
-    if execution.methods.is_empty() {
-        return Err(ApiError::InvalidInput("analyses requiere al menos un método".into()).into());
-    }
-    if execution.methods.len() != 1 {
-        return Err(ApiError::InvalidInput("Se requiere exactamente un análisis".into()).into());
-    }
-    if execution.methods[0] == "linearStatic" && model.cases.is_empty() {
-        return Err(ApiError::InvalidInput("linearStatic requiere al menos un caso".into()).into());
-    }
     let members = build_members(&execution)?;
     let contributions = assemble_members(model, &members)?;
     let mut system = LinearSystem::from_model_with_diaphragms(
@@ -263,105 +275,18 @@ fn execute(
         push_warning(document, "API-W-DIAPHRAGM-RECOVERY", "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados.".into());
     }
     step(cancel, progress, "assembly", 3, total)?;
-    if execution.methods[0] != "linearStatic" {
-        identities(document, model, &members);
-        advanced::execute(
-            &execution,
-            &members,
-            &contributions,
-            &mut system,
-            cancel,
-            progress,
-            document,
-            total,
-        )?;
-        return step(cancel, progress, "serialization", total, total);
-    }
-    let mut cases = Vec::new();
-    let mut solutions = Vec::new();
-    for (index, case) in model.cases.iter().enumerate() {
-        cancel.check()?;
-        let solution = StaticLinear::run(&mut system, &[(CaseRef(case.name.clone()), 1.0)])?
-            .cases
-            .into_iter()
-            .next()
-            .ok_or_else(|| EngineError::new("ENG-E-0012", "Solver sin resultado de caso"))?;
-        let views: Vec<_> = members
-            .iter()
-            .map(|m| MemberRecovery {
-                id: m.id,
-                nodes: &m.nodes,
-                element: m.element.as_ref(),
-                dim: m.dim,
-                params: &m.params,
-                committed: &[],
-                loads: &m.loads[index],
-                stations: None,
-            })
-            .collect();
-        cases.push(CaseResults::recover(&solution, &system, &views)?);
-        solutions.push(solution);
-        step(cancel, progress, "case", index + 4, total)?;
-    }
-    if !model.combinations.is_empty() {
-        let stations: Vec<Vec<f64>> = members
-            .iter()
-            .map(|member| {
-                let mut positions: Vec<_> = cases
-                    .iter()
-                    .flat_map(|case| {
-                        case.members
-                            .iter()
-                            .filter(|m| m.id == member.id)
-                            .flat_map(|m| m.stations.iter().map(|s| s.position))
-                    })
-                    .collect();
-                positions.sort_by(f64::total_cmp);
-                positions.dedup();
-                positions
-            })
-            .collect();
-        for (index, solution) in solutions.iter().enumerate() {
-            cancel.check()?;
-            let views: Vec<_> = members
-                .iter()
-                .zip(&stations)
-                .map(|(m, stations)| MemberRecovery {
-                    id: m.id,
-                    nodes: &m.nodes,
-                    element: m.element.as_ref(),
-                    dim: m.dim,
-                    params: &m.params,
-                    committed: &[],
-                    loads: &m.loads[index],
-                    stations: Some(stations),
-                })
-                .collect();
-            cases[index] = CaseResults::recover(solution, &system, &views)?;
-        }
-    }
-    let mut combinations = Vec::new();
-    for combination in &model.combinations {
-        cancel.check()?;
-        let combined = combine(combination, &cases)?;
-        if combined
-            .results
-            .nodes
-            .iter()
-            .any(|n| n.prescribed_displacements.iter().any(Option::is_some))
-        {
-            let mut warning = diagnostic("API-W-COMBINED-PRESCRIBED", "warning", format!("#85: combinación {}: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.", combination.id));
-            warning
-                .entities
-                .push(json!({"kind": "case", "id": combination.id}));
-            push_diagnostic(document, warning);
-        }
-        combinations.push(json!({"id": combined.id, "results": case_json(&combined.results)}));
-    }
-    step(cancel, progress, "combinations", total - 1, total)?;
     identities(document, model, &members);
-    document["cases"] = json!(cases.iter().map(case_json).collect::<Vec<_>>());
-    document["combinations"] = json!(combinations);
+    (method.execute)(MethodContext {
+        execution: &execution,
+        members: &members,
+        contributions: &contributions,
+        system: &mut system,
+        cancel,
+        progress,
+        document,
+        total,
+        cases: &[],
+    })?;
     crate::json::canonical_value(document.clone())
         .map_err(|_| EngineError::new("ENG-E-0012", "Error al serializar results/1"))?;
     step(cancel, progress, "serialization", total, total)

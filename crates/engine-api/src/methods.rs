@@ -1,0 +1,247 @@
+//! Extensión de dominio sobre descriptores y fábricas de mamut-workflow.
+use crate::{input::Execution, run, ApiError};
+use mamut_workflow::{
+    ContractId, MethodCatalog, MethodDimensions, MethodFactory, MethodRegistry, MethodSelectionV1,
+    NumericParameters, ProfileContract, QuantityDescriptor, SlotContract, WorkflowCompiler,
+    WorkflowDefinitionV1,
+};
+use serde::Serialize;
+
+pub(crate) const INPUT_CONTRACT: &str = "urn:mamut:engine:engine-input:1.0.0";
+pub(crate) const RESULTS_CONTRACT: &str = "urn:mamut:engine:results:1.0.0";
+const SLOT: &str = "engine_method";
+const PROFILE: &str = "engine.run";
+
+/// Madurez del método en la fachada; no certifica todos los modelos posibles.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+pub enum MethodStatus {
+    /// Requiere consentimiento explícito en las opciones del job.
+    Experimental,
+    /// Cuenta con los fixtures analíticos indicados, dentro de su alcance.
+    Validated,
+    /// Se conserva por compatibilidad; su evidencia explica la sustitución.
+    Deprecated,
+}
+
+/// Descriptor method-descriptor/1: registro SDK más evidencia del Engine.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct MethodDescriptor {
+    /// Versión del documento de descubrimiento.
+    pub schema: &'static str,
+    /// Descriptor genérico registrado en mamut-workflow, sin duplicar su modelo.
+    pub workflow: mamut_workflow::MethodDescriptor,
+    /// Madurez y política de habilitación del método.
+    pub status: MethodStatus,
+    /// Contrato JSON consumido por el adaptador.
+    pub input_schema: &'static str,
+    /// Contrato JSON producido por el adaptador.
+    pub output_schema: &'static str,
+    /// Rutas de pruebas/fixtures propios que delimitan la validación.
+    pub fixtures: Vec<&'static str>,
+    /// Citas de derivaciones propias, con su sección; sin atribuciones externas.
+    pub citations: Vec<&'static str>,
+    /// Rutas de bitácoras clean-room del método y del registro.
+    pub provenance: Vec<&'static str>,
+}
+
+pub(crate) struct EngineMethod {
+    descriptor: MethodDescriptor,
+    pub execute: for<'a> fn(run::MethodContext<'a>) -> Result<(), run::Failure>,
+    pub budget: fn(&Execution) -> usize,
+}
+
+fn contract(text: &str) -> Result<ContractId, ApiError> {
+    ContractId::parse(text).map_err(|e| ApiError::InvalidInput(e.to_string()))
+}
+
+fn dimensions() -> MethodDimensions {
+    // Se transportan documentos completos. Las magnitudes SI y sus unidades
+    // permanecen en engine-input/1 y results/1, no son puertos escalares del SDK.
+    MethodDimensions {
+        inputs: vec![QuantityDescriptor::new("document", "1", "1")],
+        outputs: vec![QuantityDescriptor::new("document", "1", "1")],
+    }
+}
+
+fn registry() -> Result<MethodRegistry<EngineMethod>, ApiError> {
+    let mut registry = MethodRegistry::new();
+    let factories: [MethodFactory<EngineMethod>; 5] =
+        [linear_static, combinations, pdelta, modal, spectrum];
+    for factory in factories {
+        let method = factory(&NumericParameters::new()).map_err(ApiError::InvalidInput)?;
+        registry
+            .register(method.descriptor.workflow, factory)
+            .map_err(|e| ApiError::InvalidInput(format!("Registro Engine: {e}")))?;
+    }
+    Ok(registry)
+}
+
+/// Descriptores en el orden determinista del registro real de mamut-workflow.
+pub fn method_descriptors() -> Result<Vec<MethodDescriptor>, ApiError> {
+    let registry = registry()?;
+    registry
+        .descriptors()
+        .into_iter()
+        .map(|descriptor| {
+            registry
+                .create(descriptor, &NumericParameters::new())
+                .map(|product| product.instance.descriptor)
+                .map_err(|e| ApiError::InvalidInput(e.to_string()))
+        })
+        .collect()
+}
+
+/// Resuelve id y contrato URN (dominio, nombre y mayor), aplicando la política.
+/// Versiones minor/patch compatibles siguen las reglas del compilador SDK.
+/// No ejecuta cálculos ni convierte engine-input/1 en un formato de workflow.
+pub fn method_descriptor(
+    method_id: &str,
+    input_contract: &str,
+    allow_experimental: bool,
+) -> Result<MethodDescriptor, ApiError> {
+    Ok(resolve(method_id, input_contract, allow_experimental)?.descriptor)
+}
+
+pub(crate) fn resolve(
+    method_id: &str,
+    input_contract: &str,
+    allow_experimental: bool,
+) -> Result<EngineMethod, ApiError> {
+    let registry = registry()?;
+    let profile = ProfileContract {
+        profile: PROFILE.into(),
+        version: 1,
+        slots: vec![SlotContract {
+            capability_slot: SLOT.into(),
+            dimensions: dimensions(),
+            consumes: vec![contract(input_contract)?],
+            produces: vec![contract(RESULTS_CONTRACT)?],
+        }],
+    };
+    let definition = WorkflowDefinitionV1 {
+        profile: PROFILE.into(),
+        version: 1,
+        steps: vec![MethodSelectionV1 {
+            capability_slot: SLOT.into(),
+            method_id: method_id.into(),
+            method_version: 1,
+            parameters: NumericParameters::new(),
+        }],
+    };
+    let plan = WorkflowCompiler::new(&registry, profile)
+        .compile(&definition)
+        .map_err(|e| ApiError::InvalidInput(format!("Método {method_id}: {e}")))?;
+    let method = plan
+        .steps
+        .into_iter()
+        .next()
+        .ok_or_else(|| ApiError::InvalidInput("Plan Engine sin método".into()))?
+        .instance;
+    if method.descriptor.status == MethodStatus::Experimental && !allow_experimental {
+        return Err(ApiError::InvalidInput(format!(
+            "Método {method_id} Experimental: requiere options.allow_experimental = true"
+        )));
+    }
+    Ok(method)
+}
+
+type Runner = for<'a> fn(run::MethodContext<'a>) -> Result<(), run::Failure>;
+
+#[allow(clippy::too_many_arguments)]
+fn builtin(
+    id: &str,
+    status: MethodStatus,
+    input_schema: &'static str,
+    execute: Runner,
+    budget: fn(&Execution) -> usize,
+    fixture: &'static str,
+    citation: &'static str,
+    provenance: &'static str,
+) -> Result<EngineMethod, String> {
+    let consumes = if input_schema == "engine-input/1" {
+        INPUT_CONTRACT
+    } else {
+        RESULTS_CONTRACT
+    };
+    Ok(EngineMethod {
+        descriptor: MethodDescriptor {
+            schema: "method-descriptor/1",
+            workflow: mamut_workflow::MethodDescriptor {
+                method_id: id.into(),
+                method_version: 1,
+                capability_slot: SLOT.into(),
+                dimensions: dimensions(),
+                consumes: vec![ContractId::parse(consumes).map_err(|e| e.to_string())?],
+                produces: vec![ContractId::parse(RESULTS_CONTRACT).map_err(|e| e.to_string())?],
+                // Las opciones mecánicas están tipadas en el documento consumido;
+                // no se duplican como NumericParameters del workflow.
+                parameters: vec![],
+                failure: None,
+            },
+            status,
+            input_schema,
+            output_schema: "results/1",
+            fixtures: vec![fixture],
+            citations: vec![citation],
+            provenance: vec![
+                provenance,
+                "provenance/ENG-API-001.md",
+                "provenance/ENG-CORE-006.md",
+            ],
+        },
+        execute,
+        budget,
+    })
+}
+
+fn linear_static(_: &NumericParameters) -> Result<EngineMethod, String> {
+    builtin(
+        "linearStatic", MethodStatus::Validated, "engine-input/1",
+        run::static_linear::execute, run::static_linear::budget,
+        "crates/engine-api/fixtures/input/valid/cantilever-linear-static.json",
+        "provenance/ENG-API-001.md · Incremento 2a: equilibrio e integración del voladizo y viga apoyada",
+        "provenance/ENG-ANL-001.md",
+    )
+}
+fn combinations(_: &NumericParameters) -> Result<EngineMethod, String> {
+    builtin(
+        "combinations", MethodStatus::Validated, "results/1",
+        run::static_linear::combinations, run::static_linear::budget,
+        "crates/engine-api/fixtures/input/valid/beam-combination.json",
+        "provenance/ENG-API-001.md · Incremento 2a: superposición 1,2D+1,6L y restricciones de prescritos",
+        "provenance/ENG-RES-001.md",
+    )
+}
+fn pdelta(_: &NumericParameters) -> Result<EngineMethod, String> {
+    builtin(
+        "pDelta", MethodStatus::Experimental, "engine-input/1",
+        run::advanced::pdelta, run::advanced::pdelta_budget,
+        "crates/engine-api/fixtures/input/valid/p-delta.json",
+        "provenance/ENG-API-001.md · Incremento 2c: viga-columna, Pcr y convergencia de malla; límites #78/#84",
+        "provenance/ENG-ANL-003.md",
+    )
+}
+fn modal(_: &NumericParameters) -> Result<EngineMethod, String> {
+    builtin(
+        "modal",
+        MethodStatus::Validated,
+        "engine-input/1",
+        run::advanced::modal,
+        run::advanced::modal_budget,
+        "crates/engine-api/fixtures/input/valid/modal-single-dof.json",
+        "provenance/ENG-API-001.md · Incremento 2c: oscilador axial, omega²=k/m y participación",
+        "provenance/ENG-ANL-002.md",
+    )
+}
+fn spectrum(_: &NumericParameters) -> Result<EngineMethod, String> {
+    builtin(
+        "responseSpectrum",
+        MethodStatus::Validated,
+        "engine-input/1",
+        run::advanced::spectrum,
+        run::advanced::spectrum_budget,
+        "crates/engine-api/fixtures/input/valid/response-spectrum.json",
+        "provenance/ENG-API-001.md · Incremento 2c: q=Gamma Sa/omega², u=Sa/omega² y V=m Sa",
+        "provenance/ENG-ANL-004.md",
+    )
+}

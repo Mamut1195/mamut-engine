@@ -207,7 +207,10 @@ Status::Ok, canonización idempotente, SHA-256 del documento completo y también
 igualdad directa de bytes. Se mantienen voladizo, voladizo inclinado, modal de
 un GDL, P-Delta, modal de dos GDL acoplados y espectro log-log/CQC; se añaden
 P-Delta, modal y espectro con geometría inclinada (coordenadas 0,8x/0,6x),
-incluyendo las cargas rotadas de P-Delta. Se añaden dos entradas frame3d del
+incluyendo las cargas rotadas de P-Delta. Ambos fixtures P-Delta declaran
+`options.allow_experimental: true`: el método permanece Experimental hasta
+BENCH-001 por decisión de Jonathan; incluirlo en esta suite no lo certifica
+como Validated. Se añaden dos entradas frame3d del
 mismo pórtico espacial: `frame3d-inclined-static` (linearStatic) y
 `frame3d-inclined-modal` (seis modos, masas nodales en los seis GDL de cada nodo
 libre y participación en X/Y/Z). La API exige un análisis por entrada.
@@ -217,8 +220,9 @@ Iy=3 e Iz=5 evitan simetría de flexión. El test nativo comprueba recuperación
 de los doce esfuerzos locales por miembro, seis modos positivos y que cambiar
 las orientaciones cambia los resultados mecánicos de ambos análisis.
 Son variantes de fixtures propios, sin datos de otros motores.
-La suite de #98 no incluye Winkler, incorporado posteriormente por #99.
-Su cobertura de validación es independiente de estas once entradas.
+Winkler se integró en #99 y está presente tras el merge; estos dieciséis casos
+no cubren esa ruta. Tiene su propia suite en engine-validation. El harness usa
+el módulo escalar central y la guardia pasa en la reejecución del 2026-10-15.
 
 Los ejemplos nativo y cdylib wasm comparten esas once entradas y cinco casos
 adicionales: scalar-trig, scalar-exp-log, scalar-powers-norm, load-rotation-bits
@@ -263,21 +267,20 @@ unset MAMUT_ENGINE_GIT_COMMIT # tabla reproducida con git_commit: null
 cargo test --offline -p engine-linalg --test determinism_guard
 cargo test --offline -p engine-api --test determinism
 cargo build --offline -p engine-api --example determinism_wasm --target wasm32-unknown-unknown
-cargo run --offline -p engine-api --example determinism_native > /tmp/eng-core-005-native-debug.txt
+cargo run --offline -p engine-api --example determinism_native > /tmp/eng-core-006-native-debug.txt
 node scripts/check-determinism.mjs \
   "$CARGO_TARGET_DIR/wasm32-unknown-unknown/debug/examples/determinism_wasm.wasm" \
-  /tmp/eng-core-005-native-debug.txt
+  /tmp/eng-core-006-native-debug.txt
 cargo build --offline --release -p engine-api --example determinism_wasm --target wasm32-unknown-unknown
-cargo run --offline --release -p engine-api --example determinism_native > /tmp/eng-core-005-native-release.txt
+cargo run --offline --release -p engine-api --example determinism_native > /tmp/eng-core-006-native-release.txt
 node scripts/check-determinism.mjs \
   "$CARGO_TARGET_DIR/wasm32-unknown-unknown/release/examples/determinism_wasm.wasm" \
-  /tmp/eng-core-005-native-release.txt
-cmp /tmp/eng-core-005-native-debug.txt /tmp/eng-core-005-native-release.txt
+  /tmp/eng-core-006-native-release.txt
+cmp /tmp/eng-core-006-native-debug.txt /tmp/eng-core-006-native-release.txt
 ```
 
-Tras integrar #99, la guardia escalar falla por
-engine-validation/tests/support/winkler_harness.rs (corrección separada en
-PR #106); no bloquea la ejecución independiente de los comandos de cruce.
+La guardia escalar y las cuatro pruebas de determinismo de engine-api pasan
+en el árbol reconciliado; no se omiten comprobaciones para ejecutar el cruce.
 
 Se requiere toolchain con wasm32-unknown-unknown, dependencias provisionadas y
 Node con WebAssembly/BigInt. El cruce es adicional a cargo test/check:
@@ -285,19 +288,28 @@ Node con WebAssembly/BigInt. El cruce es adicional a cargo test/check:
 
 ## Evidencia y límites
 
-Cruce real offline el 2026-10-14: Rust 1.99.0 (LLVM 23.1.1),
-x86_64-unknown-linux-gnu frente a wasm32-unknown-unknown en Node v22.19.0,
-CARGO_TARGET_DIR=/workspace/.cargo-target/mamut-engine, sin RUSTFLAGS especiales
-y sin MAMUT_ENGINE_GIT_COMMIT (`git_commit: null`). Base: ampliación tras J4 r25, reproducida por J4 r26.
-Reejecución ENG-CORE-005 tras
-el merge 3d10b33: **debug y release, 16 hashes iguales nativo/wasm, diez corridas
-por caso/target**; para análisis se excluye únicamente `target` tras validarlo.
-`cmp` de las salidas nativas confirma los mismos 16 hashes entre perfiles.
-Cambian los once hashes de análisis de #98 por la huella JCS y los metadatos
-nuevos; los cinco hashes escalares permanecen idénticos. La tabla anterior/nueva
-y la justificación se registran en provenance/ENG-CORE-005.md.
-Reejecución 2026-10-15 tras el merge 8fda97c (main 19c3ae5): debug y release,
-16 hashes nativo/wasm iguales y **sin cambios** respecto de esta tabla.
+Cruce real offline el 2026-10-15 al reconciliar #103 (HEAD 67c54d3) con
+#104 (MERGE_HEAD 6a4b58d; origin/main 19c3ae5), sin finalizar el merge:
+Rust 1.99.0 (LLVM 23.1.1), x86_64-unknown-linux-gnu frente a
+wasm32-unknown-unknown en Node v22.19.0,
+CARGO_TARGET_DIR=/workspace/.cargo-target/me-geo6, flags Cargo habituales
+y MAMUT_ENGINE_GIT_COMMIT sin definir (`git_commit: null`).
+**Debug y release: 16 hashes iguales nativo/wasm, diez corridas por caso/target**;
+para análisis se valida y excluye únicamente `target`. `cmp` de las salidas
+nativas confirma los mismos 16 hashes entre perfiles.
+
+Frente a #103 cambian los once hashes de análisis por la huella JCS y la
+incorporación de `git_commit: null` (`target` no participa en el cruce).
+Los cinco hashes escalares permanecen idénticos. Nueve análisis coinciden
+con la tabla de #104. Solo `pdelta` y `pdelta-inclined` difieren de #104:
+los fixtures de #103 añaden `options.allow_experimental: true` y cambia
+`input_sha256`. Sustituir únicamente ese campo por la huella JCS del fixture
+de #104 reproduce exactamente ambos hashes de #104; no cambian otros campos
+ni resultados mecánicos. El registro publica `method_descriptors` en
+capabilities/1, fuera de esta suite. La tabla anterior/nueva y las huellas
+P-Delta están en [ENG-CORE-006](../provenance/ENG-CORE-006.md).
+La evidencia anterior de #98/#103 y #104 se conserva en las bitácoras
+ENG-CORE-006 y ENG-CORE-005, respectivamente.
 
 La evidencia cubre once análisis V1 y cinco casos de bits escalares; no
 certifica todos los inputs/arquitecturas ni los bits intermedios del solver.
@@ -315,10 +327,10 @@ nativo/wasm y debug/release:
 | cantilever | `dc3e62defc8012b55ceba0108b76930bc73f9d805329f272631233d80a1ea153` |
 | inclined-cantilever | `d28509b76b283de84be528b593295c2fc735c62aa222c53d8374bcfb256a2492` |
 | modal-1dof | `bf52691f1eafd4c963e6f3947b141d8210faace668533b5673343d1926073da3` |
-| pdelta | `426db50197873a7a8cafb586233ac7af70d8953c22d3a718fe6dbbb51b4637f0` |
+| pdelta | `980bf21b60a5b931a0f0c137ebc782a4a878abb95f7e8bce880c91c4374f56ca` |
 | modal-coupled | `5e7f69005b39e8f4e93189aef46895770b5d1c1d4fe99d14d95b9a6ea9d8a86b` |
 | spectrum-log-cqc | `f68278ad240accbbc99bd58d0db43b161d74884af9d4cce05fab0b408c6f7dd2` |
-| pdelta-inclined | `f08ff9c7264cb64c8209956d97da0b2e99343479854f11d39d75773b6ec7c71c` |
+| pdelta-inclined | `9b5a4584e2151bb4d72c34933f564e8642e85600d44662e78ea376a61541a16b` |
 | modal-inclined | `d0ba8d1aefa2287fa6f7c2361864958aba0b1db89d68ec6e39583bf0d20913d7` |
 | spectrum-inclined | `aac5433acbe9f3a22fa5b610b1aac1d7842508503b30c8bc369c81e03b7d8baf` |
 | frame3d-inclined-static | `44e60765807c2dd654fb3f018cc11993c510d61f86da737cc29387e96c2c8da1` |
@@ -330,4 +342,5 @@ nativo/wasm y debug/release:
 | scalar-sin-cos | `b01bfda9f708e6cb7aa4ff9922480b6d26db245e0da1ae4c4b9694bfa555cf7a` |
 
 Los hashes registran esta versión del contrato, motor y casos; cambios legítimos
-pueden alterarlos. Las pruebas comparan ejecuciones, sin congelarlos como goldens.
+pueden alterarlos. La tabla es la referencia reproducible; las pruebas comparan
+ejecuciones, sin congelar hashes como goldens en código.

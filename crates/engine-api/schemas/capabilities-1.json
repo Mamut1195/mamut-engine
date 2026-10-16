@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mamut:capabilities:1",
+  "title": "capabilities/1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run",
+    "operations",
+    "schemas",
+    "validation",
+    "combinations",
+    "elements",
+    "methods",
+    "method_descriptors"
+  ],
+  "properties": {
+    "run": {
+      "type": "boolean"
+    },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "schemas": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties": {
+          "validate": {
+            "type": "boolean"
+          },
+          "emit": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "validation": {
+      "const": "topology"
+    },
+    "combinations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run"
+      ],
+      "properties": {
+        "run": {
+          "type": "boolean"
+        }
+      }
+    },
+    "elements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "methods": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "engine",
+          "run"
+        ],
+        "properties": {
+          "engine": {
+            "type": "boolean"
+          },
+          "run": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "method_descriptors": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:mamut:method-descriptor:1"
+      }
+    },
+    "registry_error": {
+      "type": "string"
+    }
+  }
+}
