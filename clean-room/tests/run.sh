@@ -16,7 +16,7 @@ new_repo() { # $1 = nombre; deja listas válidas en $tmp/$1/rules
 # expect NOMBRE CODIGO_ESPERADO -- comando en el repo $tmp/NOMBRE
 expect() {
     local name=$1 want=$2; shift 2; n=$((n+1))
-    (cd "$tmp/$name" && "$@" >/dev/null 2>&1); local got=$?
+    (cd "$tmp/$name" && "$@" >"$tmp/$name/check.log" 2>&1); local got=$?
     if [[ $got != "$want" ]]; then printf 'FALLA %s: esperado %s, obtenido %s\n' "$name" "$want" "$got"; fails=$((fails+1)); else printf 'ok    %s\n' "$name"; fi
 }
 chk() { bash "$src/check.sh" HEAD "$tmp/$1/rules"; }
@@ -70,7 +70,7 @@ vendor_manifest() {
         find . -type f ! -path './MANIFEST.sha256' -print0 |
         sort -z | xargs -0 sha256sum > MANIFEST.sha256)
 }
-new_vendor() { # Distribución mínima válida; el identificador queda cubierto por SHA-256.
+new_vendor() { # $2/$3 opcionales: ruta y contenido de un fixture antes de fijar el ancla.
     new_repo "$1"
     local v="$tmp/$1/vendor/mamut-workflows" file
     mkdir -p "$v/examples/open-local" "$tmp/$1/vendor/examples/open-local"
@@ -80,7 +80,14 @@ new_vendor() { # Distribución mínima válida; el identificador queda cubierto 
     done
     echo license > "$v/LICENSE"
     echo 'upstream 1eeb91a1ca9128ad4a02ead2ab66b6b25aa08f3d' > "$v/NOTICE"
-    echo 'x = geomTransf(1)' > "$v/payload.rs"
+    printf 'algorithm\nfix\n' >> "$tmp/$1/rules/forbidden_identifiers.txt"
+    echo 'safe payload' > "$v/payload.rs"
+    mkdir -p "$v/mamut-canon/src"
+    echo 'pub algorithm: String,' > "$v/mamut-canon/src/lib.rs"
+    if [[ $# == 3 ]]; then
+        mkdir -p "$(dirname "$v/$2")"
+        printf '%s' "$3" >> "$v/$2"
+    fi
     vendor_manifest "$1"
     git -C "$tmp/$1" add vendor
     pin_vendor_checker "$1"
@@ -179,7 +186,79 @@ mkdir "$tmp/vendor_untrusted_script/scripts"
 echo 'exit 0' > "$tmp/vendor_untrusted_script/scripts/check-vendor.sh"
 echo changed >> "$tmp/vendor_untrusted_script/vendor/mamut-workflows/payload.rs"
 vendor_expect vendor_untrusted_script 1
-# La excepción solo cubre el prefijo exacto; las rutas prohibidas se revisan antes.
+# Además del código de salida, exigir el diagnóstico de escaneo: los rechazos
+# de identificadores no deben pasar por un fallo del ancla o de integridad.
+vendor_id_expect() {
+    vendor_expect "$1" 1
+    local output
+    output=$(< "$tmp/$1/check.log")
+    if [[ "$output" != *"Identificador prohibido: $2 en vendor/mamut-workflows/$3:"* ||
+          "$output" == *'Integridad vendor/mamut-workflows:'* ]]; then
+        printf 'FALLA %s: falta el diagnóstico de identificador con integridad válida\n' "$1"
+        fails=$((fails+1))
+    fi
+}
+# vendor_ok cubre canon; cada nueva pareja debe pasar por separado.
+for file in mamut-workflow-cli/tests/fixtures/run.txt mamut-workflow-execution/src/mcp.rs mamut-workflow-execution/src/tests.rs; do
+    name="vendor_allowed_${file//\//_}"
+    new_vendor "$name" "$file" algorithm
+    vendor_expect "$name" 0
+done
+# Mismo identificador en otra ruta, incluidos sufijos y rutas que compartirían
+# un prefijo/glob: nunca heredan la excepción. NOTICE y README se escanean.
+for file in payload.rs mamut-workflow/src/lib.rs mamut-canon/src/other.rs mamut-canon/src/lib.rs.extra mamut-workflow-cli/tests/fixtures/run.txt.extra mamut-workflow-execution/src/other.rs mamut-workflow-execution/src/mcp.rs.extra mamut-workflow-execution/src/tests.rs.extra NOTICE README.md; do
+    for identifier in algorithm fix; do
+        name="vendor_id_${identifier}_${file//\//_}"
+        new_vendor "$name" "$file" "$identifier"
+        vendor_id_expect "$name" "$identifier" "$file"
+    done
+done
+# Otro identificador en cualquiera de las cuatro rutas tampoco está permitido.
+for file in mamut-canon/src/lib.rs mamut-workflow-cli/tests/fixtures/run.txt mamut-workflow-execution/src/mcp.rs mamut-workflow-execution/src/tests.rs; do
+    name="vendor_other_id_${file//\//_}"
+    new_vendor "$name" "$file" fix
+    vendor_id_expect "$name" fix "$file"
+done
+# Fijar primero el estado final del fixture y su ancla; construir después una
+# base sintética distinta y restaurar el estado final SIN cambiar el ancla.
+# Así el contenido prohibido no aparece entre las líneas añadidas del diff,
+# pero inventario, hashes y ancla son válidos al ejecutar el escaneo completo.
+for kind in same_file other_file untracked ignored; do
+    name="vendor_full_$kind"
+    content=fix # Sin salto final para other_file/untracked/ignored.
+    [[ "$kind" != same_file ]] || content=$'fix\n'
+    new_vendor "$name" payload.rs "$content"
+    v="$tmp/$name/vendor/mamut-workflows"
+    file=NOTICE
+    [[ "$kind" != same_file ]] || file=payload.rs
+    cp "$v/$file" "$tmp/$name/final-file"
+    case "$kind" in
+        same_file) printf 'fix\n' > "$v/payload.rs" ;;
+        other_file|untracked|ignored) echo 'safe baseline' >> "$v/NOTICE" ;;
+    esac
+    if [[ "$kind" == untracked || "$kind" == ignored ]]; then
+        git -C "$tmp/$name" rm --cached -q vendor/mamut-workflows/payload.rs
+        if [[ "$kind" == ignored ]]; then
+            echo '/vendor/mamut-workflows/payload.rs' > "$tmp/$name/.gitignore"
+            git -C "$tmp/$name" add .gitignore
+        fi
+    fi
+    vendor_manifest "$name"
+    # No volver a añadir payload.rs: debe seguir sin rastrear/ignorado.
+    git -C "$tmp/$name" add vendor/mamut-workflows/NOTICE vendor/mamut-workflows/MANIFEST.sha256
+    [[ "$kind" != same_file ]] || git -C "$tmp/$name" add vendor/mamut-workflows/payload.rs
+    git -C "$tmp/$name" commit -qm vendor
+    cp "$tmp/$name/final-file" "$v/$file"
+    vendor_manifest "$name"
+    vendor_id_expect "$name" fix payload.rs
+done
+# Fuera de las cuatro rutas tampoco se permite el nombre de la excepción.
+new_repo vendor_algorithm_outside
+printf 'algorithm\n' >> "$tmp/vendor_algorithm_outside/rules/forbidden_identifiers.txt"
+echo algorithm > "$tmp/vendor_algorithm_outside/a.rs"
+git -C "$tmp/vendor_algorithm_outside" add a.rs
+vendor_expect vendor_algorithm_outside 1
+# Otros vendors siguen escaneándose; las rutas prohibidas se revisan antes.
 for name in otro mamut-workflows-x; do
     new_repo "vendor_$name"; mkdir -p "$tmp/vendor_$name/vendor/$name"
     echo 'geomTransf(1)' > "$tmp/vendor_$name/vendor/$name/a.rs"

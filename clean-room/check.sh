@@ -55,7 +55,30 @@ has_provenance=false
 failed=false
 touches_vendor=false
 
-# Git entrega rutas relativas canónicas; no ampliar la excepción a alias con ./ o ../.
+# Únicas parejas ruta:identificador permitidas; sin prefijos ni globs.
+vendor_identifier_allowlist=(
+    'vendor/mamut-workflows/mamut-canon/src/lib.rs:algorithm'
+    'vendor/mamut-workflows/mamut-workflow-cli/tests/fixtures/run.txt:algorithm'
+    'vendor/mamut-workflows/mamut-workflow-execution/src/mcp.rs:algorithm'
+    'vendor/mamut-workflows/mamut-workflow-execution/src/tests.rs:algorithm'
+)
+
+scan_identifier_line() {
+    local path=$1 content=$2 identifier exception allowed
+    for identifier in "${identifiers[@]}"; do
+        allowed=false
+        for exception in "${vendor_identifier_allowlist[@]}"; do
+            [[ "$path:$identifier" == "$exception" ]] && allowed=true
+        done
+        [[ "$allowed" == true ]] && continue
+        if [[ "$content" =~ (^|[^a-zA-Z0-9_])${identifier}([^a-zA-Z0-9_]|$) ]]; then
+            printf 'Identificador prohibido: %s en %s: %s\n' "$identifier" "$path" "$content" >&2
+            failed=true
+        fi
+    done
+}
+
+# Git entrega rutas relativas canónicas; no aceptar alias con ./ o ../.
 is_workflows_path() {
     [[ "$1" == vendor/mamut-workflows/* ]] || return 1
     case "/$1/" in *//*|*/./*|*/../*) return 1 ;; esac
@@ -118,9 +141,25 @@ while IFS= read -r -d '' path; do
     fi
 done < <(git diff --no-ext-diff --no-renames --name-only -z "$base" --)
 
-if [[ "$touches_vendor" == true ]] && ! verify_workflows; then
-    printf 'Integridad vendor/mamut-workflows: manifiesto, inventario, hashes, commit o LICENSE inválidos.\n' >&2
-    failed=true
+if [[ "$touches_vendor" == true ]]; then
+    if verify_workflows; then
+        # Escanear todo el inventario físico validado, incluidas líneas sin cambios
+        # y archivos ignorados o no rastreados. La integridad precede a la lectura
+        # para no seguir enlaces fuera del vendor.
+        while IFS= read -r -d '' path; do
+            while IFS= read -r line || [[ -n "$line" ]]; do
+                scan_identifier_line "$path" "$line"
+            done < "$path"
+        done < <(
+            shopt -s globstar dotglob nullglob
+            for file in vendor/mamut-workflows/**/*; do
+                [[ -f "$file" ]] && printf '%s\0' "$file"
+            done
+        )
+    else
+        printf 'Integridad vendor/mamut-workflows: manifiesto, inventario, hashes, commit o LICENSE inválidos.\n' >&2
+        failed=true
+    fi
 fi
 
 while IFS= read -r -d '' path; do
@@ -140,6 +179,7 @@ while IFS= read -r -d '' path; do
     case "$path" in
         clean-room/*|docs/CLEAN_ROOM.md|provenance/*) continue ;;
     esac
+    # El vendor ya se ha revisado íntegro arriba, sin limitarse al diff.
     is_workflows_path "$path" && continue
     patch=$(git diff --no-ext-diff --no-textconv --no-renames --unified=0 "$base" -- ":(literal)$path")
     in_hunk=false
@@ -151,12 +191,7 @@ while IFS= read -r -d '' path; do
         # Ignorar cabeceras; una línea añadida que empieza con ++ sí se revisa.
         [[ "$in_hunk" == true && "$line" == +* ]] || continue
         added=${line:1}
-        for identifier in "${identifiers[@]}"; do
-            if [[ "$added" =~ (^|[^a-zA-Z0-9_])${identifier}([^a-zA-Z0-9_]|$) ]]; then
-                printf 'Identificador prohibido: %s en %s: %s\n' "$identifier" "$path" "$added" >&2
-                failed=true
-            fi
-        done
+        scan_identifier_line "$path" "$added"
     done <<< "$patch"
 done < <(git diff --no-ext-diff --no-renames --name-only -z --diff-filter=AMT "$base" --)
 
