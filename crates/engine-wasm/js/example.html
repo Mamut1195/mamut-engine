@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>engine-wasm worker example</title>
+<label>engine-input/1 JSON <textarea id="input" rows="12" cols="80"></textarea></label>
+<button id="run">Run</button><button id="cancel" disabled>Cancel</button>
+<pre id="output"></pre>
+<script type="module">
+  import { EngineWorker } from './main.js';
+  const client = new EngineWorker();
+  const input = document.querySelector('#input');
+  const output = document.querySelector('#output');
+  const run = document.querySelector('#run');
+  const cancel = document.querySelector('#cancel');
+  input.value = await (await fetch('../../engine-api/fixtures/input/valid/cantilever-linear-static.json')).text();
+  run.onclick = async () => {
+    run.disabled = true;
+    cancel.disabled = false;
+    const request = client.request('run', input.value, { onProgress: json => { output.textContent = json; } });
+    cancel.onclick = request.cancel;
+    try { output.textContent = await request.promise; }
+    catch (error) { output.textContent = String(error); }
+    finally { run.disabled = false; cancel.disabled = true; }
+  };
+  window.addEventListener('pagehide', () => client.close());
+</script>
