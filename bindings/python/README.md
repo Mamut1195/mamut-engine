@@ -9,39 +9,88 @@ Titularidad, aviso definitivo, licencia comercial y CLA: **PENDIENTE de revisió
 (ENG-GOV-004 / ENG-GOV-007). El inventario de licencias generado no resuelve
 estas revisiones. **Verificación local únicamente: nada se publica ni se sube.**
 
-## API
+## API tipada
 
 ```python
-import json
+from pathlib import Path
 import mamut_engine as engine
 
-source = open("input.json", encoding="utf-8").read()
-diagnostics = engine.validate(source)["diagnostics"]
-events = []
-results_json = engine.run(source, progress=events.append)
-results = json.loads(results_json)
+model = engine.Model.from_json(Path("input.json").read_text(encoding="utf-8"))
+report = engine.validate(model)
+events: list[engine.Progress] = []
+try:
+    results = engine.run(model, progress=events.append)
+    document = results.to_dict()  # ResultsDocument, copia independiente
+    Path("results.json").write_text(results.to_json(), encoding="utf-8")
+except engine.EngineError as error:
+    print(error.code, error.severity, error.entities, error.details)
+    # error.document conserva la salida Rust; error.results permite inspeccionarla.
+    raise
 ```
 
-- `validate(input_json: str) -> dict`: `{"diagnostics": [...]}`; como en Rust,
-  los defectos topológicos son diagnósticos, no excepciones. No prueba estabilidad.
-- `run(input_json: str, progress=None, cancel=None) -> str`: bytes JSON canónicos
-  `results/1` de engine-api, sin volver a serializarlos en Python. Los estados
-  `ok` y `warning` retornan normalmente; los demás producen `EngineError`.
-- `version() -> dict`: `engine_version` y `contracts` de la fachada. Cambia el
-  retorno del scaffold (antes cadena); `__version__` sigue siendo una cadena.
-- `capabilities() -> dict`, `schema(name: str) -> dict` y
-  `explain(code: str) -> str` delegan en las funciones homónimas de engine-api.
+El paquete incluye `py.typed` y stubs. Los DTO `TypedDict` están en
+`mamut_engine.types`: modelo, análisis discriminados por `method`, opciones,
+resultados, diagnósticos y descriptores de capacidades. Son tipos Python;
+la API pública no devuelve objetos ni excepciones PyO3. Los campos opcionales
+se omiten y se conservan en los documentos; la fachada no rellena propiedades
+físicas. Las extensiones de resultados se conservan incluso si el DTO instalado
+todavía no les da nombre. `ModelDocument` representa el trabajo completo
+`engine-input/1`, incluidos casos, combinaciones y análisis.
 
-`EngineError` conserva `code`, `entities` (lista de `{kind, id}`) y `cause`.
-Sus subclases son `InvalidInputError`, `AnalysisError`, `CancelledError` e
-`InternalEngineError`. Los fallos de `run` además conservan `document` (JSON
-canónico completo sin resultados parciales) y `diagnostics` (todos los
-avisos/errores). Los atributos principales corresponden al primer diagnóstico
-con severidad `error`. Contrato desconocido usa `ENG-E-0009`; los demás errores
-de frontera, incluidos nombres/códigos desconocidos, usan `API-E-INPUT`.
-Un unwind interceptado en la frontera produce `InternalEngineError`,
-`ENG-E-0012`, entidades vacías y causa explícita, sin propagar el unwind al FFI.
-Los tipos Python incorrectos producen `TypeError` de PyO3.
+- `validate(model: ModelLike) -> ValidationReport`: informe `diagnostics` de
+  Rust. Los defectos topológicos son diagnósticos; errores de argumento o
+  contrato lanzan `InvalidInputError`/`Unsupported`. No prueba estabilidad.
+- `run(model: ModelLike, *, progress=None, cancel=None) -> Results`: ejecuta
+  engine-api. Solo `ok` y `warning` retornan normalmente. `Results.to_json()`
+  devuelve exactamente la salida Rust, sin serialización intermedia en Python.
+- `version() -> VersionInfo`: versión y contratos reconocidos por el motor;
+  `__version__` conserva la cadena. `Results.version` refleja el productor y
+  todos los contratos de ese resultado, incluidos los contratos de dominio.
+- `capabilities() -> Capabilities`: métodos, elementos y descriptores reales
+  de Rust, con madurez y evidencia. P-Delta es `Stable`: se ejecuta con
+  `options: {}` y no necesita `allow_experimental`.
+- `schema(name: str, version: int | None = None) -> JSONDocument`: admite
+  `schema("results/1")` o `schema("results", 1)`. Publica los cuatro schemas
+  actuales: engine-input/1, results/1, method-descriptor/1 y capabilities/1.
+- `explain(code: str) -> str`: explicación del catálogo Rust; los nombres
+  de schemas y códigos desconocidos producen `InvalidInputError`.
+
+`ModelLike` admite `Model`, `ModelDocument` o JSON `str`. `Engine` agrupa las
+mismas seis funciones como métodos sin estado. `Model.from_dict()` conserva
+la referencia mutable; `to_dict()` devuelve una copia y `to_json()` delega la
+canonización compacta propia del motor. `Results.from_json(source, model=...)`
+valida el contrato, conserva bytes, orden, ids y campos opcionales y comprueba
+la procedencia si se proporciona modelo. Sin modelo conserva la procedencia
+declarada, sin autenticarla. Mayores desconocidos se rechazan.
+
+`Model.input_sha256` y la detección de estados stale usan la huella RFC 8785/JCS
+calculada en Rust, igual que `results/1.input_sha256`. No es el hash de
+`Model.to_json()`: por ejemplo, JCS iguala `4` y `4.0`. Tras modificar el input,
+los accesos a `Results` vinculados comprueban la huella y lanzan
+`StaleResultsError` (`PY-E-STALE`); `is_stale` permite consultarlo. La comparación
+incluye el trabajo completo, no solo la geometría. Las copias exportadas no
+modifican el snapshot ni siguen sus cambios.
+
+Unidades y ejes son obligatorios: `units: "SI"`, `model.axes: "Z-up"`, terna
+diestra X-Y horizontal y Z arriba. D2 usa el plano XY (Z=0) y Ux/Uy/Rz; D3
+admite seis GDL. Se usan m, kg, s, N, N·m, Pa y rad, sin conversión automática.
+La validación estructural previa rechaza NaN/Inf, coerciones, claves duplicadas,
+ids fuera de u32, tamaños/índices fuera de contrato y campos desconocidos de
+entrada. Los límites son los schemas del Rust instalado (además de 8 MiB de
+entrada, profundidad 64 y arrays de hasta 16384 entradas). La topología y toda
+validación/cálculo físico pertenecen a engine-api.
+
+`EngineError` conserva `code`, `entities`, `cause`, `severity` y `details` del
+primer diagnóstico con severidad `error`; `diagnostics` conserva todos los
+avisos/errores y `document` conserva el JSON completo cuando Rust lo produjo.
+`results` permite inspeccionar ese documento fallido con `partial=True`;
+si no puede interpretarse, sigue disponible `document` sin ocultar el error.
+No se devuelven fallos como éxito. Las subclases son `InvalidInputError`,
+`AnalysisError`, `NotConverged`, `Unstable`, `Cancelled` (también
+`CancelledError`), `Unsupported` e `InternalEngineError`. `StaleResultsError`
+es local a Python. Contrato incompatible usa `ENG-E-0009`, método no soportado
+`ENG-E-0013`; otros defectos de frontera usan `API-E-INPUT` y un unwind contenido
+usa `ENG-E-0012`. Los errores locales incluyen el path en `details`.
 
 ## GIL, progreso y cancelación
 
@@ -67,30 +116,34 @@ prevalece su `EngineError`.
 
 ## Construcción y pruebas sin red
 
-Desde la raíz, con dependencias y herramientas ya instaladas:
+Desde la raíz, con toolchain, dependencias y maturin 1.15.0 ya instalados:
 
 ```bash
-# MATURIN: ruta a un maturin instalado; OUT: directorio temporal nuevo.
+export PATH="$HOME/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:$PATH"
 export CARGO_NET_OFFLINE=true PIP_NO_INDEX=1
-OUT=$(mktemp -d)
-cargo run --offline --quiet -p mamut-engine-py --example facade_reference -- \
-  crates/engine-api/fixtures/input/valid/cantilever-linear-static.json \
-  > "$OUT/cantilever-rust.json"
-"$MATURIN" build --offline \
-  --manifest-path bindings/python/Cargo.toml --out "$OUT/wheels"
-python3 -m venv "$OUT/venv"
-"$OUT/venv/bin/python" -m pip install --no-index --no-cache-dir "$OUT"/wheels/*.whl
-MAMUT_RUST_REFERENCE="$OUT/cantilever-rust.json" \
-  "$OUT/venv/bin/python" -m unittest discover -s bindings/python/tests -v
+# Exportar CARGO_TARGET_DIR a la carpeta de compilación autorizada.
+# MATURIN debe ser el ejecutable absoluto instalado localmente.
+MATURIN="$MATURIN" bash scripts/build-python-wheel.sh "$CARGO_TARGET_DIR/python-dist-nuevo"
 ```
 
-Use rutas temporales nuevas para una repetición en venv limpio. El ejemplo Rust
-emite directamente `engine_api::run`; no llama al binding. `unittest` compara
-bytes y SHA-256 con esa referencia, tres veces, con tolerancia cero. Además
-contrasta el voladizo 2D con `u=-PL³/(3EI)`, `R=P`, `M=PL` para P=12, L=4,
-E=200 e I=3; tolerancias absoluta/relativa `1e-12` por redondeo f64 de este
-sistema pequeño. Cubre métodos avanzados, avisos, diagnósticos, errores,
-callbacks, cancelación y liberación del GIL. Solo usa la biblioteca estándar.
+La salida debe ser nueva. El script construye dos wheels release independientes,
+compara sus bytes y las instala con `--no-index` en un venv temporal dentro de
+`CARGO_TARGET_DIR`. Ejecuta `bindings/python/tests` contra la wheel instalada,
+sin Rust en el PATH del consumidor. Genera referencias directas de engine-api
+para los cinco ejemplos válidos y once casos de determinismo, incluido frame3d.
+Los tests comparan los documentos completos y SHA-256 con tolerancia cero;
+verifican round-trip, extensiones opcionales, contratos mayores incompatibles,
+SI/ejes, validación estructural, stale, errores, callbacks y cancelación.
+También contrastan el voladizo con `u=-PL³/(3EI)`, `R=P`, `M=PL` para P=12,
+L=4, E=200 e I=3, con tolerancias absoluta/relativa `1e-12` por redondeo f64.
+Son fixtures propios; las referencias nunca se generan mediante el binding.
+
+Si se dispone de mypy o pyright offline se ejecuta el checker. En su ausencia,
+`test_typing.py` verifica los exports/reexports `.pyi`, firmas nativas instaladas
+y campos requeridos/opcionales de los DTO frente a los schemas Rust. Además se
+resuelven las anotaciones públicas con `get_type_hints`. Esta alternativa
+comprueba consistencia contractual y no equivale a un análisis estático completo.
+Solo se requiere la biblioteca estándar para las pruebas offline.
 
 La prueba Rust `tests/unwind.rs` inyecta un unwind desde el callback de progreso
 de engine-api, comprueba la barrera compartida con PyO3 y una ejecución posterior

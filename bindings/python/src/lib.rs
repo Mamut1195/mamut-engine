@@ -166,6 +166,26 @@ mod python {
     }
 
     #[pyfunction]
+    fn canonical_json(py: Python<'_>, input_json: &str) -> PyResult<String> {
+        guarded(py, || {
+            match py.allow_threads(|| engine_api::canonical_json(input_json)) {
+                Ok(document) => Ok(document),
+                Err(err) => Err(api_error(py, err)?),
+            }
+        })
+    }
+
+    #[pyfunction]
+    fn input_sha256(py: Python<'_>, input_json: &str) -> PyResult<String> {
+        guarded(py, || {
+            match py.allow_threads(|| engine_api::input_sha256(input_json)) {
+                Ok(digest) => Ok(digest),
+                Err(err) => Err(api_error(py, err)?),
+            }
+        })
+    }
+
+    #[pyfunction]
     fn validate(py: Python<'_>, input_json: &str) -> PyResult<Py<PyAny>> {
         guarded(py, || {
             match py.allow_threads(|| engine_api::validate(input_json)) {
@@ -257,6 +277,8 @@ mod python {
         module.add_function(wrap_pyfunction!(capabilities, module)?)?;
         module.add_function(wrap_pyfunction!(schema, module)?)?;
         module.add_function(wrap_pyfunction!(explain, module)?)?;
+        module.add_function(wrap_pyfunction!(canonical_json, module)?)?;
+        module.add_function(wrap_pyfunction!(input_sha256, module)?)?;
         module.add_function(wrap_pyfunction!(validate, module)?)?;
         module.add_function(wrap_pyfunction!(run, module)?)?;
         Ok(())

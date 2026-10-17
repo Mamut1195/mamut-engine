@@ -206,3 +206,11 @@ No se versionan los artefactos. Sin cambios a licencias, docs/CLEAN_ROOM.md,
 .github/**, clean-room/** ni vendor/**. Sin publicación. Otras plataformas e
 intérpretes siguen pendientes; revisión clean-room externa J4 pendiente.
 Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+
+## Seguimiento ENG-PY-003 · 2026-10-17
+
+Codex gpt-6.1-sol high añade el transporte privado de canonización y huella
+JCS de engine-api para la fachada Python tipada, sin cálculo físico en Python.
+La revisión frente al main actual, pruebas de la wheel, compatibilidad de
+contratos y declaración clean-room de esta ampliación se registran en
+[ENG-PY-003](ENG-PY-003.md). Revisor clean-room: **PENDIENTE (J4)**.

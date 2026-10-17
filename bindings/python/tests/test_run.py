@@ -9,7 +9,7 @@ import sys
 import threading
 import unittest
 
-import mamut_engine as engine
+from mamut_engine import _native as engine, __version__
 
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURES = ROOT / "crates/engine-api/fixtures/input"
@@ -95,7 +95,7 @@ class RunTest(unittest.TestCase):
         def callback(event):
             events.append(event)
             token.cancel()  # Ya terminó el motor: no cambia el resultado.
-            self.assertEqual(engine.version()["engine_version"], engine.__version__)
+            self.assertEqual(engine.version()["engine_version"], __version__)
 
         actual = engine.run(CANTILEVER, progress=callback, cancel=token)
         self.assertEqual(actual, engine.run(CANTILEVER))

@@ -41,6 +41,10 @@ fn build_metadata_and_schema_for_every_method() {
             value["input_sha256"],
             mamut_canon::fingerprint(input).unwrap().value
         );
+        assert_eq!(
+            value["input_sha256"],
+            engine_api::input_sha256(input).unwrap()
+        );
         assert_eq!(outcome.document, canonical_json(&outcome.document).unwrap());
     }
 }
@@ -54,6 +58,10 @@ fn fingerprint_regressions_document_jcs_changes() {
         let outcome = run(input, &CancelToken::new(), |_| {});
         let value: Value = serde_json::from_str(&outcome.document).unwrap();
         assert_eq!(value["input_sha256"], vector["input_sha256"]);
+        assert_eq!(
+            engine_api::input_sha256(input).unwrap(),
+            vector["input_sha256"]
+        );
         assert_eq!(
             mamut_canon::canonicalize(input).unwrap(),
             vector["canonical"].as_str().unwrap().as_bytes()
@@ -71,6 +79,27 @@ fn fingerprint_regressions_document_jcs_changes() {
         run(&integers.to_string(), &CancelToken::new(), |_| {}),
         run(&decimals.to_string(), &CancelToken::new(), |_| {})
     );
+}
+
+#[test]
+fn input_fingerprint_respects_the_engine_parser_limits() {
+    for input in [
+        "{",
+        r#"{"a":1,"a":2}"#,
+        "NaN",
+        "1e400",
+        "18446744073709551616",
+    ] {
+        assert!(matches!(
+            engine_api::input_sha256(input),
+            Err(ApiError::InvalidInput(_))
+        ));
+    }
+    let oversized = " ".repeat(engine_api::MAX_INPUT_BYTES + 1);
+    assert!(matches!(
+        engine_api::input_sha256(&oversized),
+        Err(ApiError::InvalidInput(_))
+    ));
 }
 
 #[test]

@@ -70,9 +70,12 @@ cp "$scratch/REPRODUCIBILITY.json" "$scratch/dist/"
     --rustc-version "$rustc_version" --maturin-version "$maturin_version"
 
 # Referencia independiente de engine-api para las pruebas de la wheel instalada.
-cargo run --offline --locked --quiet -p mamut-engine-py --example facade_reference -- \
-    crates/engine-api/fixtures/input/valid/cantilever-linear-static.json \
-    > "$scratch/cantilever-rust.json"
+mkdir "$scratch/references"
+for fixture in crates/engine-api/fixtures/input/valid/*.json \
+    crates/engine-api/tests/fixtures/determinism/*.json; do
+    cargo run --offline --locked --quiet -p mamut-engine-py --example facade_reference -- \
+        "$fixture" > "$scratch/references/${fixture##*/}"
+done
 
 "$python" -I -m venv "$scratch/consumer"
 venv="$scratch/consumer"
@@ -81,7 +84,8 @@ venv="$scratch/consumer"
     cd "$scratch"
     export PATH="$venv/bin"
     unset PYTHONPATH PYTHONHOME
-    export MAMUT_RUST_REFERENCE="$scratch/cantilever-rust.json"
+    export MAMUT_RUST_REFERENCES="$scratch/references"
+    export MAMUT_RUST_REFERENCE="$scratch/references/cantilever-linear-static.json"
     "$venv/bin/python" -I -m pip install --no-index --no-deps --no-cache-dir \
         "$scratch/dist/$wheel_name"
     "$venv/bin/python" -I "$helper" smoke "$scratch/dist/COMPATIBILITY.json" \

@@ -14,10 +14,10 @@ class FacadeTest(unittest.TestCase):
         self.assertEqual(engine.__version__, version["engine_version"])
         self.assertEqual(version["contracts"], ["engine-input/1", "results/1"])
         self.assertEqual(_native.version(), version)
-        self.assertEqual(
-            set(name for name in dir(_native) if not name.startswith("_")),
-            set(engine.__all__) - {"__version__"},
-        )
+        self.assertIsNot(engine.EngineError, _native.EngineError)
+        self.assertIsNot(engine.CancelToken, _native.CancelToken)
+        self.assertTrue(all(not getattr(getattr(engine, name), "__module__", "").endswith("._native")
+                            for name in engine.__all__))
 
     def test_capabilities_and_schema(self):
         caps = engine.capabilities()

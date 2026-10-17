@@ -230,9 +230,7 @@ fn execute(
 ) -> Result<(), Failure> {
     cancel.check()?;
     let value = crate::json::parse(input_json)?;
-    let fingerprint = mamut_canon::fingerprint_value(&value)
-        .map_err(|e| ApiError::InvalidInput(format!("Huella RFC 8785: {e}")))?;
-    document["input_sha256"] = json!(fingerprint.value);
+    document["input_sha256"] = json!(crate::fingerprint_value(&value)?);
     let schema = value
         .get("schema")
         .and_then(Value::as_str)

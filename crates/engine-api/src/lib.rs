@@ -205,6 +205,19 @@ pub fn canonical_json(input_json: &str) -> Result<String, ApiError> {
     json::canonical(input_json)
 }
 
+/// Huella SHA-256 RFC 8785 del input, idéntica a `results/1.input_sha256`.
+/// Aplica el mismo parseo estricto y límites de `run`, sin ejecutar física.
+/// No usa la serialización propia de `canonical_json` como preimagen.
+pub fn input_sha256(input_json: &str) -> Result<String, ApiError> {
+    fingerprint_value(&json::parse(input_json)?)
+}
+
+fn fingerprint_value(value: &Value) -> Result<String, ApiError> {
+    mamut_canon::fingerprint_value(value)
+        .map(|fingerprint| fingerprint.value)
+        .map_err(|e| ApiError::InvalidInput(format!("Huella RFC 8785: {e}")))
+}
+
 /// Valida el contrato, las convenciones y la topología; no comprueba estabilidad.
 /// Fallos de parseo/contrato son `Err`; defectos del modelo son diagnósticos `Ok`.
 pub fn validate(input_json: &str) -> Result<Vec<Diagnostic>, ApiError> {

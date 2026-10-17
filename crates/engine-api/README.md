@@ -37,6 +37,9 @@ API pública:
   y miembros y proyecta rutas de campos sobre resultados ya calculados.
 - `canonical_json(input_json) -> Result<String, ApiError>`: UTF-8 compacto,
   claves ordenadas recursivamente, arrays en orden de entrada y -0.0 → +0.0.
+- `input_sha256(input_json) -> Result<String, ApiError>`: huella RFC 8785/JCS
+  idéntica a `results/1.input_sha256`, con el parseo y límites de `run`, sin
+  ejecutar análisis. Permite comprobar procedencia desde los adaptadores.
 
 `engine-input/1` exige los campos de su [esquema](schemas/engine-input-1.json):
 `schema`, `units: "SI"`, `model`, `cases`, `combinations`, `analyses`, `options`.

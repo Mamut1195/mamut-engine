@@ -38,3 +38,11 @@ def run(
 ) -> str:
     """JSON canónico results/1. Callback diferido, ejecutado con GIL al terminar."""
     ...
+
+def canonical_json(input_json: str) -> str:
+    """Transporte privado de la canonización engine-api, sin física en Python."""
+    ...
+
+def input_sha256(input_json: str) -> str:
+    """Huella RFC 8785 calculada por engine-api sin ejecutar análisis."""
+    ...

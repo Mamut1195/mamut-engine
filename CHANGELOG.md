@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- MAM-79 / ENG-PY-003: fachada Python pública tipada y documentada sobre
+  engine-api, con modelos/resultados versionados, errores completos, controles
+  SI/ejes y stale mediante la huella JCS de Rust. Completa procedencia,
+  descriptores y convergencia P-Delta del main actual; prueba P-Delta Stable sin
+  consentimiento experimental. Incluye regresiones de compatibilidad, stubs y
+  comparación de la wheel offline con 16 entradas Rust. Sin física en Python.
 - MAM-22 · ENG-CORE-009: contrato JSON fixture/1 con source obligatorio y veto
   recursivo de procedencias prohibidas; cinco casos analíticos propios y runner
   en engine-validation con targets engine-api nativo y wasm32/Node sin npm.
