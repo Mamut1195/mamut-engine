@@ -1,0 +1,572 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+
+use std::{
+    cell::RefCell,
+    fs,
+    io::{self, Write},
+    path::{Path, PathBuf},
+    process::{Command, Output, Stdio},
+    rc::Rc,
+    sync::atomic::{AtomicUsize, Ordering},
+};
+
+use engine_cli::{Control, EngineCli, CATALOG};
+use mamut_workflow_cli::{Cancellation, ExitCodes};
+use serde_json::{json, Value};
+
+const RUN: &str = include_str!("../run.workflow.json");
+const VALIDATE: &str = include_str!("../validate.workflow.json");
+const INPUT: &str = include_str!("../../engine-api/tests/fixtures/determinism/cantilever.json");
+static NEXT: AtomicUsize = AtomicUsize::new(0);
+
+struct Files(PathBuf);
+impl Files {
+    fn new() -> Self {
+        let path = Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!(
+            "engine-cli-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir_all(&path).unwrap();
+        let files = Self(path);
+        files.write("catalog.json", CATALOG);
+        files.write("input.json", INPUT);
+        files
+    }
+    fn path(&self, name: &str) -> PathBuf {
+        self.0.join(name)
+    }
+    fn write(&self, name: &str, contents: &str) {
+        fs::write(self.path(name), contents).unwrap();
+    }
+    fn command(&self) -> Command {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_mamut-engine"));
+        command.env_remove("MAMUT_ENGINE_CANCEL_FILE");
+        command.env("MAMUT_ENGINE_INPUT", self.path("input.json"));
+        command
+    }
+    fn run(&self, workflow: &str, progress: bool) -> Output {
+        let mut command = self.command();
+        command.args(["run", "--catalog"]);
+        command.arg(self.path("catalog.json"));
+        command.args(["--workflow", "-"]);
+        if progress {
+            command.args(["--progress", "ndjson"]);
+        }
+        let mut child = command
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        child
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(workflow.as_bytes())
+            .unwrap();
+        child.wait_with_output().unwrap()
+    }
+    fn args(&self) -> Vec<String> {
+        vec![
+            "run".into(),
+            "--catalog".into(),
+            self.path("catalog.json").to_str().unwrap().into(),
+            "--workflow".into(),
+            "-".into(),
+        ]
+    }
+}
+impl Drop for Files {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
+}
+fn value(bytes: &[u8]) -> Value {
+    serde_json::from_slice(bytes).unwrap()
+}
+fn assert_code(output: &Output, code: i32) {
+    assert_eq!(
+        output.status.code(),
+        Some(code),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[test]
+fn describe_identifies_engine_and_publishes_engine_v1_table() {
+    let output = Files::new().command().arg("describe").output().unwrap();
+    assert_code(&output, 0);
+    assert!(output.stderr.is_empty());
+    let description = value(&output.stdout);
+    assert_eq!(description["name"], "mamut-engine");
+    assert_eq!(
+        description["version"],
+        engine_api::version()["engine_version"]
+    );
+    let codes = ExitCodes::engine_v1().capabilities();
+    for key in [
+        "exit_codes",
+        "exit_code_categories",
+        "reserved_exit_code_categories",
+    ] {
+        assert_eq!(description[key], codes[key]);
+    }
+    assert_eq!(
+        description["exit_codes"],
+        json!({"0":"ok","1":"warning","2":"invalid","3":"unsupported","4":"not_converged","5":"cancelled","6":"timeout","70":"internal"})
+    );
+    assert_eq!(
+        description["reserved_exit_code_categories"],
+        json!({"timeout":6})
+    );
+}
+
+#[test]
+fn stdin_workflow_ndjson_and_complete_api_result_preserve_manifest() {
+    let files = Files::new();
+    let output = files.run(RUN, true);
+    assert_code(&output, 0);
+    let envelope = value(&output.stdout);
+    assert_eq!(envelope["engineId"], "mamut-engine");
+    assert_eq!(
+        envelope["engineVersion"],
+        engine_api::version()["engine_version"]
+    );
+    assert_eq!(envelope["operation"], "run");
+    assert_eq!(envelope["exitCode"], 0);
+    let api = engine_api::run(INPUT, &engine_api::CancelToken::new(), |_| {});
+    assert_eq!(envelope["engineResults"][0], value(api.document.as_bytes()));
+    assert!(envelope["engineResults"][0]["cases"][0]["nodes"].is_array());
+    // La extensión no modifica el manifiesto ni la huella calculada por la base.
+    let mut base_stdout = Vec::new();
+    let config = mamut_workflow_cli::CliConfig::new().with_provider(ApiProvider);
+    assert_eq!(
+        mamut_workflow_cli::run(
+            &files.args(),
+            &mut RUN.as_bytes(),
+            &mut base_stdout,
+            &mut Vec::new(),
+            &config
+        ),
+        0
+    );
+    assert_eq!(envelope["data"], value(&base_stdout)["data"]);
+    let events: Vec<Value> = String::from_utf8(output.stderr)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(events.len(), 2);
+    for (event, phase) in events.iter().zip(["started", "finished"]) {
+        assert_eq!(event["phase"], phase);
+        assert_eq!(event["method_id"], "engine.run");
+        assert_eq!(event["index"], 0);
+    }
+}
+
+struct ApiProvider;
+impl mamut_workflow_cli::MethodProvider for ApiProvider {
+    fn create(
+        &self,
+        _: &mamut_workflow::MethodDescriptor,
+        _: &mamut_workflow::CompiledStep<mamut_workflow::RegisteredMethod>,
+    ) -> Result<Box<dyn mamut_workflow_cli::Method>, String> {
+        Ok(Box::new(ApiMethod))
+    }
+}
+struct ApiMethod;
+impl mamut_workflow_cli::Method for ApiMethod {
+    fn run(&mut self) -> Result<Value, String> {
+        serde_json::from_str(
+            &engine_api::run(INPUT, &engine_api::CancelToken::new(), |_| {}).document,
+        )
+        .map_err(|e| e.to_string())
+    }
+}
+
+#[test]
+fn methods_reads_catalog_from_stdin_and_lists_engine_methods() {
+    let files = Files::new();
+    let mut child = files
+        .command()
+        .args(["methods", "--catalog", "-"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(CATALOG.as_bytes())
+        .unwrap();
+    let output = child.wait_with_output().unwrap();
+    assert_code(&output, 0);
+    let methods = value(&output.stdout);
+    let ids: Vec<_> = methods
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|m| m["method_id"].as_str().unwrap())
+        .collect();
+    assert_eq!(ids, ["engine.run", "engine.validate"]);
+}
+
+#[test]
+fn usage_document_workflow_and_engine_input_errors_exit_two() {
+    let files = Files::new();
+    for args in [
+        vec!["version"],
+        vec!["capabilities"],
+        vec!["schema"],
+        vec!["explain"],
+        vec!["--version"],
+        vec!["run"],
+        vec!["run", "--catalog", "-", "--workflow", "-"],
+    ] {
+        let output = files.command().args(args).output().unwrap();
+        assert_code(&output, 2);
+        assert!(output.stdout.is_empty());
+    }
+    for workflow in ["{", &RUN.replace("mamut-engine.v1", "unknown")] {
+        assert_code(&files.run(workflow, false), 2);
+    }
+    for input in ["{", r#"{"schema":"engine-input/2"}"#] {
+        files.write("input.json", input);
+        let output = files.run(RUN, false);
+        assert_code(&output, 2);
+        assert_eq!(value(&output.stderr)["outcome"], "invalid_input");
+        assert!(output.stdout.is_empty());
+    }
+    fs::remove_file(files.path("input.json")).unwrap();
+    assert_code(&files.run(RUN, false), 2);
+    files.write("catalog.json", "{");
+    assert_code(&files.run(RUN, false), 2);
+}
+
+#[test]
+fn actual_engine_warning_unsupported_and_unstable_exit_one_three_four() {
+    let files = Files::new();
+    let original: Value = serde_json::from_str(INPUT).unwrap();
+    let mut warning = original.clone();
+    warning["combinations"] = json!([{"id":"scaled","terms":[{"case":"D","factor":2.0}]}]);
+    let mut unsupported = original.clone();
+    unsupported["model"]["members"][0]["element"] = json!("unknown");
+    let mut unstable = original;
+    unstable["model"]["supports"] = json!([]);
+    for (input, code, outcome, status) in [
+        (warning, 1, "warning", "warning"),
+        (unsupported, 3, "unsupported", "unsupported"),
+        (unstable, 4, "not_converged", "unstable"),
+    ] {
+        files.write("input.json", &input.to_string());
+        let output = files.run(RUN, true);
+        assert_code(&output, code);
+        let envelope = if code == 1 {
+            value(&output.stdout)
+        } else {
+            assert!(output.stdout.is_empty());
+            let lines = String::from_utf8(output.stderr.clone()).unwrap();
+            let lines: Vec<_> = lines.lines().collect();
+            assert_eq!(lines.len(), 2); // started + fallo; sin finished.
+            serde_json::from_str(lines[1]).unwrap()
+        };
+        assert_eq!(envelope["exitCode"], code);
+        assert_eq!(envelope["outcome"], outcome);
+        assert_eq!(envelope["engineResults"][0]["status"], status);
+        assert!(!envelope["engineResults"][0]["diagnostics"]
+            .as_array()
+            .unwrap()
+            .is_empty());
+    }
+}
+
+#[test]
+fn nonconverged_pdelta_exit_four() {
+    let files = Files::new();
+    let mut input: Value = serde_json::from_str(include_str!(
+        "../../engine-api/tests/fixtures/determinism/pdelta.json"
+    ))
+    .unwrap();
+    input["analyses"][0]["options"]["max_iterations"] = json!(1);
+    input["analyses"][0]["options"]["tolerance"] = json!(1e-15);
+    files.write("input.json", &input.to_string());
+    let output = files.run(RUN, false);
+    assert_code(&output, 4);
+    assert_eq!(
+        value(&output.stderr)["engineResults"][0]["status"],
+        "notConverged"
+    );
+}
+
+#[test]
+fn engine_validate_is_a_method_while_standard_validate_only_compiles() {
+    let files = Files::new();
+    let output = files.run(VALIDATE, false);
+    assert_code(&output, 0);
+    assert_eq!(
+        value(&output.stdout)["engineResults"][0]["diagnostics"],
+        json!([])
+    );
+    let mut input: Value = serde_json::from_str(INPUT).unwrap();
+    input["model"]["members"][0]["nodes"] = json!([1, 99]);
+    files.write("input.json", &input.to_string());
+    assert_code(&files.run(VALIDATE, false), 2);
+    files.write("workflow.json", RUN);
+    let output = files
+        .command()
+        .arg("validate")
+        .arg("--catalog")
+        .arg(files.path("catalog.json"))
+        .arg("--workflow")
+        .arg(files.path("workflow.json"))
+        .output()
+        .unwrap();
+    assert_code(&output, 0);
+    assert_eq!(value(&output.stdout)["valid"], true);
+}
+
+#[test]
+fn cancellation_before_workflow_and_during_engine_stages_returns_five() {
+    let files = Files::new();
+    for via_token in [false, true] {
+        let control = Control::default();
+        if via_token {
+            control.token().cancel();
+        } else {
+            control.flag().cancel();
+        }
+        let cli = EngineCli::new(None).with_control(control.clone());
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        assert_eq!(
+            cli.run(&files.args(), &mut RUN.as_bytes(), &mut stdout, &mut stderr),
+            5
+        );
+        assert!(stdout.is_empty());
+        assert_eq!(value(&stderr)["outcome"], "cancelled");
+        assert!(control.flag().is_cancelled());
+        assert!(control.token().is_cancelled());
+    }
+    for (validation, via_file) in [(false, false), (false, true), (true, false), (true, true)] {
+        let control = Control::default();
+        let control = if via_file {
+            control.with_cancel_file(files.path("cancel"))
+        } else {
+            control
+        };
+        let callback_control = control.clone();
+        let cancel_path = files.path("cancel");
+        let stages = Rc::new(RefCell::new(Vec::new()));
+        let stages_seen = Rc::clone(&stages);
+        let cli = EngineCli::new(Some(files.path("input.json")))
+            .with_control(control.clone())
+            .with_engine_progress(move |p| {
+                stages_seen.borrow_mut().push(p.stage);
+                if via_file {
+                    fs::write(&cancel_path, "").unwrap();
+                } else {
+                    callback_control.flag().cancel();
+                }
+            });
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        let workflow = if validation { VALIDATE } else { RUN };
+        assert_eq!(
+            cli.run(
+                &files.args(),
+                &mut workflow.as_bytes(),
+                &mut stdout,
+                &mut stderr
+            ),
+            5
+        );
+        assert_eq!(*stages.borrow(), ["parse"]);
+        assert!(control.token().is_cancelled());
+        assert!(stdout.is_empty());
+        assert_eq!(value(&stderr)["outcome"], "cancelled");
+        if via_file {
+            fs::remove_file(files.path("cancel")).unwrap();
+            // Quitar el marcador no revoca una cancelación ya sincronizada.
+            assert!(control.is_cancelled());
+        }
+    }
+}
+
+#[test]
+fn multiple_steps_preserve_order_and_aggregate_warnings_without_reusing_state() {
+    let files = Files::new();
+    let mut input: Value = serde_json::from_str(INPUT).unwrap();
+    input["combinations"] = json!([{"id":"scaled","terms":[{"case":"D","factor":2.0}]}]);
+    files.write("input.json", &input.to_string());
+    let mut workflow = value(RUN.as_bytes());
+    workflow["steps"] = json!([
+        value(VALIDATE.as_bytes())["steps"][0],
+        value(RUN.as_bytes())["steps"][0]
+    ]);
+    let mut catalog = value(CATALOG.as_bytes());
+    let slot = catalog["profile"]["slots"][0].clone();
+    catalog["profile"]["slots"] = json!([slot, slot]);
+    files.write("catalog.json", &catalog.to_string());
+    let output = files.run(&workflow.to_string(), false);
+    assert_code(&output, 1);
+    let envelope = value(&output.stdout);
+    let results = envelope["engineResults"].as_array().unwrap();
+    assert_eq!(results.len(), 2);
+    assert_eq!(results[0]["operation"], "validate");
+    assert_eq!(results[1]["schema"], "results/1");
+    assert_eq!(envelope["outcome"], "warning");
+    assert!(output.stderr.is_empty());
+
+    let mut unstable = value(INPUT.as_bytes());
+    unstable["model"]["supports"] = json!([]);
+    files.write("input.json", &unstable.to_string());
+    let output = files.run(&workflow.to_string(), false);
+    assert_code(&output, 4);
+    assert!(output.stdout.is_empty());
+    let failure = value(&output.stderr);
+    assert_eq!(failure["engineResults"].as_array().unwrap().len(), 1);
+    assert_eq!(failure["engineResults"][0]["status"], "unstable");
+    assert!(failure.get("data").is_none());
+
+    files.write("catalog.json", CATALOG);
+    let cli = EngineCli::new(Some(files.path("input.json")));
+    for (input, code) in [(input.to_string(), 1), (INPUT.into(), 0)] {
+        files.write("input.json", &input);
+        let mut stdout = Vec::new();
+        assert_eq!(
+            cli.run(
+                &files.args(),
+                &mut RUN.as_bytes(),
+                &mut stdout,
+                &mut Vec::new()
+            ),
+            code
+        );
+        assert_eq!(value(&stdout)["engineResults"].as_array().unwrap().len(), 1);
+    }
+}
+
+#[test]
+fn cancellation_marker_returns_five_from_binary_before_and_after_spawn() {
+    let files = Files::new();
+    for before_spawn in [true, false] {
+        if before_spawn {
+            files.write("cancel", "");
+        }
+        let mut child = files
+            .command()
+            .env("MAMUT_ENGINE_CANCEL_FILE", files.path("cancel"))
+            // La cancelación debe preceder incluso al fallo de lectura de entrada.
+            .env_remove("MAMUT_ENGINE_INPUT")
+            .args(["run", "--catalog"])
+            .arg(files.path("catalog.json"))
+            .args(["--workflow", "-", "--progress", "ndjson"])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        // El proceso espera EOF del workflow: no depende de sleeps ni carreras.
+        if !before_spawn {
+            files.write("cancel", "");
+        }
+        child
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(RUN.as_bytes())
+            .unwrap();
+        let output = child.wait_with_output().unwrap();
+        assert_code(&output, 5);
+        assert!(output.stdout.is_empty());
+        let envelope = value(&output.stderr);
+        assert_eq!(envelope["exitCode"], 5);
+        assert_eq!(envelope["outcome"], "cancelled");
+        assert_eq!(envelope["engineId"], "mamut-engine");
+        assert!(envelope.get("engineResults").is_none());
+        assert!(files.path("cancel").exists());
+        fs::remove_file(files.path("cancel")).unwrap();
+    }
+}
+
+#[test]
+fn closed_stdout_pipe_returns_internal_seventy_from_binary() {
+    let files = Files::new();
+    let mut child = files
+        .command()
+        .args(["run", "--catalog"])
+        .arg(files.path("catalog.json"))
+        .args(["--workflow", "-"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    // El workflow por stdin impide escribir antes de cerrar el lector de stdout.
+    drop(child.stdout.take());
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(RUN.as_bytes())
+        .unwrap();
+    let output = child.wait_with_output().unwrap();
+    assert_code(&output, 70);
+    assert_eq!(value(&output.stderr)["outcome"], "internal");
+}
+
+struct BrokenWriter;
+impl Write for BrokenWriter {
+    fn write(&mut self, _: &[u8]) -> io::Result<usize> {
+        Err(io::Error::other("private detail"))
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+#[test]
+fn progress_and_error_io_failures_return_seventy() {
+    let files = Files::new();
+    let mut args = files.args();
+    args.extend(["--progress".into(), "ndjson".into()]);
+    let cli = EngineCli::new(Some(files.path("input.json")));
+    let mut stdout = Vec::new();
+    assert_eq!(
+        cli.run(&args, &mut RUN.as_bytes(), &mut stdout, &mut BrokenWriter),
+        70
+    );
+    assert!(stdout.is_empty());
+    assert_eq!(
+        cli.run(
+            &["unknown".into()],
+            &mut io::empty(),
+            &mut stdout,
+            &mut BrokenWriter
+        ),
+        70
+    );
+}
+
+#[test]
+fn provider_rejects_unknown_methods_and_numeric_parameters_without_identity_fallback() {
+    let files = Files::new();
+    let mut catalog: Value = serde_json::from_str(CATALOG).unwrap();
+    catalog["methods"][0]["method_id"] = json!("not-an-engine-method");
+    files.write("catalog.json", &catalog.to_string());
+    assert_code(
+        &files.run(&RUN.replace("engine.run", "not-an-engine-method"), false),
+        3,
+    );
+    catalog["methods"][0]["method_id"] = json!("engine.run");
+    catalog["methods"][0]["parameters"] =
+        json!([{"name":"n","required":true,"dimension":"1","unit":"1"}]);
+    files.write("catalog.json", &catalog.to_string());
+    let mut workflow: Value = serde_json::from_str(RUN).unwrap();
+    workflow["steps"][0]["parameters"] = json!({"n":2.0});
+    assert_code(&files.run(&workflow.to_string(), false), 2);
+}

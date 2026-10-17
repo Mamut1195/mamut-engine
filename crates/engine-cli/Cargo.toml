@@ -1,0 +1,17 @@
+[package]
+name = "engine-cli"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[[bin]]
+name = "mamut-engine"
+path = "src/main.rs"
+
+[dependencies]
+engine-api = { path = "../engine-api" }
+mamut-workflow = { path = "../../vendor/mamut-workflows/mamut-workflow" }
+mamut-workflow-cli = { path = "../../vendor/mamut-workflows/mamut-workflow-cli" }
+serde_json = { version = "=1.0.154", features = ["float_roundtrip"] }

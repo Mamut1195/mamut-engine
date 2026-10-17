@@ -1,0 +1,12 @@
+{
+  "profile": "mamut-engine.v1",
+  "version": 1,
+  "steps": [
+    {
+      "capability_slot": "engine",
+      "method_id": "engine.run",
+      "method_version": 1,
+      "parameters": {}
+    }
+  ]
+}

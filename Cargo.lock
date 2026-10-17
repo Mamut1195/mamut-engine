@@ -106,6 +106,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-cli"
+version = "0.1.0"
+dependencies = [
+ "engine-api",
+ "mamut-workflow",
+ "mamut-workflow-cli",
+ "serde_json",
+]
+
+[[package]]
 name = "engine-contracts"
 version = "0.1.0"
 dependencies = [

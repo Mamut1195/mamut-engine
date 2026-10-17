@@ -1,0 +1,91 @@
+{
+  "profile": {
+    "profile": "mamut-engine.v1",
+    "version": 1,
+    "slots": [
+      {
+        "capability_slot": "engine",
+        "dimensions": {
+          "inputs": [
+            {
+              "name": "input",
+              "dimension": "1",
+              "unit": "1"
+            }
+          ],
+          "outputs": [
+            {
+              "name": "result",
+              "dimension": "1",
+              "unit": "1"
+            }
+          ]
+        },
+        "consumes": [
+          "urn:mamut:engine:engine-input:1.0.0"
+        ],
+        "produces": [
+          "urn:mamut:engine:operation-result:1.0.0"
+        ]
+      }
+    ]
+  },
+  "methods": [
+    {
+      "capability_slot": "engine",
+      "dimensions": {
+        "inputs": [
+          {
+            "name": "input",
+            "dimension": "1",
+            "unit": "1"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "result",
+            "dimension": "1",
+            "unit": "1"
+          }
+        ]
+      },
+      "consumes": [
+        "urn:mamut:engine:engine-input:1.0.0"
+      ],
+      "produces": [
+        "urn:mamut:engine:operation-result:1.0.0"
+      ],
+      "method_id": "engine.run",
+      "method_version": 1,
+      "parameters": []
+    },
+    {
+      "capability_slot": "engine",
+      "dimensions": {
+        "inputs": [
+          {
+            "name": "input",
+            "dimension": "1",
+            "unit": "1"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "result",
+            "dimension": "1",
+            "unit": "1"
+          }
+        ]
+      },
+      "consumes": [
+        "urn:mamut:engine:engine-input:1.0.0"
+      ],
+      "produces": [
+        "urn:mamut:engine:operation-result:1.0.0"
+      ],
+      "method_id": "engine.validate",
+      "method_version": 1,
+      "parameters": []
+    }
+  ]
+}
