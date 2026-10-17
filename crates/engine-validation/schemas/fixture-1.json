@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "fixture/1 — caso de validación del Engine",
+  "description": "Entrada embebida; invariantes semánticos adicionales en Fixture::parse y README. Sin referencias remotas.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "id",
+    "source",
+    "input",
+    "expected"
+  ],
+  "properties": {
+    "schema": {
+      "const": "fixture/1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "source": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "citation",
+            "derivation"
+          ],
+          "properties": {
+            "kind": {
+              "const": "analytical"
+            },
+            "citation": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "derivation": {
+              "type": "string",
+              "pattern": "\\S"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "citation",
+            "author",
+            "title",
+            "edition",
+            "page"
+          ],
+          "properties": {
+            "kind": {
+              "const": "book"
+            },
+            "citation": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "author": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "title": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "edition": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "page": {
+              "type": "string",
+              "pattern": "\\S"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "citation",
+            "author",
+            "title",
+            "publication",
+            "locator"
+          ],
+          "properties": {
+            "kind": {
+              "const": "published"
+            },
+            "citation": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "author": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "title": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "publication": {
+              "type": "string",
+              "pattern": "\\S"
+            },
+            "locator": {
+              "type": "string",
+              "pattern": "\\S"
+            }
+          }
+        }
+      ]
+    },
+    "input": {
+      "type": "object",
+      "required": [
+        "schema"
+      ],
+      "properties": {
+        "schema": {
+          "const": "engine-input/1"
+        }
+      }
+    },
+    "expected": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pointer",
+          "value"
+        ],
+        "properties": {
+          "pointer": {
+            "type": "string",
+            "pattern": "^/(?:[^~]|~[01])*$"
+          },
+          "value": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "tolerance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relative",
+        "absolute",
+        "justification"
+      ],
+      "properties": {
+        "relative": {
+          "type": "number",
+          "minimum": 0
+        },
+        "absolute": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "justification": {
+          "type": "string",
+          "pattern": "\\S"
+        }
+      }
+    },
+    "provenance": {}
+  }
+}

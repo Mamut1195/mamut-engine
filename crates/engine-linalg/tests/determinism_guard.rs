@@ -413,6 +413,11 @@ struct SourcePolicyException {
 // ni los ejemplos wasm necesitan unsafe ni la instrumentación necesita FFI.
 const SOURCE_POLICY_EXCEPTIONS: &[SourcePolicyException] = &[
     SourcePolicyException {
+        path: "engine-validation/examples/fixture_wasm.rs",
+        allowed: &[Construction::NoMangle, Construction::ExternCFunction],
+        reason: "ABI pública wasm del target fixture/1, sin punteros ni unsafe",
+    },
+    SourcePolicyException {
         path: "engine-validation/examples/consolidation_wasm.rs",
         allowed: &[Construction::NoMangle, Construction::ExternCFunction],
         reason: "ABI pública wasm para comparar consolidación nativa/wasm",

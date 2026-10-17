@@ -1,0 +1,144 @@
+{
+  "schema": "fixture/1",
+  "id": "cantilever-point",
+  "source": {
+    "kind": "analytical",
+    "citation": "Codex. Casos estructurales cerrados, derivación propia para ENG-CORE-009 (MAM-22), 17 de octubre de 2026; provenance/ENG-CORE-009.md; caso cantilever-point.",
+    "derivation": "SI: L=4 m, E=200 Pa, I=3 m^4, P=12 N hacia -Y. Equilibrio: V=P y M(x)=P(L-x). Integrar EI v''= -P(L-x) con v(0)=v'(0)=0 da v(L)=-PL^3/(3EI)=-0.4266666666666667 m y giro -PL^2/(2EI)=-0.16 rad. El apoyo equilibra Ry=P=12 N, Mz=PL=48 N m; Ux=0 por desacoplamiento axial."
+  },
+  "input": {
+    "schema": "engine-input/1",
+    "units": "SI",
+    "options": {},
+    "model": {
+      "axes": "Z-up",
+      "nodes": [
+        {
+          "id": 1,
+          "dim": "D2",
+          "coordinates": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "dofs": [
+            "Ux",
+            "Uy",
+            "Rz"
+          ]
+        },
+        {
+          "id": 2,
+          "dim": "D2",
+          "coordinates": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "dofs": [
+            "Ux",
+            "Uy",
+            "Rz"
+          ]
+        }
+      ],
+      "members": [
+        {
+          "id": 7,
+          "nodes": [
+            1,
+            2
+          ],
+          "section": "s",
+          "law": "elastic"
+        }
+      ],
+      "sections": [
+        {
+          "id": "s",
+          "properties": [
+            {
+              "name": "A",
+              "value": 2.0
+            },
+            {
+              "name": "I",
+              "value": 3.0
+            }
+          ]
+        }
+      ],
+      "laws": [
+        {
+          "name": "elastic",
+          "parameters": [
+            {
+              "name": "E",
+              "value": 200.0
+            },
+            {
+              "name": "rho",
+              "value": 0.0
+            }
+          ]
+        }
+      ],
+      "supports": [
+        {
+          "id": "fixed",
+          "node": 1,
+          "restrained": [
+            "Ux",
+            "Uy",
+            "Rz"
+          ]
+        }
+      ],
+      "masses": []
+    },
+    "cases": [
+      {
+        "name": "D",
+        "loads": [
+          {
+            "node": 2,
+            "values": [
+              {
+                "dof": "Uy",
+                "value": -12.0
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "combinations": [],
+    "analyses": [
+      {
+        "method": "linearStatic"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "pointer": "/cases/0/nodes/1/displacements/1",
+      "value": -0.4266666666666667
+    },
+    {
+      "pointer": "/cases/0/nodes/1/displacements/5",
+      "value": -0.16
+    },
+    {
+      "pointer": "/cases/0/nodes/0/reactions/1",
+      "value": 12
+    },
+    {
+      "pointer": "/cases/0/nodes/0/reactions/5",
+      "value": 48
+    },
+    {
+      "pointer": "/cases/0/nodes/1/displacements/0",
+      "value": 0
+    }
+  ]
+}

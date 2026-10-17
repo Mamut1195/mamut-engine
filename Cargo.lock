@@ -228,6 +228,7 @@ name = "engine-validation"
 version = "0.1.0"
 dependencies = [
  "engine-analysis",
+ "engine-api",
  "engine-assembly",
  "engine-contracts",
  "engine-core",
@@ -237,6 +238,8 @@ dependencies = [
  "engine-geo",
  "engine-linalg",
  "engine-model",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

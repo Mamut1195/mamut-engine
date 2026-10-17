@@ -1,0 +1,180 @@
+{
+  "schema": "fixture/1",
+  "id": "axial-series",
+  "source": {
+    "kind": "analytical",
+    "citation": "Codex. Casos estructurales cerrados, derivación propia para ENG-CORE-009 (MAM-22), 17 de octubre de 2026; provenance/ENG-CORE-009.md; caso axial-series.",
+    "derivation": "SI: E=200 Pa, P=12 N, L1=2 m, A1=2 m^2, L2=3 m, A2=1 m^2. Equilibrio del nodo intermedio sin carga: N1=N2=P. Cada tramo tiene rigidez k_i=EA_i/L_i. Compatibilidad: u2=P/k1=0.06 m; u3=P(1/k1+1/k2)=0.24 m. Son dos resortes axiales en serie realizados con barras soportadas por engine-api. Reacción Rx=-12 N."
+  },
+  "input": {
+    "schema": "engine-input/1",
+    "units": "SI",
+    "options": {},
+    "model": {
+      "axes": "Z-up",
+      "nodes": [
+        {
+          "id": 1,
+          "dim": "D2",
+          "coordinates": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "dofs": [
+            "Ux",
+            "Uy"
+          ]
+        },
+        {
+          "id": 2,
+          "dim": "D2",
+          "coordinates": [
+            2.0,
+            0.0,
+            0.0
+          ],
+          "dofs": [
+            "Ux",
+            "Uy"
+          ]
+        },
+        {
+          "id": 3,
+          "dim": "D2",
+          "coordinates": [
+            5.0,
+            0.0,
+            0.0
+          ],
+          "dofs": [
+            "Ux",
+            "Uy"
+          ]
+        }
+      ],
+      "members": [
+        {
+          "id": 7,
+          "nodes": [
+            1,
+            2
+          ],
+          "section": "s",
+          "law": "elastic",
+          "element": "truss2d.linear"
+        },
+        {
+          "id": 8,
+          "nodes": [
+            2,
+            3
+          ],
+          "section": "s2",
+          "law": "elastic",
+          "element": "truss2d.linear"
+        }
+      ],
+      "sections": [
+        {
+          "id": "s",
+          "properties": [
+            {
+              "name": "A",
+              "value": 2.0
+            }
+          ]
+        },
+        {
+          "id": "s2",
+          "properties": [
+            {
+              "name": "A",
+              "value": 1.0
+            }
+          ]
+        }
+      ],
+      "laws": [
+        {
+          "name": "elastic",
+          "parameters": [
+            {
+              "name": "E",
+              "value": 200.0
+            },
+            {
+              "name": "rho",
+              "value": 0.0
+            }
+          ]
+        }
+      ],
+      "supports": [
+        {
+          "id": "pin",
+          "node": 1,
+          "restrained": [
+            "Ux",
+            "Uy"
+          ]
+        },
+        {
+          "id": "guide",
+          "node": 2,
+          "restrained": [
+            "Uy"
+          ]
+        },
+        {
+          "id": "guide3",
+          "node": 3,
+          "restrained": [
+            "Uy"
+          ]
+        }
+      ],
+      "masses": []
+    },
+    "cases": [
+      {
+        "name": "D",
+        "loads": [
+          {
+            "node": 3,
+            "values": [
+              {
+                "dof": "Ux",
+                "value": 12.0
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "combinations": [],
+    "analyses": [
+      {
+        "method": "linearStatic"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "pointer": "/cases/0/nodes/1/displacements/0",
+      "value": 0.06
+    },
+    {
+      "pointer": "/cases/0/nodes/2/displacements/0",
+      "value": 0.24
+    },
+    {
+      "pointer": "/cases/0/nodes/0/reactions/0",
+      "value": -12
+    },
+    {
+      "pointer": "/cases/0/members/1/stations/0/forces_local/0",
+      "value": 12
+    }
+  ]
+}

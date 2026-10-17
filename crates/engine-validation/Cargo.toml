@@ -6,6 +6,15 @@ license.workspace = true
 rust-version.workspace = true
 publish = false
 
+[dependencies]
+engine-api = { path = "../engine-api" }
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = { version = "=1.0.154", features = ["float_roundtrip"] }
+
+[[example]]
+name = "fixture_wasm"
+crate-type = ["cdylib"]
+
 [dev-dependencies]
 engine-elements-frame3d = { path = "../engine-elements-frame3d" }
 engine-geo = { path = "../engine-geo" }

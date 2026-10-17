@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- MAM-22 · ENG-CORE-009: contrato JSON fixture/1 con source obligatorio y veto
+  recursivo de procedencias prohibidas; cinco casos analíticos propios y runner
+  en engine-validation con targets engine-api nativo y wasm32/Node sin npm.
+  Informes legibles y JSON determinista, tolerancias justificables e interfaz
+  Target para añadir el CLI tras ENG-SFC-002. Véase
+  [provenance](provenance/ENG-CORE-009.md).
+
 - MAM-91 / ENG-SFC-002: CLI nativo `mamut-engine` sobre `parse_args`/`dispatch`
   de SDK-WF-012, con métodos `engine.run` y `engine.validate`, resultados completos
   y códigos Engine v1 0/1/2/3/4/5/70 probados ejecutando el binario. Entrada y

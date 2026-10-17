@@ -1,0 +1,166 @@
+{
+  "schema": "fixture/1",
+  "id": "spatial-cantilever",
+  "source": {
+    "kind": "analytical",
+    "citation": "Codex. Casos estructurales cerrados, derivación propia para ENG-CORE-009 (MAM-22), 17 de octubre de 2026; provenance/ENG-CORE-009.md; caso spatial-cantilever.",
+    "derivation": "SI: L=4 m, E=200 Pa, Iy=3 m^4, Iz=5 m^4, P=12 N hacia -Z. Flexión sobre Y: EI_y z''=-P(L-x). Con z(0)=z'(0)=0 resulta z(L)=-PL^3/(3EI_y)=-0.4266666666666667 m. Equilibrio vectorial r cruz F=+PL e_y implica reacción My=-PL=-48 N m y Rz=P=12 N. La flexión sobre Z y la torsión son nulas."
+  },
+  "input": {
+    "schema": "engine-input/1",
+    "units": "SI",
+    "options": {},
+    "model": {
+      "axes": "Z-up",
+      "nodes": [
+        {
+          "id": 1,
+          "dim": "D3",
+          "coordinates": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "dofs": [
+            "Ux",
+            "Uy",
+            "Uz",
+            "Rx",
+            "Ry",
+            "Rz"
+          ]
+        },
+        {
+          "id": 2,
+          "dim": "D3",
+          "coordinates": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "dofs": [
+            "Ux",
+            "Uy",
+            "Uz",
+            "Rx",
+            "Ry",
+            "Rz"
+          ]
+        }
+      ],
+      "members": [
+        {
+          "id": 7,
+          "nodes": [
+            1,
+            2
+          ],
+          "section": "s",
+          "law": "elastic",
+          "orientation": [
+            0.0,
+            0.0,
+            1.0
+          ]
+        }
+      ],
+      "sections": [
+        {
+          "id": "s",
+          "properties": [
+            {
+              "name": "A",
+              "value": 2.0
+            },
+            {
+              "name": "J",
+              "value": 3.0
+            },
+            {
+              "name": "Iy",
+              "value": 3.0
+            },
+            {
+              "name": "Iz",
+              "value": 5.0
+            }
+          ]
+        }
+      ],
+      "laws": [
+        {
+          "name": "elastic",
+          "parameters": [
+            {
+              "name": "E",
+              "value": 200.0
+            },
+            {
+              "name": "rho",
+              "value": 0.0
+            },
+            {
+              "name": "G",
+              "value": 80.0
+            }
+          ]
+        }
+      ],
+      "supports": [
+        {
+          "id": "fixed",
+          "node": 1,
+          "restrained": [
+            "Ux",
+            "Uy",
+            "Uz",
+            "Rx",
+            "Ry",
+            "Rz"
+          ]
+        }
+      ],
+      "masses": []
+    },
+    "cases": [
+      {
+        "name": "D",
+        "loads": [
+          {
+            "node": 2,
+            "values": [
+              {
+                "dof": "Uz",
+                "value": -12.0
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "combinations": [],
+    "analyses": [
+      {
+        "method": "linearStatic"
+      }
+    ]
+  },
+  "expected": [
+    {
+      "pointer": "/cases/0/nodes/1/displacements/2",
+      "value": -0.4266666666666667
+    },
+    {
+      "pointer": "/cases/0/nodes/0/reactions/2",
+      "value": 12
+    },
+    {
+      "pointer": "/cases/0/nodes/0/reactions/4",
+      "value": -48
+    },
+    {
+      "pointer": "/cases/0/nodes/1/displacements/1",
+      "value": 0
+    }
+  ]
+}
