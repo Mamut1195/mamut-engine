@@ -147,3 +147,76 @@ cubren además cancelación por flag/token/archivo entre etapas, fallos de E/S
 y aislamiento del estado entre invocaciones. No se añade lógica numérica.
 
 Revisión clean-room **PENDIENTE (J4)**.
+
+## Seguimiento #141
+
+- Ticket: MAM-91 · GitHub #141, seguimiento J4 de #138.
+- Autor: Codex gpt-6.1-sol high · 2026-10-17 (America/Guayaquil).
+- Rol: implementador de pruebas; sin lógica numérica nueva.
+- Fuentes: contratos e implementación propios de `crates/engine-cli/src/lib.rs`,
+  `crates/engine-api/src/{lib.rs,limits.rs}`, `crates/engine-model/src/lib.rs`,
+  `docs/CLEAN_ROOM.md` y `provenance/TEMPLATE.md`. Sin fuentes externas,
+  derivaciones numéricas, código de terceros copiado ni comparación con oráculos.
+- Declaración: "No consulté código fuente ni resultados de OpenSees, Stabileo,
+  CalculiX ni LAPACK, ni derivados o rutas prohibidas para este ticket."
+- Revisor clean-room: **PENDIENTE (J4)**.
+
+Se añaden dos tests unitarios. La lectura se extrae sin cambios de comportamiento
+a `read_engine_input`, privada (sin ampliar API ni visibilidad). Un generador de
+espacios sin EOF contabiliza los bytes consumidos; un fusible devuelve error de
+E/S después de MAX+2 para acotar memoria y tiempo incluso al quitar el límite.
+Se exige consumir exactamente MAX+1 y devolver Document/2 (`invalid_input`).
+
+El segundo test inyecta un diagnóstico de error ENG-E-0013 en `diagnostic_status`,
+el clasificador privado usado por el método validate; recorre `failure_kind` y
+`report_failure` y exige Unsupported/3 y el sobre `unsupported`. La API actual
+`validate_with` solo comprueba topología y no genera ENG-E-0013: una prueba con
+elemento desconocido retorna 0 en validate (run sí lo rechaza). Por ello esta
+regresión se prueba en la biblioteca con el diagnóstico explícito, sin extender
+la validación ni inventar una entrada JSON que active una ruta hoy inalcanzable.
+No se detectó un bug en los dos comportamientos objeto de este seguimiento;
+no se introduce un fix funcional.
+
+Mutaciones temporales, compiladas y ejecutadas por separado:
+
+```bash
+cargo test -p engine-cli --lib --offline tests::input_read_stops_at_max_plus_one_and_returns_document_two -- --exact
+cargo test -p engine-cli --lib --offline tests::validate_eng_e_0013_maps_to_exit_three -- --exact
+```
+
+- Sin `.take((engine_api::MAX_INPUT_BYTES + 1) as u64)` (añadiendo `mut` al
+  parámetro solo para compilar la mutación): **0 passed / 1 failed**, retorno
+  Cargo 101; aserción 8388610 bytes consumidos frente a 8388609 esperados.
+- Con `"ENG-E-0013" => Status::Invalid`: **0 passed / 1 failed**, retorno Cargo
+  101; aserción salida 2 frente a 3.
+- Tras cada mutación se restaura el archivo byte a byte y se repite exactamente
+  su comando: **1 passed / 0 failed**, retorno 0 en ambos casos. No quedan
+  mutaciones en el árbol.
+
+Verificación offline con Rust 1.99.0, PATH de stable indicado en el ticket,
+`CARGO_TARGET_DIR=/workspace/.cargo-target/me-fu141`, `CARGO_NET_OFFLINE=true`
+y `PIP_NO_INDEX=1`; temporales y logs en `$CARGO_TARGET_DIR/mam91-141/`.
+
+| Comprobación | Resultado |
+| --- | --- |
+| `cargo fmt --all -- --check` | OK |
+| `cargo clippy --workspace --all-targets --offline -- -D warnings` | OK |
+| `cargo test --workspace --offline` | **654 passed / 0 failed / 0 ignored**, incluidos doctests; CLI: 2 unitarios nuevos + 13 de integración |
+| `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace --offline` | OK |
+| `cargo check --workspace --offline --target wasm32-unknown-unknown` | OK |
+| `bash clean-room/check.sh origin/main` | OK |
+| `git diff --check` | OK |
+
+Determinismo: ejemplos `determinism_native` y `determinism_wasm`, en debug y
+release, con `MAMUT_ENGINE_GIT_COMMIT` sin definir. El script existente
+`scripts/check-determinism.mjs` confirma **16 casos nativo=wasm, diez corridas
+por caso/target/perfil**. Las salidas nativas debug/release son idénticas byte
+a byte y sus 16 hashes coinciden por nombre con la tabla final de
+`docs/DETERMINISMO.md`. No se modifican fixtures ni resultados numéricos.
+
+Evidencia: `mutation-{reading-limit,validate-0013}.log`,
+`restored-{reading-limit,validate-0013}.log`, logs individuales de los controles,
+`native-{debug,release}.txt` y `determinism-cross-{debug,release}.log`, todos en
+`$CARGO_TARGET_DIR/mam91-141/`. Solo cambian tests/extracción privada de lectura,
+esta bitácora y CHANGELOG.md. No se tocan rutas protegidas ni Cargo.toml/lock.
+Pendiente únicamente la revisión clean-room **PENDIENTE (J4)** de este seguimiento.

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- MAM-91 / #141: regresiones del CLI para lectura acotada a MAX+1 y mapeo de ENG-E-0013 en validate a salida 3, verificadas mediante mutaciones.
 - MAM-79 / ENG-PY-003: fachada Python pública tipada y documentada sobre
   engine-api, con modelos/resultados versionados, errores completos, controles
   SI/ejes y stale mediante la huella JCS de Rust. Completa procedencia,

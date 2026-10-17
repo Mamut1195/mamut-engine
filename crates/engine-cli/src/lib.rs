@@ -292,15 +292,7 @@ impl EngineMethod {
             return Err(FailureKind::Cancelled);
         }
         let path = self.input.as_ref().ok_or(FailureKind::Document)?;
-        let mut input = String::new();
-        File::open(path)
-            .map_err(|_| FailureKind::Document)?
-            .take((engine_api::MAX_INPUT_BYTES + 1) as u64)
-            .read_to_string(&mut input)
-            .map_err(|_| FailureKind::Document)?;
-        if input.len() > engine_api::MAX_INPUT_BYTES {
-            return Err(FailureKind::Document);
-        }
+        let input = read_engine_input(File::open(path).map_err(|_| FailureKind::Document)?)?;
         let progress = |event| {
             (self.progress.borrow_mut())(event);
             self.control.sync();
@@ -349,6 +341,18 @@ impl Method for EngineMethod {
     }
 }
 
+fn read_engine_input(reader: impl Read) -> Result<String, FailureKind> {
+    let mut input = String::new();
+    reader
+        .take((engine_api::MAX_INPUT_BYTES + 1) as u64)
+        .read_to_string(&mut input)
+        .map_err(|_| FailureKind::Document)?;
+    if input.len() > engine_api::MAX_INPUT_BYTES {
+        return Err(FailureKind::Document);
+    }
+    Ok(input)
+}
+
 fn api_failure(error: ApiError) -> FailureKind {
     match error {
         ApiError::Cancelled => FailureKind::Cancelled,
@@ -382,5 +386,69 @@ fn failure_kind(status: Status) -> Option<FailureKind> {
         Status::Cancelled => Some(FailureKind::Cancelled),
         Status::Timeout => Some(FailureKind::Timeout),
         Status::InternalError => Some(FailureKind::Internal),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io;
+
+    #[derive(Default)]
+    struct GuardedReader {
+        consumed: usize,
+    }
+
+    impl Read for GuardedReader {
+        fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+            // Generador sin EOF. El fusible deja observar un byte de exceso y
+            // aborta después para que incluso la mutación termine con poca memoria.
+            let remaining = engine_api::MAX_INPUT_BYTES + 2 - self.consumed;
+            if remaining == 0 {
+                return Err(io::Error::other("Lectura más allá del límite de prueba"));
+            }
+            let count = buffer.len().min(remaining);
+            buffer[..count].fill(b' ');
+            self.consumed += count;
+            Ok(count)
+        }
+    }
+
+    #[test]
+    fn input_read_stops_at_max_plus_one_and_returns_document_two() {
+        let mut reader = GuardedReader::default();
+        let result = read_engine_input(&mut reader);
+        assert_eq!(reader.consumed, engine_api::MAX_INPUT_BYTES + 1);
+        assert!(matches!(result, Err(FailureKind::Document)));
+        if let Err(kind) = result {
+            let mut stderr = Vec::new();
+            assert_eq!(report_failure(kind, true, None, &mut stderr), 2);
+            let envelope = serde_json::from_slice::<Value>(&stderr);
+            assert!(matches!(envelope, Ok(value) if value["outcome"] == "invalid_input"));
+        }
+    }
+
+    #[test]
+    fn validate_eng_e_0013_maps_to_exit_three() {
+        // validate_with hoy solo emite diagnósticos topológicos. Inyectamos el
+        // diagnóstico en el clasificador privado que consume su resultado.
+        let diagnostics = [Diagnostic {
+            code: "ENG-E-0013",
+            severity: "error",
+            entities: Vec::new(),
+            cause: "Capacidad no soportada".into(),
+            hint: None,
+        }];
+        let status = diagnostic_status(&diagnostics);
+        let kind = failure_kind(status);
+        if let Some(kind) = kind {
+            let mut stderr = Vec::new();
+            assert_eq!(report_failure(kind, true, None, &mut stderr), 3);
+            let envelope = serde_json::from_slice::<Value>(&stderr);
+            assert!(matches!(envelope, Ok(value)
+                if value["exitCode"] == 3 && value["outcome"] == "unsupported"));
+        }
+        assert_eq!(status, Status::Unsupported);
+        assert!(matches!(kind, Some(FailureKind::Unsupported)));
     }
 }
