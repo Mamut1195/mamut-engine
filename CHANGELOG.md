@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- MAM-82 · #162: quitar rutas locales de provenance ENG-PY-004 y anotar licencia BSD-3-Clause de NumPy en ADR-004
+
 - MAM-82 / ENG-PY-004 · seguimiento #156: conserva la causa al faltar NumPy,
   explicita el rechazo de bool numérico y comprueba la independencia de las
   exportaciones. Pruebas NumPy migradas a unittest con skip opcional para el

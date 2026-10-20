@@ -180,9 +180,9 @@ Rust 1.99.0, maturin 1.15.0, CPython 3.13.5 y NumPy 2.5.4. Todo offline:
 
 ```bash
 export PATH="$HOME/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:$PATH"
-export CARGO_TARGET_DIR=/workspace/.cargo-target/me-py4
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:?define un directorio de target}"
 export CARGO_NET_OFFLINE=true PIP_NO_INDEX=1 PIP_DISABLE_PIP_VERSION_CHECK=1
-export MATURIN=/workspace/venv-maturin/bin/maturin
+export MATURIN="${MATURIN:-maturin}"
 bash scripts/build-python-wheel.sh "$CARGO_TARGET_DIR/mam82-followup-dist"
 
 mkdir "$CARGO_TARGET_DIR/mam82-followup-references"

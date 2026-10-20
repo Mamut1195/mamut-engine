@@ -31,6 +31,8 @@ respuestas físicas y conservar diagnósticos y convergencia útiles.
    nombre del extra. Un error interno de instalación de NumPy no se disfraza
    de dependencia ausente. El tipo `values: Any` permite resolver las
    anotaciones públicas sin importar la dependencia opcional.
+   NumPy se distribuye bajo licencia BSD-3-Clause, compatible con AGPL-3.0 y
+   con la licencia comercial, y no se vendoriza.
 3. Cada `ResultMatrix` publica `values`, `shape`, `row_ids`, `row_indices`,
    `dofs`, `units` y `frame`. IDs e índices se mantienen como tuplas de enteros
    Python exactos; nunca se convierten a floats. Las etiquetas y unidades son
