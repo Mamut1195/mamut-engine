@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- MAM-79 / #144: PyO3 y sus cuatro crates auxiliares pasan de 0.25.1 a
+  0.29.3 para corregir RUSTSEC-2026-0176 y RUSTSEC-2026-0177. El adaptador
+  usa `Python::detach` y conserva la API Python y la feature `abi3-py310`;
+  actualización y validación de wheels reproducibles exclusivamente offline.
 - MAM-91: helpers de tests del CLI toleran solo BrokenPipe al escribir stdin de hijos que terminan antes de leerlo; se mantienen los asserts de salida y stderr, sin cambios del CLI.
 - MAM-79 / #143: engine-api rechaza literales enteros fuera de ±(2^53−1)
   antes de JCS con `InvalidInput` (`API-E-INPUT`, salida 2, huella null).

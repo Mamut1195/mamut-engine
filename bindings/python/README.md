@@ -103,7 +103,7 @@ usa `ENG-E-0012`. Los errores locales incluyen el path en `details`.
 
 ## GIL, progreso y cancelación
 
-`run` y `validate` liberan el GIL con `py.allow_threads`. `CancelToken()` posee
+`run` y `validate` liberan el GIL con `py.detach`. `CancelToken()` posee
 un `Arc<engine_api::CancelToken>` atómico. Otro hilo Python puede llamar
 `token.cancel()` durante `run(..., cancel=token)`; `token.is_cancelled` consulta
 el estado. Cancelar es idempotente y permanente; cada operación nueva requiere

@@ -168,7 +168,7 @@ mod python {
     #[pyfunction]
     fn canonical_json(py: Python<'_>, input_json: &str) -> PyResult<String> {
         guarded(py, || {
-            match py.allow_threads(|| engine_api::canonical_json(input_json)) {
+            match py.detach(|| engine_api::canonical_json(input_json)) {
                 Ok(document) => Ok(document),
                 Err(err) => Err(api_error(py, err)?),
             }
@@ -178,7 +178,7 @@ mod python {
     #[pyfunction]
     fn input_sha256(py: Python<'_>, input_json: &str) -> PyResult<String> {
         guarded(py, || {
-            match py.allow_threads(|| engine_api::input_sha256(input_json)) {
+            match py.detach(|| engine_api::input_sha256(input_json)) {
                 Ok(digest) => Ok(digest),
                 Err(err) => Err(api_error(py, err)?),
             }
@@ -188,7 +188,7 @@ mod python {
     #[pyfunction]
     fn validate(py: Python<'_>, input_json: &str) -> PyResult<Py<PyAny>> {
         guarded(py, || {
-            match py.allow_threads(|| engine_api::validate(input_json)) {
+            match py.detach(|| engine_api::validate(input_json)) {
                 Ok(diagnostics) => object(py, &json!({"diagnostics": diagnostics})),
                 Err(err) => Err(api_error(py, err)?),
             }
@@ -239,7 +239,7 @@ mod python {
             }
             let token = cancel.map(|c| Arc::clone(&c.inner)).unwrap_or_default();
             let collect = progress.is_some();
-            let (result, events) = py.allow_threads(|| {
+            let (result, events) = py.detach(|| {
                 let mut events = Vec::new();
                 let result = engine_api::run(input_json, &token, |event| {
                     if collect {
