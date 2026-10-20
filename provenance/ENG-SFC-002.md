@@ -106,7 +106,7 @@ Quedan abiertas, sin inventar comandos propios:
 Toolchain seleccionada con
 `export PATH=$HOME/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:$PATH`
 (rustc 1.99.0) y
-`export CARGO_TARGET_DIR=/workspace/.cargo-target/me-sfc2`.
+`CARGO_TARGET_DIR` propio del worktree.
 `CARGO_NET_OFFLINE=true`, `PIP_NO_INDEX=1`; sin acceso a fuentes externas.
 
 Resultados de la revisión actual, todos en verde:
@@ -133,7 +133,7 @@ No se modificaron fixtures, implementación numérica ni la tabla de referencia.
 
 Evidencia local: `$CARGO_TARGET_DIR/mam91-verificacion/` (logs de cada comando,
 salidas nativas y cruce wasm). Incidencia operativa corregida: los logs se
-escribieron inicialmente en `/tmp/mam91-verificacion`, fuera de la restricción
+escribieron inicialmente en `$TMPDIR/mam91-verificacion`, fuera de la restricción
 de rutas del ticket; se trasladaron al target autorizado y se fijó `TMPDIR`
 bajo ese target para los controles finales. No se modificaron vendor/,
 clean-room/, docs/CLEAN_ROOM.md, .github/workflows ni CODEOWNERS. Cargo.toml y
@@ -294,7 +294,7 @@ existentes de código de salida, stdout y stderr se mantienen sin cambios.
 Solo se modifican tests y documentación; sin cambios en producción ni cálculos.
 
 Validación offline con Rust 1.99.0, PATH de stable indicado,
-`CARGO_TARGET_DIR=/workspace/.cargo-target/me-bp`, `CARGO_NET_OFFLINE=true`
+`CARGO_TARGET_DIR` propio del worktree, `CARGO_NET_OFFLINE=true`
 y `PIP_NO_INDEX=1`: el test afectado pasa **400/400 ejecuciones**, con ocho
 procesos concurrentes (`--exact` sobre el binario compilado por Cargo).
 

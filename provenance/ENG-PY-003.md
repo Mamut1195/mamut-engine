@@ -61,8 +61,8 @@ no se fuerza a coincidir con la lista más breve de `version()`.
 
 ## Evidencia de ejecución offline
 
-Toolchain stable Rust 1.99.0; `CARGO_TARGET_DIR=/workspace/.cargo-target/me-py3`.
-Construcción mediante `MATURIN=/workspace/venv-maturin/bin/maturin` (1.15.0)
+Toolchain stable Rust 1.99.0; `CARGO_TARGET_DIR` propio del worktree.
+Construcción mediante `MATURIN=$MATURIN` (1.15.0)
 y `scripts/build-python-wheel.sh`, con dos builds release independientes,
 instalación `PIP_NO_INDEX=1` en venv temporal dentro de CARGO_TARGET_DIR y tests
 contra el paquete instalado. No hay publicación en PyPI.
@@ -175,9 +175,9 @@ informes de motores externos. Trabajo offline, sin fuentes de terceros copiadas.
 
 ### Evidencia offline del seguimiento
 
-Rust stable 1.99.0, `CARGO_TARGET_DIR=/workspace/.cargo-target/me-h53`;
+Rust stable 1.99.0, `CARGO_TARGET_DIR` propio del worktree;
 `CARGO_NET_OFFLINE=true`, `PIP_NO_INDEX=1`. La wheel se construyó con
-`MATURIN=/workspace/venv-maturin/bin/maturin bash scripts/build-python-wheel.sh
+`MATURIN=$MATURIN bash scripts/build-python-wheel.sh
 "$CARGO_TARGET_DIR/mam-79-143-dist"`, con salida nueva y dos builds release
 independientes. Instalación y tests contra la wheel en CPython 3.13.5, sin
 Rust en PATH durante el consumo. No se publicó ningún artefacto.
@@ -278,7 +278,7 @@ ausente del grafo actual). No se modifican excepciones ni política de deny.
 
 ### Validación y artefactos
 
-Toolchain stable Rust 1.99.0; `CARGO_TARGET_DIR=/workspace/.cargo-target/me-pyo3`,
+Toolchain stable Rust 1.99.0; `CARGO_TARGET_DIR` propio del worktree,
 `CARGO_NET_OFFLINE=true` y `PIP_NO_INDEX=1`. Sin acceso a red ni publicación.
 Se ejecuta el script completo, que realiza dos builds release independientes
 por invocación, inspección de todos los miembros de la wheel, SBOM, checksums,
@@ -296,10 +296,10 @@ Comandos de las dos invocaciones sobre el estado definitivo:
 
 ```bash
 export PATH=$HOME/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:$PATH
-export CARGO_TARGET_DIR=/workspace/.cargo-target/me-pyo3
+export CARGO_TARGET_DIR=<target del worktree>
 export CARGO_NET_OFFLINE=true PIP_NO_INDEX=1
-MATURIN=/workspace/venv-maturin/bin/maturin bash scripts/build-python-wheel.sh "$CARGO_TARGET_DIR/mam-79-144-wheel-two"
-MATURIN=/workspace/venv-maturin/bin/maturin bash scripts/build-python-wheel.sh "$CARGO_TARGET_DIR/mam-79-144-wheel-three"
+MATURIN=$MATURIN bash scripts/build-python-wheel.sh "$CARGO_TARGET_DIR/mam-79-144-wheel-two"
+MATURIN=$MATURIN bash scripts/build-python-wheel.sh "$CARGO_TARGET_DIR/mam-79-144-wheel-three"
 python3 scripts/python-wheel-artifacts.py compare "$CARGO_TARGET_DIR/mam-79-144-wheel-two/"*.whl "$CARGO_TARGET_DIR/mam-79-144-wheel-three/"*.whl
 sha256sum "$CARGO_TARGET_DIR/mam-79-144-wheel-two/"*.whl "$CARGO_TARGET_DIR/mam-79-144-wheel-three/"*.whl
 ```
