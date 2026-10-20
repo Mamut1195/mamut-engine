@@ -194,8 +194,9 @@ cargo test -p engine-cli --lib --offline tests::validate_eng_e_0013_maps_to_exit
   mutaciones en el árbol.
 
 Verificación offline con Rust 1.99.0, PATH de stable indicado en el ticket,
-`CARGO_TARGET_DIR=/workspace/.cargo-target/me-fu141`, `CARGO_NET_OFFLINE=true`
-y `PIP_NO_INDEX=1`; temporales y logs en `$CARGO_TARGET_DIR/mam91-141/`.
+`CARGO_TARGET_DIR` apuntando a un directorio de compilación externo al worktree,
+`CARGO_NET_OFFLINE=true` y `PIP_NO_INDEX=1`; temporales y logs en
+`$CARGO_TARGET_DIR/mam91-141/`.
 
 | Comprobación | Resultado |
 | --- | --- |
@@ -220,3 +221,52 @@ Evidencia: `mutation-{reading-limit,validate-0013}.log`,
 `$CARGO_TARGET_DIR/mam91-141/`. Solo cambian tests/extracción privada de lectura,
 esta bitácora y CHANGELOG.md. No se tocan rutas protegidas ni Cargo.toml/lock.
 Pendiente únicamente la revisión clean-room **PENDIENTE (J4)** de este seguimiento.
+
+## Seguimiento #146
+
+- Ticket: MAM-91 · GitHub #146, seguimiento de ENG-SFC-002 y #141.
+- Autor: Codex gpt-6.1-sol high · 2026-10-17 (America/Guayaquil).
+- Rol: implementador de pruebas; contrato: lectura CLI con límite inclusivo
+  `engine_api::MAX_INPUT_BYTES` y rechazo Document/2 al superarlo.
+- Fuentes permitidas: implementación y contratos propios de
+  `crates/engine-cli/src/lib.rs`, `docs/CLEAN_ROOM.md` y `provenance/TEMPLATE.md`.
+  Validación mediante entradas sintéticas propias de espacios con EOF;
+  sin derivaciones numéricas, código de terceros copiado ni comparación con oráculos.
+- Declaración: "No consulté código fuente ni resultados de OpenSees, Stabileo,
+  CalculiX ni LAPACK, ni derivados o rutas prohibidas para este ticket."
+- Revisor clean-room: **PENDIENTE (J4)**.
+
+Se añaden dos tests: exactamente MAX bytes con EOF devuelve Ok y longitud MAX;
+MAX+1 con EOF real devuelve Document y se traduce a salida 2. No se detecta
+un bug funcional: solo cambian tests y documentación. Se sustituye la ruta
+local de compilación de #141 por una descripción genérica.
+
+Mutación temporal `input.len() > engine_api::MAX_INPUT_BYTES` → `>=`, ejecutada con
+`cargo test -p engine-cli --lib --offline tests::input_read_accepts_exact_max_with_eof -- --exact`:
+**0 passed / 1 failed**, error Document, salida Cargo 101. Tras restaurar el archivo
+byte a byte (`cmp`), el mismo comando da **1 passed / 0 failed**, salida 0.
+Logs: `mutation-inclusive-limit.log` y `restored-inclusive-limit.log`, en
+`$CARGO_TARGET_DIR/mam91-146/`.
+
+Verificación offline con Rust 1.99.0, PATH de stable indicado en el ticket,
+`CARGO_TARGET_DIR` externo al worktree, `CARGO_NET_OFFLINE=true` y `PIP_NO_INDEX=1`:
+
+| Comprobación | Resultado |
+| --- | --- |
+| `cargo fmt --all -- --check` | OK |
+| `cargo clippy --workspace --all-targets --offline -- -D warnings` | OK |
+| `cargo test --workspace --offline` | **657 passed / 0 failed / 0 ignored**, incluidos doctests |
+| `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace --offline` | OK |
+| `cargo check --workspace --offline --target wasm32-unknown-unknown` | OK |
+| `bash clean-room/check.sh origin/main` | OK |
+| `git diff --check` | OK |
+
+Determinismo: **16/16 hashes sin cambios** frente a `docs/DETERMINISMO.md`,
+con cruce nativo/wasm en debug y release, diez corridas por caso/target/perfil
+mediante `scripts/check-determinism.mjs`. Salidas nativas de ambos perfiles
+idénticas byte a byte; `MAMUT_ENGINE_GIT_COMMIT` sin definir.
+Logs de los controles, `native-{debug,release}.txt`,
+`determinism-cross-{debug,release}.log` y `determinism-table.log` en
+`$CARGO_TARGET_DIR/mam91-146/`. Código de producción idéntico a HEAD;
+sin cambios en rutas protegidas ni Cargo.toml/lock.
+Pendiente únicamente la revisión clean-room **PENDIENTE (J4)**.

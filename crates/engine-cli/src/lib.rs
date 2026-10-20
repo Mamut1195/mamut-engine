@@ -394,6 +394,25 @@ mod tests {
     use super::*;
     use std::io;
 
+    #[test]
+    fn input_read_accepts_exact_max_with_eof() -> Result<(), FailureKind> {
+        let bytes = vec![b' '; engine_api::MAX_INPUT_BYTES];
+        let input = read_engine_input(bytes.as_slice())?;
+        assert_eq!(input.len(), engine_api::MAX_INPUT_BYTES);
+        Ok(())
+    }
+
+    #[test]
+    fn input_read_rejects_max_plus_one_with_eof_as_document_two() {
+        let bytes = vec![b' '; engine_api::MAX_INPUT_BYTES + 1];
+        let result = read_engine_input(bytes.as_slice());
+        assert!(matches!(result, Err(FailureKind::Document)));
+        if let Err(kind) = result {
+            let mut stderr = Vec::new();
+            assert_eq!(report_failure(kind, true, None, &mut stderr), 2);
+        }
+    }
+
     #[derive(Default)]
     struct GuardedReader {
         consumed: usize,
