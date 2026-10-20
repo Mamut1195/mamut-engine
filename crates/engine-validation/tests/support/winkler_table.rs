@@ -25,7 +25,11 @@ const fn row(name: &'static str, spatial: bool, kind: Kind) -> Fixture {
     Fixture {
         name, spatial, kind,
         source: "Derivación propia: EI v''''+k v=Pδ, continuidad/salto y extremos libres; sin oráculo externo.",
-        citation: "provenance/ENG-GEO-002.md; contexto conceptual: Winkler (1867), Hetényi (1946), Beams on Elastic Foundation.",
+        citation: if rigid {
+            "Derivación propia: [límite de viga corta rígida y cota energética](provenance/ENG-GEO-002.md#viga-corta-rígida)."
+        } else {
+            "Derivación propia: [viga infinita/semiinfinita, salto y condiciones de extremo](provenance/ENG-GEO-002.md#viga-infinita-y-semiinfinita)."
+        },
         ei: if rigid { [1e5,2e5] } else { [2.0,5.0] },
         k: if rigid { [3.0,6.0] } else { [8.0,20.0] },
         p: [12.0,-7.0],

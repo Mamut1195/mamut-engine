@@ -3,7 +3,7 @@
   "id": "cantilever-point",
   "source": {
     "kind": "analytical",
-    "citation": "Codex. Casos estructurales cerrados, derivación propia para ENG-CORE-009 (MAM-22), 17 de octubre de 2026; provenance/ENG-CORE-009.md; caso cantilever-point.",
+    "citation": "Codex. Casos estructurales cerrados, derivación propia para ENG-CORE-009 (MAM-22), 17 de octubre de 2026; provenance/ENG-CORE-009.md#derivaciones-unidades-y-signos; caso cantilever-point.",
     "derivation": "SI: L=4 m, E=200 Pa, I=3 m^4, P=12 N hacia -Y. Equilibrio: V=P y M(x)=P(L-x). Integrar EI v''= -P(L-x) con v(0)=v'(0)=0 da v(L)=-PL^3/(3EI)=-0.4266666666666667 m y giro -PL^2/(2EI)=-0.16 rad. El apoyo equilibra Ry=P=12 N, Mz=PL=48 N m; Ux=0 por desacoplamiento axial."
   },
   "input": {
@@ -140,5 +140,10 @@
       "pointer": "/cases/0/nodes/1/displacements/0",
       "value": 0
     }
-  ]
+  ],
+  "tolerance": {
+    "relative": 1e-10,
+    "absolute": 1e-10,
+    "justification": "Flecha/giro de orden 1e-1 y reacciones de orden 1e1: voladizo L=4 con bloque de flexión pequeño, sin mecanismo ni contraste material. Default A=R=1e-10 cubre redondeo f64; piso SI para Ux=0."
+  }
 }

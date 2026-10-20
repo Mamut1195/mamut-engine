@@ -130,7 +130,18 @@ const fn row(name: &'static str, parameters: Parameters) -> Fixture {
     };
     Fixture {
         name,
-        source: "Derivación analítica propia en provenance/ENG-VAL-001.md; sin valores publicados ni oráculos.",
+        source: match parameters {
+            Parameters::Shear { .. } | Parameters::Chain { .. } => "Derivación propia D1/D3: ωj=2√(k/m)sin((2j−1)π/(4n+2)); modos normalizados a masa y ΣM*=Σm.",
+            Parameters::Variable { .. } => "Derivación propia D2/D3: det(K−λM)=0, ecuación cuadrática; φᵀMφ=1, Γ=φᵀMr, M*=Γ².",
+            Parameters::Beam { .. } => "Derivación propia D4: ωj=βj²√(EI/ρA)/L²; βj=jπ (apoyada) o cosβ coshβ=−1 (voladizo), raíces por bisección.",
+            Parameters::Column { .. } => "Derivación propia D5/D6: Pcr=π²EI/(4L²); flecha continua de EI v''''+Pv''=0; amplificación aproximada 1/(1−P/Pcr). P>Pcr implica inestabilidad.",
+            Parameters::Portal { .. } => "Derivación propia D7: deriva continua con giros impedidos; z=√(12r), Δ/Δ0=12(2tan(z/2)−z)/z³; aproximación 1/(1−r).",
+            Parameters::Iteration { .. } => "Derivación propia D8: ui=F(1−r^i)/(k(1−r)), residual=r^i; suma geométrica y límite de iteraciones.",
+            Parameters::Spectrum { .. } => "Derivación propia D2/D9: M*±=m(1±2/√5), q=ΓSa/ω², Vb=√(Σ(M*Sa)²).",
+            Parameters::Interpolation { .. } => "Derivación propia D10: interpolación afín Sa(2.5)=6; log-log Sa=3T², Sa(2)=12.",
+            Parameters::Cqc { .. } => "Evaluación algebraica propia D11 de la fórmula CQC suministrada; R=√(A²+B²+2ρAB). Sin tablas publicadas.",
+            Parameters::Directional { .. } => "Derivación propia D12: Vx=mSa,x, Vy=mSa,y; suma ponderada o raíz de suma de cuadrados, ux=Sa,x/ωx².",
+        },
         citation: "provenance/ENG-VAL-001.md#ampliación-dinámica-y-2º-orden",
         parameters,
         frame: match parameters { Parameters::Beam { .. } => BEAM_DATA, _ => PDELTA_DATA },

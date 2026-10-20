@@ -3,7 +3,7 @@
   "id": "simply-supported-uniform",
   "source": {
     "kind": "analytical",
-    "citation": "Codex. Casos estructurales cerrados, derivación propia para ENG-CORE-009 (MAM-22), 17 de octubre de 2026; provenance/ENG-CORE-009.md; caso simply-supported-uniform.",
+    "citation": "Codex. Casos estructurales cerrados, derivación propia para ENG-CORE-009 (MAM-22), 17 de octubre de 2026; provenance/ENG-CORE-009.md#derivaciones-unidades-y-signos; caso simply-supported-uniform.",
     "derivation": "SI: L=4 m, w=6 N/m hacia -Y, E=200 Pa, I=3 m^4. Simetría y equilibrio: R=wL/2=12 N. M(x)=w x(L-x)/2, máximo en x=L/2: wL^2/8=12 N m. Integrar EI v''=M(x) con v(0)=v(L)=0 da v(x)=-w x(L^3-2Lx^2+x^3)/(24EI); v(L/2)=-5wL^4/(384EI)=-1/30 m. El nodo central recupera la flecha exacta de los dos elementos bajo carga consistente; el giro central es cero."
   },
   "input": {
@@ -191,5 +191,10 @@
       "pointer": "/cases/0/members/1/extremes/5/max/value",
       "value": 12
     }
-  ]
+  ],
+  "tolerance": {
+    "relative": 1e-10,
+    "absolute": 1e-10,
+    "justification": "Flecha de orden 1e-2 m y reacciones/momentos de orden 1e1: dos elementos iguales, apoyos estables y carga consistente con flecha nodal exacta. Default A=R=1e-10 cubre redondeo f64 y cancelación del giro central nulo."
+  }
 }

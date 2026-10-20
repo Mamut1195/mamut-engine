@@ -1,6 +1,6 @@
 //! Spectral reference independent of the FE matrices and time stepping.
 //! Derivation, spectrum, projection and tail bound: provenance/ENG-GEO-006.md.
-use super::super::table::{MULTILAYER, MULTILAYER_CITATION, MULTILAYER_SOURCE};
+use super::super::table::{MULTILAYER, MULTILAYER_CITATION, MULTILAYER_SOURCE, TOLERANCE};
 use super::{geo, load, measured, require};
 use engine_core::math;
 use engine_core::EResult;
@@ -132,7 +132,8 @@ pub fn run() -> EResult<()> {
         max_settlement = max_settlement.max(settlement_error);
         max_degree = max_degree.max(degree_error);
         require(
-            settlement_error < 0.0015 && degree_error < 0.005,
+            settlement_error < TOLERANCE.settlement_normalized
+                && degree_error < TOLERANCE.degree_relative,
             format!("Multicapa t={t}: error s/s∞={settlement_error}, relativo U={degree_error}"),
         )?;
         for (j, &z) in result.depths_m.iter().enumerate() {
@@ -147,7 +148,7 @@ pub fn run() -> EResult<()> {
                 (state.excess_pore_pressure_kpa[j] - pressure(&modes, t, i, xi)).abs() / 100.0;
             max_pressure = max_pressure.max(error);
             require(
-                error < 0.004,
+                error < TOLERANCE.pressure_normalized,
                 format!("Multicapa t={t} z={z}: error u/100={error}"),
             )?;
         }
@@ -171,7 +172,7 @@ pub fn run() -> EResult<()> {
                     let error = (computed / exact - 1.0).abs();
                     max_flux = max_flux.max(error);
                     require(
-                        error < 0.03,
+                        error < TOLERANCE.flux_relative,
                         format!("Multicapa interfaz {i}: error flujo={error}"),
                     )?;
                 }

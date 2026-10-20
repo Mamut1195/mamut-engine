@@ -3,7 +3,7 @@
   "id": "spatial-cantilever",
   "source": {
     "kind": "analytical",
-    "citation": "Codex. Casos estructurales cerrados, derivación propia para ENG-CORE-009 (MAM-22), 17 de octubre de 2026; provenance/ENG-CORE-009.md; caso spatial-cantilever.",
+    "citation": "Codex. Casos estructurales cerrados, derivación propia para ENG-CORE-009 (MAM-22), 17 de octubre de 2026; provenance/ENG-CORE-009.md#derivaciones-unidades-y-signos; caso spatial-cantilever.",
     "derivation": "SI: L=4 m, E=200 Pa, Iy=3 m^4, Iz=5 m^4, P=12 N hacia -Z. Flexión sobre Y: EI_y z''=-P(L-x). Con z(0)=z'(0)=0 resulta z(L)=-PL^3/(3EI_y)=-0.4266666666666667 m. Equilibrio vectorial r cruz F=+PL e_y implica reacción My=-PL=-48 N m y Rz=P=12 N. La flexión sobre Z y la torsión son nulas."
   },
   "input": {
@@ -162,5 +162,10 @@
       "pointer": "/cases/0/nodes/1/displacements/1",
       "value": 0
     }
-  ]
+  ],
+  "tolerance": {
+    "relative": 1e-10,
+    "absolute": 1e-10,
+    "justification": "Flecha de orden 1e-1 m y reacciones de orden 1e1: un elemento alineado, Iy/Iz=3/5 y GJ=240 frente a EIy=600, sin contraste extremo ni mecanismo. Default A=R=1e-10 cubre redondeo f64 y piso SI para Uy=0."
+  }
 }

@@ -3,7 +3,7 @@
   "id": "axial-bar",
   "source": {
     "kind": "analytical",
-    "citation": "Codex. Casos estructurales cerrados, derivación propia para ENG-CORE-009 (MAM-22), 17 de octubre de 2026; provenance/ENG-CORE-009.md; caso axial-bar.",
+    "citation": "Codex. Casos estructurales cerrados, derivación propia para ENG-CORE-009 (MAM-22), 17 de octubre de 2026; provenance/ENG-CORE-009.md#derivaciones-unidades-y-signos; caso axial-bar.",
     "derivation": "SI: L=4 m, E=200 Pa, A=2 m^2, P=12 N. Equilibrio N=P; compatibilidad epsilon=du/dx; sigma=E epsilon=N/A. Integrar du/dx=P/(EA) con u(0)=0 da u(L)=PL/(EA)=0.12 m. Reacción Rx=-P=-12 N, esfuerzo axial N=12 N y Uy=0 por las guías."
   },
   "input": {
@@ -137,5 +137,10 @@
       "pointer": "/cases/0/nodes/1/displacements/1",
       "value": 0
     }
-  ]
+  ],
+  "tolerance": {
+    "relative": 1e-10,
+    "absolute": 1e-10,
+    "justification": "u=0.12 m y N/R=12 N: una rigidez axial libre EA/L=100 N/m, sin cancelaciones ni contraste de rigideces. Default A=R=1e-10: margen f64 y piso SI para Uy=0."
+  }
 }

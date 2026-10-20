@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- MAM-105 · ENG-VAL-005, seguimiento PR #155: fuentes primarias propias con
+  anclas verificadas, bibliografía por cotejar separada de la aceptación y
+  cobertura calculada desde las tablas/fixtures, con diagnóstico de diferencias.
+  Pruebas negativas de citas pendientes y justificaciones vacías; justificación
+  específica de los cinco defaults fixture/1, sin cambios numéricos.
+  [Provenance](provenance/ENG-VAL-005.md#seguimiento-de-revisión-opencode--pr-155).
+
+- MAM-105 · ENG-VAL-005: matriz y guardia de oráculos libres para los 91 casos
+  V1 de engine-validation, incluidos Winkler, consolidación y fixture/1.
+  Tolerancias existentes explícitas, sin cambios de valores numéricos;
+  ENG-REL-001 depende de ENG-VAL-005 y no exige ENG-VAL-003. OpenSees solo
+  como contraste externo adicional, sin incorporar archivos ni resultados.
+  [Provenance](provenance/ENG-VAL-005.md).
+
 - MAM-25 · ENG-CORE-011: guía en español para contribuir métodos Rust,
   plantillas de ficha, módulo, conformidad, fixtures, prompt IA restringido,
   provenance y revisión. Piloto `elastic.cubic` con derivación energética propia,

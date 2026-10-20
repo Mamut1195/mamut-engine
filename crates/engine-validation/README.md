@@ -68,6 +68,16 @@ alguno. El script exige ese resultado y ausencia de imports externos. Esta
 prueba ejecuta estos seis fixtures en wasm; las demás suites conservan el
 estado de ejecución documentado arriba.
 
+## Línea base independiente · ENG-VAL-005 (MAM-105)
+
+La [matriz de oráculos](ORACULOS.md) inventaría los 91 casos analíticos V1,
+sus fuentes y tolerancias, incluidos Winkler, consolidación y `fixture/1`.
+La guardia `tests/oracles.rs` recorre las tablas y documentos versionados;
+las suites numéricas existentes verifican sus valores sin alterar límites.
+ENG-REL-001 depende de ENG-VAL-005 y no exige ENG-VAL-003. OpenSees queda
+como contraste externo adicional; sus archivos y resultados no entran al repo.
+Las referencias bibliográficas sin cotejo permanecen PENDIENTES en la matriz.
+
 ## Formato fixture/1 y runner · ENG-CORE-009 (MAM-22)
 
 Los cinco archivos de `fixtures/` son casos analíticos propios, independientes
@@ -117,7 +127,8 @@ El piso absoluto está expresado en la unidad SI de la magnitud comparada (m,
 rad, N o N·m); evita dividir por cero o amplificar el error relativo de valores
 casi nulos. La referencia es siempre el valor esperado. Un override se aplica
 a todas las magnitudes de ese fixture y requiere justificación no vacía.
-Los cinco casos cerrados usan el valor predeterminado 1e-10. Una ruta ausente,
+Los cinco casos cerrados declaran explícitamente el mismo límite 1e-10
+que antes se obtenía del valor predeterminado. Una ruta ausente,
 no numérica, no finita, o una salida con status distinto de `ok` produce fallo;
 el runner continúa con el resto de fixtures y targets.
 

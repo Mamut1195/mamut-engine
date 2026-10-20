@@ -132,6 +132,8 @@ fn forbidden_source_or_nested_provenance_never_reaches_any_target() {
 #[test]
 fn defaults_and_justified_overrides_use_relative_error_with_absolute_floor() {
     let mut value = base();
+    // Los casos versionados declaran ahora el mismo límite explícitamente.
+    value.as_object_mut().unwrap().remove("tolerance");
     let linear = Fixture::parse(&value.to_string()).unwrap().tolerance();
     assert_eq!((linear.relative, linear.absolute), (1e-10, 1e-10));
     value["input"]["analyses"][0]["method"] = json!("pDelta");

@@ -65,7 +65,7 @@ pub fn remaining(tv: f64, x: f64, ramp: bool) -> (f64, f64) {
 }
 fn run_fixture(f: Fixture) -> EResult<()> {
     require(
-        !f.source.is_empty() && !f.citation.is_empty(),
+        !f.source.is_empty() && !f.citation.is_empty() && !f.tolerance.justification.is_empty(),
         "Fixture sin cita",
     )?;
     let layers = if f.transformed_layers {
@@ -135,7 +135,7 @@ fn run_fixture(f: Fixture) -> EResult<()> {
         let expected_settlement = 0.004 * 100.0 * (stress - mean);
         let settlement_error = (state.settlement_m - expected_settlement).abs() / 0.4;
         require(
-            settlement_error < 0.0015,
+            settlement_error < f.tolerance.settlement_normalized,
             format!("{}: error s/s∞ {settlement_error}", f.name),
         )?;
         if stress == 0.0 {
@@ -149,7 +149,7 @@ fn run_fixture(f: Fixture) -> EResult<()> {
             let relative = (degree - expected_degree).abs() / expected_degree.abs().max(1e-15);
             max_u_error = max_u_error.max(relative);
             require(
-                relative < 0.005,
+                relative < f.tolerance.degree_relative,
                 format!(
                     "{} Tv={tv}: U={degree}, serie={expected_degree}, error relativo={relative}",
                     f.name
@@ -179,7 +179,7 @@ fn run_fixture(f: Fixture) -> EResult<()> {
             let pressure_error = (state.excess_pore_pressure_kpa[i] / 100.0 - expected_u).abs();
             max_pressure_error = max_pressure_error.max(pressure_error);
             require(
-                pressure_error < 0.004,
+                pressure_error < f.tolerance.pressure_normalized,
                 format!("{} Tv={tv} z={z}: error u/Δσ={pressure_error}", f.name),
             )?;
         }
@@ -198,7 +198,8 @@ fn run_fixture(f: Fixture) -> EResult<()> {
         }
         require(exact.abs() > 0.001, "El benchmark debe tener flujo no nulo")?;
         require(
-            (left / exact - 1.0).abs() < 0.03 && (right / exact - 1.0).abs() < 0.03,
+            (left / exact - 1.0).abs() < f.tolerance.flux_relative
+                && (right / exact - 1.0).abs() < f.tolerance.flux_relative,
             "Flujo de interfaz no converge al analítico",
         )?;
     }

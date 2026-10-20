@@ -3,7 +3,7 @@
   "id": "axial-series",
   "source": {
     "kind": "analytical",
-    "citation": "Codex. Casos estructurales cerrados, derivación propia para ENG-CORE-009 (MAM-22), 17 de octubre de 2026; provenance/ENG-CORE-009.md; caso axial-series.",
+    "citation": "Codex. Casos estructurales cerrados, derivación propia para ENG-CORE-009 (MAM-22), 17 de octubre de 2026; provenance/ENG-CORE-009.md#derivaciones-unidades-y-signos; caso axial-series.",
     "derivation": "SI: E=200 Pa, P=12 N, L1=2 m, A1=2 m^2, L2=3 m, A2=1 m^2. Equilibrio del nodo intermedio sin carga: N1=N2=P. Cada tramo tiene rigidez k_i=EA_i/L_i. Compatibilidad: u2=P/k1=0.06 m; u3=P(1/k1+1/k2)=0.24 m. Son dos resortes axiales en serie realizados con barras soportadas por engine-api. Reacción Rx=-12 N."
   },
   "input": {
@@ -176,5 +176,10 @@
       "pointer": "/cases/0/members/1/stations/0/forces_local/0",
       "value": 12
     }
-  ]
+  ],
+  "tolerance": {
+    "relative": 1e-10,
+    "absolute": 1e-10,
+    "justification": "u=0.06–0.24 m y N/R=12 N: dos rigideces positivas 200 y 200/3 N/m, contraste 3 y sistema reducido sin mecanismo. Default A=R=1e-10 cubre redondeo f64 de la suma de flexibilidades."
+  }
 }
