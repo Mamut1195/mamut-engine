@@ -1,0 +1,11548 @@
+{
+ "schema": "val032-index/1",
+ "case": "VAL-032",
+ "linear": "MAM-847",
+ "generator": "_ref/gen.py",
+ "bench_model_spec": {
+  "pr": 183,
+  "sha": "797535d86af8fe6f57f935fbaa978e14b15cfe89",
+  "schema_sha256": "4e4aa7cd2278767a0f9b2899a77657a980230539bfff3ea3a18fb7f6d0e8b005",
+  "estado": "borrador"
+ },
+ "entries": [
+  {
+   "id": "E1",
+   "version": "1.1.1",
+   "path": "E1-v1.1.1.json",
+   "sha256": "6995553c1f04e0c761657856f1dcebfe05274f3957743f06d84e040a9451321a",
+   "nodes": 72,
+   "members": 145,
+   "runs": [
+    "E1-modal"
+   ]
+  },
+  {
+   "id": "E2",
+   "version": "1.1.1",
+   "path": "E2-v1.1.1.json",
+   "sha256": "8a2e35faee6dedf373895f5b2c2d68856fa1c07a3173176d4f587d5bd2b07205",
+   "nodes": 72,
+   "members": 145,
+   "runs": [
+    "E2-cqc-X",
+    "E2-srss-X",
+    "E2-cqc-Y"
+   ]
+  },
+  {
+   "id": "E2b",
+   "version": "1.0.1",
+   "path": "E2b-v1.0.1.json",
+   "sha256": "da316162bd2f3d8abeb4467a1fb9a2140278f37cdb5540f1607e3e049c454a8b",
+   "nodes": 72,
+   "members": 145,
+   "runs": [
+    "E2b-cqc-X",
+    "E2b-cqc-Y",
+    "E2b-cqc-XY-srss"
+   ]
+  },
+  {
+   "id": "E3",
+   "version": "1.1.1",
+   "path": "E3-v1.1.1.json",
+   "sha256": "9bf90dd8ba3de5a5cb5cbc26d86b4c6c7e4463e3bd5ab289430c7097bd7b4a24",
+   "nodes": 72,
+   "members": 145,
+   "runs": [
+    "E3-lineal",
+    "E3-pdelta"
+   ]
+  },
+  {
+   "id": "E4",
+   "version": "1.1.1",
+   "path": "E4-v1.1.1.json",
+   "sha256": "6359b0ad67ef91ae9ead94fe0a576d96a52b3dd4db16c4c24191e82527621aae",
+   "nodes": 72,
+   "members": 145,
+   "runs": [
+    "E4-modal"
+   ]
+  },
+  {
+   "id": "E5",
+   "version": "1.1.1",
+   "path": "E5-v1.1.1.json",
+   "sha256": "525848d18caedf9fab8d1dd20436980489207e3ac306ab199947a06f82429491",
+   "nodes": 72,
+   "members": 145,
+   "runs": [
+    "E5-combinaciones"
+   ]
+  },
+  {
+   "id": "E5b",
+   "version": "1.0.1",
+   "path": "E5b-v1.0.1.json",
+   "sha256": "72f2fe9495a090fb447661776e4671f81b0d29ec4d3b5005eb693c896aa6b460",
+   "nodes": 72,
+   "members": 205,
+   "runs": [
+    "E5b-combinaciones"
+   ]
+  }
+ ],
+ "bench_models": [
+  {
+   "id": "E1",
+   "path": "bench-model/E1.json",
+   "sha256": "9177eb23c679624da14de0289492325cffb39ecf6c4c666b1fa61ef32557d754",
+   "estado_engine": "bloqueado por ENG-E-0006",
+   "seguimiento": "MAM-847"
+  },
+  {
+   "id": "E2",
+   "path": "bench-model/E2.json",
+   "sha256": "6f1c9db22d477e2461e23a67f47c694db2e5c929dc7f50ff2441e5811aef0bd6",
+   "estado_engine": "bloqueado por ENG-E-0006",
+   "seguimiento": "MAM-847"
+  },
+  {
+   "id": "E2b",
+   "path": "bench-model/E2b.json",
+   "sha256": "dc99d47e1ef49531733fee13ad291a0599ff44c63448950161811f9a3d9f0945",
+   "estado_engine": "bloqueado por ENG-E-0006",
+   "seguimiento": "MAM-847"
+  },
+  {
+   "id": "E3",
+   "path": "bench-model/E3.json",
+   "sha256": "953e6384910f681f7c1016ed6fe731d14c9a10c876d160723f79918522271283",
+   "estado_engine": "bloqueado por ENG-E-0007",
+   "seguimiento": "MAM-847"
+  },
+  {
+   "id": "E4",
+   "path": "bench-model/E4.json",
+   "sha256": "06c5d8f3996a0ddc73e2a2f1fbb657f1e7ba2769da1e0adba3c5c9c76270356e",
+   "estado_engine": "bloqueado por ENG-E-0006",
+   "seguimiento": "MAM-847"
+  },
+  {
+   "id": "E5",
+   "path": "bench-model/E5.json",
+   "sha256": "db3480c7d5f079192cbed390b4bf3bd7ac7aa5a460fca4b02ffc5fe08a56e50d",
+   "estado_engine": "ejecutable",
+   "seguimiento": "MAM-847"
+  },
+  {
+   "id": "E5b",
+   "path": "bench-model/E5b.json",
+   "sha256": "8c5593ab6bfe0601b1237eb7a75a1acf0c4749dfb585f50e49b34020708d2628",
+   "estado_engine": "ejecutable",
+   "seguimiento": "MAM-847"
+  }
+ ],
+ "bench_model_omissions": [],
+ "herramientas": [
+  {
+   "path": "_ref/gen.py",
+   "sha256": "9e1700926eddd2a36574f8f7b88a5923cb089d4db5443572d836436dfb487d76"
+  },
+  {
+   "path": "_ref/validate_bench.py",
+   "sha256": "e4b757212e1538057cf0e6e81302e9deca51c8aedb948eda8ea4137dc8c8c9b3"
+  },
+  {
+   "path": "_ref/bench_translate.py",
+   "sha256": "e049b8a723393cc2ba8de7d64af3fa6b942c7b005ef27b6821a90ec78c0948bf"
+  },
+  {
+   "path": "_ref/postproc_derivas.py",
+   "sha256": "f5b55bf26b499bd4e0f2744378d406fdf1154887d1124834620ed2b0373575f4"
+  },
+  {
+   "path": "_ref/val032_calibrate.py",
+   "sha256": "7068d3a69fde879c68dc10c0215735e0dfbbc8988f55e411fb76f12186377f84"
+  },
+  {
+   "path": "_ref/calibrate_r3.json",
+   "sha256": "51a2d4006e50d1a5d64b55c79870f76b4849f09f107c623d1caaa6f9818fe8fe"
+  },
+  {
+   "path": "_ref/record_engine.py",
+   "sha256": "7a68126c3392dcec8ff9cb28b0f2d4486f92d2679e01592e90af2a04b756a2d7"
+  },
+  {
+   "path": "_ref/engine_r3.json",
+   "sha256": "eca3f791fdf7217c9c944be1b3ea459ecc52487231509122e4cb918d602ec60c"
+  },
+  {
+   "path": "_ref/engine-input-1.json",
+   "sha256": "b33724179389b1860ea8141d4629d8029aaef93c534c90eb75b502897170dd29"
+  },
+  {
+   "path": "nec_se_ds_tabla_Sa.csv",
+   "sha256": "8ccbdc9bcea29b35463856b48c7d66533d10ae5808498874e392e7953a028353"
+  }
+ ],
+ "bench_model_translation": {
+  "comparison": "exacta; documentos completos y listas ordenadas",
+  "translator": "_ref/bench_translate.py",
+  "reference_spectrum": {
+   "zone": "V",
+   "Z": 0.4,
+   "soil": "D",
+   "R": 8.0,
+   "eta": 2.48,
+   "Fa": 1.2,
+   "Fd": 1.19,
+   "Fs": 1.28,
+   "zeta": 0.05,
+   "g": 9.80665,
+   "r": 1.0,
+   "directions": [
+    {
+     "axis": "X",
+     "vector": [
+      1,
+      0,
+      0
+     ]
+    }
+   ],
+   "directional_combination": {
+    "method": "srss",
+    "factors": [
+     1.0
+    ]
+   },
+   "interpolation": "linear",
+   "extrapolation": "error",
+   "Sa": {
+    "unit": "m/s^2",
+    "pairs": [
+     [
+      0.0,
+      4.707191999999999
+     ],
+     [
+      0.02,
+      5.8048775294117645
+     ],
+     [
+      0.04,
+      6.902563058823529
+     ],
+     [
+      0.06,
+      8.000248588235294
+     ],
+     [
+      0.08,
+      9.097934117647059
+     ],
+     [
+      0.1,
+      10.195619647058825
+     ],
+     [
+      0.12,
+      11.29330517647059
+     ],
+     [
+      0.12693333333333331,
+      11.673836159999999
+     ],
+     [
+      0.14,
+      11.673836159999999
+     ],
+     [
+      0.16,
+      11.673836159999999
+     ],
+     [
+      0.18,
+      11.673836159999999
+     ],
+     [
+      0.2,
+      11.673836159999999
+     ],
+     [
+      0.22,
+      11.673836159999999
+     ],
+     [
+      0.24,
+      11.673836159999999
+     ],
+     [
+      0.26,
+      11.673836159999999
+     ],
+     [
+      0.28,
+      11.673836159999999
+     ],
+     [
+      0.3,
+      11.673836159999999
+     ],
+     [
+      0.32,
+      11.673836159999999
+     ],
+     [
+      0.34,
+      11.673836159999999
+     ],
+     [
+      0.36,
+      11.673836159999999
+     ],
+     [
+      0.38,
+      11.673836159999999
+     ],
+     [
+      0.4,
+      11.673836159999999
+     ],
+     [
+      0.42,
+      11.673836159999999
+     ],
+     [
+      0.44,
+      11.673836159999999
+     ],
+     [
+      0.46,
+      11.673836159999999
+     ],
+     [
+      0.48,
+      11.673836159999999
+     ],
+     [
+      0.5,
+      11.673836159999999
+     ],
+     [
+      0.52,
+      11.673836159999999
+     ],
+     [
+      0.54,
+      11.673836159999999
+     ],
+     [
+      0.56,
+      11.673836159999999
+     ],
+     [
+      0.58,
+      11.673836159999999
+     ],
+     [
+      0.6,
+      11.673836159999999
+     ],
+     [
+      0.62,
+      11.673836159999999
+     ],
+     [
+      0.64,
+      11.673836159999999
+     ],
+     [
+      0.66,
+      11.673836159999999
+     ],
+     [
+      0.68,
+      11.673836159999999
+     ],
+     [
+      0.6981333333333334,
+      11.673836159999999
+     ],
+     [
+      0.7,
+      11.64270593024
+     ],
+     [
+      0.72,
+      11.319297432177779
+     ],
+     [
+      0.74,
+      11.013370474551351
+     ],
+     [
+      0.76,
+      10.723544935747368
+     ],
+     [
+      0.78,
+      10.448582245087179
+     ],
+     [
+      0.8,
+      10.187367688959998
+     ],
+     [
+      0.82,
+      9.93889530630244
+     ],
+     [
+      0.84,
+      9.702254941866666
+     ],
+     [
+      0.86,
+      9.476621106009302
+     ],
+     [
+      0.88,
+      9.261243353599998
+     ],
+     [
+      0.9,
+      9.055437945742222
+     ],
+     [
+      0.92,
+      8.858580599095651
+     ],
+     [
+      0.94,
+      8.670100160817022
+     ],
+     [
+      0.96,
+      8.489473074133334
+     ],
+     [
+      0.98,
+      8.3162185216
+     ],
+     [
+      1.0,
+      8.149894151167999
+     ],
+     [
+      1.02,
+      7.990092305066667
+     ],
+     [
+      1.04,
+      7.836436683815384
+     ],
+     [
+      1.06,
+      7.68857938789434
+     ],
+     [
+      1.08,
+      7.546198288118517
+     ],
+     [
+      1.1,
+      7.40899468288
+     ],
+     [
+      1.12,
+      7.276691206399999
+     ],
+     [
+      1.14,
+      7.149029957164911
+     ],
+     [
+      1.16,
+      7.025770819972414
+     ],
+     [
+      1.18,
+      6.9066899586169495
+     ],
+     [
+      1.2,
+      6.791578459306667
+     ],
+     [
+      1.22,
+      6.680241107514753
+     ],
+     [
+      1.24,
+      6.572495283199999
+     ],
+     [
+      1.26,
+      6.4681699612444445
+     ],
+     [
+      1.28,
+      6.3671048055999995
+     ],
+     [
+      1.3,
+      6.269149347052308
+     ],
+     [
+      1.32,
+      6.1741622357333314
+     ],
+     [
+      1.34,
+      6.082010560573133
+     ],
+     [
+      1.36,
+      5.992569228799999
+     ],
+     [
+      1.38,
+      5.905720399397101
+     ],
+     [
+      1.4,
+      5.82135296512
+     ],
+     [
+      1.42,
+      5.739362078287324
+     ],
+     [
+      1.44,
+      5.659648716088889
+     ],
+     [
+      1.46,
+      5.582119281621917
+     ],
+     [
+      1.48,
+      5.506685237275676
+     ],
+     [
+      1.5,
+      5.433262767445332
+     ],
+     [
+      1.52,
+      5.361772467873684
+     ],
+     [
+      1.54,
+      5.2921390592
+     ],
+     [
+      1.56,
+      5.2242911225435895
+     ],
+     [
+      1.58,
+      5.158160855169619
+     ],
+     [
+      1.6,
+      5.093683844479999
+     ],
+     [
+      1.62,
+      5.030798858745678
+     ],
+     [
+      1.64,
+      4.96944765315122
+     ],
+     [
+      1.66,
+      4.909574789860241
+     ],
+     [
+      1.68,
+      4.851127470933333
+     ],
+     [
+      1.7,
+      4.79405538304
+     ],
+     [
+      1.72,
+      4.738310553004651
+     ],
+     [
+      1.74,
+      4.683847213314942
+     ],
+     [
+      1.76,
+      4.630621676799999
+     ],
+     [
+      1.78,
+      4.5785922197573035
+     ],
+     [
+      1.8,
+      4.527718972871111
+     ],
+     [
+      1.82,
+      4.477963819323077
+     ],
+     [
+      1.84,
+      4.429290299547826
+     ],
+     [
+      1.86,
+      4.381663522133333
+     ],
+     [
+      1.88,
+      4.335050080408511
+     ],
+     [
+      1.9,
+      4.2894179742989476
+     ],
+     [
+      1.92,
+      4.244736537066667
+     ],
+     [
+      1.94,
+      4.200976366581443
+     ],
+     [
+      1.96,
+      4.1581092608
+     ],
+     [
+      1.98,
+      4.116108157155555
+     ],
+     [
+      2.0,
+      4.074947075583999
+     ],
+     [
+      2.02,
+      4.0346010649346535
+     ],
+     [
+      2.04,
+      3.9950461525333334
+     ],
+     [
+      2.06,
+      3.9562592966834944
+     ],
+     [
+      2.08,
+      3.918218341907692
+     ],
+     [
+      2.1,
+      3.880901976746666
+     ],
+     [
+      2.12,
+      3.84428969394717
+     ],
+     [
+      2.14,
+      3.808361752882243
+     ],
+     [
+      2.16,
+      3.7730991440592585
+     ],
+     [
+      2.18,
+      3.7384835555816514
+     ],
+     [
+      2.2,
+      3.70449734144
+     ],
+     [
+      2.22,
+      3.6711234915171165
+     ],
+     [
+      2.24,
+      3.6383456031999994
+     ],
+     [
+      2.26,
+      3.606147854499115
+     ],
+     [
+      2.28,
+      3.5745149785824557
+     ],
+     [
+      2.3,
+      3.5434322396382614
+     ],
+     [
+      2.32,
+      3.512885409986207
+     ],
+     [
+      2.34,
+      3.4828607483623935
+     ],
+     [
+      2.36,
+      3.4533449793084747
+     ],
+     [
+      2.38,
+      3.4243252736000005
+     ],
+     [
+      2.4,
+      3.3957892296533334
+     ],
+     [
+      2.42,
+      3.367724855854545
+     ],
+     [
+      2.44,
+      3.3401205537573766
+     ],
+     [
+      2.46,
+      3.312965102100813
+     ],
+     [
+      2.48,
+      3.2862476415999997
+     ],
+     [
+      2.5,
+      3.2599576604671996
+     ],
+     [
+      2.52,
+      3.2340849806222223
+     ],
+     [
+      2.54,
+      3.2086197445543307
+     ],
+     [
+      2.56,
+      3.1835524027999997
+     ],
+     [
+      2.58,
+      3.158873702003101
+     ],
+     [
+      2.6,
+      3.134574673526154
+     ],
+     [
+      2.62,
+      3.110646622583206
+     ],
+     [
+      2.64,
+      3.0870811178666657
+     ],
+     [
+      2.66,
+      3.0638699816421053
+     ],
+     [
+      2.68,
+      3.0410052802865666
+     ],
+     [
+      2.7,
+      3.0184793152474074
+     ],
+     [
+      2.72,
+      2.9962846143999995
+     ],
+     [
+      2.74,
+      2.974413923783941
+     ],
+     [
+      2.76,
+      2.9528601996985504
+     ],
+     [
+      2.78,
+      2.9316166011395683
+     ],
+     [
+      2.8,
+      2.91067648256
+     ],
+     [
+      2.82,
+      2.890033386939007
+     ],
+     [
+      2.84,
+      2.869681039143662
+     ],
+     [
+      2.86,
+      2.8496133395692307
+     ],
+     [
+      2.88,
+      2.8298243580444447
+     ],
+     [
+      2.9,
+      2.8103083279889653
+     ],
+     [
+      2.92,
+      2.7910596408109587
+     ],
+     [
+      2.94,
+      2.7720728405333332
+     ],
+     [
+      2.96,
+      2.753342618637838
+     ],
+     [
+      2.98,
+      2.7348638091167783
+     ],
+     [
+      3.0,
+      2.716631383722666
+     ],
+     [
+      3.02,
+      2.6986404474066226
+     ],
+     [
+      3.04,
+      2.680886233936842
+     ],
+     [
+      3.06,
+      2.6633641016888885
+     ],
+     [
+      3.08,
+      2.6460695296
+     ],
+     [
+      3.1,
+      2.6289981132799993
+     ],
+     [
+      3.12,
+      2.6121455612717948
+     ],
+     [
+      3.14,
+      2.5955076914547766
+     ],
+     [
+      3.16,
+      2.5790804275848096
+     ],
+     [
+      3.18,
+      2.56285979596478
+     ],
+     [
+      3.2,
+      2.5468419222399996
+     ],
+     [
+      3.22,
+      2.5310230283130433
+     ],
+     [
+      3.24,
+      2.515399429372839
+     ],
+     [
+      3.26,
+      2.499967531033129
+     ],
+     [
+      3.28,
+      2.48472382657561
+     ],
+     [
+      3.3,
+      2.4696648942933335
+     ],
+     [
+      3.32,
+      2.4547873949301207
+     ],
+     [
+      3.34,
+      2.440088069211976
+     ],
+     [
+      3.36,
+      2.4255637354666666
+     ],
+     [
+      3.38,
+      2.4112112873278106
+     ],
+     [
+      3.4,
+      2.39702769152
+     ],
+     [
+      3.42,
+      2.3830099857216376
+     ],
+     [
+      3.44,
+      2.3691552765023256
+     ],
+     [
+      3.46,
+      2.355460737331792
+     ],
+     [
+      3.48,
+      2.341923606657471
+     ],
+     [
+      3.5,
+      2.328541186048
+     ],
+     [
+      3.52,
+      2.3153108383999994
+     ],
+     [
+      3.54,
+      2.3022299862056497
+     ],
+     [
+      3.56,
+      2.2892961098786517
+     ],
+     [
+      3.58,
+      2.2765067461363127
+     ],
+     [
+      3.6,
+      2.2638594864355555
+     ],
+     [
+      3.62,
+      2.251351975460773
+     ],
+     [
+      3.64,
+      2.2389819096615384
+     ],
+     [
+      3.66,
+      2.226747035838251
+     ],
+     [
+      3.68,
+      2.214645149773913
+     ],
+     [
+      3.7,
+      2.2026740949102703
+     ],
+     [
+      3.72,
+      2.1908317610666663
+     ],
+     [
+      3.74,
+      2.1791160832
+     ],
+     [
+      3.76,
+      2.1675250402042554
+     ],
+     [
+      3.78,
+      2.156056653748148
+     ],
+     [
+      3.8,
+      2.1447089871494738
+     ],
+     [
+      3.82,
+      2.1334801442848166
+     ],
+     [
+      3.84,
+      2.1223682685333336
+     ],
+     [
+      3.86,
+      2.1113715417533676
+     ],
+     [
+      3.88,
+      2.1004881832907216
+     ],
+     [
+      3.9,
+      2.089716449017436
+     ],
+     [
+      3.92,
+      2.0790546304
+     ],
+     [
+      3.94,
+      2.068501053595939
+     ],
+     [
+      3.96,
+      2.0580540785777774
+     ],
+     [
+      3.98,
+      2.047712098283417
+     ],
+     [
+      4.0,
+      2.0374735377919997
+     ]
+    ]
+   }
+  },
+  "id_policy": "Biyectiva por namespace; nodes/members según orden original, contiguos desde 1. Secciones conservadas; leyes/apoyos/masas renombrados como translate.rs. Casos, combinaciones y sus referencias mantienen identidad.",
+  "engine_execution": false,
+  "checks": [
+   {
+    "id": "E1",
+    "id_bijections": {
+     "nodes": [
+      {
+       "original": 1,
+       "bench": 1
+      },
+      {
+       "original": 2,
+       "bench": 2
+      },
+      {
+       "original": 3,
+       "bench": 3
+      },
+      {
+       "original": 4,
+       "bench": 4
+      },
+      {
+       "original": 5,
+       "bench": 5
+      },
+      {
+       "original": 6,
+       "bench": 6
+      },
+      {
+       "original": 7,
+       "bench": 7
+      },
+      {
+       "original": 8,
+       "bench": 8
+      },
+      {
+       "original": 9,
+       "bench": 9
+      },
+      {
+       "original": 10,
+       "bench": 10
+      },
+      {
+       "original": 11,
+       "bench": 11
+      },
+      {
+       "original": 12,
+       "bench": 12
+      },
+      {
+       "original": 101,
+       "bench": 13
+      },
+      {
+       "original": 102,
+       "bench": 14
+      },
+      {
+       "original": 103,
+       "bench": 15
+      },
+      {
+       "original": 104,
+       "bench": 16
+      },
+      {
+       "original": 105,
+       "bench": 17
+      },
+      {
+       "original": 106,
+       "bench": 18
+      },
+      {
+       "original": 107,
+       "bench": 19
+      },
+      {
+       "original": 108,
+       "bench": 20
+      },
+      {
+       "original": 109,
+       "bench": 21
+      },
+      {
+       "original": 110,
+       "bench": 22
+      },
+      {
+       "original": 111,
+       "bench": 23
+      },
+      {
+       "original": 112,
+       "bench": 24
+      },
+      {
+       "original": 201,
+       "bench": 25
+      },
+      {
+       "original": 202,
+       "bench": 26
+      },
+      {
+       "original": 203,
+       "bench": 27
+      },
+      {
+       "original": 204,
+       "bench": 28
+      },
+      {
+       "original": 205,
+       "bench": 29
+      },
+      {
+       "original": 206,
+       "bench": 30
+      },
+      {
+       "original": 207,
+       "bench": 31
+      },
+      {
+       "original": 208,
+       "bench": 32
+      },
+      {
+       "original": 209,
+       "bench": 33
+      },
+      {
+       "original": 210,
+       "bench": 34
+      },
+      {
+       "original": 211,
+       "bench": 35
+      },
+      {
+       "original": 212,
+       "bench": 36
+      },
+      {
+       "original": 301,
+       "bench": 37
+      },
+      {
+       "original": 302,
+       "bench": 38
+      },
+      {
+       "original": 303,
+       "bench": 39
+      },
+      {
+       "original": 304,
+       "bench": 40
+      },
+      {
+       "original": 305,
+       "bench": 41
+      },
+      {
+       "original": 306,
+       "bench": 42
+      },
+      {
+       "original": 307,
+       "bench": 43
+      },
+      {
+       "original": 308,
+       "bench": 44
+      },
+      {
+       "original": 309,
+       "bench": 45
+      },
+      {
+       "original": 310,
+       "bench": 46
+      },
+      {
+       "original": 311,
+       "bench": 47
+      },
+      {
+       "original": 312,
+       "bench": 48
+      },
+      {
+       "original": 401,
+       "bench": 49
+      },
+      {
+       "original": 402,
+       "bench": 50
+      },
+      {
+       "original": 403,
+       "bench": 51
+      },
+      {
+       "original": 404,
+       "bench": 52
+      },
+      {
+       "original": 405,
+       "bench": 53
+      },
+      {
+       "original": 406,
+       "bench": 54
+      },
+      {
+       "original": 407,
+       "bench": 55
+      },
+      {
+       "original": 408,
+       "bench": 56
+      },
+      {
+       "original": 409,
+       "bench": 57
+      },
+      {
+       "original": 410,
+       "bench": 58
+      },
+      {
+       "original": 411,
+       "bench": 59
+      },
+      {
+       "original": 412,
+       "bench": 60
+      },
+      {
+       "original": 501,
+       "bench": 61
+      },
+      {
+       "original": 502,
+       "bench": 62
+      },
+      {
+       "original": 503,
+       "bench": 63
+      },
+      {
+       "original": 504,
+       "bench": 64
+      },
+      {
+       "original": 505,
+       "bench": 65
+      },
+      {
+       "original": 506,
+       "bench": 66
+      },
+      {
+       "original": 507,
+       "bench": 67
+      },
+      {
+       "original": 508,
+       "bench": 68
+      },
+      {
+       "original": 509,
+       "bench": 69
+      },
+      {
+       "original": 510,
+       "bench": 70
+      },
+      {
+       "original": 511,
+       "bench": 71
+      },
+      {
+       "original": 512,
+       "bench": 72
+      }
+     ],
+     "members": [
+      {
+       "original": 1,
+       "bench": 1
+      },
+      {
+       "original": 2,
+       "bench": 2
+      },
+      {
+       "original": 3,
+       "bench": 3
+      },
+      {
+       "original": 4,
+       "bench": 4
+      },
+      {
+       "original": 5,
+       "bench": 5
+      },
+      {
+       "original": 6,
+       "bench": 6
+      },
+      {
+       "original": 7,
+       "bench": 7
+      },
+      {
+       "original": 8,
+       "bench": 8
+      },
+      {
+       "original": 9,
+       "bench": 9
+      },
+      {
+       "original": 10,
+       "bench": 10
+      },
+      {
+       "original": 11,
+       "bench": 11
+      },
+      {
+       "original": 12,
+       "bench": 12
+      },
+      {
+       "original": 13,
+       "bench": 13
+      },
+      {
+       "original": 14,
+       "bench": 14
+      },
+      {
+       "original": 15,
+       "bench": 15
+      },
+      {
+       "original": 16,
+       "bench": 16
+      },
+      {
+       "original": 17,
+       "bench": 17
+      },
+      {
+       "original": 18,
+       "bench": 18
+      },
+      {
+       "original": 19,
+       "bench": 19
+      },
+      {
+       "original": 20,
+       "bench": 20
+      },
+      {
+       "original": 21,
+       "bench": 21
+      },
+      {
+       "original": 22,
+       "bench": 22
+      },
+      {
+       "original": 23,
+       "bench": 23
+      },
+      {
+       "original": 24,
+       "bench": 24
+      },
+      {
+       "original": 25,
+       "bench": 25
+      },
+      {
+       "original": 26,
+       "bench": 26
+      },
+      {
+       "original": 27,
+       "bench": 27
+      },
+      {
+       "original": 28,
+       "bench": 28
+      },
+      {
+       "original": 29,
+       "bench": 29
+      },
+      {
+       "original": 30,
+       "bench": 30
+      },
+      {
+       "original": 31,
+       "bench": 31
+      },
+      {
+       "original": 32,
+       "bench": 32
+      },
+      {
+       "original": 33,
+       "bench": 33
+      },
+      {
+       "original": 34,
+       "bench": 34
+      },
+      {
+       "original": 35,
+       "bench": 35
+      },
+      {
+       "original": 36,
+       "bench": 36
+      },
+      {
+       "original": 37,
+       "bench": 37
+      },
+      {
+       "original": 38,
+       "bench": 38
+      },
+      {
+       "original": 39,
+       "bench": 39
+      },
+      {
+       "original": 40,
+       "bench": 40
+      },
+      {
+       "original": 41,
+       "bench": 41
+      },
+      {
+       "original": 42,
+       "bench": 42
+      },
+      {
+       "original": 43,
+       "bench": 43
+      },
+      {
+       "original": 44,
+       "bench": 44
+      },
+      {
+       "original": 45,
+       "bench": 45
+      },
+      {
+       "original": 46,
+       "bench": 46
+      },
+      {
+       "original": 47,
+       "bench": 47
+      },
+      {
+       "original": 48,
+       "bench": 48
+      },
+      {
+       "original": 49,
+       "bench": 49
+      },
+      {
+       "original": 50,
+       "bench": 50
+      },
+      {
+       "original": 51,
+       "bench": 51
+      },
+      {
+       "original": 52,
+       "bench": 52
+      },
+      {
+       "original": 53,
+       "bench": 53
+      },
+      {
+       "original": 54,
+       "bench": 54
+      },
+      {
+       "original": 55,
+       "bench": 55
+      },
+      {
+       "original": 56,
+       "bench": 56
+      },
+      {
+       "original": 57,
+       "bench": 57
+      },
+      {
+       "original": 58,
+       "bench": 58
+      },
+      {
+       "original": 59,
+       "bench": 59
+      },
+      {
+       "original": 60,
+       "bench": 60
+      },
+      {
+       "original": 61,
+       "bench": 61
+      },
+      {
+       "original": 62,
+       "bench": 62
+      },
+      {
+       "original": 63,
+       "bench": 63
+      },
+      {
+       "original": 64,
+       "bench": 64
+      },
+      {
+       "original": 65,
+       "bench": 65
+      },
+      {
+       "original": 66,
+       "bench": 66
+      },
+      {
+       "original": 67,
+       "bench": 67
+      },
+      {
+       "original": 68,
+       "bench": 68
+      },
+      {
+       "original": 69,
+       "bench": 69
+      },
+      {
+       "original": 70,
+       "bench": 70
+      },
+      {
+       "original": 71,
+       "bench": 71
+      },
+      {
+       "original": 72,
+       "bench": 72
+      },
+      {
+       "original": 73,
+       "bench": 73
+      },
+      {
+       "original": 74,
+       "bench": 74
+      },
+      {
+       "original": 75,
+       "bench": 75
+      },
+      {
+       "original": 76,
+       "bench": 76
+      },
+      {
+       "original": 77,
+       "bench": 77
+      },
+      {
+       "original": 78,
+       "bench": 78
+      },
+      {
+       "original": 79,
+       "bench": 79
+      },
+      {
+       "original": 80,
+       "bench": 80
+      },
+      {
+       "original": 81,
+       "bench": 81
+      },
+      {
+       "original": 82,
+       "bench": 82
+      },
+      {
+       "original": 83,
+       "bench": 83
+      },
+      {
+       "original": 84,
+       "bench": 84
+      },
+      {
+       "original": 85,
+       "bench": 85
+      },
+      {
+       "original": 86,
+       "bench": 86
+      },
+      {
+       "original": 87,
+       "bench": 87
+      },
+      {
+       "original": 88,
+       "bench": 88
+      },
+      {
+       "original": 89,
+       "bench": 89
+      },
+      {
+       "original": 90,
+       "bench": 90
+      },
+      {
+       "original": 91,
+       "bench": 91
+      },
+      {
+       "original": 92,
+       "bench": 92
+      },
+      {
+       "original": 93,
+       "bench": 93
+      },
+      {
+       "original": 94,
+       "bench": 94
+      },
+      {
+       "original": 95,
+       "bench": 95
+      },
+      {
+       "original": 96,
+       "bench": 96
+      },
+      {
+       "original": 97,
+       "bench": 97
+      },
+      {
+       "original": 98,
+       "bench": 98
+      },
+      {
+       "original": 99,
+       "bench": 99
+      },
+      {
+       "original": 100,
+       "bench": 100
+      },
+      {
+       "original": 101,
+       "bench": 101
+      },
+      {
+       "original": 102,
+       "bench": 102
+      },
+      {
+       "original": 103,
+       "bench": 103
+      },
+      {
+       "original": 104,
+       "bench": 104
+      },
+      {
+       "original": 105,
+       "bench": 105
+      },
+      {
+       "original": 106,
+       "bench": 106
+      },
+      {
+       "original": 107,
+       "bench": 107
+      },
+      {
+       "original": 108,
+       "bench": 108
+      },
+      {
+       "original": 109,
+       "bench": 109
+      },
+      {
+       "original": 110,
+       "bench": 110
+      },
+      {
+       "original": 111,
+       "bench": 111
+      },
+      {
+       "original": 112,
+       "bench": 112
+      },
+      {
+       "original": 113,
+       "bench": 113
+      },
+      {
+       "original": 114,
+       "bench": 114
+      },
+      {
+       "original": 115,
+       "bench": 115
+      },
+      {
+       "original": 116,
+       "bench": 116
+      },
+      {
+       "original": 117,
+       "bench": 117
+      },
+      {
+       "original": 118,
+       "bench": 118
+      },
+      {
+       "original": 119,
+       "bench": 119
+      },
+      {
+       "original": 120,
+       "bench": 120
+      },
+      {
+       "original": 121,
+       "bench": 121
+      },
+      {
+       "original": 122,
+       "bench": 122
+      },
+      {
+       "original": 123,
+       "bench": 123
+      },
+      {
+       "original": 124,
+       "bench": 124
+      },
+      {
+       "original": 125,
+       "bench": 125
+      },
+      {
+       "original": 126,
+       "bench": 126
+      },
+      {
+       "original": 127,
+       "bench": 127
+      },
+      {
+       "original": 128,
+       "bench": 128
+      },
+      {
+       "original": 129,
+       "bench": 129
+      },
+      {
+       "original": 130,
+       "bench": 130
+      },
+      {
+       "original": 131,
+       "bench": 131
+      },
+      {
+       "original": 132,
+       "bench": 132
+      },
+      {
+       "original": 133,
+       "bench": 133
+      },
+      {
+       "original": 134,
+       "bench": 134
+      },
+      {
+       "original": 135,
+       "bench": 135
+      },
+      {
+       "original": 136,
+       "bench": 136
+      },
+      {
+       "original": 137,
+       "bench": 137
+      },
+      {
+       "original": 138,
+       "bench": 138
+      },
+      {
+       "original": 139,
+       "bench": 139
+      },
+      {
+       "original": 140,
+       "bench": 140
+      },
+      {
+       "original": 141,
+       "bench": 141
+      },
+      {
+       "original": 142,
+       "bench": 142
+      },
+      {
+       "original": 143,
+       "bench": 143
+      },
+      {
+       "original": 144,
+       "bench": 144
+      },
+      {
+       "original": 145,
+       "bench": 145
+      }
+     ],
+     "sections": [
+      {
+       "original": "columna",
+       "bench": "columna"
+      },
+      {
+       "original": "viga",
+       "bench": "viga"
+      }
+     ],
+     "laws": [
+      {
+       "original": "hormigon",
+       "bench": "elastic-columna"
+      }
+     ],
+     "supports": [
+      {
+       "original": "base_1",
+       "bench": "support-1"
+      },
+      {
+       "original": "base_2",
+       "bench": "support-2"
+      },
+      {
+       "original": "base_3",
+       "bench": "support-3"
+      },
+      {
+       "original": "base_4",
+       "bench": "support-4"
+      },
+      {
+       "original": "base_5",
+       "bench": "support-5"
+      },
+      {
+       "original": "base_6",
+       "bench": "support-6"
+      },
+      {
+       "original": "base_7",
+       "bench": "support-7"
+      },
+      {
+       "original": "base_8",
+       "bench": "support-8"
+      },
+      {
+       "original": "base_9",
+       "bench": "support-9"
+      },
+      {
+       "original": "base_10",
+       "bench": "support-10"
+      },
+      {
+       "original": "base_11",
+       "bench": "support-11"
+      },
+      {
+       "original": "base_12",
+       "bench": "support-12"
+      }
+     ],
+     "masses": [
+      {
+       "original": "piso_1_nodo_106",
+       "bench": "mass-18"
+      },
+      {
+       "original": "piso_1_nodo_107",
+       "bench": "mass-19"
+      },
+      {
+       "original": "piso_1_nodo_110",
+       "bench": "mass-22"
+      },
+      {
+       "original": "piso_1_nodo_111",
+       "bench": "mass-23"
+      },
+      {
+       "original": "piso_2_nodo_206",
+       "bench": "mass-30"
+      },
+      {
+       "original": "piso_2_nodo_207",
+       "bench": "mass-31"
+      },
+      {
+       "original": "piso_2_nodo_210",
+       "bench": "mass-34"
+      },
+      {
+       "original": "piso_2_nodo_211",
+       "bench": "mass-35"
+      },
+      {
+       "original": "piso_3_nodo_306",
+       "bench": "mass-42"
+      },
+      {
+       "original": "piso_3_nodo_307",
+       "bench": "mass-43"
+      },
+      {
+       "original": "piso_3_nodo_310",
+       "bench": "mass-46"
+      },
+      {
+       "original": "piso_3_nodo_311",
+       "bench": "mass-47"
+      },
+      {
+       "original": "piso_4_nodo_406",
+       "bench": "mass-54"
+      },
+      {
+       "original": "piso_4_nodo_407",
+       "bench": "mass-55"
+      },
+      {
+       "original": "piso_4_nodo_410",
+       "bench": "mass-58"
+      },
+      {
+       "original": "piso_4_nodo_411",
+       "bench": "mass-59"
+      },
+      {
+       "original": "piso_5_nodo_506",
+       "bench": "mass-66"
+      },
+      {
+       "original": "piso_5_nodo_507",
+       "bench": "mass-67"
+      },
+      {
+       "original": "piso_5_nodo_510",
+       "bench": "mass-70"
+      },
+      {
+       "original": "piso_5_nodo_511",
+       "bench": "mass-71"
+      }
+     ],
+     "cases": [],
+     "combinations": []
+    },
+    "runs": [
+     {
+      "run": "E1-modal",
+      "method": "modal"
+     }
+    ],
+    "exact_translation": true,
+    "engine_limits": "incompatible",
+    "engine_gaps": [
+     {
+      "codigo": "ENG-E-0006",
+      "referencia": "Engine: masa modal positiva por gdl libre",
+      "detalle": "180 gdl libres sin masa positiva: Uz/Rx/Ry de los 60 nodos de piso (55 esclavos y 5 maestros). nodal_masses conserva el reparto exacto Ux/Uy y Rz_extra. El Engine no condensa GDL sin masa; seguimiento MAM-847, issue del Engine pendiente de abrir. Añadir masa o restringir esos gdl cambiaría la física; apoyar esclavos además viola ENG-E-0013. El esquema sí permite el modelo.",
+      "gdl_sin_masa": [
+       {
+        "node": 13,
+        "dof": "Uz"
+       },
+       {
+        "node": 13,
+        "dof": "Rx"
+       },
+       {
+        "node": 13,
+        "dof": "Ry"
+       },
+       {
+        "node": 14,
+        "dof": "Uz"
+       },
+       {
+        "node": 14,
+        "dof": "Rx"
+       },
+       {
+        "node": 14,
+        "dof": "Ry"
+       },
+       {
+        "node": 15,
+        "dof": "Uz"
+       },
+       {
+        "node": 15,
+        "dof": "Rx"
+       },
+       {
+        "node": 15,
+        "dof": "Ry"
+       },
+       {
+        "node": 16,
+        "dof": "Uz"
+       },
+       {
+        "node": 16,
+        "dof": "Rx"
+       },
+       {
+        "node": 16,
+        "dof": "Ry"
+       },
+       {
+        "node": 17,
+        "dof": "Uz"
+       },
+       {
+        "node": 17,
+        "dof": "Rx"
+       },
+       {
+        "node": 17,
+        "dof": "Ry"
+       },
+       {
+        "node": 18,
+        "dof": "Uz"
+       },
+       {
+        "node": 18,
+        "dof": "Rx"
+       },
+       {
+        "node": 18,
+        "dof": "Ry"
+       },
+       {
+        "node": 19,
+        "dof": "Uz"
+       },
+       {
+        "node": 19,
+        "dof": "Rx"
+       },
+       {
+        "node": 19,
+        "dof": "Ry"
+       },
+       {
+        "node": 20,
+        "dof": "Uz"
+       },
+       {
+        "node": 20,
+        "dof": "Rx"
+       },
+       {
+        "node": 20,
+        "dof": "Ry"
+       },
+       {
+        "node": 21,
+        "dof": "Uz"
+       },
+       {
+        "node": 21,
+        "dof": "Rx"
+       },
+       {
+        "node": 21,
+        "dof": "Ry"
+       },
+       {
+        "node": 22,
+        "dof": "Uz"
+       },
+       {
+        "node": 22,
+        "dof": "Rx"
+       },
+       {
+        "node": 22,
+        "dof": "Ry"
+       },
+       {
+        "node": 23,
+        "dof": "Uz"
+       },
+       {
+        "node": 23,
+        "dof": "Rx"
+       },
+       {
+        "node": 23,
+        "dof": "Ry"
+       },
+       {
+        "node": 24,
+        "dof": "Uz"
+       },
+       {
+        "node": 24,
+        "dof": "Rx"
+       },
+       {
+        "node": 24,
+        "dof": "Ry"
+       },
+       {
+        "node": 25,
+        "dof": "Uz"
+       },
+       {
+        "node": 25,
+        "dof": "Rx"
+       },
+       {
+        "node": 25,
+        "dof": "Ry"
+       },
+       {
+        "node": 26,
+        "dof": "Uz"
+       },
+       {
+        "node": 26,
+        "dof": "Rx"
+       },
+       {
+        "node": 26,
+        "dof": "Ry"
+       },
+       {
+        "node": 27,
+        "dof": "Uz"
+       },
+       {
+        "node": 27,
+        "dof": "Rx"
+       },
+       {
+        "node": 27,
+        "dof": "Ry"
+       },
+       {
+        "node": 28,
+        "dof": "Uz"
+       },
+       {
+        "node": 28,
+        "dof": "Rx"
+       },
+       {
+        "node": 28,
+        "dof": "Ry"
+       },
+       {
+        "node": 29,
+        "dof": "Uz"
+       },
+       {
+        "node": 29,
+        "dof": "Rx"
+       },
+       {
+        "node": 29,
+        "dof": "Ry"
+       },
+       {
+        "node": 30,
+        "dof": "Uz"
+       },
+       {
+        "node": 30,
+        "dof": "Rx"
+       },
+       {
+        "node": 30,
+        "dof": "Ry"
+       },
+       {
+        "node": 31,
+        "dof": "Uz"
+       },
+       {
+        "node": 31,
+        "dof": "Rx"
+       },
+       {
+        "node": 31,
+        "dof": "Ry"
+       },
+       {
+        "node": 32,
+        "dof": "Uz"
+       },
+       {
+        "node": 32,
+        "dof": "Rx"
+       },
+       {
+        "node": 32,
+        "dof": "Ry"
+       },
+       {
+        "node": 33,
+        "dof": "Uz"
+       },
+       {
+        "node": 33,
+        "dof": "Rx"
+       },
+       {
+        "node": 33,
+        "dof": "Ry"
+       },
+       {
+        "node": 34,
+        "dof": "Uz"
+       },
+       {
+        "node": 34,
+        "dof": "Rx"
+       },
+       {
+        "node": 34,
+        "dof": "Ry"
+       },
+       {
+        "node": 35,
+        "dof": "Uz"
+       },
+       {
+        "node": 35,
+        "dof": "Rx"
+       },
+       {
+        "node": 35,
+        "dof": "Ry"
+       },
+       {
+        "node": 36,
+        "dof": "Uz"
+       },
+       {
+        "node": 36,
+        "dof": "Rx"
+       },
+       {
+        "node": 36,
+        "dof": "Ry"
+       },
+       {
+        "node": 37,
+        "dof": "Uz"
+       },
+       {
+        "node": 37,
+        "dof": "Rx"
+       },
+       {
+        "node": 37,
+        "dof": "Ry"
+       },
+       {
+        "node": 38,
+        "dof": "Uz"
+       },
+       {
+        "node": 38,
+        "dof": "Rx"
+       },
+       {
+        "node": 38,
+        "dof": "Ry"
+       },
+       {
+        "node": 39,
+        "dof": "Uz"
+       },
+       {
+        "node": 39,
+        "dof": "Rx"
+       },
+       {
+        "node": 39,
+        "dof": "Ry"
+       },
+       {
+        "node": 40,
+        "dof": "Uz"
+       },
+       {
+        "node": 40,
+        "dof": "Rx"
+       },
+       {
+        "node": 40,
+        "dof": "Ry"
+       },
+       {
+        "node": 41,
+        "dof": "Uz"
+       },
+       {
+        "node": 41,
+        "dof": "Rx"
+       },
+       {
+        "node": 41,
+        "dof": "Ry"
+       },
+       {
+        "node": 42,
+        "dof": "Uz"
+       },
+       {
+        "node": 42,
+        "dof": "Rx"
+       },
+       {
+        "node": 42,
+        "dof": "Ry"
+       },
+       {
+        "node": 43,
+        "dof": "Uz"
+       },
+       {
+        "node": 43,
+        "dof": "Rx"
+       },
+       {
+        "node": 43,
+        "dof": "Ry"
+       },
+       {
+        "node": 44,
+        "dof": "Uz"
+       },
+       {
+        "node": 44,
+        "dof": "Rx"
+       },
+       {
+        "node": 44,
+        "dof": "Ry"
+       },
+       {
+        "node": 45,
+        "dof": "Uz"
+       },
+       {
+        "node": 45,
+        "dof": "Rx"
+       },
+       {
+        "node": 45,
+        "dof": "Ry"
+       },
+       {
+        "node": 46,
+        "dof": "Uz"
+       },
+       {
+        "node": 46,
+        "dof": "Rx"
+       },
+       {
+        "node": 46,
+        "dof": "Ry"
+       },
+       {
+        "node": 47,
+        "dof": "Uz"
+       },
+       {
+        "node": 47,
+        "dof": "Rx"
+       },
+       {
+        "node": 47,
+        "dof": "Ry"
+       },
+       {
+        "node": 48,
+        "dof": "Uz"
+       },
+       {
+        "node": 48,
+        "dof": "Rx"
+       },
+       {
+        "node": 48,
+        "dof": "Ry"
+       },
+       {
+        "node": 49,
+        "dof": "Uz"
+       },
+       {
+        "node": 49,
+        "dof": "Rx"
+       },
+       {
+        "node": 49,
+        "dof": "Ry"
+       },
+       {
+        "node": 50,
+        "dof": "Uz"
+       },
+       {
+        "node": 50,
+        "dof": "Rx"
+       },
+       {
+        "node": 50,
+        "dof": "Ry"
+       },
+       {
+        "node": 51,
+        "dof": "Uz"
+       },
+       {
+        "node": 51,
+        "dof": "Rx"
+       },
+       {
+        "node": 51,
+        "dof": "Ry"
+       },
+       {
+        "node": 52,
+        "dof": "Uz"
+       },
+       {
+        "node": 52,
+        "dof": "Rx"
+       },
+       {
+        "node": 52,
+        "dof": "Ry"
+       },
+       {
+        "node": 53,
+        "dof": "Uz"
+       },
+       {
+        "node": 53,
+        "dof": "Rx"
+       },
+       {
+        "node": 53,
+        "dof": "Ry"
+       },
+       {
+        "node": 54,
+        "dof": "Uz"
+       },
+       {
+        "node": 54,
+        "dof": "Rx"
+       },
+       {
+        "node": 54,
+        "dof": "Ry"
+       },
+       {
+        "node": 55,
+        "dof": "Uz"
+       },
+       {
+        "node": 55,
+        "dof": "Rx"
+       },
+       {
+        "node": 55,
+        "dof": "Ry"
+       },
+       {
+        "node": 56,
+        "dof": "Uz"
+       },
+       {
+        "node": 56,
+        "dof": "Rx"
+       },
+       {
+        "node": 56,
+        "dof": "Ry"
+       },
+       {
+        "node": 57,
+        "dof": "Uz"
+       },
+       {
+        "node": 57,
+        "dof": "Rx"
+       },
+       {
+        "node": 57,
+        "dof": "Ry"
+       },
+       {
+        "node": 58,
+        "dof": "Uz"
+       },
+       {
+        "node": 58,
+        "dof": "Rx"
+       },
+       {
+        "node": 58,
+        "dof": "Ry"
+       },
+       {
+        "node": 59,
+        "dof": "Uz"
+       },
+       {
+        "node": 59,
+        "dof": "Rx"
+       },
+       {
+        "node": 59,
+        "dof": "Ry"
+       },
+       {
+        "node": 60,
+        "dof": "Uz"
+       },
+       {
+        "node": 60,
+        "dof": "Rx"
+       },
+       {
+        "node": 60,
+        "dof": "Ry"
+       },
+       {
+        "node": 61,
+        "dof": "Uz"
+       },
+       {
+        "node": 61,
+        "dof": "Rx"
+       },
+       {
+        "node": 61,
+        "dof": "Ry"
+       },
+       {
+        "node": 62,
+        "dof": "Uz"
+       },
+       {
+        "node": 62,
+        "dof": "Rx"
+       },
+       {
+        "node": 62,
+        "dof": "Ry"
+       },
+       {
+        "node": 63,
+        "dof": "Uz"
+       },
+       {
+        "node": 63,
+        "dof": "Rx"
+       },
+       {
+        "node": 63,
+        "dof": "Ry"
+       },
+       {
+        "node": 64,
+        "dof": "Uz"
+       },
+       {
+        "node": 64,
+        "dof": "Rx"
+       },
+       {
+        "node": 64,
+        "dof": "Ry"
+       },
+       {
+        "node": 65,
+        "dof": "Uz"
+       },
+       {
+        "node": 65,
+        "dof": "Rx"
+       },
+       {
+        "node": 65,
+        "dof": "Ry"
+       },
+       {
+        "node": 66,
+        "dof": "Uz"
+       },
+       {
+        "node": 66,
+        "dof": "Rx"
+       },
+       {
+        "node": 66,
+        "dof": "Ry"
+       },
+       {
+        "node": 67,
+        "dof": "Uz"
+       },
+       {
+        "node": 67,
+        "dof": "Rx"
+       },
+       {
+        "node": 67,
+        "dof": "Ry"
+       },
+       {
+        "node": 68,
+        "dof": "Uz"
+       },
+       {
+        "node": 68,
+        "dof": "Rx"
+       },
+       {
+        "node": 68,
+        "dof": "Ry"
+       },
+       {
+        "node": 69,
+        "dof": "Uz"
+       },
+       {
+        "node": 69,
+        "dof": "Rx"
+       },
+       {
+        "node": 69,
+        "dof": "Ry"
+       },
+       {
+        "node": 70,
+        "dof": "Uz"
+       },
+       {
+        "node": 70,
+        "dof": "Rx"
+       },
+       {
+        "node": 70,
+        "dof": "Ry"
+       },
+       {
+        "node": 71,
+        "dof": "Uz"
+       },
+       {
+        "node": 71,
+        "dof": "Rx"
+       },
+       {
+        "node": 71,
+        "dof": "Ry"
+       },
+       {
+        "node": 72,
+        "dof": "Uz"
+       },
+       {
+        "node": 72,
+        "dof": "Rx"
+       },
+       {
+        "node": 72,
+        "dof": "Ry"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "E2",
+    "id_bijections": {
+     "nodes": [
+      {
+       "original": 1,
+       "bench": 1
+      },
+      {
+       "original": 2,
+       "bench": 2
+      },
+      {
+       "original": 3,
+       "bench": 3
+      },
+      {
+       "original": 4,
+       "bench": 4
+      },
+      {
+       "original": 5,
+       "bench": 5
+      },
+      {
+       "original": 6,
+       "bench": 6
+      },
+      {
+       "original": 7,
+       "bench": 7
+      },
+      {
+       "original": 8,
+       "bench": 8
+      },
+      {
+       "original": 9,
+       "bench": 9
+      },
+      {
+       "original": 10,
+       "bench": 10
+      },
+      {
+       "original": 11,
+       "bench": 11
+      },
+      {
+       "original": 12,
+       "bench": 12
+      },
+      {
+       "original": 101,
+       "bench": 13
+      },
+      {
+       "original": 102,
+       "bench": 14
+      },
+      {
+       "original": 103,
+       "bench": 15
+      },
+      {
+       "original": 104,
+       "bench": 16
+      },
+      {
+       "original": 105,
+       "bench": 17
+      },
+      {
+       "original": 106,
+       "bench": 18
+      },
+      {
+       "original": 107,
+       "bench": 19
+      },
+      {
+       "original": 108,
+       "bench": 20
+      },
+      {
+       "original": 109,
+       "bench": 21
+      },
+      {
+       "original": 110,
+       "bench": 22
+      },
+      {
+       "original": 111,
+       "bench": 23
+      },
+      {
+       "original": 112,
+       "bench": 24
+      },
+      {
+       "original": 201,
+       "bench": 25
+      },
+      {
+       "original": 202,
+       "bench": 26
+      },
+      {
+       "original": 203,
+       "bench": 27
+      },
+      {
+       "original": 204,
+       "bench": 28
+      },
+      {
+       "original": 205,
+       "bench": 29
+      },
+      {
+       "original": 206,
+       "bench": 30
+      },
+      {
+       "original": 207,
+       "bench": 31
+      },
+      {
+       "original": 208,
+       "bench": 32
+      },
+      {
+       "original": 209,
+       "bench": 33
+      },
+      {
+       "original": 210,
+       "bench": 34
+      },
+      {
+       "original": 211,
+       "bench": 35
+      },
+      {
+       "original": 212,
+       "bench": 36
+      },
+      {
+       "original": 301,
+       "bench": 37
+      },
+      {
+       "original": 302,
+       "bench": 38
+      },
+      {
+       "original": 303,
+       "bench": 39
+      },
+      {
+       "original": 304,
+       "bench": 40
+      },
+      {
+       "original": 305,
+       "bench": 41
+      },
+      {
+       "original": 306,
+       "bench": 42
+      },
+      {
+       "original": 307,
+       "bench": 43
+      },
+      {
+       "original": 308,
+       "bench": 44
+      },
+      {
+       "original": 309,
+       "bench": 45
+      },
+      {
+       "original": 310,
+       "bench": 46
+      },
+      {
+       "original": 311,
+       "bench": 47
+      },
+      {
+       "original": 312,
+       "bench": 48
+      },
+      {
+       "original": 401,
+       "bench": 49
+      },
+      {
+       "original": 402,
+       "bench": 50
+      },
+      {
+       "original": 403,
+       "bench": 51
+      },
+      {
+       "original": 404,
+       "bench": 52
+      },
+      {
+       "original": 405,
+       "bench": 53
+      },
+      {
+       "original": 406,
+       "bench": 54
+      },
+      {
+       "original": 407,
+       "bench": 55
+      },
+      {
+       "original": 408,
+       "bench": 56
+      },
+      {
+       "original": 409,
+       "bench": 57
+      },
+      {
+       "original": 410,
+       "bench": 58
+      },
+      {
+       "original": 411,
+       "bench": 59
+      },
+      {
+       "original": 412,
+       "bench": 60
+      },
+      {
+       "original": 501,
+       "bench": 61
+      },
+      {
+       "original": 502,
+       "bench": 62
+      },
+      {
+       "original": 503,
+       "bench": 63
+      },
+      {
+       "original": 504,
+       "bench": 64
+      },
+      {
+       "original": 505,
+       "bench": 65
+      },
+      {
+       "original": 506,
+       "bench": 66
+      },
+      {
+       "original": 507,
+       "bench": 67
+      },
+      {
+       "original": 508,
+       "bench": 68
+      },
+      {
+       "original": 509,
+       "bench": 69
+      },
+      {
+       "original": 510,
+       "bench": 70
+      },
+      {
+       "original": 511,
+       "bench": 71
+      },
+      {
+       "original": 512,
+       "bench": 72
+      }
+     ],
+     "members": [
+      {
+       "original": 1,
+       "bench": 1
+      },
+      {
+       "original": 2,
+       "bench": 2
+      },
+      {
+       "original": 3,
+       "bench": 3
+      },
+      {
+       "original": 4,
+       "bench": 4
+      },
+      {
+       "original": 5,
+       "bench": 5
+      },
+      {
+       "original": 6,
+       "bench": 6
+      },
+      {
+       "original": 7,
+       "bench": 7
+      },
+      {
+       "original": 8,
+       "bench": 8
+      },
+      {
+       "original": 9,
+       "bench": 9
+      },
+      {
+       "original": 10,
+       "bench": 10
+      },
+      {
+       "original": 11,
+       "bench": 11
+      },
+      {
+       "original": 12,
+       "bench": 12
+      },
+      {
+       "original": 13,
+       "bench": 13
+      },
+      {
+       "original": 14,
+       "bench": 14
+      },
+      {
+       "original": 15,
+       "bench": 15
+      },
+      {
+       "original": 16,
+       "bench": 16
+      },
+      {
+       "original": 17,
+       "bench": 17
+      },
+      {
+       "original": 18,
+       "bench": 18
+      },
+      {
+       "original": 19,
+       "bench": 19
+      },
+      {
+       "original": 20,
+       "bench": 20
+      },
+      {
+       "original": 21,
+       "bench": 21
+      },
+      {
+       "original": 22,
+       "bench": 22
+      },
+      {
+       "original": 23,
+       "bench": 23
+      },
+      {
+       "original": 24,
+       "bench": 24
+      },
+      {
+       "original": 25,
+       "bench": 25
+      },
+      {
+       "original": 26,
+       "bench": 26
+      },
+      {
+       "original": 27,
+       "bench": 27
+      },
+      {
+       "original": 28,
+       "bench": 28
+      },
+      {
+       "original": 29,
+       "bench": 29
+      },
+      {
+       "original": 30,
+       "bench": 30
+      },
+      {
+       "original": 31,
+       "bench": 31
+      },
+      {
+       "original": 32,
+       "bench": 32
+      },
+      {
+       "original": 33,
+       "bench": 33
+      },
+      {
+       "original": 34,
+       "bench": 34
+      },
+      {
+       "original": 35,
+       "bench": 35
+      },
+      {
+       "original": 36,
+       "bench": 36
+      },
+      {
+       "original": 37,
+       "bench": 37
+      },
+      {
+       "original": 38,
+       "bench": 38
+      },
+      {
+       "original": 39,
+       "bench": 39
+      },
+      {
+       "original": 40,
+       "bench": 40
+      },
+      {
+       "original": 41,
+       "bench": 41
+      },
+      {
+       "original": 42,
+       "bench": 42
+      },
+      {
+       "original": 43,
+       "bench": 43
+      },
+      {
+       "original": 44,
+       "bench": 44
+      },
+      {
+       "original": 45,
+       "bench": 45
+      },
+      {
+       "original": 46,
+       "bench": 46
+      },
+      {
+       "original": 47,
+       "bench": 47
+      },
+      {
+       "original": 48,
+       "bench": 48
+      },
+      {
+       "original": 49,
+       "bench": 49
+      },
+      {
+       "original": 50,
+       "bench": 50
+      },
+      {
+       "original": 51,
+       "bench": 51
+      },
+      {
+       "original": 52,
+       "bench": 52
+      },
+      {
+       "original": 53,
+       "bench": 53
+      },
+      {
+       "original": 54,
+       "bench": 54
+      },
+      {
+       "original": 55,
+       "bench": 55
+      },
+      {
+       "original": 56,
+       "bench": 56
+      },
+      {
+       "original": 57,
+       "bench": 57
+      },
+      {
+       "original": 58,
+       "bench": 58
+      },
+      {
+       "original": 59,
+       "bench": 59
+      },
+      {
+       "original": 60,
+       "bench": 60
+      },
+      {
+       "original": 61,
+       "bench": 61
+      },
+      {
+       "original": 62,
+       "bench": 62
+      },
+      {
+       "original": 63,
+       "bench": 63
+      },
+      {
+       "original": 64,
+       "bench": 64
+      },
+      {
+       "original": 65,
+       "bench": 65
+      },
+      {
+       "original": 66,
+       "bench": 66
+      },
+      {
+       "original": 67,
+       "bench": 67
+      },
+      {
+       "original": 68,
+       "bench": 68
+      },
+      {
+       "original": 69,
+       "bench": 69
+      },
+      {
+       "original": 70,
+       "bench": 70
+      },
+      {
+       "original": 71,
+       "bench": 71
+      },
+      {
+       "original": 72,
+       "bench": 72
+      },
+      {
+       "original": 73,
+       "bench": 73
+      },
+      {
+       "original": 74,
+       "bench": 74
+      },
+      {
+       "original": 75,
+       "bench": 75
+      },
+      {
+       "original": 76,
+       "bench": 76
+      },
+      {
+       "original": 77,
+       "bench": 77
+      },
+      {
+       "original": 78,
+       "bench": 78
+      },
+      {
+       "original": 79,
+       "bench": 79
+      },
+      {
+       "original": 80,
+       "bench": 80
+      },
+      {
+       "original": 81,
+       "bench": 81
+      },
+      {
+       "original": 82,
+       "bench": 82
+      },
+      {
+       "original": 83,
+       "bench": 83
+      },
+      {
+       "original": 84,
+       "bench": 84
+      },
+      {
+       "original": 85,
+       "bench": 85
+      },
+      {
+       "original": 86,
+       "bench": 86
+      },
+      {
+       "original": 87,
+       "bench": 87
+      },
+      {
+       "original": 88,
+       "bench": 88
+      },
+      {
+       "original": 89,
+       "bench": 89
+      },
+      {
+       "original": 90,
+       "bench": 90
+      },
+      {
+       "original": 91,
+       "bench": 91
+      },
+      {
+       "original": 92,
+       "bench": 92
+      },
+      {
+       "original": 93,
+       "bench": 93
+      },
+      {
+       "original": 94,
+       "bench": 94
+      },
+      {
+       "original": 95,
+       "bench": 95
+      },
+      {
+       "original": 96,
+       "bench": 96
+      },
+      {
+       "original": 97,
+       "bench": 97
+      },
+      {
+       "original": 98,
+       "bench": 98
+      },
+      {
+       "original": 99,
+       "bench": 99
+      },
+      {
+       "original": 100,
+       "bench": 100
+      },
+      {
+       "original": 101,
+       "bench": 101
+      },
+      {
+       "original": 102,
+       "bench": 102
+      },
+      {
+       "original": 103,
+       "bench": 103
+      },
+      {
+       "original": 104,
+       "bench": 104
+      },
+      {
+       "original": 105,
+       "bench": 105
+      },
+      {
+       "original": 106,
+       "bench": 106
+      },
+      {
+       "original": 107,
+       "bench": 107
+      },
+      {
+       "original": 108,
+       "bench": 108
+      },
+      {
+       "original": 109,
+       "bench": 109
+      },
+      {
+       "original": 110,
+       "bench": 110
+      },
+      {
+       "original": 111,
+       "bench": 111
+      },
+      {
+       "original": 112,
+       "bench": 112
+      },
+      {
+       "original": 113,
+       "bench": 113
+      },
+      {
+       "original": 114,
+       "bench": 114
+      },
+      {
+       "original": 115,
+       "bench": 115
+      },
+      {
+       "original": 116,
+       "bench": 116
+      },
+      {
+       "original": 117,
+       "bench": 117
+      },
+      {
+       "original": 118,
+       "bench": 118
+      },
+      {
+       "original": 119,
+       "bench": 119
+      },
+      {
+       "original": 120,
+       "bench": 120
+      },
+      {
+       "original": 121,
+       "bench": 121
+      },
+      {
+       "original": 122,
+       "bench": 122
+      },
+      {
+       "original": 123,
+       "bench": 123
+      },
+      {
+       "original": 124,
+       "bench": 124
+      },
+      {
+       "original": 125,
+       "bench": 125
+      },
+      {
+       "original": 126,
+       "bench": 126
+      },
+      {
+       "original": 127,
+       "bench": 127
+      },
+      {
+       "original": 128,
+       "bench": 128
+      },
+      {
+       "original": 129,
+       "bench": 129
+      },
+      {
+       "original": 130,
+       "bench": 130
+      },
+      {
+       "original": 131,
+       "bench": 131
+      },
+      {
+       "original": 132,
+       "bench": 132
+      },
+      {
+       "original": 133,
+       "bench": 133
+      },
+      {
+       "original": 134,
+       "bench": 134
+      },
+      {
+       "original": 135,
+       "bench": 135
+      },
+      {
+       "original": 136,
+       "bench": 136
+      },
+      {
+       "original": 137,
+       "bench": 137
+      },
+      {
+       "original": 138,
+       "bench": 138
+      },
+      {
+       "original": 139,
+       "bench": 139
+      },
+      {
+       "original": 140,
+       "bench": 140
+      },
+      {
+       "original": 141,
+       "bench": 141
+      },
+      {
+       "original": 142,
+       "bench": 142
+      },
+      {
+       "original": 143,
+       "bench": 143
+      },
+      {
+       "original": 144,
+       "bench": 144
+      },
+      {
+       "original": 145,
+       "bench": 145
+      }
+     ],
+     "sections": [
+      {
+       "original": "columna",
+       "bench": "columna"
+      },
+      {
+       "original": "viga",
+       "bench": "viga"
+      }
+     ],
+     "laws": [
+      {
+       "original": "hormigon",
+       "bench": "elastic-columna"
+      }
+     ],
+     "supports": [
+      {
+       "original": "base_1",
+       "bench": "support-1"
+      },
+      {
+       "original": "base_2",
+       "bench": "support-2"
+      },
+      {
+       "original": "base_3",
+       "bench": "support-3"
+      },
+      {
+       "original": "base_4",
+       "bench": "support-4"
+      },
+      {
+       "original": "base_5",
+       "bench": "support-5"
+      },
+      {
+       "original": "base_6",
+       "bench": "support-6"
+      },
+      {
+       "original": "base_7",
+       "bench": "support-7"
+      },
+      {
+       "original": "base_8",
+       "bench": "support-8"
+      },
+      {
+       "original": "base_9",
+       "bench": "support-9"
+      },
+      {
+       "original": "base_10",
+       "bench": "support-10"
+      },
+      {
+       "original": "base_11",
+       "bench": "support-11"
+      },
+      {
+       "original": "base_12",
+       "bench": "support-12"
+      }
+     ],
+     "masses": [
+      {
+       "original": "piso_1_nodo_106",
+       "bench": "mass-18"
+      },
+      {
+       "original": "piso_1_nodo_107",
+       "bench": "mass-19"
+      },
+      {
+       "original": "piso_1_nodo_110",
+       "bench": "mass-22"
+      },
+      {
+       "original": "piso_1_nodo_111",
+       "bench": "mass-23"
+      },
+      {
+       "original": "piso_2_nodo_206",
+       "bench": "mass-30"
+      },
+      {
+       "original": "piso_2_nodo_207",
+       "bench": "mass-31"
+      },
+      {
+       "original": "piso_2_nodo_210",
+       "bench": "mass-34"
+      },
+      {
+       "original": "piso_2_nodo_211",
+       "bench": "mass-35"
+      },
+      {
+       "original": "piso_3_nodo_306",
+       "bench": "mass-42"
+      },
+      {
+       "original": "piso_3_nodo_307",
+       "bench": "mass-43"
+      },
+      {
+       "original": "piso_3_nodo_310",
+       "bench": "mass-46"
+      },
+      {
+       "original": "piso_3_nodo_311",
+       "bench": "mass-47"
+      },
+      {
+       "original": "piso_4_nodo_406",
+       "bench": "mass-54"
+      },
+      {
+       "original": "piso_4_nodo_407",
+       "bench": "mass-55"
+      },
+      {
+       "original": "piso_4_nodo_410",
+       "bench": "mass-58"
+      },
+      {
+       "original": "piso_4_nodo_411",
+       "bench": "mass-59"
+      },
+      {
+       "original": "piso_5_nodo_506",
+       "bench": "mass-66"
+      },
+      {
+       "original": "piso_5_nodo_507",
+       "bench": "mass-67"
+      },
+      {
+       "original": "piso_5_nodo_510",
+       "bench": "mass-70"
+      },
+      {
+       "original": "piso_5_nodo_511",
+       "bench": "mass-71"
+      }
+     ],
+     "cases": [],
+     "combinations": []
+    },
+    "runs": [
+     {
+      "run": "E2-cqc-X",
+      "method": "responseSpectrum",
+      "variant": "E2-cqc-X"
+     },
+     {
+      "run": "E2-srss-X",
+      "method": "responseSpectrum",
+      "variant": "E2-srss-X"
+     },
+     {
+      "run": "E2-cqc-Y",
+      "method": "responseSpectrum",
+      "variant": "E2-cqc-Y"
+     }
+    ],
+    "exact_translation": true,
+    "engine_limits": "incompatible",
+    "engine_gaps": [
+     {
+      "codigo": "ENG-E-0006",
+      "referencia": "Engine: masa modal positiva por gdl libre",
+      "detalle": "180 gdl libres sin masa positiva: Uz/Rx/Ry de los 60 nodos de piso (55 esclavos y 5 maestros). nodal_masses conserva el reparto exacto Ux/Uy y Rz_extra. El Engine no condensa GDL sin masa; seguimiento MAM-847, issue del Engine pendiente de abrir. Añadir masa o restringir esos gdl cambiaría la física; apoyar esclavos además viola ENG-E-0013. El esquema sí permite el modelo.",
+      "gdl_sin_masa": [
+       {
+        "node": 13,
+        "dof": "Uz"
+       },
+       {
+        "node": 13,
+        "dof": "Rx"
+       },
+       {
+        "node": 13,
+        "dof": "Ry"
+       },
+       {
+        "node": 14,
+        "dof": "Uz"
+       },
+       {
+        "node": 14,
+        "dof": "Rx"
+       },
+       {
+        "node": 14,
+        "dof": "Ry"
+       },
+       {
+        "node": 15,
+        "dof": "Uz"
+       },
+       {
+        "node": 15,
+        "dof": "Rx"
+       },
+       {
+        "node": 15,
+        "dof": "Ry"
+       },
+       {
+        "node": 16,
+        "dof": "Uz"
+       },
+       {
+        "node": 16,
+        "dof": "Rx"
+       },
+       {
+        "node": 16,
+        "dof": "Ry"
+       },
+       {
+        "node": 17,
+        "dof": "Uz"
+       },
+       {
+        "node": 17,
+        "dof": "Rx"
+       },
+       {
+        "node": 17,
+        "dof": "Ry"
+       },
+       {
+        "node": 18,
+        "dof": "Uz"
+       },
+       {
+        "node": 18,
+        "dof": "Rx"
+       },
+       {
+        "node": 18,
+        "dof": "Ry"
+       },
+       {
+        "node": 19,
+        "dof": "Uz"
+       },
+       {
+        "node": 19,
+        "dof": "Rx"
+       },
+       {
+        "node": 19,
+        "dof": "Ry"
+       },
+       {
+        "node": 20,
+        "dof": "Uz"
+       },
+       {
+        "node": 20,
+        "dof": "Rx"
+       },
+       {
+        "node": 20,
+        "dof": "Ry"
+       },
+       {
+        "node": 21,
+        "dof": "Uz"
+       },
+       {
+        "node": 21,
+        "dof": "Rx"
+       },
+       {
+        "node": 21,
+        "dof": "Ry"
+       },
+       {
+        "node": 22,
+        "dof": "Uz"
+       },
+       {
+        "node": 22,
+        "dof": "Rx"
+       },
+       {
+        "node": 22,
+        "dof": "Ry"
+       },
+       {
+        "node": 23,
+        "dof": "Uz"
+       },
+       {
+        "node": 23,
+        "dof": "Rx"
+       },
+       {
+        "node": 23,
+        "dof": "Ry"
+       },
+       {
+        "node": 24,
+        "dof": "Uz"
+       },
+       {
+        "node": 24,
+        "dof": "Rx"
+       },
+       {
+        "node": 24,
+        "dof": "Ry"
+       },
+       {
+        "node": 25,
+        "dof": "Uz"
+       },
+       {
+        "node": 25,
+        "dof": "Rx"
+       },
+       {
+        "node": 25,
+        "dof": "Ry"
+       },
+       {
+        "node": 26,
+        "dof": "Uz"
+       },
+       {
+        "node": 26,
+        "dof": "Rx"
+       },
+       {
+        "node": 26,
+        "dof": "Ry"
+       },
+       {
+        "node": 27,
+        "dof": "Uz"
+       },
+       {
+        "node": 27,
+        "dof": "Rx"
+       },
+       {
+        "node": 27,
+        "dof": "Ry"
+       },
+       {
+        "node": 28,
+        "dof": "Uz"
+       },
+       {
+        "node": 28,
+        "dof": "Rx"
+       },
+       {
+        "node": 28,
+        "dof": "Ry"
+       },
+       {
+        "node": 29,
+        "dof": "Uz"
+       },
+       {
+        "node": 29,
+        "dof": "Rx"
+       },
+       {
+        "node": 29,
+        "dof": "Ry"
+       },
+       {
+        "node": 30,
+        "dof": "Uz"
+       },
+       {
+        "node": 30,
+        "dof": "Rx"
+       },
+       {
+        "node": 30,
+        "dof": "Ry"
+       },
+       {
+        "node": 31,
+        "dof": "Uz"
+       },
+       {
+        "node": 31,
+        "dof": "Rx"
+       },
+       {
+        "node": 31,
+        "dof": "Ry"
+       },
+       {
+        "node": 32,
+        "dof": "Uz"
+       },
+       {
+        "node": 32,
+        "dof": "Rx"
+       },
+       {
+        "node": 32,
+        "dof": "Ry"
+       },
+       {
+        "node": 33,
+        "dof": "Uz"
+       },
+       {
+        "node": 33,
+        "dof": "Rx"
+       },
+       {
+        "node": 33,
+        "dof": "Ry"
+       },
+       {
+        "node": 34,
+        "dof": "Uz"
+       },
+       {
+        "node": 34,
+        "dof": "Rx"
+       },
+       {
+        "node": 34,
+        "dof": "Ry"
+       },
+       {
+        "node": 35,
+        "dof": "Uz"
+       },
+       {
+        "node": 35,
+        "dof": "Rx"
+       },
+       {
+        "node": 35,
+        "dof": "Ry"
+       },
+       {
+        "node": 36,
+        "dof": "Uz"
+       },
+       {
+        "node": 36,
+        "dof": "Rx"
+       },
+       {
+        "node": 36,
+        "dof": "Ry"
+       },
+       {
+        "node": 37,
+        "dof": "Uz"
+       },
+       {
+        "node": 37,
+        "dof": "Rx"
+       },
+       {
+        "node": 37,
+        "dof": "Ry"
+       },
+       {
+        "node": 38,
+        "dof": "Uz"
+       },
+       {
+        "node": 38,
+        "dof": "Rx"
+       },
+       {
+        "node": 38,
+        "dof": "Ry"
+       },
+       {
+        "node": 39,
+        "dof": "Uz"
+       },
+       {
+        "node": 39,
+        "dof": "Rx"
+       },
+       {
+        "node": 39,
+        "dof": "Ry"
+       },
+       {
+        "node": 40,
+        "dof": "Uz"
+       },
+       {
+        "node": 40,
+        "dof": "Rx"
+       },
+       {
+        "node": 40,
+        "dof": "Ry"
+       },
+       {
+        "node": 41,
+        "dof": "Uz"
+       },
+       {
+        "node": 41,
+        "dof": "Rx"
+       },
+       {
+        "node": 41,
+        "dof": "Ry"
+       },
+       {
+        "node": 42,
+        "dof": "Uz"
+       },
+       {
+        "node": 42,
+        "dof": "Rx"
+       },
+       {
+        "node": 42,
+        "dof": "Ry"
+       },
+       {
+        "node": 43,
+        "dof": "Uz"
+       },
+       {
+        "node": 43,
+        "dof": "Rx"
+       },
+       {
+        "node": 43,
+        "dof": "Ry"
+       },
+       {
+        "node": 44,
+        "dof": "Uz"
+       },
+       {
+        "node": 44,
+        "dof": "Rx"
+       },
+       {
+        "node": 44,
+        "dof": "Ry"
+       },
+       {
+        "node": 45,
+        "dof": "Uz"
+       },
+       {
+        "node": 45,
+        "dof": "Rx"
+       },
+       {
+        "node": 45,
+        "dof": "Ry"
+       },
+       {
+        "node": 46,
+        "dof": "Uz"
+       },
+       {
+        "node": 46,
+        "dof": "Rx"
+       },
+       {
+        "node": 46,
+        "dof": "Ry"
+       },
+       {
+        "node": 47,
+        "dof": "Uz"
+       },
+       {
+        "node": 47,
+        "dof": "Rx"
+       },
+       {
+        "node": 47,
+        "dof": "Ry"
+       },
+       {
+        "node": 48,
+        "dof": "Uz"
+       },
+       {
+        "node": 48,
+        "dof": "Rx"
+       },
+       {
+        "node": 48,
+        "dof": "Ry"
+       },
+       {
+        "node": 49,
+        "dof": "Uz"
+       },
+       {
+        "node": 49,
+        "dof": "Rx"
+       },
+       {
+        "node": 49,
+        "dof": "Ry"
+       },
+       {
+        "node": 50,
+        "dof": "Uz"
+       },
+       {
+        "node": 50,
+        "dof": "Rx"
+       },
+       {
+        "node": 50,
+        "dof": "Ry"
+       },
+       {
+        "node": 51,
+        "dof": "Uz"
+       },
+       {
+        "node": 51,
+        "dof": "Rx"
+       },
+       {
+        "node": 51,
+        "dof": "Ry"
+       },
+       {
+        "node": 52,
+        "dof": "Uz"
+       },
+       {
+        "node": 52,
+        "dof": "Rx"
+       },
+       {
+        "node": 52,
+        "dof": "Ry"
+       },
+       {
+        "node": 53,
+        "dof": "Uz"
+       },
+       {
+        "node": 53,
+        "dof": "Rx"
+       },
+       {
+        "node": 53,
+        "dof": "Ry"
+       },
+       {
+        "node": 54,
+        "dof": "Uz"
+       },
+       {
+        "node": 54,
+        "dof": "Rx"
+       },
+       {
+        "node": 54,
+        "dof": "Ry"
+       },
+       {
+        "node": 55,
+        "dof": "Uz"
+       },
+       {
+        "node": 55,
+        "dof": "Rx"
+       },
+       {
+        "node": 55,
+        "dof": "Ry"
+       },
+       {
+        "node": 56,
+        "dof": "Uz"
+       },
+       {
+        "node": 56,
+        "dof": "Rx"
+       },
+       {
+        "node": 56,
+        "dof": "Ry"
+       },
+       {
+        "node": 57,
+        "dof": "Uz"
+       },
+       {
+        "node": 57,
+        "dof": "Rx"
+       },
+       {
+        "node": 57,
+        "dof": "Ry"
+       },
+       {
+        "node": 58,
+        "dof": "Uz"
+       },
+       {
+        "node": 58,
+        "dof": "Rx"
+       },
+       {
+        "node": 58,
+        "dof": "Ry"
+       },
+       {
+        "node": 59,
+        "dof": "Uz"
+       },
+       {
+        "node": 59,
+        "dof": "Rx"
+       },
+       {
+        "node": 59,
+        "dof": "Ry"
+       },
+       {
+        "node": 60,
+        "dof": "Uz"
+       },
+       {
+        "node": 60,
+        "dof": "Rx"
+       },
+       {
+        "node": 60,
+        "dof": "Ry"
+       },
+       {
+        "node": 61,
+        "dof": "Uz"
+       },
+       {
+        "node": 61,
+        "dof": "Rx"
+       },
+       {
+        "node": 61,
+        "dof": "Ry"
+       },
+       {
+        "node": 62,
+        "dof": "Uz"
+       },
+       {
+        "node": 62,
+        "dof": "Rx"
+       },
+       {
+        "node": 62,
+        "dof": "Ry"
+       },
+       {
+        "node": 63,
+        "dof": "Uz"
+       },
+       {
+        "node": 63,
+        "dof": "Rx"
+       },
+       {
+        "node": 63,
+        "dof": "Ry"
+       },
+       {
+        "node": 64,
+        "dof": "Uz"
+       },
+       {
+        "node": 64,
+        "dof": "Rx"
+       },
+       {
+        "node": 64,
+        "dof": "Ry"
+       },
+       {
+        "node": 65,
+        "dof": "Uz"
+       },
+       {
+        "node": 65,
+        "dof": "Rx"
+       },
+       {
+        "node": 65,
+        "dof": "Ry"
+       },
+       {
+        "node": 66,
+        "dof": "Uz"
+       },
+       {
+        "node": 66,
+        "dof": "Rx"
+       },
+       {
+        "node": 66,
+        "dof": "Ry"
+       },
+       {
+        "node": 67,
+        "dof": "Uz"
+       },
+       {
+        "node": 67,
+        "dof": "Rx"
+       },
+       {
+        "node": 67,
+        "dof": "Ry"
+       },
+       {
+        "node": 68,
+        "dof": "Uz"
+       },
+       {
+        "node": 68,
+        "dof": "Rx"
+       },
+       {
+        "node": 68,
+        "dof": "Ry"
+       },
+       {
+        "node": 69,
+        "dof": "Uz"
+       },
+       {
+        "node": 69,
+        "dof": "Rx"
+       },
+       {
+        "node": 69,
+        "dof": "Ry"
+       },
+       {
+        "node": 70,
+        "dof": "Uz"
+       },
+       {
+        "node": 70,
+        "dof": "Rx"
+       },
+       {
+        "node": 70,
+        "dof": "Ry"
+       },
+       {
+        "node": 71,
+        "dof": "Uz"
+       },
+       {
+        "node": 71,
+        "dof": "Rx"
+       },
+       {
+        "node": 71,
+        "dof": "Ry"
+       },
+       {
+        "node": 72,
+        "dof": "Uz"
+       },
+       {
+        "node": 72,
+        "dof": "Rx"
+       },
+       {
+        "node": 72,
+        "dof": "Ry"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "E2b",
+    "id_bijections": {
+     "nodes": [
+      {
+       "original": 1,
+       "bench": 1
+      },
+      {
+       "original": 2,
+       "bench": 2
+      },
+      {
+       "original": 3,
+       "bench": 3
+      },
+      {
+       "original": 4,
+       "bench": 4
+      },
+      {
+       "original": 5,
+       "bench": 5
+      },
+      {
+       "original": 6,
+       "bench": 6
+      },
+      {
+       "original": 7,
+       "bench": 7
+      },
+      {
+       "original": 8,
+       "bench": 8
+      },
+      {
+       "original": 9,
+       "bench": 9
+      },
+      {
+       "original": 10,
+       "bench": 10
+      },
+      {
+       "original": 11,
+       "bench": 11
+      },
+      {
+       "original": 12,
+       "bench": 12
+      },
+      {
+       "original": 101,
+       "bench": 13
+      },
+      {
+       "original": 102,
+       "bench": 14
+      },
+      {
+       "original": 103,
+       "bench": 15
+      },
+      {
+       "original": 104,
+       "bench": 16
+      },
+      {
+       "original": 105,
+       "bench": 17
+      },
+      {
+       "original": 106,
+       "bench": 18
+      },
+      {
+       "original": 107,
+       "bench": 19
+      },
+      {
+       "original": 108,
+       "bench": 20
+      },
+      {
+       "original": 109,
+       "bench": 21
+      },
+      {
+       "original": 110,
+       "bench": 22
+      },
+      {
+       "original": 111,
+       "bench": 23
+      },
+      {
+       "original": 112,
+       "bench": 24
+      },
+      {
+       "original": 201,
+       "bench": 25
+      },
+      {
+       "original": 202,
+       "bench": 26
+      },
+      {
+       "original": 203,
+       "bench": 27
+      },
+      {
+       "original": 204,
+       "bench": 28
+      },
+      {
+       "original": 205,
+       "bench": 29
+      },
+      {
+       "original": 206,
+       "bench": 30
+      },
+      {
+       "original": 207,
+       "bench": 31
+      },
+      {
+       "original": 208,
+       "bench": 32
+      },
+      {
+       "original": 209,
+       "bench": 33
+      },
+      {
+       "original": 210,
+       "bench": 34
+      },
+      {
+       "original": 211,
+       "bench": 35
+      },
+      {
+       "original": 212,
+       "bench": 36
+      },
+      {
+       "original": 301,
+       "bench": 37
+      },
+      {
+       "original": 302,
+       "bench": 38
+      },
+      {
+       "original": 303,
+       "bench": 39
+      },
+      {
+       "original": 304,
+       "bench": 40
+      },
+      {
+       "original": 305,
+       "bench": 41
+      },
+      {
+       "original": 306,
+       "bench": 42
+      },
+      {
+       "original": 307,
+       "bench": 43
+      },
+      {
+       "original": 308,
+       "bench": 44
+      },
+      {
+       "original": 309,
+       "bench": 45
+      },
+      {
+       "original": 310,
+       "bench": 46
+      },
+      {
+       "original": 311,
+       "bench": 47
+      },
+      {
+       "original": 312,
+       "bench": 48
+      },
+      {
+       "original": 401,
+       "bench": 49
+      },
+      {
+       "original": 402,
+       "bench": 50
+      },
+      {
+       "original": 403,
+       "bench": 51
+      },
+      {
+       "original": 404,
+       "bench": 52
+      },
+      {
+       "original": 405,
+       "bench": 53
+      },
+      {
+       "original": 406,
+       "bench": 54
+      },
+      {
+       "original": 407,
+       "bench": 55
+      },
+      {
+       "original": 408,
+       "bench": 56
+      },
+      {
+       "original": 409,
+       "bench": 57
+      },
+      {
+       "original": 410,
+       "bench": 58
+      },
+      {
+       "original": 411,
+       "bench": 59
+      },
+      {
+       "original": 412,
+       "bench": 60
+      },
+      {
+       "original": 501,
+       "bench": 61
+      },
+      {
+       "original": 502,
+       "bench": 62
+      },
+      {
+       "original": 503,
+       "bench": 63
+      },
+      {
+       "original": 504,
+       "bench": 64
+      },
+      {
+       "original": 505,
+       "bench": 65
+      },
+      {
+       "original": 506,
+       "bench": 66
+      },
+      {
+       "original": 507,
+       "bench": 67
+      },
+      {
+       "original": 508,
+       "bench": 68
+      },
+      {
+       "original": 509,
+       "bench": 69
+      },
+      {
+       "original": 510,
+       "bench": 70
+      },
+      {
+       "original": 511,
+       "bench": 71
+      },
+      {
+       "original": 512,
+       "bench": 72
+      }
+     ],
+     "members": [
+      {
+       "original": 1,
+       "bench": 1
+      },
+      {
+       "original": 2,
+       "bench": 2
+      },
+      {
+       "original": 3,
+       "bench": 3
+      },
+      {
+       "original": 4,
+       "bench": 4
+      },
+      {
+       "original": 5,
+       "bench": 5
+      },
+      {
+       "original": 6,
+       "bench": 6
+      },
+      {
+       "original": 7,
+       "bench": 7
+      },
+      {
+       "original": 8,
+       "bench": 8
+      },
+      {
+       "original": 9,
+       "bench": 9
+      },
+      {
+       "original": 10,
+       "bench": 10
+      },
+      {
+       "original": 11,
+       "bench": 11
+      },
+      {
+       "original": 12,
+       "bench": 12
+      },
+      {
+       "original": 13,
+       "bench": 13
+      },
+      {
+       "original": 14,
+       "bench": 14
+      },
+      {
+       "original": 15,
+       "bench": 15
+      },
+      {
+       "original": 16,
+       "bench": 16
+      },
+      {
+       "original": 17,
+       "bench": 17
+      },
+      {
+       "original": 18,
+       "bench": 18
+      },
+      {
+       "original": 19,
+       "bench": 19
+      },
+      {
+       "original": 20,
+       "bench": 20
+      },
+      {
+       "original": 21,
+       "bench": 21
+      },
+      {
+       "original": 22,
+       "bench": 22
+      },
+      {
+       "original": 23,
+       "bench": 23
+      },
+      {
+       "original": 24,
+       "bench": 24
+      },
+      {
+       "original": 25,
+       "bench": 25
+      },
+      {
+       "original": 26,
+       "bench": 26
+      },
+      {
+       "original": 27,
+       "bench": 27
+      },
+      {
+       "original": 28,
+       "bench": 28
+      },
+      {
+       "original": 29,
+       "bench": 29
+      },
+      {
+       "original": 30,
+       "bench": 30
+      },
+      {
+       "original": 31,
+       "bench": 31
+      },
+      {
+       "original": 32,
+       "bench": 32
+      },
+      {
+       "original": 33,
+       "bench": 33
+      },
+      {
+       "original": 34,
+       "bench": 34
+      },
+      {
+       "original": 35,
+       "bench": 35
+      },
+      {
+       "original": 36,
+       "bench": 36
+      },
+      {
+       "original": 37,
+       "bench": 37
+      },
+      {
+       "original": 38,
+       "bench": 38
+      },
+      {
+       "original": 39,
+       "bench": 39
+      },
+      {
+       "original": 40,
+       "bench": 40
+      },
+      {
+       "original": 41,
+       "bench": 41
+      },
+      {
+       "original": 42,
+       "bench": 42
+      },
+      {
+       "original": 43,
+       "bench": 43
+      },
+      {
+       "original": 44,
+       "bench": 44
+      },
+      {
+       "original": 45,
+       "bench": 45
+      },
+      {
+       "original": 46,
+       "bench": 46
+      },
+      {
+       "original": 47,
+       "bench": 47
+      },
+      {
+       "original": 48,
+       "bench": 48
+      },
+      {
+       "original": 49,
+       "bench": 49
+      },
+      {
+       "original": 50,
+       "bench": 50
+      },
+      {
+       "original": 51,
+       "bench": 51
+      },
+      {
+       "original": 52,
+       "bench": 52
+      },
+      {
+       "original": 53,
+       "bench": 53
+      },
+      {
+       "original": 54,
+       "bench": 54
+      },
+      {
+       "original": 55,
+       "bench": 55
+      },
+      {
+       "original": 56,
+       "bench": 56
+      },
+      {
+       "original": 57,
+       "bench": 57
+      },
+      {
+       "original": 58,
+       "bench": 58
+      },
+      {
+       "original": 59,
+       "bench": 59
+      },
+      {
+       "original": 60,
+       "bench": 60
+      },
+      {
+       "original": 61,
+       "bench": 61
+      },
+      {
+       "original": 62,
+       "bench": 62
+      },
+      {
+       "original": 63,
+       "bench": 63
+      },
+      {
+       "original": 64,
+       "bench": 64
+      },
+      {
+       "original": 65,
+       "bench": 65
+      },
+      {
+       "original": 66,
+       "bench": 66
+      },
+      {
+       "original": 67,
+       "bench": 67
+      },
+      {
+       "original": 68,
+       "bench": 68
+      },
+      {
+       "original": 69,
+       "bench": 69
+      },
+      {
+       "original": 70,
+       "bench": 70
+      },
+      {
+       "original": 71,
+       "bench": 71
+      },
+      {
+       "original": 72,
+       "bench": 72
+      },
+      {
+       "original": 73,
+       "bench": 73
+      },
+      {
+       "original": 74,
+       "bench": 74
+      },
+      {
+       "original": 75,
+       "bench": 75
+      },
+      {
+       "original": 76,
+       "bench": 76
+      },
+      {
+       "original": 77,
+       "bench": 77
+      },
+      {
+       "original": 78,
+       "bench": 78
+      },
+      {
+       "original": 79,
+       "bench": 79
+      },
+      {
+       "original": 80,
+       "bench": 80
+      },
+      {
+       "original": 81,
+       "bench": 81
+      },
+      {
+       "original": 82,
+       "bench": 82
+      },
+      {
+       "original": 83,
+       "bench": 83
+      },
+      {
+       "original": 84,
+       "bench": 84
+      },
+      {
+       "original": 85,
+       "bench": 85
+      },
+      {
+       "original": 86,
+       "bench": 86
+      },
+      {
+       "original": 87,
+       "bench": 87
+      },
+      {
+       "original": 88,
+       "bench": 88
+      },
+      {
+       "original": 89,
+       "bench": 89
+      },
+      {
+       "original": 90,
+       "bench": 90
+      },
+      {
+       "original": 91,
+       "bench": 91
+      },
+      {
+       "original": 92,
+       "bench": 92
+      },
+      {
+       "original": 93,
+       "bench": 93
+      },
+      {
+       "original": 94,
+       "bench": 94
+      },
+      {
+       "original": 95,
+       "bench": 95
+      },
+      {
+       "original": 96,
+       "bench": 96
+      },
+      {
+       "original": 97,
+       "bench": 97
+      },
+      {
+       "original": 98,
+       "bench": 98
+      },
+      {
+       "original": 99,
+       "bench": 99
+      },
+      {
+       "original": 100,
+       "bench": 100
+      },
+      {
+       "original": 101,
+       "bench": 101
+      },
+      {
+       "original": 102,
+       "bench": 102
+      },
+      {
+       "original": 103,
+       "bench": 103
+      },
+      {
+       "original": 104,
+       "bench": 104
+      },
+      {
+       "original": 105,
+       "bench": 105
+      },
+      {
+       "original": 106,
+       "bench": 106
+      },
+      {
+       "original": 107,
+       "bench": 107
+      },
+      {
+       "original": 108,
+       "bench": 108
+      },
+      {
+       "original": 109,
+       "bench": 109
+      },
+      {
+       "original": 110,
+       "bench": 110
+      },
+      {
+       "original": 111,
+       "bench": 111
+      },
+      {
+       "original": 112,
+       "bench": 112
+      },
+      {
+       "original": 113,
+       "bench": 113
+      },
+      {
+       "original": 114,
+       "bench": 114
+      },
+      {
+       "original": 115,
+       "bench": 115
+      },
+      {
+       "original": 116,
+       "bench": 116
+      },
+      {
+       "original": 117,
+       "bench": 117
+      },
+      {
+       "original": 118,
+       "bench": 118
+      },
+      {
+       "original": 119,
+       "bench": 119
+      },
+      {
+       "original": 120,
+       "bench": 120
+      },
+      {
+       "original": 121,
+       "bench": 121
+      },
+      {
+       "original": 122,
+       "bench": 122
+      },
+      {
+       "original": 123,
+       "bench": 123
+      },
+      {
+       "original": 124,
+       "bench": 124
+      },
+      {
+       "original": 125,
+       "bench": 125
+      },
+      {
+       "original": 126,
+       "bench": 126
+      },
+      {
+       "original": 127,
+       "bench": 127
+      },
+      {
+       "original": 128,
+       "bench": 128
+      },
+      {
+       "original": 129,
+       "bench": 129
+      },
+      {
+       "original": 130,
+       "bench": 130
+      },
+      {
+       "original": 131,
+       "bench": 131
+      },
+      {
+       "original": 132,
+       "bench": 132
+      },
+      {
+       "original": 133,
+       "bench": 133
+      },
+      {
+       "original": 134,
+       "bench": 134
+      },
+      {
+       "original": 135,
+       "bench": 135
+      },
+      {
+       "original": 136,
+       "bench": 136
+      },
+      {
+       "original": 137,
+       "bench": 137
+      },
+      {
+       "original": 138,
+       "bench": 138
+      },
+      {
+       "original": 139,
+       "bench": 139
+      },
+      {
+       "original": 140,
+       "bench": 140
+      },
+      {
+       "original": 141,
+       "bench": 141
+      },
+      {
+       "original": 142,
+       "bench": 142
+      },
+      {
+       "original": 143,
+       "bench": 143
+      },
+      {
+       "original": 144,
+       "bench": 144
+      },
+      {
+       "original": 145,
+       "bench": 145
+      }
+     ],
+     "sections": [
+      {
+       "original": "columna",
+       "bench": "columna"
+      },
+      {
+       "original": "viga",
+       "bench": "viga"
+      }
+     ],
+     "laws": [
+      {
+       "original": "hormigon",
+       "bench": "elastic-columna"
+      }
+     ],
+     "supports": [
+      {
+       "original": "base_1",
+       "bench": "support-1"
+      },
+      {
+       "original": "base_2",
+       "bench": "support-2"
+      },
+      {
+       "original": "base_3",
+       "bench": "support-3"
+      },
+      {
+       "original": "base_4",
+       "bench": "support-4"
+      },
+      {
+       "original": "base_5",
+       "bench": "support-5"
+      },
+      {
+       "original": "base_6",
+       "bench": "support-6"
+      },
+      {
+       "original": "base_7",
+       "bench": "support-7"
+      },
+      {
+       "original": "base_8",
+       "bench": "support-8"
+      },
+      {
+       "original": "base_9",
+       "bench": "support-9"
+      },
+      {
+       "original": "base_10",
+       "bench": "support-10"
+      },
+      {
+       "original": "base_11",
+       "bench": "support-11"
+      },
+      {
+       "original": "base_12",
+       "bench": "support-12"
+      }
+     ],
+     "masses": [
+      {
+       "original": "piso_1_nodo_106",
+       "bench": "mass-18"
+      },
+      {
+       "original": "piso_1_nodo_107",
+       "bench": "mass-19"
+      },
+      {
+       "original": "piso_1_nodo_110",
+       "bench": "mass-22"
+      },
+      {
+       "original": "piso_1_nodo_111",
+       "bench": "mass-23"
+      },
+      {
+       "original": "piso_2_nodo_206",
+       "bench": "mass-30"
+      },
+      {
+       "original": "piso_2_nodo_207",
+       "bench": "mass-31"
+      },
+      {
+       "original": "piso_2_nodo_210",
+       "bench": "mass-34"
+      },
+      {
+       "original": "piso_2_nodo_211",
+       "bench": "mass-35"
+      },
+      {
+       "original": "piso_3_nodo_306",
+       "bench": "mass-42"
+      },
+      {
+       "original": "piso_3_nodo_307",
+       "bench": "mass-43"
+      },
+      {
+       "original": "piso_3_nodo_310",
+       "bench": "mass-46"
+      },
+      {
+       "original": "piso_3_nodo_311",
+       "bench": "mass-47"
+      },
+      {
+       "original": "piso_4_nodo_406",
+       "bench": "mass-54"
+      },
+      {
+       "original": "piso_4_nodo_407",
+       "bench": "mass-55"
+      },
+      {
+       "original": "piso_4_nodo_410",
+       "bench": "mass-58"
+      },
+      {
+       "original": "piso_4_nodo_411",
+       "bench": "mass-59"
+      },
+      {
+       "original": "piso_5_nodo_506",
+       "bench": "mass-66"
+      },
+      {
+       "original": "piso_5_nodo_507",
+       "bench": "mass-67"
+      },
+      {
+       "original": "piso_5_nodo_510",
+       "bench": "mass-70"
+      },
+      {
+       "original": "piso_5_nodo_511",
+       "bench": "mass-71"
+      }
+     ],
+     "cases": [],
+     "combinations": []
+    },
+    "runs": [
+     {
+      "run": "E2b-cqc-X",
+      "method": "responseSpectrum",
+      "variant": "E2b-cqc-X"
+     },
+     {
+      "run": "E2b-cqc-Y",
+      "method": "responseSpectrum",
+      "variant": "E2b-cqc-Y"
+     },
+     {
+      "run": "E2b-cqc-XY-srss",
+      "method": "responseSpectrum",
+      "variant": "E2b-cqc-XY-srss"
+     }
+    ],
+    "exact_translation": true,
+    "engine_limits": "incompatible",
+    "engine_gaps": [
+     {
+      "codigo": "ENG-E-0006",
+      "referencia": "Engine: masa modal positiva por gdl libre",
+      "detalle": "180 gdl libres sin masa positiva: Uz/Rx/Ry de los 60 nodos de piso (55 esclavos y 5 maestros). nodal_masses conserva el reparto exacto Ux/Uy y Rz_extra. El Engine no condensa GDL sin masa; seguimiento MAM-847, issue del Engine pendiente de abrir. Añadir masa o restringir esos gdl cambiaría la física; apoyar esclavos además viola ENG-E-0013. El esquema sí permite el modelo.",
+      "gdl_sin_masa": [
+       {
+        "node": 13,
+        "dof": "Uz"
+       },
+       {
+        "node": 13,
+        "dof": "Rx"
+       },
+       {
+        "node": 13,
+        "dof": "Ry"
+       },
+       {
+        "node": 14,
+        "dof": "Uz"
+       },
+       {
+        "node": 14,
+        "dof": "Rx"
+       },
+       {
+        "node": 14,
+        "dof": "Ry"
+       },
+       {
+        "node": 15,
+        "dof": "Uz"
+       },
+       {
+        "node": 15,
+        "dof": "Rx"
+       },
+       {
+        "node": 15,
+        "dof": "Ry"
+       },
+       {
+        "node": 16,
+        "dof": "Uz"
+       },
+       {
+        "node": 16,
+        "dof": "Rx"
+       },
+       {
+        "node": 16,
+        "dof": "Ry"
+       },
+       {
+        "node": 17,
+        "dof": "Uz"
+       },
+       {
+        "node": 17,
+        "dof": "Rx"
+       },
+       {
+        "node": 17,
+        "dof": "Ry"
+       },
+       {
+        "node": 18,
+        "dof": "Uz"
+       },
+       {
+        "node": 18,
+        "dof": "Rx"
+       },
+       {
+        "node": 18,
+        "dof": "Ry"
+       },
+       {
+        "node": 19,
+        "dof": "Uz"
+       },
+       {
+        "node": 19,
+        "dof": "Rx"
+       },
+       {
+        "node": 19,
+        "dof": "Ry"
+       },
+       {
+        "node": 20,
+        "dof": "Uz"
+       },
+       {
+        "node": 20,
+        "dof": "Rx"
+       },
+       {
+        "node": 20,
+        "dof": "Ry"
+       },
+       {
+        "node": 21,
+        "dof": "Uz"
+       },
+       {
+        "node": 21,
+        "dof": "Rx"
+       },
+       {
+        "node": 21,
+        "dof": "Ry"
+       },
+       {
+        "node": 22,
+        "dof": "Uz"
+       },
+       {
+        "node": 22,
+        "dof": "Rx"
+       },
+       {
+        "node": 22,
+        "dof": "Ry"
+       },
+       {
+        "node": 23,
+        "dof": "Uz"
+       },
+       {
+        "node": 23,
+        "dof": "Rx"
+       },
+       {
+        "node": 23,
+        "dof": "Ry"
+       },
+       {
+        "node": 24,
+        "dof": "Uz"
+       },
+       {
+        "node": 24,
+        "dof": "Rx"
+       },
+       {
+        "node": 24,
+        "dof": "Ry"
+       },
+       {
+        "node": 25,
+        "dof": "Uz"
+       },
+       {
+        "node": 25,
+        "dof": "Rx"
+       },
+       {
+        "node": 25,
+        "dof": "Ry"
+       },
+       {
+        "node": 26,
+        "dof": "Uz"
+       },
+       {
+        "node": 26,
+        "dof": "Rx"
+       },
+       {
+        "node": 26,
+        "dof": "Ry"
+       },
+       {
+        "node": 27,
+        "dof": "Uz"
+       },
+       {
+        "node": 27,
+        "dof": "Rx"
+       },
+       {
+        "node": 27,
+        "dof": "Ry"
+       },
+       {
+        "node": 28,
+        "dof": "Uz"
+       },
+       {
+        "node": 28,
+        "dof": "Rx"
+       },
+       {
+        "node": 28,
+        "dof": "Ry"
+       },
+       {
+        "node": 29,
+        "dof": "Uz"
+       },
+       {
+        "node": 29,
+        "dof": "Rx"
+       },
+       {
+        "node": 29,
+        "dof": "Ry"
+       },
+       {
+        "node": 30,
+        "dof": "Uz"
+       },
+       {
+        "node": 30,
+        "dof": "Rx"
+       },
+       {
+        "node": 30,
+        "dof": "Ry"
+       },
+       {
+        "node": 31,
+        "dof": "Uz"
+       },
+       {
+        "node": 31,
+        "dof": "Rx"
+       },
+       {
+        "node": 31,
+        "dof": "Ry"
+       },
+       {
+        "node": 32,
+        "dof": "Uz"
+       },
+       {
+        "node": 32,
+        "dof": "Rx"
+       },
+       {
+        "node": 32,
+        "dof": "Ry"
+       },
+       {
+        "node": 33,
+        "dof": "Uz"
+       },
+       {
+        "node": 33,
+        "dof": "Rx"
+       },
+       {
+        "node": 33,
+        "dof": "Ry"
+       },
+       {
+        "node": 34,
+        "dof": "Uz"
+       },
+       {
+        "node": 34,
+        "dof": "Rx"
+       },
+       {
+        "node": 34,
+        "dof": "Ry"
+       },
+       {
+        "node": 35,
+        "dof": "Uz"
+       },
+       {
+        "node": 35,
+        "dof": "Rx"
+       },
+       {
+        "node": 35,
+        "dof": "Ry"
+       },
+       {
+        "node": 36,
+        "dof": "Uz"
+       },
+       {
+        "node": 36,
+        "dof": "Rx"
+       },
+       {
+        "node": 36,
+        "dof": "Ry"
+       },
+       {
+        "node": 37,
+        "dof": "Uz"
+       },
+       {
+        "node": 37,
+        "dof": "Rx"
+       },
+       {
+        "node": 37,
+        "dof": "Ry"
+       },
+       {
+        "node": 38,
+        "dof": "Uz"
+       },
+       {
+        "node": 38,
+        "dof": "Rx"
+       },
+       {
+        "node": 38,
+        "dof": "Ry"
+       },
+       {
+        "node": 39,
+        "dof": "Uz"
+       },
+       {
+        "node": 39,
+        "dof": "Rx"
+       },
+       {
+        "node": 39,
+        "dof": "Ry"
+       },
+       {
+        "node": 40,
+        "dof": "Uz"
+       },
+       {
+        "node": 40,
+        "dof": "Rx"
+       },
+       {
+        "node": 40,
+        "dof": "Ry"
+       },
+       {
+        "node": 41,
+        "dof": "Uz"
+       },
+       {
+        "node": 41,
+        "dof": "Rx"
+       },
+       {
+        "node": 41,
+        "dof": "Ry"
+       },
+       {
+        "node": 42,
+        "dof": "Uz"
+       },
+       {
+        "node": 42,
+        "dof": "Rx"
+       },
+       {
+        "node": 42,
+        "dof": "Ry"
+       },
+       {
+        "node": 43,
+        "dof": "Uz"
+       },
+       {
+        "node": 43,
+        "dof": "Rx"
+       },
+       {
+        "node": 43,
+        "dof": "Ry"
+       },
+       {
+        "node": 44,
+        "dof": "Uz"
+       },
+       {
+        "node": 44,
+        "dof": "Rx"
+       },
+       {
+        "node": 44,
+        "dof": "Ry"
+       },
+       {
+        "node": 45,
+        "dof": "Uz"
+       },
+       {
+        "node": 45,
+        "dof": "Rx"
+       },
+       {
+        "node": 45,
+        "dof": "Ry"
+       },
+       {
+        "node": 46,
+        "dof": "Uz"
+       },
+       {
+        "node": 46,
+        "dof": "Rx"
+       },
+       {
+        "node": 46,
+        "dof": "Ry"
+       },
+       {
+        "node": 47,
+        "dof": "Uz"
+       },
+       {
+        "node": 47,
+        "dof": "Rx"
+       },
+       {
+        "node": 47,
+        "dof": "Ry"
+       },
+       {
+        "node": 48,
+        "dof": "Uz"
+       },
+       {
+        "node": 48,
+        "dof": "Rx"
+       },
+       {
+        "node": 48,
+        "dof": "Ry"
+       },
+       {
+        "node": 49,
+        "dof": "Uz"
+       },
+       {
+        "node": 49,
+        "dof": "Rx"
+       },
+       {
+        "node": 49,
+        "dof": "Ry"
+       },
+       {
+        "node": 50,
+        "dof": "Uz"
+       },
+       {
+        "node": 50,
+        "dof": "Rx"
+       },
+       {
+        "node": 50,
+        "dof": "Ry"
+       },
+       {
+        "node": 51,
+        "dof": "Uz"
+       },
+       {
+        "node": 51,
+        "dof": "Rx"
+       },
+       {
+        "node": 51,
+        "dof": "Ry"
+       },
+       {
+        "node": 52,
+        "dof": "Uz"
+       },
+       {
+        "node": 52,
+        "dof": "Rx"
+       },
+       {
+        "node": 52,
+        "dof": "Ry"
+       },
+       {
+        "node": 53,
+        "dof": "Uz"
+       },
+       {
+        "node": 53,
+        "dof": "Rx"
+       },
+       {
+        "node": 53,
+        "dof": "Ry"
+       },
+       {
+        "node": 54,
+        "dof": "Uz"
+       },
+       {
+        "node": 54,
+        "dof": "Rx"
+       },
+       {
+        "node": 54,
+        "dof": "Ry"
+       },
+       {
+        "node": 55,
+        "dof": "Uz"
+       },
+       {
+        "node": 55,
+        "dof": "Rx"
+       },
+       {
+        "node": 55,
+        "dof": "Ry"
+       },
+       {
+        "node": 56,
+        "dof": "Uz"
+       },
+       {
+        "node": 56,
+        "dof": "Rx"
+       },
+       {
+        "node": 56,
+        "dof": "Ry"
+       },
+       {
+        "node": 57,
+        "dof": "Uz"
+       },
+       {
+        "node": 57,
+        "dof": "Rx"
+       },
+       {
+        "node": 57,
+        "dof": "Ry"
+       },
+       {
+        "node": 58,
+        "dof": "Uz"
+       },
+       {
+        "node": 58,
+        "dof": "Rx"
+       },
+       {
+        "node": 58,
+        "dof": "Ry"
+       },
+       {
+        "node": 59,
+        "dof": "Uz"
+       },
+       {
+        "node": 59,
+        "dof": "Rx"
+       },
+       {
+        "node": 59,
+        "dof": "Ry"
+       },
+       {
+        "node": 60,
+        "dof": "Uz"
+       },
+       {
+        "node": 60,
+        "dof": "Rx"
+       },
+       {
+        "node": 60,
+        "dof": "Ry"
+       },
+       {
+        "node": 61,
+        "dof": "Uz"
+       },
+       {
+        "node": 61,
+        "dof": "Rx"
+       },
+       {
+        "node": 61,
+        "dof": "Ry"
+       },
+       {
+        "node": 62,
+        "dof": "Uz"
+       },
+       {
+        "node": 62,
+        "dof": "Rx"
+       },
+       {
+        "node": 62,
+        "dof": "Ry"
+       },
+       {
+        "node": 63,
+        "dof": "Uz"
+       },
+       {
+        "node": 63,
+        "dof": "Rx"
+       },
+       {
+        "node": 63,
+        "dof": "Ry"
+       },
+       {
+        "node": 64,
+        "dof": "Uz"
+       },
+       {
+        "node": 64,
+        "dof": "Rx"
+       },
+       {
+        "node": 64,
+        "dof": "Ry"
+       },
+       {
+        "node": 65,
+        "dof": "Uz"
+       },
+       {
+        "node": 65,
+        "dof": "Rx"
+       },
+       {
+        "node": 65,
+        "dof": "Ry"
+       },
+       {
+        "node": 66,
+        "dof": "Uz"
+       },
+       {
+        "node": 66,
+        "dof": "Rx"
+       },
+       {
+        "node": 66,
+        "dof": "Ry"
+       },
+       {
+        "node": 67,
+        "dof": "Uz"
+       },
+       {
+        "node": 67,
+        "dof": "Rx"
+       },
+       {
+        "node": 67,
+        "dof": "Ry"
+       },
+       {
+        "node": 68,
+        "dof": "Uz"
+       },
+       {
+        "node": 68,
+        "dof": "Rx"
+       },
+       {
+        "node": 68,
+        "dof": "Ry"
+       },
+       {
+        "node": 69,
+        "dof": "Uz"
+       },
+       {
+        "node": 69,
+        "dof": "Rx"
+       },
+       {
+        "node": 69,
+        "dof": "Ry"
+       },
+       {
+        "node": 70,
+        "dof": "Uz"
+       },
+       {
+        "node": 70,
+        "dof": "Rx"
+       },
+       {
+        "node": 70,
+        "dof": "Ry"
+       },
+       {
+        "node": 71,
+        "dof": "Uz"
+       },
+       {
+        "node": 71,
+        "dof": "Rx"
+       },
+       {
+        "node": 71,
+        "dof": "Ry"
+       },
+       {
+        "node": 72,
+        "dof": "Uz"
+       },
+       {
+        "node": 72,
+        "dof": "Rx"
+       },
+       {
+        "node": 72,
+        "dof": "Ry"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "E3",
+    "id_bijections": {
+     "nodes": [
+      {
+       "original": 1,
+       "bench": 1
+      },
+      {
+       "original": 2,
+       "bench": 2
+      },
+      {
+       "original": 3,
+       "bench": 3
+      },
+      {
+       "original": 4,
+       "bench": 4
+      },
+      {
+       "original": 5,
+       "bench": 5
+      },
+      {
+       "original": 6,
+       "bench": 6
+      },
+      {
+       "original": 7,
+       "bench": 7
+      },
+      {
+       "original": 8,
+       "bench": 8
+      },
+      {
+       "original": 9,
+       "bench": 9
+      },
+      {
+       "original": 10,
+       "bench": 10
+      },
+      {
+       "original": 11,
+       "bench": 11
+      },
+      {
+       "original": 12,
+       "bench": 12
+      },
+      {
+       "original": 101,
+       "bench": 13
+      },
+      {
+       "original": 102,
+       "bench": 14
+      },
+      {
+       "original": 103,
+       "bench": 15
+      },
+      {
+       "original": 104,
+       "bench": 16
+      },
+      {
+       "original": 105,
+       "bench": 17
+      },
+      {
+       "original": 106,
+       "bench": 18
+      },
+      {
+       "original": 107,
+       "bench": 19
+      },
+      {
+       "original": 108,
+       "bench": 20
+      },
+      {
+       "original": 109,
+       "bench": 21
+      },
+      {
+       "original": 110,
+       "bench": 22
+      },
+      {
+       "original": 111,
+       "bench": 23
+      },
+      {
+       "original": 112,
+       "bench": 24
+      },
+      {
+       "original": 201,
+       "bench": 25
+      },
+      {
+       "original": 202,
+       "bench": 26
+      },
+      {
+       "original": 203,
+       "bench": 27
+      },
+      {
+       "original": 204,
+       "bench": 28
+      },
+      {
+       "original": 205,
+       "bench": 29
+      },
+      {
+       "original": 206,
+       "bench": 30
+      },
+      {
+       "original": 207,
+       "bench": 31
+      },
+      {
+       "original": 208,
+       "bench": 32
+      },
+      {
+       "original": 209,
+       "bench": 33
+      },
+      {
+       "original": 210,
+       "bench": 34
+      },
+      {
+       "original": 211,
+       "bench": 35
+      },
+      {
+       "original": 212,
+       "bench": 36
+      },
+      {
+       "original": 301,
+       "bench": 37
+      },
+      {
+       "original": 302,
+       "bench": 38
+      },
+      {
+       "original": 303,
+       "bench": 39
+      },
+      {
+       "original": 304,
+       "bench": 40
+      },
+      {
+       "original": 305,
+       "bench": 41
+      },
+      {
+       "original": 306,
+       "bench": 42
+      },
+      {
+       "original": 307,
+       "bench": 43
+      },
+      {
+       "original": 308,
+       "bench": 44
+      },
+      {
+       "original": 309,
+       "bench": 45
+      },
+      {
+       "original": 310,
+       "bench": 46
+      },
+      {
+       "original": 311,
+       "bench": 47
+      },
+      {
+       "original": 312,
+       "bench": 48
+      },
+      {
+       "original": 401,
+       "bench": 49
+      },
+      {
+       "original": 402,
+       "bench": 50
+      },
+      {
+       "original": 403,
+       "bench": 51
+      },
+      {
+       "original": 404,
+       "bench": 52
+      },
+      {
+       "original": 405,
+       "bench": 53
+      },
+      {
+       "original": 406,
+       "bench": 54
+      },
+      {
+       "original": 407,
+       "bench": 55
+      },
+      {
+       "original": 408,
+       "bench": 56
+      },
+      {
+       "original": 409,
+       "bench": 57
+      },
+      {
+       "original": 410,
+       "bench": 58
+      },
+      {
+       "original": 411,
+       "bench": 59
+      },
+      {
+       "original": 412,
+       "bench": 60
+      },
+      {
+       "original": 501,
+       "bench": 61
+      },
+      {
+       "original": 502,
+       "bench": 62
+      },
+      {
+       "original": 503,
+       "bench": 63
+      },
+      {
+       "original": 504,
+       "bench": 64
+      },
+      {
+       "original": 505,
+       "bench": 65
+      },
+      {
+       "original": 506,
+       "bench": 66
+      },
+      {
+       "original": 507,
+       "bench": 67
+      },
+      {
+       "original": 508,
+       "bench": 68
+      },
+      {
+       "original": 509,
+       "bench": 69
+      },
+      {
+       "original": 510,
+       "bench": 70
+      },
+      {
+       "original": 511,
+       "bench": 71
+      },
+      {
+       "original": 512,
+       "bench": 72
+      }
+     ],
+     "members": [
+      {
+       "original": 1,
+       "bench": 1
+      },
+      {
+       "original": 2,
+       "bench": 2
+      },
+      {
+       "original": 3,
+       "bench": 3
+      },
+      {
+       "original": 4,
+       "bench": 4
+      },
+      {
+       "original": 5,
+       "bench": 5
+      },
+      {
+       "original": 6,
+       "bench": 6
+      },
+      {
+       "original": 7,
+       "bench": 7
+      },
+      {
+       "original": 8,
+       "bench": 8
+      },
+      {
+       "original": 9,
+       "bench": 9
+      },
+      {
+       "original": 10,
+       "bench": 10
+      },
+      {
+       "original": 11,
+       "bench": 11
+      },
+      {
+       "original": 12,
+       "bench": 12
+      },
+      {
+       "original": 13,
+       "bench": 13
+      },
+      {
+       "original": 14,
+       "bench": 14
+      },
+      {
+       "original": 15,
+       "bench": 15
+      },
+      {
+       "original": 16,
+       "bench": 16
+      },
+      {
+       "original": 17,
+       "bench": 17
+      },
+      {
+       "original": 18,
+       "bench": 18
+      },
+      {
+       "original": 19,
+       "bench": 19
+      },
+      {
+       "original": 20,
+       "bench": 20
+      },
+      {
+       "original": 21,
+       "bench": 21
+      },
+      {
+       "original": 22,
+       "bench": 22
+      },
+      {
+       "original": 23,
+       "bench": 23
+      },
+      {
+       "original": 24,
+       "bench": 24
+      },
+      {
+       "original": 25,
+       "bench": 25
+      },
+      {
+       "original": 26,
+       "bench": 26
+      },
+      {
+       "original": 27,
+       "bench": 27
+      },
+      {
+       "original": 28,
+       "bench": 28
+      },
+      {
+       "original": 29,
+       "bench": 29
+      },
+      {
+       "original": 30,
+       "bench": 30
+      },
+      {
+       "original": 31,
+       "bench": 31
+      },
+      {
+       "original": 32,
+       "bench": 32
+      },
+      {
+       "original": 33,
+       "bench": 33
+      },
+      {
+       "original": 34,
+       "bench": 34
+      },
+      {
+       "original": 35,
+       "bench": 35
+      },
+      {
+       "original": 36,
+       "bench": 36
+      },
+      {
+       "original": 37,
+       "bench": 37
+      },
+      {
+       "original": 38,
+       "bench": 38
+      },
+      {
+       "original": 39,
+       "bench": 39
+      },
+      {
+       "original": 40,
+       "bench": 40
+      },
+      {
+       "original": 41,
+       "bench": 41
+      },
+      {
+       "original": 42,
+       "bench": 42
+      },
+      {
+       "original": 43,
+       "bench": 43
+      },
+      {
+       "original": 44,
+       "bench": 44
+      },
+      {
+       "original": 45,
+       "bench": 45
+      },
+      {
+       "original": 46,
+       "bench": 46
+      },
+      {
+       "original": 47,
+       "bench": 47
+      },
+      {
+       "original": 48,
+       "bench": 48
+      },
+      {
+       "original": 49,
+       "bench": 49
+      },
+      {
+       "original": 50,
+       "bench": 50
+      },
+      {
+       "original": 51,
+       "bench": 51
+      },
+      {
+       "original": 52,
+       "bench": 52
+      },
+      {
+       "original": 53,
+       "bench": 53
+      },
+      {
+       "original": 54,
+       "bench": 54
+      },
+      {
+       "original": 55,
+       "bench": 55
+      },
+      {
+       "original": 56,
+       "bench": 56
+      },
+      {
+       "original": 57,
+       "bench": 57
+      },
+      {
+       "original": 58,
+       "bench": 58
+      },
+      {
+       "original": 59,
+       "bench": 59
+      },
+      {
+       "original": 60,
+       "bench": 60
+      },
+      {
+       "original": 61,
+       "bench": 61
+      },
+      {
+       "original": 62,
+       "bench": 62
+      },
+      {
+       "original": 63,
+       "bench": 63
+      },
+      {
+       "original": 64,
+       "bench": 64
+      },
+      {
+       "original": 65,
+       "bench": 65
+      },
+      {
+       "original": 66,
+       "bench": 66
+      },
+      {
+       "original": 67,
+       "bench": 67
+      },
+      {
+       "original": 68,
+       "bench": 68
+      },
+      {
+       "original": 69,
+       "bench": 69
+      },
+      {
+       "original": 70,
+       "bench": 70
+      },
+      {
+       "original": 71,
+       "bench": 71
+      },
+      {
+       "original": 72,
+       "bench": 72
+      },
+      {
+       "original": 73,
+       "bench": 73
+      },
+      {
+       "original": 74,
+       "bench": 74
+      },
+      {
+       "original": 75,
+       "bench": 75
+      },
+      {
+       "original": 76,
+       "bench": 76
+      },
+      {
+       "original": 77,
+       "bench": 77
+      },
+      {
+       "original": 78,
+       "bench": 78
+      },
+      {
+       "original": 79,
+       "bench": 79
+      },
+      {
+       "original": 80,
+       "bench": 80
+      },
+      {
+       "original": 81,
+       "bench": 81
+      },
+      {
+       "original": 82,
+       "bench": 82
+      },
+      {
+       "original": 83,
+       "bench": 83
+      },
+      {
+       "original": 84,
+       "bench": 84
+      },
+      {
+       "original": 85,
+       "bench": 85
+      },
+      {
+       "original": 86,
+       "bench": 86
+      },
+      {
+       "original": 87,
+       "bench": 87
+      },
+      {
+       "original": 88,
+       "bench": 88
+      },
+      {
+       "original": 89,
+       "bench": 89
+      },
+      {
+       "original": 90,
+       "bench": 90
+      },
+      {
+       "original": 91,
+       "bench": 91
+      },
+      {
+       "original": 92,
+       "bench": 92
+      },
+      {
+       "original": 93,
+       "bench": 93
+      },
+      {
+       "original": 94,
+       "bench": 94
+      },
+      {
+       "original": 95,
+       "bench": 95
+      },
+      {
+       "original": 96,
+       "bench": 96
+      },
+      {
+       "original": 97,
+       "bench": 97
+      },
+      {
+       "original": 98,
+       "bench": 98
+      },
+      {
+       "original": 99,
+       "bench": 99
+      },
+      {
+       "original": 100,
+       "bench": 100
+      },
+      {
+       "original": 101,
+       "bench": 101
+      },
+      {
+       "original": 102,
+       "bench": 102
+      },
+      {
+       "original": 103,
+       "bench": 103
+      },
+      {
+       "original": 104,
+       "bench": 104
+      },
+      {
+       "original": 105,
+       "bench": 105
+      },
+      {
+       "original": 106,
+       "bench": 106
+      },
+      {
+       "original": 107,
+       "bench": 107
+      },
+      {
+       "original": 108,
+       "bench": 108
+      },
+      {
+       "original": 109,
+       "bench": 109
+      },
+      {
+       "original": 110,
+       "bench": 110
+      },
+      {
+       "original": 111,
+       "bench": 111
+      },
+      {
+       "original": 112,
+       "bench": 112
+      },
+      {
+       "original": 113,
+       "bench": 113
+      },
+      {
+       "original": 114,
+       "bench": 114
+      },
+      {
+       "original": 115,
+       "bench": 115
+      },
+      {
+       "original": 116,
+       "bench": 116
+      },
+      {
+       "original": 117,
+       "bench": 117
+      },
+      {
+       "original": 118,
+       "bench": 118
+      },
+      {
+       "original": 119,
+       "bench": 119
+      },
+      {
+       "original": 120,
+       "bench": 120
+      },
+      {
+       "original": 121,
+       "bench": 121
+      },
+      {
+       "original": 122,
+       "bench": 122
+      },
+      {
+       "original": 123,
+       "bench": 123
+      },
+      {
+       "original": 124,
+       "bench": 124
+      },
+      {
+       "original": 125,
+       "bench": 125
+      },
+      {
+       "original": 126,
+       "bench": 126
+      },
+      {
+       "original": 127,
+       "bench": 127
+      },
+      {
+       "original": 128,
+       "bench": 128
+      },
+      {
+       "original": 129,
+       "bench": 129
+      },
+      {
+       "original": 130,
+       "bench": 130
+      },
+      {
+       "original": 131,
+       "bench": 131
+      },
+      {
+       "original": 132,
+       "bench": 132
+      },
+      {
+       "original": 133,
+       "bench": 133
+      },
+      {
+       "original": 134,
+       "bench": 134
+      },
+      {
+       "original": 135,
+       "bench": 135
+      },
+      {
+       "original": 136,
+       "bench": 136
+      },
+      {
+       "original": 137,
+       "bench": 137
+      },
+      {
+       "original": 138,
+       "bench": 138
+      },
+      {
+       "original": 139,
+       "bench": 139
+      },
+      {
+       "original": 140,
+       "bench": 140
+      },
+      {
+       "original": 141,
+       "bench": 141
+      },
+      {
+       "original": 142,
+       "bench": 142
+      },
+      {
+       "original": 143,
+       "bench": 143
+      },
+      {
+       "original": 144,
+       "bench": 144
+      },
+      {
+       "original": 145,
+       "bench": 145
+      }
+     ],
+     "sections": [
+      {
+       "original": "columna",
+       "bench": "columna"
+      },
+      {
+       "original": "viga",
+       "bench": "viga"
+      }
+     ],
+     "laws": [
+      {
+       "original": "hormigon",
+       "bench": "elastic-columna"
+      }
+     ],
+     "supports": [
+      {
+       "original": "base_1",
+       "bench": "support-1"
+      },
+      {
+       "original": "base_2",
+       "bench": "support-2"
+      },
+      {
+       "original": "base_3",
+       "bench": "support-3"
+      },
+      {
+       "original": "base_4",
+       "bench": "support-4"
+      },
+      {
+       "original": "base_5",
+       "bench": "support-5"
+      },
+      {
+       "original": "base_6",
+       "bench": "support-6"
+      },
+      {
+       "original": "base_7",
+       "bench": "support-7"
+      },
+      {
+       "original": "base_8",
+       "bench": "support-8"
+      },
+      {
+       "original": "base_9",
+       "bench": "support-9"
+      },
+      {
+       "original": "base_10",
+       "bench": "support-10"
+      },
+      {
+       "original": "base_11",
+       "bench": "support-11"
+      },
+      {
+       "original": "base_12",
+       "bench": "support-12"
+      }
+     ],
+     "masses": [
+      {
+       "original": "piso_1_nodo_106",
+       "bench": "mass-18"
+      },
+      {
+       "original": "piso_1_nodo_107",
+       "bench": "mass-19"
+      },
+      {
+       "original": "piso_1_nodo_103",
+       "bench": "mass-15"
+      },
+      {
+       "original": "piso_2_nodo_206",
+       "bench": "mass-30"
+      },
+      {
+       "original": "piso_2_nodo_207",
+       "bench": "mass-31"
+      },
+      {
+       "original": "piso_2_nodo_203",
+       "bench": "mass-27"
+      },
+      {
+       "original": "piso_3_nodo_306",
+       "bench": "mass-42"
+      },
+      {
+       "original": "piso_3_nodo_307",
+       "bench": "mass-43"
+      },
+      {
+       "original": "piso_3_nodo_303",
+       "bench": "mass-39"
+      },
+      {
+       "original": "piso_4_nodo_406",
+       "bench": "mass-54"
+      },
+      {
+       "original": "piso_4_nodo_407",
+       "bench": "mass-55"
+      },
+      {
+       "original": "piso_4_nodo_403",
+       "bench": "mass-51"
+      },
+      {
+       "original": "piso_5_nodo_506",
+       "bench": "mass-66"
+      },
+      {
+       "original": "piso_5_nodo_507",
+       "bench": "mass-67"
+      },
+      {
+       "original": "piso_5_nodo_503",
+       "bench": "mass-63"
+      }
+     ],
+     "cases": [
+      {
+       "original": "G",
+       "bench": "G"
+      },
+      {
+       "original": "EX",
+       "bench": "EX"
+      }
+     ],
+     "combinations": []
+    },
+    "runs": [
+     {
+      "run": "E3-lineal",
+      "method": "linearStatic"
+     },
+     {
+      "run": "E3-pdelta",
+      "method": "pDelta"
+     }
+    ],
+    "exact_translation": true,
+    "engine_limits": "incompatible",
+    "engine_gaps": [
+     {
+      "codigo": "ENG-E-0007",
+      "referencia": "Engine: pDelta + diafragma",
+      "detalle": "Las fuerzas geométricas y el residual no se proyectan por la transformación del diafragma. E3-pdelta termina con status notConverged, residual mínimo ≈1.14e6. Seguimiento MAM-847; issue del Engine pendiente de abrir, corrección en ticket aparte del Engine. El esquema sí permite el modelo; no se cambian física ni tolerancias."
+     }
+    ]
+   },
+   {
+    "id": "E4",
+    "id_bijections": {
+     "nodes": [
+      {
+       "original": 1,
+       "bench": 1
+      },
+      {
+       "original": 2,
+       "bench": 2
+      },
+      {
+       "original": 3,
+       "bench": 3
+      },
+      {
+       "original": 4,
+       "bench": 4
+      },
+      {
+       "original": 5,
+       "bench": 5
+      },
+      {
+       "original": 6,
+       "bench": 6
+      },
+      {
+       "original": 7,
+       "bench": 7
+      },
+      {
+       "original": 8,
+       "bench": 8
+      },
+      {
+       "original": 9,
+       "bench": 9
+      },
+      {
+       "original": 10,
+       "bench": 10
+      },
+      {
+       "original": 11,
+       "bench": 11
+      },
+      {
+       "original": 12,
+       "bench": 12
+      },
+      {
+       "original": 101,
+       "bench": 13
+      },
+      {
+       "original": 102,
+       "bench": 14
+      },
+      {
+       "original": 103,
+       "bench": 15
+      },
+      {
+       "original": 104,
+       "bench": 16
+      },
+      {
+       "original": 105,
+       "bench": 17
+      },
+      {
+       "original": 106,
+       "bench": 18
+      },
+      {
+       "original": 107,
+       "bench": 19
+      },
+      {
+       "original": 108,
+       "bench": 20
+      },
+      {
+       "original": 109,
+       "bench": 21
+      },
+      {
+       "original": 110,
+       "bench": 22
+      },
+      {
+       "original": 111,
+       "bench": 23
+      },
+      {
+       "original": 112,
+       "bench": 24
+      },
+      {
+       "original": 201,
+       "bench": 25
+      },
+      {
+       "original": 202,
+       "bench": 26
+      },
+      {
+       "original": 203,
+       "bench": 27
+      },
+      {
+       "original": 204,
+       "bench": 28
+      },
+      {
+       "original": 205,
+       "bench": 29
+      },
+      {
+       "original": 206,
+       "bench": 30
+      },
+      {
+       "original": 207,
+       "bench": 31
+      },
+      {
+       "original": 208,
+       "bench": 32
+      },
+      {
+       "original": 209,
+       "bench": 33
+      },
+      {
+       "original": 210,
+       "bench": 34
+      },
+      {
+       "original": 211,
+       "bench": 35
+      },
+      {
+       "original": 212,
+       "bench": 36
+      },
+      {
+       "original": 301,
+       "bench": 37
+      },
+      {
+       "original": 302,
+       "bench": 38
+      },
+      {
+       "original": 303,
+       "bench": 39
+      },
+      {
+       "original": 304,
+       "bench": 40
+      },
+      {
+       "original": 305,
+       "bench": 41
+      },
+      {
+       "original": 306,
+       "bench": 42
+      },
+      {
+       "original": 307,
+       "bench": 43
+      },
+      {
+       "original": 308,
+       "bench": 44
+      },
+      {
+       "original": 309,
+       "bench": 45
+      },
+      {
+       "original": 310,
+       "bench": 46
+      },
+      {
+       "original": 311,
+       "bench": 47
+      },
+      {
+       "original": 312,
+       "bench": 48
+      },
+      {
+       "original": 401,
+       "bench": 49
+      },
+      {
+       "original": 402,
+       "bench": 50
+      },
+      {
+       "original": 403,
+       "bench": 51
+      },
+      {
+       "original": 404,
+       "bench": 52
+      },
+      {
+       "original": 405,
+       "bench": 53
+      },
+      {
+       "original": 406,
+       "bench": 54
+      },
+      {
+       "original": 407,
+       "bench": 55
+      },
+      {
+       "original": 408,
+       "bench": 56
+      },
+      {
+       "original": 409,
+       "bench": 57
+      },
+      {
+       "original": 410,
+       "bench": 58
+      },
+      {
+       "original": 411,
+       "bench": 59
+      },
+      {
+       "original": 412,
+       "bench": 60
+      },
+      {
+       "original": 501,
+       "bench": 61
+      },
+      {
+       "original": 502,
+       "bench": 62
+      },
+      {
+       "original": 503,
+       "bench": 63
+      },
+      {
+       "original": 504,
+       "bench": 64
+      },
+      {
+       "original": 505,
+       "bench": 65
+      },
+      {
+       "original": 506,
+       "bench": 66
+      },
+      {
+       "original": 507,
+       "bench": 67
+      },
+      {
+       "original": 508,
+       "bench": 68
+      },
+      {
+       "original": 509,
+       "bench": 69
+      },
+      {
+       "original": 510,
+       "bench": 70
+      },
+      {
+       "original": 511,
+       "bench": 71
+      },
+      {
+       "original": 512,
+       "bench": 72
+      }
+     ],
+     "members": [
+      {
+       "original": 1,
+       "bench": 1
+      },
+      {
+       "original": 2,
+       "bench": 2
+      },
+      {
+       "original": 3,
+       "bench": 3
+      },
+      {
+       "original": 4,
+       "bench": 4
+      },
+      {
+       "original": 5,
+       "bench": 5
+      },
+      {
+       "original": 6,
+       "bench": 6
+      },
+      {
+       "original": 7,
+       "bench": 7
+      },
+      {
+       "original": 8,
+       "bench": 8
+      },
+      {
+       "original": 9,
+       "bench": 9
+      },
+      {
+       "original": 10,
+       "bench": 10
+      },
+      {
+       "original": 11,
+       "bench": 11
+      },
+      {
+       "original": 12,
+       "bench": 12
+      },
+      {
+       "original": 13,
+       "bench": 13
+      },
+      {
+       "original": 14,
+       "bench": 14
+      },
+      {
+       "original": 15,
+       "bench": 15
+      },
+      {
+       "original": 16,
+       "bench": 16
+      },
+      {
+       "original": 17,
+       "bench": 17
+      },
+      {
+       "original": 18,
+       "bench": 18
+      },
+      {
+       "original": 19,
+       "bench": 19
+      },
+      {
+       "original": 20,
+       "bench": 20
+      },
+      {
+       "original": 21,
+       "bench": 21
+      },
+      {
+       "original": 22,
+       "bench": 22
+      },
+      {
+       "original": 23,
+       "bench": 23
+      },
+      {
+       "original": 24,
+       "bench": 24
+      },
+      {
+       "original": 25,
+       "bench": 25
+      },
+      {
+       "original": 26,
+       "bench": 26
+      },
+      {
+       "original": 27,
+       "bench": 27
+      },
+      {
+       "original": 28,
+       "bench": 28
+      },
+      {
+       "original": 29,
+       "bench": 29
+      },
+      {
+       "original": 30,
+       "bench": 30
+      },
+      {
+       "original": 31,
+       "bench": 31
+      },
+      {
+       "original": 32,
+       "bench": 32
+      },
+      {
+       "original": 33,
+       "bench": 33
+      },
+      {
+       "original": 34,
+       "bench": 34
+      },
+      {
+       "original": 35,
+       "bench": 35
+      },
+      {
+       "original": 36,
+       "bench": 36
+      },
+      {
+       "original": 37,
+       "bench": 37
+      },
+      {
+       "original": 38,
+       "bench": 38
+      },
+      {
+       "original": 39,
+       "bench": 39
+      },
+      {
+       "original": 40,
+       "bench": 40
+      },
+      {
+       "original": 41,
+       "bench": 41
+      },
+      {
+       "original": 42,
+       "bench": 42
+      },
+      {
+       "original": 43,
+       "bench": 43
+      },
+      {
+       "original": 44,
+       "bench": 44
+      },
+      {
+       "original": 45,
+       "bench": 45
+      },
+      {
+       "original": 46,
+       "bench": 46
+      },
+      {
+       "original": 47,
+       "bench": 47
+      },
+      {
+       "original": 48,
+       "bench": 48
+      },
+      {
+       "original": 49,
+       "bench": 49
+      },
+      {
+       "original": 50,
+       "bench": 50
+      },
+      {
+       "original": 51,
+       "bench": 51
+      },
+      {
+       "original": 52,
+       "bench": 52
+      },
+      {
+       "original": 53,
+       "bench": 53
+      },
+      {
+       "original": 54,
+       "bench": 54
+      },
+      {
+       "original": 55,
+       "bench": 55
+      },
+      {
+       "original": 56,
+       "bench": 56
+      },
+      {
+       "original": 57,
+       "bench": 57
+      },
+      {
+       "original": 58,
+       "bench": 58
+      },
+      {
+       "original": 59,
+       "bench": 59
+      },
+      {
+       "original": 60,
+       "bench": 60
+      },
+      {
+       "original": 61,
+       "bench": 61
+      },
+      {
+       "original": 62,
+       "bench": 62
+      },
+      {
+       "original": 63,
+       "bench": 63
+      },
+      {
+       "original": 64,
+       "bench": 64
+      },
+      {
+       "original": 65,
+       "bench": 65
+      },
+      {
+       "original": 66,
+       "bench": 66
+      },
+      {
+       "original": 67,
+       "bench": 67
+      },
+      {
+       "original": 68,
+       "bench": 68
+      },
+      {
+       "original": 69,
+       "bench": 69
+      },
+      {
+       "original": 70,
+       "bench": 70
+      },
+      {
+       "original": 71,
+       "bench": 71
+      },
+      {
+       "original": 72,
+       "bench": 72
+      },
+      {
+       "original": 73,
+       "bench": 73
+      },
+      {
+       "original": 74,
+       "bench": 74
+      },
+      {
+       "original": 75,
+       "bench": 75
+      },
+      {
+       "original": 76,
+       "bench": 76
+      },
+      {
+       "original": 77,
+       "bench": 77
+      },
+      {
+       "original": 78,
+       "bench": 78
+      },
+      {
+       "original": 79,
+       "bench": 79
+      },
+      {
+       "original": 80,
+       "bench": 80
+      },
+      {
+       "original": 81,
+       "bench": 81
+      },
+      {
+       "original": 82,
+       "bench": 82
+      },
+      {
+       "original": 83,
+       "bench": 83
+      },
+      {
+       "original": 84,
+       "bench": 84
+      },
+      {
+       "original": 85,
+       "bench": 85
+      },
+      {
+       "original": 86,
+       "bench": 86
+      },
+      {
+       "original": 87,
+       "bench": 87
+      },
+      {
+       "original": 88,
+       "bench": 88
+      },
+      {
+       "original": 89,
+       "bench": 89
+      },
+      {
+       "original": 90,
+       "bench": 90
+      },
+      {
+       "original": 91,
+       "bench": 91
+      },
+      {
+       "original": 92,
+       "bench": 92
+      },
+      {
+       "original": 93,
+       "bench": 93
+      },
+      {
+       "original": 94,
+       "bench": 94
+      },
+      {
+       "original": 95,
+       "bench": 95
+      },
+      {
+       "original": 96,
+       "bench": 96
+      },
+      {
+       "original": 97,
+       "bench": 97
+      },
+      {
+       "original": 98,
+       "bench": 98
+      },
+      {
+       "original": 99,
+       "bench": 99
+      },
+      {
+       "original": 100,
+       "bench": 100
+      },
+      {
+       "original": 101,
+       "bench": 101
+      },
+      {
+       "original": 102,
+       "bench": 102
+      },
+      {
+       "original": 103,
+       "bench": 103
+      },
+      {
+       "original": 104,
+       "bench": 104
+      },
+      {
+       "original": 105,
+       "bench": 105
+      },
+      {
+       "original": 106,
+       "bench": 106
+      },
+      {
+       "original": 107,
+       "bench": 107
+      },
+      {
+       "original": 108,
+       "bench": 108
+      },
+      {
+       "original": 109,
+       "bench": 109
+      },
+      {
+       "original": 110,
+       "bench": 110
+      },
+      {
+       "original": 111,
+       "bench": 111
+      },
+      {
+       "original": 112,
+       "bench": 112
+      },
+      {
+       "original": 113,
+       "bench": 113
+      },
+      {
+       "original": 114,
+       "bench": 114
+      },
+      {
+       "original": 115,
+       "bench": 115
+      },
+      {
+       "original": 116,
+       "bench": 116
+      },
+      {
+       "original": 117,
+       "bench": 117
+      },
+      {
+       "original": 118,
+       "bench": 118
+      },
+      {
+       "original": 119,
+       "bench": 119
+      },
+      {
+       "original": 120,
+       "bench": 120
+      },
+      {
+       "original": 121,
+       "bench": 121
+      },
+      {
+       "original": 122,
+       "bench": 122
+      },
+      {
+       "original": 123,
+       "bench": 123
+      },
+      {
+       "original": 124,
+       "bench": 124
+      },
+      {
+       "original": 125,
+       "bench": 125
+      },
+      {
+       "original": 126,
+       "bench": 126
+      },
+      {
+       "original": 127,
+       "bench": 127
+      },
+      {
+       "original": 128,
+       "bench": 128
+      },
+      {
+       "original": 129,
+       "bench": 129
+      },
+      {
+       "original": 130,
+       "bench": 130
+      },
+      {
+       "original": 131,
+       "bench": 131
+      },
+      {
+       "original": 132,
+       "bench": 132
+      },
+      {
+       "original": 133,
+       "bench": 133
+      },
+      {
+       "original": 134,
+       "bench": 134
+      },
+      {
+       "original": 135,
+       "bench": 135
+      },
+      {
+       "original": 136,
+       "bench": 136
+      },
+      {
+       "original": 137,
+       "bench": 137
+      },
+      {
+       "original": 138,
+       "bench": 138
+      },
+      {
+       "original": 139,
+       "bench": 139
+      },
+      {
+       "original": 140,
+       "bench": 140
+      },
+      {
+       "original": 141,
+       "bench": 141
+      },
+      {
+       "original": 142,
+       "bench": 142
+      },
+      {
+       "original": 143,
+       "bench": 143
+      },
+      {
+       "original": 144,
+       "bench": 144
+      },
+      {
+       "original": 145,
+       "bench": 145
+      }
+     ],
+     "sections": [
+      {
+       "original": "columna",
+       "bench": "columna"
+      },
+      {
+       "original": "viga",
+       "bench": "viga"
+      }
+     ],
+     "laws": [
+      {
+       "original": "hormigon",
+       "bench": "elastic-columna"
+      }
+     ],
+     "supports": [
+      {
+       "original": "base_1",
+       "bench": "support-1"
+      },
+      {
+       "original": "base_2",
+       "bench": "support-2"
+      },
+      {
+       "original": "base_3",
+       "bench": "support-3"
+      },
+      {
+       "original": "base_4",
+       "bench": "support-4"
+      },
+      {
+       "original": "base_5",
+       "bench": "support-5"
+      },
+      {
+       "original": "base_6",
+       "bench": "support-6"
+      },
+      {
+       "original": "base_7",
+       "bench": "support-7"
+      },
+      {
+       "original": "base_8",
+       "bench": "support-8"
+      },
+      {
+       "original": "base_9",
+       "bench": "support-9"
+      },
+      {
+       "original": "base_10",
+       "bench": "support-10"
+      },
+      {
+       "original": "base_11",
+       "bench": "support-11"
+      },
+      {
+       "original": "base_12",
+       "bench": "support-12"
+      }
+     ],
+     "masses": [
+      {
+       "original": "piso_1_nodo_106",
+       "bench": "mass-18"
+      },
+      {
+       "original": "piso_1_nodo_107",
+       "bench": "mass-19"
+      },
+      {
+       "original": "piso_1_nodo_103",
+       "bench": "mass-15"
+      },
+      {
+       "original": "piso_2_nodo_206",
+       "bench": "mass-30"
+      },
+      {
+       "original": "piso_2_nodo_207",
+       "bench": "mass-31"
+      },
+      {
+       "original": "piso_2_nodo_203",
+       "bench": "mass-27"
+      },
+      {
+       "original": "piso_3_nodo_306",
+       "bench": "mass-42"
+      },
+      {
+       "original": "piso_3_nodo_307",
+       "bench": "mass-43"
+      },
+      {
+       "original": "piso_3_nodo_303",
+       "bench": "mass-39"
+      },
+      {
+       "original": "piso_4_nodo_406",
+       "bench": "mass-54"
+      },
+      {
+       "original": "piso_4_nodo_407",
+       "bench": "mass-55"
+      },
+      {
+       "original": "piso_4_nodo_403",
+       "bench": "mass-51"
+      },
+      {
+       "original": "piso_5_nodo_506",
+       "bench": "mass-66"
+      },
+      {
+       "original": "piso_5_nodo_507",
+       "bench": "mass-67"
+      },
+      {
+       "original": "piso_5_nodo_503",
+       "bench": "mass-63"
+      }
+     ],
+     "cases": [],
+     "combinations": []
+    },
+    "runs": [
+     {
+      "run": "E4-modal",
+      "method": "modal"
+     }
+    ],
+    "exact_translation": true,
+    "engine_limits": "incompatible",
+    "engine_gaps": [
+     {
+      "codigo": "ENG-E-0006",
+      "referencia": "Engine: masa modal positiva por gdl libre",
+      "detalle": "190 gdl libres sin masa positiva: Uz/Rx/Ry de los 60 nodos de piso (55 esclavos y 5 maestros). nodal_masses conserva el reparto exacto Ux/Uy y Rz_extra. El Engine no condensa GDL sin masa; seguimiento MAM-847, issue del Engine pendiente de abrir. Añadir masa o restringir esos gdl cambiaría la física; apoyar esclavos además viola ENG-E-0013. El esquema sí permite el modelo.",
+      "gdl_sin_masa": [
+       {
+        "node": 13,
+        "dof": "Uz"
+       },
+       {
+        "node": 13,
+        "dof": "Rx"
+       },
+       {
+        "node": 13,
+        "dof": "Ry"
+       },
+       {
+        "node": 14,
+        "dof": "Uz"
+       },
+       {
+        "node": 14,
+        "dof": "Rx"
+       },
+       {
+        "node": 14,
+        "dof": "Ry"
+       },
+       {
+        "node": 15,
+        "dof": "Ux"
+       },
+       {
+        "node": 15,
+        "dof": "Uy"
+       },
+       {
+        "node": 15,
+        "dof": "Uz"
+       },
+       {
+        "node": 15,
+        "dof": "Rx"
+       },
+       {
+        "node": 15,
+        "dof": "Ry"
+       },
+       {
+        "node": 16,
+        "dof": "Uz"
+       },
+       {
+        "node": 16,
+        "dof": "Rx"
+       },
+       {
+        "node": 16,
+        "dof": "Ry"
+       },
+       {
+        "node": 17,
+        "dof": "Uz"
+       },
+       {
+        "node": 17,
+        "dof": "Rx"
+       },
+       {
+        "node": 17,
+        "dof": "Ry"
+       },
+       {
+        "node": 18,
+        "dof": "Uz"
+       },
+       {
+        "node": 18,
+        "dof": "Rx"
+       },
+       {
+        "node": 18,
+        "dof": "Ry"
+       },
+       {
+        "node": 19,
+        "dof": "Uz"
+       },
+       {
+        "node": 19,
+        "dof": "Rx"
+       },
+       {
+        "node": 19,
+        "dof": "Ry"
+       },
+       {
+        "node": 20,
+        "dof": "Uz"
+       },
+       {
+        "node": 20,
+        "dof": "Rx"
+       },
+       {
+        "node": 20,
+        "dof": "Ry"
+       },
+       {
+        "node": 21,
+        "dof": "Uz"
+       },
+       {
+        "node": 21,
+        "dof": "Rx"
+       },
+       {
+        "node": 21,
+        "dof": "Ry"
+       },
+       {
+        "node": 22,
+        "dof": "Uz"
+       },
+       {
+        "node": 22,
+        "dof": "Rx"
+       },
+       {
+        "node": 22,
+        "dof": "Ry"
+       },
+       {
+        "node": 23,
+        "dof": "Uz"
+       },
+       {
+        "node": 23,
+        "dof": "Rx"
+       },
+       {
+        "node": 23,
+        "dof": "Ry"
+       },
+       {
+        "node": 24,
+        "dof": "Uz"
+       },
+       {
+        "node": 24,
+        "dof": "Rx"
+       },
+       {
+        "node": 24,
+        "dof": "Ry"
+       },
+       {
+        "node": 25,
+        "dof": "Uz"
+       },
+       {
+        "node": 25,
+        "dof": "Rx"
+       },
+       {
+        "node": 25,
+        "dof": "Ry"
+       },
+       {
+        "node": 26,
+        "dof": "Uz"
+       },
+       {
+        "node": 26,
+        "dof": "Rx"
+       },
+       {
+        "node": 26,
+        "dof": "Ry"
+       },
+       {
+        "node": 27,
+        "dof": "Ux"
+       },
+       {
+        "node": 27,
+        "dof": "Uy"
+       },
+       {
+        "node": 27,
+        "dof": "Uz"
+       },
+       {
+        "node": 27,
+        "dof": "Rx"
+       },
+       {
+        "node": 27,
+        "dof": "Ry"
+       },
+       {
+        "node": 28,
+        "dof": "Uz"
+       },
+       {
+        "node": 28,
+        "dof": "Rx"
+       },
+       {
+        "node": 28,
+        "dof": "Ry"
+       },
+       {
+        "node": 29,
+        "dof": "Uz"
+       },
+       {
+        "node": 29,
+        "dof": "Rx"
+       },
+       {
+        "node": 29,
+        "dof": "Ry"
+       },
+       {
+        "node": 30,
+        "dof": "Uz"
+       },
+       {
+        "node": 30,
+        "dof": "Rx"
+       },
+       {
+        "node": 30,
+        "dof": "Ry"
+       },
+       {
+        "node": 31,
+        "dof": "Uz"
+       },
+       {
+        "node": 31,
+        "dof": "Rx"
+       },
+       {
+        "node": 31,
+        "dof": "Ry"
+       },
+       {
+        "node": 32,
+        "dof": "Uz"
+       },
+       {
+        "node": 32,
+        "dof": "Rx"
+       },
+       {
+        "node": 32,
+        "dof": "Ry"
+       },
+       {
+        "node": 33,
+        "dof": "Uz"
+       },
+       {
+        "node": 33,
+        "dof": "Rx"
+       },
+       {
+        "node": 33,
+        "dof": "Ry"
+       },
+       {
+        "node": 34,
+        "dof": "Uz"
+       },
+       {
+        "node": 34,
+        "dof": "Rx"
+       },
+       {
+        "node": 34,
+        "dof": "Ry"
+       },
+       {
+        "node": 35,
+        "dof": "Uz"
+       },
+       {
+        "node": 35,
+        "dof": "Rx"
+       },
+       {
+        "node": 35,
+        "dof": "Ry"
+       },
+       {
+        "node": 36,
+        "dof": "Uz"
+       },
+       {
+        "node": 36,
+        "dof": "Rx"
+       },
+       {
+        "node": 36,
+        "dof": "Ry"
+       },
+       {
+        "node": 37,
+        "dof": "Uz"
+       },
+       {
+        "node": 37,
+        "dof": "Rx"
+       },
+       {
+        "node": 37,
+        "dof": "Ry"
+       },
+       {
+        "node": 38,
+        "dof": "Uz"
+       },
+       {
+        "node": 38,
+        "dof": "Rx"
+       },
+       {
+        "node": 38,
+        "dof": "Ry"
+       },
+       {
+        "node": 39,
+        "dof": "Ux"
+       },
+       {
+        "node": 39,
+        "dof": "Uy"
+       },
+       {
+        "node": 39,
+        "dof": "Uz"
+       },
+       {
+        "node": 39,
+        "dof": "Rx"
+       },
+       {
+        "node": 39,
+        "dof": "Ry"
+       },
+       {
+        "node": 40,
+        "dof": "Uz"
+       },
+       {
+        "node": 40,
+        "dof": "Rx"
+       },
+       {
+        "node": 40,
+        "dof": "Ry"
+       },
+       {
+        "node": 41,
+        "dof": "Uz"
+       },
+       {
+        "node": 41,
+        "dof": "Rx"
+       },
+       {
+        "node": 41,
+        "dof": "Ry"
+       },
+       {
+        "node": 42,
+        "dof": "Uz"
+       },
+       {
+        "node": 42,
+        "dof": "Rx"
+       },
+       {
+        "node": 42,
+        "dof": "Ry"
+       },
+       {
+        "node": 43,
+        "dof": "Uz"
+       },
+       {
+        "node": 43,
+        "dof": "Rx"
+       },
+       {
+        "node": 43,
+        "dof": "Ry"
+       },
+       {
+        "node": 44,
+        "dof": "Uz"
+       },
+       {
+        "node": 44,
+        "dof": "Rx"
+       },
+       {
+        "node": 44,
+        "dof": "Ry"
+       },
+       {
+        "node": 45,
+        "dof": "Uz"
+       },
+       {
+        "node": 45,
+        "dof": "Rx"
+       },
+       {
+        "node": 45,
+        "dof": "Ry"
+       },
+       {
+        "node": 46,
+        "dof": "Uz"
+       },
+       {
+        "node": 46,
+        "dof": "Rx"
+       },
+       {
+        "node": 46,
+        "dof": "Ry"
+       },
+       {
+        "node": 47,
+        "dof": "Uz"
+       },
+       {
+        "node": 47,
+        "dof": "Rx"
+       },
+       {
+        "node": 47,
+        "dof": "Ry"
+       },
+       {
+        "node": 48,
+        "dof": "Uz"
+       },
+       {
+        "node": 48,
+        "dof": "Rx"
+       },
+       {
+        "node": 48,
+        "dof": "Ry"
+       },
+       {
+        "node": 49,
+        "dof": "Uz"
+       },
+       {
+        "node": 49,
+        "dof": "Rx"
+       },
+       {
+        "node": 49,
+        "dof": "Ry"
+       },
+       {
+        "node": 50,
+        "dof": "Uz"
+       },
+       {
+        "node": 50,
+        "dof": "Rx"
+       },
+       {
+        "node": 50,
+        "dof": "Ry"
+       },
+       {
+        "node": 51,
+        "dof": "Ux"
+       },
+       {
+        "node": 51,
+        "dof": "Uy"
+       },
+       {
+        "node": 51,
+        "dof": "Uz"
+       },
+       {
+        "node": 51,
+        "dof": "Rx"
+       },
+       {
+        "node": 51,
+        "dof": "Ry"
+       },
+       {
+        "node": 52,
+        "dof": "Uz"
+       },
+       {
+        "node": 52,
+        "dof": "Rx"
+       },
+       {
+        "node": 52,
+        "dof": "Ry"
+       },
+       {
+        "node": 53,
+        "dof": "Uz"
+       },
+       {
+        "node": 53,
+        "dof": "Rx"
+       },
+       {
+        "node": 53,
+        "dof": "Ry"
+       },
+       {
+        "node": 54,
+        "dof": "Uz"
+       },
+       {
+        "node": 54,
+        "dof": "Rx"
+       },
+       {
+        "node": 54,
+        "dof": "Ry"
+       },
+       {
+        "node": 55,
+        "dof": "Uz"
+       },
+       {
+        "node": 55,
+        "dof": "Rx"
+       },
+       {
+        "node": 55,
+        "dof": "Ry"
+       },
+       {
+        "node": 56,
+        "dof": "Uz"
+       },
+       {
+        "node": 56,
+        "dof": "Rx"
+       },
+       {
+        "node": 56,
+        "dof": "Ry"
+       },
+       {
+        "node": 57,
+        "dof": "Uz"
+       },
+       {
+        "node": 57,
+        "dof": "Rx"
+       },
+       {
+        "node": 57,
+        "dof": "Ry"
+       },
+       {
+        "node": 58,
+        "dof": "Uz"
+       },
+       {
+        "node": 58,
+        "dof": "Rx"
+       },
+       {
+        "node": 58,
+        "dof": "Ry"
+       },
+       {
+        "node": 59,
+        "dof": "Uz"
+       },
+       {
+        "node": 59,
+        "dof": "Rx"
+       },
+       {
+        "node": 59,
+        "dof": "Ry"
+       },
+       {
+        "node": 60,
+        "dof": "Uz"
+       },
+       {
+        "node": 60,
+        "dof": "Rx"
+       },
+       {
+        "node": 60,
+        "dof": "Ry"
+       },
+       {
+        "node": 61,
+        "dof": "Uz"
+       },
+       {
+        "node": 61,
+        "dof": "Rx"
+       },
+       {
+        "node": 61,
+        "dof": "Ry"
+       },
+       {
+        "node": 62,
+        "dof": "Uz"
+       },
+       {
+        "node": 62,
+        "dof": "Rx"
+       },
+       {
+        "node": 62,
+        "dof": "Ry"
+       },
+       {
+        "node": 63,
+        "dof": "Ux"
+       },
+       {
+        "node": 63,
+        "dof": "Uy"
+       },
+       {
+        "node": 63,
+        "dof": "Uz"
+       },
+       {
+        "node": 63,
+        "dof": "Rx"
+       },
+       {
+        "node": 63,
+        "dof": "Ry"
+       },
+       {
+        "node": 64,
+        "dof": "Uz"
+       },
+       {
+        "node": 64,
+        "dof": "Rx"
+       },
+       {
+        "node": 64,
+        "dof": "Ry"
+       },
+       {
+        "node": 65,
+        "dof": "Uz"
+       },
+       {
+        "node": 65,
+        "dof": "Rx"
+       },
+       {
+        "node": 65,
+        "dof": "Ry"
+       },
+       {
+        "node": 66,
+        "dof": "Uz"
+       },
+       {
+        "node": 66,
+        "dof": "Rx"
+       },
+       {
+        "node": 66,
+        "dof": "Ry"
+       },
+       {
+        "node": 67,
+        "dof": "Uz"
+       },
+       {
+        "node": 67,
+        "dof": "Rx"
+       },
+       {
+        "node": 67,
+        "dof": "Ry"
+       },
+       {
+        "node": 68,
+        "dof": "Uz"
+       },
+       {
+        "node": 68,
+        "dof": "Rx"
+       },
+       {
+        "node": 68,
+        "dof": "Ry"
+       },
+       {
+        "node": 69,
+        "dof": "Uz"
+       },
+       {
+        "node": 69,
+        "dof": "Rx"
+       },
+       {
+        "node": 69,
+        "dof": "Ry"
+       },
+       {
+        "node": 70,
+        "dof": "Uz"
+       },
+       {
+        "node": 70,
+        "dof": "Rx"
+       },
+       {
+        "node": 70,
+        "dof": "Ry"
+       },
+       {
+        "node": 71,
+        "dof": "Uz"
+       },
+       {
+        "node": 71,
+        "dof": "Rx"
+       },
+       {
+        "node": 71,
+        "dof": "Ry"
+       },
+       {
+        "node": 72,
+        "dof": "Uz"
+       },
+       {
+        "node": 72,
+        "dof": "Rx"
+       },
+       {
+        "node": 72,
+        "dof": "Ry"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "id": "E5",
+    "id_bijections": {
+     "nodes": [
+      {
+       "original": 1,
+       "bench": 1
+      },
+      {
+       "original": 2,
+       "bench": 2
+      },
+      {
+       "original": 3,
+       "bench": 3
+      },
+      {
+       "original": 4,
+       "bench": 4
+      },
+      {
+       "original": 5,
+       "bench": 5
+      },
+      {
+       "original": 6,
+       "bench": 6
+      },
+      {
+       "original": 7,
+       "bench": 7
+      },
+      {
+       "original": 8,
+       "bench": 8
+      },
+      {
+       "original": 9,
+       "bench": 9
+      },
+      {
+       "original": 10,
+       "bench": 10
+      },
+      {
+       "original": 11,
+       "bench": 11
+      },
+      {
+       "original": 12,
+       "bench": 12
+      },
+      {
+       "original": 101,
+       "bench": 13
+      },
+      {
+       "original": 102,
+       "bench": 14
+      },
+      {
+       "original": 103,
+       "bench": 15
+      },
+      {
+       "original": 104,
+       "bench": 16
+      },
+      {
+       "original": 105,
+       "bench": 17
+      },
+      {
+       "original": 106,
+       "bench": 18
+      },
+      {
+       "original": 107,
+       "bench": 19
+      },
+      {
+       "original": 108,
+       "bench": 20
+      },
+      {
+       "original": 109,
+       "bench": 21
+      },
+      {
+       "original": 110,
+       "bench": 22
+      },
+      {
+       "original": 111,
+       "bench": 23
+      },
+      {
+       "original": 112,
+       "bench": 24
+      },
+      {
+       "original": 201,
+       "bench": 25
+      },
+      {
+       "original": 202,
+       "bench": 26
+      },
+      {
+       "original": 203,
+       "bench": 27
+      },
+      {
+       "original": 204,
+       "bench": 28
+      },
+      {
+       "original": 205,
+       "bench": 29
+      },
+      {
+       "original": 206,
+       "bench": 30
+      },
+      {
+       "original": 207,
+       "bench": 31
+      },
+      {
+       "original": 208,
+       "bench": 32
+      },
+      {
+       "original": 209,
+       "bench": 33
+      },
+      {
+       "original": 210,
+       "bench": 34
+      },
+      {
+       "original": 211,
+       "bench": 35
+      },
+      {
+       "original": 212,
+       "bench": 36
+      },
+      {
+       "original": 301,
+       "bench": 37
+      },
+      {
+       "original": 302,
+       "bench": 38
+      },
+      {
+       "original": 303,
+       "bench": 39
+      },
+      {
+       "original": 304,
+       "bench": 40
+      },
+      {
+       "original": 305,
+       "bench": 41
+      },
+      {
+       "original": 306,
+       "bench": 42
+      },
+      {
+       "original": 307,
+       "bench": 43
+      },
+      {
+       "original": 308,
+       "bench": 44
+      },
+      {
+       "original": 309,
+       "bench": 45
+      },
+      {
+       "original": 310,
+       "bench": 46
+      },
+      {
+       "original": 311,
+       "bench": 47
+      },
+      {
+       "original": 312,
+       "bench": 48
+      },
+      {
+       "original": 401,
+       "bench": 49
+      },
+      {
+       "original": 402,
+       "bench": 50
+      },
+      {
+       "original": 403,
+       "bench": 51
+      },
+      {
+       "original": 404,
+       "bench": 52
+      },
+      {
+       "original": 405,
+       "bench": 53
+      },
+      {
+       "original": 406,
+       "bench": 54
+      },
+      {
+       "original": 407,
+       "bench": 55
+      },
+      {
+       "original": 408,
+       "bench": 56
+      },
+      {
+       "original": 409,
+       "bench": 57
+      },
+      {
+       "original": 410,
+       "bench": 58
+      },
+      {
+       "original": 411,
+       "bench": 59
+      },
+      {
+       "original": 412,
+       "bench": 60
+      },
+      {
+       "original": 501,
+       "bench": 61
+      },
+      {
+       "original": 502,
+       "bench": 62
+      },
+      {
+       "original": 503,
+       "bench": 63
+      },
+      {
+       "original": 504,
+       "bench": 64
+      },
+      {
+       "original": 505,
+       "bench": 65
+      },
+      {
+       "original": 506,
+       "bench": 66
+      },
+      {
+       "original": 507,
+       "bench": 67
+      },
+      {
+       "original": 508,
+       "bench": 68
+      },
+      {
+       "original": 509,
+       "bench": 69
+      },
+      {
+       "original": 510,
+       "bench": 70
+      },
+      {
+       "original": 511,
+       "bench": 71
+      },
+      {
+       "original": 512,
+       "bench": 72
+      }
+     ],
+     "members": [
+      {
+       "original": 1,
+       "bench": 1
+      },
+      {
+       "original": 2,
+       "bench": 2
+      },
+      {
+       "original": 3,
+       "bench": 3
+      },
+      {
+       "original": 4,
+       "bench": 4
+      },
+      {
+       "original": 5,
+       "bench": 5
+      },
+      {
+       "original": 6,
+       "bench": 6
+      },
+      {
+       "original": 7,
+       "bench": 7
+      },
+      {
+       "original": 8,
+       "bench": 8
+      },
+      {
+       "original": 9,
+       "bench": 9
+      },
+      {
+       "original": 10,
+       "bench": 10
+      },
+      {
+       "original": 11,
+       "bench": 11
+      },
+      {
+       "original": 12,
+       "bench": 12
+      },
+      {
+       "original": 13,
+       "bench": 13
+      },
+      {
+       "original": 14,
+       "bench": 14
+      },
+      {
+       "original": 15,
+       "bench": 15
+      },
+      {
+       "original": 16,
+       "bench": 16
+      },
+      {
+       "original": 17,
+       "bench": 17
+      },
+      {
+       "original": 18,
+       "bench": 18
+      },
+      {
+       "original": 19,
+       "bench": 19
+      },
+      {
+       "original": 20,
+       "bench": 20
+      },
+      {
+       "original": 21,
+       "bench": 21
+      },
+      {
+       "original": 22,
+       "bench": 22
+      },
+      {
+       "original": 23,
+       "bench": 23
+      },
+      {
+       "original": 24,
+       "bench": 24
+      },
+      {
+       "original": 25,
+       "bench": 25
+      },
+      {
+       "original": 26,
+       "bench": 26
+      },
+      {
+       "original": 27,
+       "bench": 27
+      },
+      {
+       "original": 28,
+       "bench": 28
+      },
+      {
+       "original": 29,
+       "bench": 29
+      },
+      {
+       "original": 30,
+       "bench": 30
+      },
+      {
+       "original": 31,
+       "bench": 31
+      },
+      {
+       "original": 32,
+       "bench": 32
+      },
+      {
+       "original": 33,
+       "bench": 33
+      },
+      {
+       "original": 34,
+       "bench": 34
+      },
+      {
+       "original": 35,
+       "bench": 35
+      },
+      {
+       "original": 36,
+       "bench": 36
+      },
+      {
+       "original": 37,
+       "bench": 37
+      },
+      {
+       "original": 38,
+       "bench": 38
+      },
+      {
+       "original": 39,
+       "bench": 39
+      },
+      {
+       "original": 40,
+       "bench": 40
+      },
+      {
+       "original": 41,
+       "bench": 41
+      },
+      {
+       "original": 42,
+       "bench": 42
+      },
+      {
+       "original": 43,
+       "bench": 43
+      },
+      {
+       "original": 44,
+       "bench": 44
+      },
+      {
+       "original": 45,
+       "bench": 45
+      },
+      {
+       "original": 46,
+       "bench": 46
+      },
+      {
+       "original": 47,
+       "bench": 47
+      },
+      {
+       "original": 48,
+       "bench": 48
+      },
+      {
+       "original": 49,
+       "bench": 49
+      },
+      {
+       "original": 50,
+       "bench": 50
+      },
+      {
+       "original": 51,
+       "bench": 51
+      },
+      {
+       "original": 52,
+       "bench": 52
+      },
+      {
+       "original": 53,
+       "bench": 53
+      },
+      {
+       "original": 54,
+       "bench": 54
+      },
+      {
+       "original": 55,
+       "bench": 55
+      },
+      {
+       "original": 56,
+       "bench": 56
+      },
+      {
+       "original": 57,
+       "bench": 57
+      },
+      {
+       "original": 58,
+       "bench": 58
+      },
+      {
+       "original": 59,
+       "bench": 59
+      },
+      {
+       "original": 60,
+       "bench": 60
+      },
+      {
+       "original": 61,
+       "bench": 61
+      },
+      {
+       "original": 62,
+       "bench": 62
+      },
+      {
+       "original": 63,
+       "bench": 63
+      },
+      {
+       "original": 64,
+       "bench": 64
+      },
+      {
+       "original": 65,
+       "bench": 65
+      },
+      {
+       "original": 66,
+       "bench": 66
+      },
+      {
+       "original": 67,
+       "bench": 67
+      },
+      {
+       "original": 68,
+       "bench": 68
+      },
+      {
+       "original": 69,
+       "bench": 69
+      },
+      {
+       "original": 70,
+       "bench": 70
+      },
+      {
+       "original": 71,
+       "bench": 71
+      },
+      {
+       "original": 72,
+       "bench": 72
+      },
+      {
+       "original": 73,
+       "bench": 73
+      },
+      {
+       "original": 74,
+       "bench": 74
+      },
+      {
+       "original": 75,
+       "bench": 75
+      },
+      {
+       "original": 76,
+       "bench": 76
+      },
+      {
+       "original": 77,
+       "bench": 77
+      },
+      {
+       "original": 78,
+       "bench": 78
+      },
+      {
+       "original": 79,
+       "bench": 79
+      },
+      {
+       "original": 80,
+       "bench": 80
+      },
+      {
+       "original": 81,
+       "bench": 81
+      },
+      {
+       "original": 82,
+       "bench": 82
+      },
+      {
+       "original": 83,
+       "bench": 83
+      },
+      {
+       "original": 84,
+       "bench": 84
+      },
+      {
+       "original": 85,
+       "bench": 85
+      },
+      {
+       "original": 86,
+       "bench": 86
+      },
+      {
+       "original": 87,
+       "bench": 87
+      },
+      {
+       "original": 88,
+       "bench": 88
+      },
+      {
+       "original": 89,
+       "bench": 89
+      },
+      {
+       "original": 90,
+       "bench": 90
+      },
+      {
+       "original": 91,
+       "bench": 91
+      },
+      {
+       "original": 92,
+       "bench": 92
+      },
+      {
+       "original": 93,
+       "bench": 93
+      },
+      {
+       "original": 94,
+       "bench": 94
+      },
+      {
+       "original": 95,
+       "bench": 95
+      },
+      {
+       "original": 96,
+       "bench": 96
+      },
+      {
+       "original": 97,
+       "bench": 97
+      },
+      {
+       "original": 98,
+       "bench": 98
+      },
+      {
+       "original": 99,
+       "bench": 99
+      },
+      {
+       "original": 100,
+       "bench": 100
+      },
+      {
+       "original": 101,
+       "bench": 101
+      },
+      {
+       "original": 102,
+       "bench": 102
+      },
+      {
+       "original": 103,
+       "bench": 103
+      },
+      {
+       "original": 104,
+       "bench": 104
+      },
+      {
+       "original": 105,
+       "bench": 105
+      },
+      {
+       "original": 106,
+       "bench": 106
+      },
+      {
+       "original": 107,
+       "bench": 107
+      },
+      {
+       "original": 108,
+       "bench": 108
+      },
+      {
+       "original": 109,
+       "bench": 109
+      },
+      {
+       "original": 110,
+       "bench": 110
+      },
+      {
+       "original": 111,
+       "bench": 111
+      },
+      {
+       "original": 112,
+       "bench": 112
+      },
+      {
+       "original": 113,
+       "bench": 113
+      },
+      {
+       "original": 114,
+       "bench": 114
+      },
+      {
+       "original": 115,
+       "bench": 115
+      },
+      {
+       "original": 116,
+       "bench": 116
+      },
+      {
+       "original": 117,
+       "bench": 117
+      },
+      {
+       "original": 118,
+       "bench": 118
+      },
+      {
+       "original": 119,
+       "bench": 119
+      },
+      {
+       "original": 120,
+       "bench": 120
+      },
+      {
+       "original": 121,
+       "bench": 121
+      },
+      {
+       "original": 122,
+       "bench": 122
+      },
+      {
+       "original": 123,
+       "bench": 123
+      },
+      {
+       "original": 124,
+       "bench": 124
+      },
+      {
+       "original": 125,
+       "bench": 125
+      },
+      {
+       "original": 126,
+       "bench": 126
+      },
+      {
+       "original": 127,
+       "bench": 127
+      },
+      {
+       "original": 128,
+       "bench": 128
+      },
+      {
+       "original": 129,
+       "bench": 129
+      },
+      {
+       "original": 130,
+       "bench": 130
+      },
+      {
+       "original": 131,
+       "bench": 131
+      },
+      {
+       "original": 132,
+       "bench": 132
+      },
+      {
+       "original": 133,
+       "bench": 133
+      },
+      {
+       "original": 134,
+       "bench": 134
+      },
+      {
+       "original": 135,
+       "bench": 135
+      },
+      {
+       "original": 136,
+       "bench": 136
+      },
+      {
+       "original": 137,
+       "bench": 137
+      },
+      {
+       "original": 138,
+       "bench": 138
+      },
+      {
+       "original": 139,
+       "bench": 139
+      },
+      {
+       "original": 140,
+       "bench": 140
+      },
+      {
+       "original": 141,
+       "bench": 141
+      },
+      {
+       "original": 142,
+       "bench": 142
+      },
+      {
+       "original": 143,
+       "bench": 143
+      },
+      {
+       "original": 144,
+       "bench": 144
+      },
+      {
+       "original": 145,
+       "bench": 145
+      }
+     ],
+     "sections": [
+      {
+       "original": "columna",
+       "bench": "columna"
+      },
+      {
+       "original": "viga",
+       "bench": "viga"
+      }
+     ],
+     "laws": [
+      {
+       "original": "hormigon",
+       "bench": "elastic-columna"
+      }
+     ],
+     "supports": [
+      {
+       "original": "base_1",
+       "bench": "support-1"
+      },
+      {
+       "original": "base_2",
+       "bench": "support-2"
+      },
+      {
+       "original": "base_3",
+       "bench": "support-3"
+      },
+      {
+       "original": "base_4",
+       "bench": "support-4"
+      },
+      {
+       "original": "base_5",
+       "bench": "support-5"
+      },
+      {
+       "original": "base_6",
+       "bench": "support-6"
+      },
+      {
+       "original": "base_7",
+       "bench": "support-7"
+      },
+      {
+       "original": "base_8",
+       "bench": "support-8"
+      },
+      {
+       "original": "base_9",
+       "bench": "support-9"
+      },
+      {
+       "original": "base_10",
+       "bench": "support-10"
+      },
+      {
+       "original": "base_11",
+       "bench": "support-11"
+      },
+      {
+       "original": "base_12",
+       "bench": "support-12"
+      }
+     ],
+     "masses": [
+      {
+       "original": "piso_1_nodo_106",
+       "bench": "mass-18"
+      },
+      {
+       "original": "piso_1_nodo_107",
+       "bench": "mass-19"
+      },
+      {
+       "original": "piso_1_nodo_103",
+       "bench": "mass-15"
+      },
+      {
+       "original": "piso_2_nodo_206",
+       "bench": "mass-30"
+      },
+      {
+       "original": "piso_2_nodo_207",
+       "bench": "mass-31"
+      },
+      {
+       "original": "piso_2_nodo_203",
+       "bench": "mass-27"
+      },
+      {
+       "original": "piso_3_nodo_306",
+       "bench": "mass-42"
+      },
+      {
+       "original": "piso_3_nodo_307",
+       "bench": "mass-43"
+      },
+      {
+       "original": "piso_3_nodo_303",
+       "bench": "mass-39"
+      },
+      {
+       "original": "piso_4_nodo_406",
+       "bench": "mass-54"
+      },
+      {
+       "original": "piso_4_nodo_407",
+       "bench": "mass-55"
+      },
+      {
+       "original": "piso_4_nodo_403",
+       "bench": "mass-51"
+      },
+      {
+       "original": "piso_5_nodo_506",
+       "bench": "mass-66"
+      },
+      {
+       "original": "piso_5_nodo_507",
+       "bench": "mass-67"
+      },
+      {
+       "original": "piso_5_nodo_503",
+       "bench": "mass-63"
+      }
+     ],
+     "cases": [
+      {
+       "original": "D",
+       "bench": "D"
+      },
+      {
+       "original": "L",
+       "bench": "L"
+      },
+      {
+       "original": "EX",
+       "bench": "EX"
+      },
+      {
+       "original": "EY",
+       "bench": "EY"
+      }
+     ],
+     "combinations": [
+      {
+       "original": "C1_1.4D",
+       "bench": "C1_1.4D"
+      },
+      {
+       "original": "C2_1.2D+1.6L",
+       "bench": "C2_1.2D+1.6L"
+      },
+      {
+       "original": "C5_1.2D+L+EX",
+       "bench": "C5_1.2D+L+EX"
+      },
+      {
+       "original": "C7_0.9D+EX",
+       "bench": "C7_0.9D+EX"
+      },
+      {
+       "original": "C5_1.2D+L-EX",
+       "bench": "C5_1.2D+L-EX"
+      },
+      {
+       "original": "C7_0.9D-EX",
+       "bench": "C7_0.9D-EX"
+      },
+      {
+       "original": "C5_1.2D+L+EY",
+       "bench": "C5_1.2D+L+EY"
+      },
+      {
+       "original": "C7_0.9D+EY",
+       "bench": "C7_0.9D+EY"
+      },
+      {
+       "original": "C5_1.2D+L-EY",
+       "bench": "C5_1.2D+L-EY"
+      },
+      {
+       "original": "C7_0.9D-EY",
+       "bench": "C7_0.9D-EY"
+      }
+     ]
+    },
+    "runs": [
+     {
+      "run": "E5-combinaciones",
+      "method": "linearStatic"
+     }
+    ],
+    "exact_translation": true,
+    "engine_limits": "compatible",
+    "engine_gaps": []
+   },
+   {
+    "id": "E5b",
+    "id_bijections": {
+     "nodes": [
+      {
+       "original": 1,
+       "bench": 1
+      },
+      {
+       "original": 2,
+       "bench": 2
+      },
+      {
+       "original": 3,
+       "bench": 3
+      },
+      {
+       "original": 4,
+       "bench": 4
+      },
+      {
+       "original": 5,
+       "bench": 5
+      },
+      {
+       "original": 6,
+       "bench": 6
+      },
+      {
+       "original": 7,
+       "bench": 7
+      },
+      {
+       "original": 8,
+       "bench": 8
+      },
+      {
+       "original": 9,
+       "bench": 9
+      },
+      {
+       "original": 10,
+       "bench": 10
+      },
+      {
+       "original": 11,
+       "bench": 11
+      },
+      {
+       "original": 12,
+       "bench": 12
+      },
+      {
+       "original": 101,
+       "bench": 13
+      },
+      {
+       "original": 102,
+       "bench": 14
+      },
+      {
+       "original": 103,
+       "bench": 15
+      },
+      {
+       "original": 104,
+       "bench": 16
+      },
+      {
+       "original": 105,
+       "bench": 17
+      },
+      {
+       "original": 106,
+       "bench": 18
+      },
+      {
+       "original": 107,
+       "bench": 19
+      },
+      {
+       "original": 108,
+       "bench": 20
+      },
+      {
+       "original": 109,
+       "bench": 21
+      },
+      {
+       "original": 110,
+       "bench": 22
+      },
+      {
+       "original": 111,
+       "bench": 23
+      },
+      {
+       "original": 112,
+       "bench": 24
+      },
+      {
+       "original": 201,
+       "bench": 25
+      },
+      {
+       "original": 202,
+       "bench": 26
+      },
+      {
+       "original": 203,
+       "bench": 27
+      },
+      {
+       "original": 204,
+       "bench": 28
+      },
+      {
+       "original": 205,
+       "bench": 29
+      },
+      {
+       "original": 206,
+       "bench": 30
+      },
+      {
+       "original": 207,
+       "bench": 31
+      },
+      {
+       "original": 208,
+       "bench": 32
+      },
+      {
+       "original": 209,
+       "bench": 33
+      },
+      {
+       "original": 210,
+       "bench": 34
+      },
+      {
+       "original": 211,
+       "bench": 35
+      },
+      {
+       "original": 212,
+       "bench": 36
+      },
+      {
+       "original": 301,
+       "bench": 37
+      },
+      {
+       "original": 302,
+       "bench": 38
+      },
+      {
+       "original": 303,
+       "bench": 39
+      },
+      {
+       "original": 304,
+       "bench": 40
+      },
+      {
+       "original": 305,
+       "bench": 41
+      },
+      {
+       "original": 306,
+       "bench": 42
+      },
+      {
+       "original": 307,
+       "bench": 43
+      },
+      {
+       "original": 308,
+       "bench": 44
+      },
+      {
+       "original": 309,
+       "bench": 45
+      },
+      {
+       "original": 310,
+       "bench": 46
+      },
+      {
+       "original": 311,
+       "bench": 47
+      },
+      {
+       "original": 312,
+       "bench": 48
+      },
+      {
+       "original": 401,
+       "bench": 49
+      },
+      {
+       "original": 402,
+       "bench": 50
+      },
+      {
+       "original": 403,
+       "bench": 51
+      },
+      {
+       "original": 404,
+       "bench": 52
+      },
+      {
+       "original": 405,
+       "bench": 53
+      },
+      {
+       "original": 406,
+       "bench": 54
+      },
+      {
+       "original": 407,
+       "bench": 55
+      },
+      {
+       "original": 408,
+       "bench": 56
+      },
+      {
+       "original": 409,
+       "bench": 57
+      },
+      {
+       "original": 410,
+       "bench": 58
+      },
+      {
+       "original": 411,
+       "bench": 59
+      },
+      {
+       "original": 412,
+       "bench": 60
+      },
+      {
+       "original": 501,
+       "bench": 61
+      },
+      {
+       "original": 502,
+       "bench": 62
+      },
+      {
+       "original": 503,
+       "bench": 63
+      },
+      {
+       "original": 504,
+       "bench": 64
+      },
+      {
+       "original": 505,
+       "bench": 65
+      },
+      {
+       "original": 506,
+       "bench": 66
+      },
+      {
+       "original": 507,
+       "bench": 67
+      },
+      {
+       "original": 508,
+       "bench": 68
+      },
+      {
+       "original": 509,
+       "bench": 69
+      },
+      {
+       "original": 510,
+       "bench": 70
+      },
+      {
+       "original": 511,
+       "bench": 71
+      },
+      {
+       "original": 512,
+       "bench": 72
+      }
+     ],
+     "members": [
+      {
+       "original": 1,
+       "bench": 1
+      },
+      {
+       "original": 2,
+       "bench": 2
+      },
+      {
+       "original": 3,
+       "bench": 3
+      },
+      {
+       "original": 4,
+       "bench": 4
+      },
+      {
+       "original": 5,
+       "bench": 5
+      },
+      {
+       "original": 6,
+       "bench": 6
+      },
+      {
+       "original": 7,
+       "bench": 7
+      },
+      {
+       "original": 8,
+       "bench": 8
+      },
+      {
+       "original": 9,
+       "bench": 9
+      },
+      {
+       "original": 10,
+       "bench": 10
+      },
+      {
+       "original": 11,
+       "bench": 11
+      },
+      {
+       "original": 12,
+       "bench": 12
+      },
+      {
+       "original": 13,
+       "bench": 13
+      },
+      {
+       "original": 14,
+       "bench": 14
+      },
+      {
+       "original": 15,
+       "bench": 15
+      },
+      {
+       "original": 16,
+       "bench": 16
+      },
+      {
+       "original": 17,
+       "bench": 17
+      },
+      {
+       "original": 18,
+       "bench": 18
+      },
+      {
+       "original": 19,
+       "bench": 19
+      },
+      {
+       "original": 20,
+       "bench": 20
+      },
+      {
+       "original": 21,
+       "bench": 21
+      },
+      {
+       "original": 22,
+       "bench": 22
+      },
+      {
+       "original": 23,
+       "bench": 23
+      },
+      {
+       "original": 24,
+       "bench": 24
+      },
+      {
+       "original": 25,
+       "bench": 25
+      },
+      {
+       "original": 26,
+       "bench": 26
+      },
+      {
+       "original": 27,
+       "bench": 27
+      },
+      {
+       "original": 28,
+       "bench": 28
+      },
+      {
+       "original": 29,
+       "bench": 29
+      },
+      {
+       "original": 30,
+       "bench": 30
+      },
+      {
+       "original": 31,
+       "bench": 31
+      },
+      {
+       "original": 32,
+       "bench": 32
+      },
+      {
+       "original": 33,
+       "bench": 33
+      },
+      {
+       "original": 34,
+       "bench": 34
+      },
+      {
+       "original": 35,
+       "bench": 35
+      },
+      {
+       "original": 36,
+       "bench": 36
+      },
+      {
+       "original": 37,
+       "bench": 37
+      },
+      {
+       "original": 38,
+       "bench": 38
+      },
+      {
+       "original": 39,
+       "bench": 39
+      },
+      {
+       "original": 40,
+       "bench": 40
+      },
+      {
+       "original": 41,
+       "bench": 41
+      },
+      {
+       "original": 42,
+       "bench": 42
+      },
+      {
+       "original": 43,
+       "bench": 43
+      },
+      {
+       "original": 44,
+       "bench": 44
+      },
+      {
+       "original": 45,
+       "bench": 45
+      },
+      {
+       "original": 46,
+       "bench": 46
+      },
+      {
+       "original": 47,
+       "bench": 47
+      },
+      {
+       "original": 48,
+       "bench": 48
+      },
+      {
+       "original": 49,
+       "bench": 49
+      },
+      {
+       "original": 50,
+       "bench": 50
+      },
+      {
+       "original": 51,
+       "bench": 51
+      },
+      {
+       "original": 52,
+       "bench": 52
+      },
+      {
+       "original": 53,
+       "bench": 53
+      },
+      {
+       "original": 54,
+       "bench": 54
+      },
+      {
+       "original": 55,
+       "bench": 55
+      },
+      {
+       "original": 56,
+       "bench": 56
+      },
+      {
+       "original": 57,
+       "bench": 57
+      },
+      {
+       "original": 58,
+       "bench": 58
+      },
+      {
+       "original": 59,
+       "bench": 59
+      },
+      {
+       "original": 60,
+       "bench": 60
+      },
+      {
+       "original": 61,
+       "bench": 61
+      },
+      {
+       "original": 62,
+       "bench": 62
+      },
+      {
+       "original": 63,
+       "bench": 63
+      },
+      {
+       "original": 64,
+       "bench": 64
+      },
+      {
+       "original": 65,
+       "bench": 65
+      },
+      {
+       "original": 66,
+       "bench": 66
+      },
+      {
+       "original": 67,
+       "bench": 67
+      },
+      {
+       "original": 68,
+       "bench": 68
+      },
+      {
+       "original": 69,
+       "bench": 69
+      },
+      {
+       "original": 70,
+       "bench": 70
+      },
+      {
+       "original": 71,
+       "bench": 71
+      },
+      {
+       "original": 72,
+       "bench": 72
+      },
+      {
+       "original": 73,
+       "bench": 73
+      },
+      {
+       "original": 74,
+       "bench": 74
+      },
+      {
+       "original": 75,
+       "bench": 75
+      },
+      {
+       "original": 76,
+       "bench": 76
+      },
+      {
+       "original": 77,
+       "bench": 77
+      },
+      {
+       "original": 78,
+       "bench": 78
+      },
+      {
+       "original": 79,
+       "bench": 79
+      },
+      {
+       "original": 80,
+       "bench": 80
+      },
+      {
+       "original": 81,
+       "bench": 81
+      },
+      {
+       "original": 82,
+       "bench": 82
+      },
+      {
+       "original": 83,
+       "bench": 83
+      },
+      {
+       "original": 84,
+       "bench": 84
+      },
+      {
+       "original": 85,
+       "bench": 85
+      },
+      {
+       "original": 86,
+       "bench": 86
+      },
+      {
+       "original": 87,
+       "bench": 87
+      },
+      {
+       "original": 88,
+       "bench": 88
+      },
+      {
+       "original": 89,
+       "bench": 89
+      },
+      {
+       "original": 90,
+       "bench": 90
+      },
+      {
+       "original": 91,
+       "bench": 91
+      },
+      {
+       "original": 92,
+       "bench": 92
+      },
+      {
+       "original": 93,
+       "bench": 93
+      },
+      {
+       "original": 94,
+       "bench": 94
+      },
+      {
+       "original": 95,
+       "bench": 95
+      },
+      {
+       "original": 96,
+       "bench": 96
+      },
+      {
+       "original": 97,
+       "bench": 97
+      },
+      {
+       "original": 98,
+       "bench": 98
+      },
+      {
+       "original": 99,
+       "bench": 99
+      },
+      {
+       "original": 100,
+       "bench": 100
+      },
+      {
+       "original": 101,
+       "bench": 101
+      },
+      {
+       "original": 102,
+       "bench": 102
+      },
+      {
+       "original": 103,
+       "bench": 103
+      },
+      {
+       "original": 104,
+       "bench": 104
+      },
+      {
+       "original": 105,
+       "bench": 105
+      },
+      {
+       "original": 106,
+       "bench": 106
+      },
+      {
+       "original": 107,
+       "bench": 107
+      },
+      {
+       "original": 108,
+       "bench": 108
+      },
+      {
+       "original": 109,
+       "bench": 109
+      },
+      {
+       "original": 110,
+       "bench": 110
+      },
+      {
+       "original": 111,
+       "bench": 111
+      },
+      {
+       "original": 112,
+       "bench": 112
+      },
+      {
+       "original": 113,
+       "bench": 113
+      },
+      {
+       "original": 114,
+       "bench": 114
+      },
+      {
+       "original": 115,
+       "bench": 115
+      },
+      {
+       "original": 116,
+       "bench": 116
+      },
+      {
+       "original": 117,
+       "bench": 117
+      },
+      {
+       "original": 118,
+       "bench": 118
+      },
+      {
+       "original": 119,
+       "bench": 119
+      },
+      {
+       "original": 120,
+       "bench": 120
+      },
+      {
+       "original": 121,
+       "bench": 121
+      },
+      {
+       "original": 122,
+       "bench": 122
+      },
+      {
+       "original": 123,
+       "bench": 123
+      },
+      {
+       "original": 124,
+       "bench": 124
+      },
+      {
+       "original": 125,
+       "bench": 125
+      },
+      {
+       "original": 126,
+       "bench": 126
+      },
+      {
+       "original": 127,
+       "bench": 127
+      },
+      {
+       "original": 128,
+       "bench": 128
+      },
+      {
+       "original": 129,
+       "bench": 129
+      },
+      {
+       "original": 130,
+       "bench": 130
+      },
+      {
+       "original": 131,
+       "bench": 131
+      },
+      {
+       "original": 132,
+       "bench": 132
+      },
+      {
+       "original": 133,
+       "bench": 133
+      },
+      {
+       "original": 134,
+       "bench": 134
+      },
+      {
+       "original": 135,
+       "bench": 135
+      },
+      {
+       "original": 136,
+       "bench": 136
+      },
+      {
+       "original": 137,
+       "bench": 137
+      },
+      {
+       "original": 138,
+       "bench": 138
+      },
+      {
+       "original": 139,
+       "bench": 139
+      },
+      {
+       "original": 140,
+       "bench": 140
+      },
+      {
+       "original": 141,
+       "bench": 141
+      },
+      {
+       "original": 142,
+       "bench": 142
+      },
+      {
+       "original": 143,
+       "bench": 143
+      },
+      {
+       "original": 144,
+       "bench": 144
+      },
+      {
+       "original": 145,
+       "bench": 145
+      },
+      {
+       "original": 146,
+       "bench": 146
+      },
+      {
+       "original": 147,
+       "bench": 147
+      },
+      {
+       "original": 148,
+       "bench": 148
+      },
+      {
+       "original": 149,
+       "bench": 149
+      },
+      {
+       "original": 150,
+       "bench": 150
+      },
+      {
+       "original": 151,
+       "bench": 151
+      },
+      {
+       "original": 152,
+       "bench": 152
+      },
+      {
+       "original": 153,
+       "bench": 153
+      },
+      {
+       "original": 154,
+       "bench": 154
+      },
+      {
+       "original": 155,
+       "bench": 155
+      },
+      {
+       "original": 156,
+       "bench": 156
+      },
+      {
+       "original": 157,
+       "bench": 157
+      },
+      {
+       "original": 158,
+       "bench": 158
+      },
+      {
+       "original": 159,
+       "bench": 159
+      },
+      {
+       "original": 160,
+       "bench": 160
+      },
+      {
+       "original": 161,
+       "bench": 161
+      },
+      {
+       "original": 162,
+       "bench": 162
+      },
+      {
+       "original": 163,
+       "bench": 163
+      },
+      {
+       "original": 164,
+       "bench": 164
+      },
+      {
+       "original": 165,
+       "bench": 165
+      },
+      {
+       "original": 166,
+       "bench": 166
+      },
+      {
+       "original": 167,
+       "bench": 167
+      },
+      {
+       "original": 168,
+       "bench": 168
+      },
+      {
+       "original": 169,
+       "bench": 169
+      },
+      {
+       "original": 170,
+       "bench": 170
+      },
+      {
+       "original": 171,
+       "bench": 171
+      },
+      {
+       "original": 172,
+       "bench": 172
+      },
+      {
+       "original": 173,
+       "bench": 173
+      },
+      {
+       "original": 174,
+       "bench": 174
+      },
+      {
+       "original": 175,
+       "bench": 175
+      },
+      {
+       "original": 176,
+       "bench": 176
+      },
+      {
+       "original": 177,
+       "bench": 177
+      },
+      {
+       "original": 178,
+       "bench": 178
+      },
+      {
+       "original": 179,
+       "bench": 179
+      },
+      {
+       "original": 180,
+       "bench": 180
+      },
+      {
+       "original": 181,
+       "bench": 181
+      },
+      {
+       "original": 182,
+       "bench": 182
+      },
+      {
+       "original": 183,
+       "bench": 183
+      },
+      {
+       "original": 184,
+       "bench": 184
+      },
+      {
+       "original": 185,
+       "bench": 185
+      },
+      {
+       "original": 186,
+       "bench": 186
+      },
+      {
+       "original": 187,
+       "bench": 187
+      },
+      {
+       "original": 188,
+       "bench": 188
+      },
+      {
+       "original": 189,
+       "bench": 189
+      },
+      {
+       "original": 190,
+       "bench": 190
+      },
+      {
+       "original": 191,
+       "bench": 191
+      },
+      {
+       "original": 192,
+       "bench": 192
+      },
+      {
+       "original": 193,
+       "bench": 193
+      },
+      {
+       "original": 194,
+       "bench": 194
+      },
+      {
+       "original": 195,
+       "bench": 195
+      },
+      {
+       "original": 196,
+       "bench": 196
+      },
+      {
+       "original": 197,
+       "bench": 197
+      },
+      {
+       "original": 198,
+       "bench": 198
+      },
+      {
+       "original": 199,
+       "bench": 199
+      },
+      {
+       "original": 200,
+       "bench": 200
+      },
+      {
+       "original": 201,
+       "bench": 201
+      },
+      {
+       "original": 202,
+       "bench": 202
+      },
+      {
+       "original": 203,
+       "bench": 203
+      },
+      {
+       "original": 204,
+       "bench": 204
+      },
+      {
+       "original": 205,
+       "bench": 205
+      }
+     ],
+     "sections": [
+      {
+       "original": "columna",
+       "bench": "columna"
+      },
+      {
+       "original": "viga",
+       "bench": "viga"
+      },
+      {
+       "original": "losa_diagonal",
+       "bench": "losa_diagonal"
+      }
+     ],
+     "laws": [
+      {
+       "original": "hormigon",
+       "bench": "elastic-columna"
+      },
+      {
+       "original": "losa_elastica",
+       "bench": "elastic-losa_diagonal"
+      }
+     ],
+     "supports": [
+      {
+       "original": "base_1",
+       "bench": "support-1"
+      },
+      {
+       "original": "base_2",
+       "bench": "support-2"
+      },
+      {
+       "original": "base_3",
+       "bench": "support-3"
+      },
+      {
+       "original": "base_4",
+       "bench": "support-4"
+      },
+      {
+       "original": "base_5",
+       "bench": "support-5"
+      },
+      {
+       "original": "base_6",
+       "bench": "support-6"
+      },
+      {
+       "original": "base_7",
+       "bench": "support-7"
+      },
+      {
+       "original": "base_8",
+       "bench": "support-8"
+      },
+      {
+       "original": "base_9",
+       "bench": "support-9"
+      },
+      {
+       "original": "base_10",
+       "bench": "support-10"
+      },
+      {
+       "original": "base_11",
+       "bench": "support-11"
+      },
+      {
+       "original": "base_12",
+       "bench": "support-12"
+      }
+     ],
+     "masses": [],
+     "cases": [
+      {
+       "original": "D",
+       "bench": "D"
+      },
+      {
+       "original": "L",
+       "bench": "L"
+      },
+      {
+       "original": "EX",
+       "bench": "EX"
+      },
+      {
+       "original": "EY",
+       "bench": "EY"
+      }
+     ],
+     "combinations": [
+      {
+       "original": "C1_1.4D",
+       "bench": "C1_1.4D"
+      },
+      {
+       "original": "C2_1.2D+1.6L",
+       "bench": "C2_1.2D+1.6L"
+      },
+      {
+       "original": "C5_1.2D+L+EX",
+       "bench": "C5_1.2D+L+EX"
+      },
+      {
+       "original": "C7_0.9D+EX",
+       "bench": "C7_0.9D+EX"
+      },
+      {
+       "original": "C5_1.2D+L-EX",
+       "bench": "C5_1.2D+L-EX"
+      },
+      {
+       "original": "C7_0.9D-EX",
+       "bench": "C7_0.9D-EX"
+      },
+      {
+       "original": "C5_1.2D+L+EY",
+       "bench": "C5_1.2D+L+EY"
+      },
+      {
+       "original": "C7_0.9D+EY",
+       "bench": "C7_0.9D+EY"
+      },
+      {
+       "original": "C5_1.2D+L-EY",
+       "bench": "C5_1.2D+L-EY"
+      },
+      {
+       "original": "C7_0.9D-EY",
+       "bench": "C7_0.9D-EY"
+      }
+     ]
+    },
+    "runs": [
+     {
+      "run": "E5b-combinaciones",
+      "method": "linearStatic"
+     }
+    ],
+    "exact_translation": true,
+    "engine_limits": "compatible",
+    "engine_gaps": []
+   }
+  ]
+ },
+ "calibration_r3": {
+  "path": "_ref/calibrate_r3.json",
+  "sha256": "51a2d4006e50d1a5d64b55c79870f76b4849f09f107c623d1caaa6f9818fe8fe",
+  "tolerancia_relativa": 1e-10,
+  "max_error_relativo_por_edificio": {
+   "E1": 3.1380387443651693e-13,
+   "E2": 3.1380387443651693e-13,
+   "E2b": 2.6738974804670925e-13,
+   "E3": 1.0092085320856041e-13,
+   "E4": 3.236379710062727e-14,
+   "E5": 1.0545027539678076e-11,
+   "E5b": 0.0
+  }
+ },
+ "engine_verification_r3": {
+  "path": "_ref/engine_r3.json",
+  "sha256": "eca3f791fdf7217c9c944be1b3ea459ecc52487231509122e4cb918d602ec60c",
+  "test": "crates/engine-api/tests/val032_runs.rs",
+  "seguimiento": "MAM-847",
+  "fuentes": [
+   {
+    "path": "crates/engine-api/tests/val032_runs.rs",
+    "sha256": "d00894146fbc10205a34e9ba422dc9dbd7f3f8da3451cb1a7198bcbefb5d6503"
+   },
+   {
+    "path": "crates/engine-analysis/src/pdelta.rs",
+    "sha256": "d869fd4b1e612976de2935147b7c0889089ff859718aae4617944f5778bcd3a2"
+   },
+   {
+    "path": "crates/engine-analysis/src/modal.rs",
+    "sha256": "994113d703a0de8cdd7c27c0c8bf7b75bd979229d1aaca0c3f59eab69f4569be"
+   }
+  ]
+ }
+}

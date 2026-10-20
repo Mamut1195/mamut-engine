@@ -1,0 +1,1339 @@
+{
+ "schema": "val032-engine-r3/1",
+ "seguimiento": "MAM-847",
+ "test": "crates/engine-api/tests/val032_runs.rs",
+ "nota": "Documentos results/1 reales; estados y causas copiados sin reinterpretar códigos. Modal/espectro bloqueados por ENG-E-0006; E3-pdelta bloqueado por defecto del Engine (pDelta + diafragma), ENG-E-0007 y notConverged. Seguimiento MAM-847; issues del Engine pendientes de abrir.",
+ "runs": [
+  {
+   "run": "E1-modal",
+   "status": "unstable",
+   "input_sha256": "15a1cf78523b6cfb867696b8e884c90eab33b113c065afbd9901418f30bda197",
+   "sha256_engine_input": "4023d7ab6ad2146f9382415c705b17f98fef1bccc5eaf31d8dcd00779f837b65",
+   "sha256_results_document": "013cac1acd31c2a66ecf749b888107d828854def04f25ed41d050c1d045479a7",
+   "diagnostics": [
+    {
+     "cause": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados.",
+     "code": "API-W-DIAPHRAGM-RECOVERY",
+     "entities": [],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "Referencia LDLᵀ: pivote singular en GDL 0. Nodo 101, GDL Uz (global 74).",
+     "code": "ENG-E-0006",
+     "entities": [
+      {
+       "id": 101,
+       "kind": "node"
+      },
+      {
+       "id": 74,
+       "kind": "dof"
+      }
+     ],
+     "hint": null,
+     "severity": "error"
+    }
+   ],
+   "cases": 0,
+   "combinations": 0,
+   "modes": 0,
+   "convergence": null
+  },
+  {
+   "run": "E2-cqc-X",
+   "status": "unstable",
+   "input_sha256": "e3f61bacec2abf3416238e1111ab5c6ac0adea99a6783137663f9ed1061599d5",
+   "sha256_engine_input": "d474294ef4d4a2b3a26756ece85431332125ab4df081bcd720283bff45c66003",
+   "sha256_results_document": "4b581d54cbe19f701959887255bf7e565577c939155f75ce661be7cdefc6c361",
+   "diagnostics": [
+    {
+     "cause": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados.",
+     "code": "API-W-DIAPHRAGM-RECOVERY",
+     "entities": [],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "Referencia LDLᵀ: pivote singular en GDL 0. Nodo 101, GDL Uz (global 74).",
+     "code": "ENG-E-0006",
+     "entities": [
+      {
+       "id": 101,
+       "kind": "node"
+      },
+      {
+       "id": 74,
+       "kind": "dof"
+      }
+     ],
+     "hint": null,
+     "severity": "error"
+    }
+   ],
+   "cases": 0,
+   "combinations": 0,
+   "modes": 0,
+   "convergence": null
+  },
+  {
+   "run": "E2-srss-X",
+   "status": "unstable",
+   "input_sha256": "446b1f9053d6e932653ee153b26943d47282ce502d1e6a59a8dbafb12dab0ca3",
+   "sha256_engine_input": "d0c4447dcbbf12b4abe30265282f1d780a8bb84899b9867f5d1ec96ac7cb980f",
+   "sha256_results_document": "05a427c47ef40b8af267cfaff2cdeb179d6f07f2d8e3489bc882d452a94a910b",
+   "diagnostics": [
+    {
+     "cause": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados.",
+     "code": "API-W-DIAPHRAGM-RECOVERY",
+     "entities": [],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "Referencia LDLᵀ: pivote singular en GDL 0. Nodo 101, GDL Uz (global 74).",
+     "code": "ENG-E-0006",
+     "entities": [
+      {
+       "id": 101,
+       "kind": "node"
+      },
+      {
+       "id": 74,
+       "kind": "dof"
+      }
+     ],
+     "hint": null,
+     "severity": "error"
+    }
+   ],
+   "cases": 0,
+   "combinations": 0,
+   "modes": 0,
+   "convergence": null
+  },
+  {
+   "run": "E2-cqc-Y",
+   "status": "unstable",
+   "input_sha256": "28a88c8c193c81eb59c1b19816c092450cfab8be93bf2b05a53105fab06cb8de",
+   "sha256_engine_input": "55b57d01f85575d1f45b2d15c80e5f344648fad7aed2b1589d451b781085f2c2",
+   "sha256_results_document": "eb921a2e32653575601bb4b45897ab1c759c2ce0289200e6daf21c5da07807aa",
+   "diagnostics": [
+    {
+     "cause": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados.",
+     "code": "API-W-DIAPHRAGM-RECOVERY",
+     "entities": [],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "Referencia LDLᵀ: pivote singular en GDL 0. Nodo 101, GDL Uz (global 74).",
+     "code": "ENG-E-0006",
+     "entities": [
+      {
+       "id": 101,
+       "kind": "node"
+      },
+      {
+       "id": 74,
+       "kind": "dof"
+      }
+     ],
+     "hint": null,
+     "severity": "error"
+    }
+   ],
+   "cases": 0,
+   "combinations": 0,
+   "modes": 0,
+   "convergence": null
+  },
+  {
+   "run": "E2b-cqc-X",
+   "status": "unstable",
+   "input_sha256": "b5a7ee352e590c6b9d41dd5a25f22f3307c6416a6e36e1106adbe5126c80e9b1",
+   "sha256_engine_input": "8fc076728c1e199c8c1227862c434b3f96b7a3fb201f6cba90b4692216106b58",
+   "sha256_results_document": "d29d4ffe45fe91cd2227b563eefd26e1cd9f49291ba44377d0c7e03f9df5124f",
+   "diagnostics": [
+    {
+     "cause": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados.",
+     "code": "API-W-DIAPHRAGM-RECOVERY",
+     "entities": [],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "Referencia LDLᵀ: pivote singular en GDL 0. Nodo 101, GDL Uz (global 74).",
+     "code": "ENG-E-0006",
+     "entities": [
+      {
+       "id": 101,
+       "kind": "node"
+      },
+      {
+       "id": 74,
+       "kind": "dof"
+      }
+     ],
+     "hint": null,
+     "severity": "error"
+    }
+   ],
+   "cases": 0,
+   "combinations": 0,
+   "modes": 0,
+   "convergence": null
+  },
+  {
+   "run": "E2b-cqc-Y",
+   "status": "unstable",
+   "input_sha256": "d6735f23d87ae85a0486d369bda9ce03a9da9769175702582afa51e68fdf6034",
+   "sha256_engine_input": "49a949cddc4dd241fcf0fd85e869394e50a827303aaad2f735aecbf40e339cfd",
+   "sha256_results_document": "b0f6bc516f97b16e2ecd536fb949ad2e5f1853c50cb103de96d496a346cafe92",
+   "diagnostics": [
+    {
+     "cause": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados.",
+     "code": "API-W-DIAPHRAGM-RECOVERY",
+     "entities": [],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "Referencia LDLᵀ: pivote singular en GDL 0. Nodo 101, GDL Uz (global 74).",
+     "code": "ENG-E-0006",
+     "entities": [
+      {
+       "id": 101,
+       "kind": "node"
+      },
+      {
+       "id": 74,
+       "kind": "dof"
+      }
+     ],
+     "hint": null,
+     "severity": "error"
+    }
+   ],
+   "cases": 0,
+   "combinations": 0,
+   "modes": 0,
+   "convergence": null
+  },
+  {
+   "run": "E2b-cqc-XY-srss",
+   "status": "unstable",
+   "input_sha256": "da3543e78455fc4f183e0045bc6bb1e4e08217bf55b2018d67063dacb495dfe9",
+   "sha256_engine_input": "70b8e5351f23aaaa3c86085b1d4198e46cd49690c9f7d756cac03e49dad4efbd",
+   "sha256_results_document": "30cd6e03af7a35153a7a3b38a70b030304bbfa0352db38fbc141e78c63392e81",
+   "diagnostics": [
+    {
+     "cause": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados.",
+     "code": "API-W-DIAPHRAGM-RECOVERY",
+     "entities": [],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "Referencia LDLᵀ: pivote singular en GDL 0. Nodo 101, GDL Uz (global 74).",
+     "code": "ENG-E-0006",
+     "entities": [
+      {
+       "id": 101,
+       "kind": "node"
+      },
+      {
+       "id": 74,
+       "kind": "dof"
+      }
+     ],
+     "hint": null,
+     "severity": "error"
+    }
+   ],
+   "cases": 0,
+   "combinations": 0,
+   "modes": 0,
+   "convergence": null
+  },
+  {
+   "run": "E3-lineal",
+   "status": "warning",
+   "input_sha256": "0204caeef096392fd2e288b8d5ef8b1666f732143145213573ee4991644fed04",
+   "sha256_engine_input": "0bc9648f7028dd42c94fd8e83b7ce21b1fa2c6f93ff99df875d85685c998b157",
+   "sha256_results_document": "0517a30811812cb2f0e63d64797dc46266b5dbc5224ae2a502758e9574d416a1",
+   "diagnostics": [
+    {
+     "cause": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados.",
+     "code": "API-W-DIAPHRAGM-RECOVERY",
+     "entities": [],
+     "hint": null,
+     "severity": "warning"
+    }
+   ],
+   "cases": 2,
+   "combinations": 0,
+   "modes": 0,
+   "convergence": null
+  },
+  {
+   "run": "E3-pdelta",
+   "status": "notConverged",
+   "input_sha256": "4ec12295da34412f6bb54764ad0eb990e2ae7afdf44ac0914b355da2186de24c",
+   "sha256_engine_input": "503512801e2500b3eee4b5b429e6018f7b4c457ea8342d712239319ba2d50d7e",
+   "sha256_results_document": "ceeee8e1ec4d95be2a2f71291ab5b39eb1b17b43d563c57faf3c5fde784aafd1",
+   "diagnostics": [
+    {
+     "cause": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados.",
+     "code": "API-W-DIAPHRAGM-RECOVERY",
+     "entities": [],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "P-Delta: consulte convergence; no se emiten respuestas sin convergencia estable",
+     "code": "ENG-E-0007",
+     "entities": [],
+     "hint": null,
+     "severity": "error"
+    }
+   ],
+   "cases": 0,
+   "combinations": 0,
+   "modes": 0,
+   "convergence": {
+    "displacement_scale": 0.01,
+    "gravity": {
+     "case": "G",
+     "factor": 1.0
+    },
+    "inertia": [
+     195,
+     0,
+     0
+    ],
+    "inertia_uses_2x2": false,
+    "iterations": [
+     {
+      "free_residual_norm": 1144110.8658641453,
+      "iteration": 1,
+      "relative_displacement_change": 1.0,
+      "relative_free_residual": 0.9999999999999996,
+      "residual_convergence_ratio": 9964261939.689398
+     },
+     {
+      "free_residual_norm": 1144116.5237116553,
+      "iteration": 2,
+      "relative_displacement_change": 0.014994139242252354,
+      "relative_free_residual": 1.0000049451916577,
+      "residual_convergence_ratio": 9963320861.785538
+     },
+     {
+      "free_residual_norm": 1144116.5475898918,
+      "iteration": 3,
+      "relative_displacement_change": 0.00027097665181305956,
+      "relative_free_residual": 1.0000049660622197,
+      "residual_convergence_ratio": 9963303632.241566
+     },
+     {
+      "free_residual_norm": 1144116.5477466201,
+      "iteration": 4,
+      "relative_displacement_change": 5.411018952914662e-06,
+      "relative_free_residual": 1.0000049661992065,
+      "residual_convergence_ratio": 9963303281.375128
+     },
+     {
+      "free_residual_norm": 1144116.5477478574,
+      "iteration": 5,
+      "relative_displacement_change": 1.1469866188370569e-07,
+      "relative_free_residual": 1.0000049662002881,
+      "residual_convergence_ratio": 9963303273.871206
+     },
+     {
+      "free_residual_norm": 1144116.547747871,
+      "iteration": 6,
+      "relative_displacement_change": 2.5229733896045337e-09,
+      "relative_free_residual": 1.0000049662002999,
+      "residual_convergence_ratio": 9963303273.70553
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 7,
+      "relative_displacement_change": 5.6851728798598e-11,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701792
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 8,
+      "relative_displacement_change": 1.3022134792583568e-12,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701706
+     },
+     {
+      "free_residual_norm": 1144116.547747871,
+      "iteration": 9,
+      "relative_displacement_change": 3.0386201512072074e-14,
+      "relative_free_residual": 1.0000049662002999,
+      "residual_convergence_ratio": 9963303273.701702
+     },
+     {
+      "free_residual_norm": 1144116.547747871,
+      "iteration": 10,
+      "relative_displacement_change": 5.297826415894687e-16,
+      "relative_free_residual": 1.0000049662002999,
+      "residual_convergence_ratio": 9963303273.701702
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 11,
+      "relative_displacement_change": 2.440658755989723e-16,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 12,
+      "relative_displacement_change": 1.525411722493577e-16,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 13,
+      "relative_displacement_change": 3.050823444987154e-17,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 14,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 15,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 16,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 17,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 18,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 19,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 20,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 21,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 22,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 23,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 24,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 25,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 26,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 27,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 28,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 29,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 30,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 31,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 32,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 33,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 34,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 35,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 36,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 37,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 38,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 39,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 40,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 41,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 42,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 43,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 44,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 45,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 46,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 47,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 48,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 49,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 50,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 51,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 52,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 53,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 54,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 55,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 56,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 57,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 58,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 59,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 60,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 61,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 62,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 63,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 64,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 65,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 66,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 67,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 68,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 69,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 70,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 71,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 72,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 73,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 74,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 75,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 76,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 77,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 78,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 79,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 80,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 81,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 82,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 83,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 84,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 85,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 86,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 87,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 88,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 89,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 90,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 91,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 92,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 93,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 94,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 95,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 96,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 97,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 98,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 99,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     },
+     {
+      "free_residual_norm": 1144116.5477478711,
+      "iteration": 100,
+      "relative_displacement_change": 0.0,
+      "relative_free_residual": 1.0000049662003,
+      "residual_convergence_ratio": 9963303273.701704
+     }
+    ],
+    "lateral": {
+     "case": "EX",
+     "factor": 1.0
+    },
+    "max_iterations": 100,
+    "method": "pDelta",
+    "rotation_scale": 0.001,
+    "status": "notConverged",
+    "tolerance": 1e-10
+   }
+  },
+  {
+   "run": "E4-modal",
+   "status": "unstable",
+   "input_sha256": "0261f869289a2fafdd86a11a4780f92614536a77ca116517601a6efc6648c641",
+   "sha256_engine_input": "d90d8d43d6cb13be6e9f051fd9cc5f84f48a78e68ab7e0c2133a70cc9419251c",
+   "sha256_results_document": "d728c0c8e6bc2b1f9b3b4d63c08fa2ad51181fac39eea696c283b1d26ac442f5",
+   "diagnostics": [
+    {
+     "cause": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados.",
+     "code": "API-W-DIAPHRAGM-RECOVERY",
+     "entities": [],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "Referencia LDLᵀ: pivote singular en GDL 0. Nodo 101, GDL Uz (global 74).",
+     "code": "ENG-E-0006",
+     "entities": [
+      {
+       "id": 101,
+       "kind": "node"
+      },
+      {
+       "id": 74,
+       "kind": "dof"
+      }
+     ],
+     "hint": null,
+     "severity": "error"
+    }
+   ],
+   "cases": 0,
+   "combinations": 0,
+   "modes": 0,
+   "convergence": null
+  },
+  {
+   "run": "E5-combinaciones",
+   "status": "warning",
+   "input_sha256": "7dfca1a7a4c369501dabf1d87c4c67206c3b24ed04726e18b01f0b36e4b1dbc6",
+   "sha256_engine_input": "1575e6846f77e9bf08a3923190e6e7d600a055f3819fa9bc4c1056163f57967b",
+   "sha256_results_document": "cd4bf348b4e920f06b041da1ebe1eb2bd2b98b65b078090f2a3716b9fdc89f60",
+   "diagnostics": [
+    {
+     "cause": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados.",
+     "code": "API-W-DIAPHRAGM-RECOVERY",
+     "entities": [],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C1_1.4D: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C1_1.4D",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C2_1.2D+1.6L: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C2_1.2D+1.6L",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C5_1.2D+L+EX: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C5_1.2D+L+EX",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C7_0.9D+EX: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C7_0.9D+EX",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C5_1.2D+L-EX: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C5_1.2D+L-EX",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C7_0.9D-EX: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C7_0.9D-EX",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C5_1.2D+L+EY: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C5_1.2D+L+EY",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C7_0.9D+EY: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C7_0.9D+EY",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C5_1.2D+L-EY: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C5_1.2D+L-EY",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C7_0.9D-EY: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C7_0.9D-EY",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    }
+   ],
+   "cases": 4,
+   "combinations": 10,
+   "modes": 0,
+   "convergence": null
+  },
+  {
+   "run": "E5b-combinaciones",
+   "status": "warning",
+   "input_sha256": "16964c984c142de3432283bcb1ea817d731c1c07e4109784c4bc318ab1243a56",
+   "sha256_engine_input": "c4ab3d25dda80fa0c9baedd62808472ef86b14a4c4efbe5f14b8482b12c00fa8",
+   "sha256_results_document": "fd4ac834a0b1a5bb505cea718bbb283b2b434420ba744fc61b13b3ce38fc5081",
+   "diagnostics": [
+    {
+     "cause": "#85: combinación C1_1.4D: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C1_1.4D",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C2_1.2D+1.6L: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C2_1.2D+1.6L",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C5_1.2D+L+EX: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C5_1.2D+L+EX",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C7_0.9D+EX: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C7_0.9D+EX",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C5_1.2D+L-EX: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C5_1.2D+L-EX",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C7_0.9D-EX: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C7_0.9D-EX",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C5_1.2D+L+EY: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C5_1.2D+L+EY",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C7_0.9D+EY: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C7_0.9D+EY",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C5_1.2D+L-EY: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C5_1.2D+L-EY",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    },
+    {
+     "cause": "#85: combinación C7_0.9D-EY: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.",
+     "code": "API-W-COMBINED-PRESCRIBED",
+     "entities": [
+      {
+       "id": "C7_0.9D-EY",
+       "kind": "case"
+      }
+     ],
+     "hint": null,
+     "severity": "warning"
+    }
+   ],
+   "cases": 4,
+   "combinations": 10,
+   "modes": 0,
+   "convergence": null
+  }
+ ]
+}

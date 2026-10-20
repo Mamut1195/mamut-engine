@@ -1,0 +1,10992 @@
+{
+ "schema": "val032-fixture/1",
+ "schema_status": "BORRADOR — envoltura VAL-032; documentos bench-model/1 separados conformes a #183 (797535d8); ver README §Brechas",
+ "id": "E5b",
+ "version": "1.0.1",
+ "case": "VAL-032",
+ "linear": "MAM-847",
+ "parent": "MAM-604",
+ "title": "Combinaciones sobre E4 sin diafragmas: losa mediante diagonales truss3d.linear",
+ "tests": [
+  "fuerzas y momentos de barra como criterio",
+  "combinaciones y envolventes",
+  "equilibrio global"
+ ],
+ "units": "SI",
+ "common": {
+  "material": {
+   "fc_MPa": 28.0,
+   "E_Pa": 24870062324.007156,
+   "nu": 0.2,
+   "G_Pa": 10362525968.336315,
+   "cita": "ACI 318-25 §19.2.2.1(b): Ec=4700√f'c (MPa)"
+  },
+  "rigidez": "Secciones brutas (sin agrietamiento NEC §6.1.6) — modelo de verificación, no de diseño",
+  "planta": {
+   "LX": [
+    0,
+    5,
+    10,
+    15
+   ],
+   "LY": [
+    0,
+    5,
+    10
+   ],
+   "altura_piso": 3.0
+  },
+  "cargas": {
+   "D_Pa": 6000.0,
+   "L_Pa": 2000.0,
+   "fuente_masa": "ninguna: masses=[]; fixture exclusivamente estático"
+  }
+ },
+ "info": {
+  "ELF": {
+   "hn": 15.0,
+   "Ta": 0.6292812947707077,
+   "k": 1.0646406473853538,
+   "Sa_g": 1.1904,
+   "Cs": 0.1488,
+   "W": 4500000.0,
+   "V": 669600.0,
+   "F": [
+    41242.618219411626,
+    86265.07364627197,
+    132833.89564207935,
+    180436.23931940785,
+    228822.17317282915
+   ]
+  },
+  "carga_lateral": "EX/EY repartidas por área tributaria; mismas resultantes y CM que E4",
+  "losa": {
+   "A_m2": 10.0,
+   "E_Pa": 24870062324.007156,
+   "EA_N": 248700623240.07156,
+   "diagonales_por_pano": 2,
+   "diagonales_totales": 60,
+   "justificacion": "Rigidez finita de penalización: EA/Ldiag≈3.52e10 N/m, ≈611 veces 12EcIcol/h³ de una columna y ≈13000 veces 12EcIz_viga/5³. Solo rigidez axial en plano; no es losa física ni igualdad exacta con MPC. Los cruces no añaden nudo."
+  },
+  "requisitos_oraculos": "La salida de los oráculos debe imprimir ≥10 cifras significativas para ser comparable como criterio. Frame3DD imprime en coma fija, no en notación científica. La salida del oráculo debe alcanzar ≥10 cifras significativas ajustando las unidades (p.ej. mm, kN); Q2 debe comprobarlo en una corrida en seco de formato antes de congelar. Si no se alcanza, E5b frente a Frame3DD y la parte afectada de E3 son solo diagnóstico, no criterio. Si un oráculo modela truss como barra con I pequeña, debe declarar esa aproximación y la I utilizada.",
+  "combinaciones_cita": "NEC-SE-CG 2015 §3.4.3: numeración 1, 2, 5, 7 y factores NO VERIFICADOS",
+  "envolvente": "max/min sobre las 10 combinaciones, calculada fuera del Engine (engine-input/1 no declara envolventes en linearStatic)",
+  "diafragma_r3": {
+   "pisos": [],
+   "tratamiento": "Maestro conectado más cercano al CM entre nodos con x≠x_cm e y≠y_cm para evitar momento transportado nulo y cancelación en recuperación #84. Desempate: mayor x, menor y, menor id; maestro excluido de esclavos; bases fuera del diafragma; Uz/Rx/Ry libres en todos los nodos de piso.",
+   "masa": "Sin masas ni diafragmas; modelo físico conservado.",
+   "cargas": "Fuerza lateral conservada, momento adicional Mz=(r_cm-r_master)×F; E5b conserva reparto tributario.",
+   "evidencia": "_ref/calibrate_r3.json"
+  },
+  "estado_engine": [
+   {
+    "run": "E5b-combinaciones",
+    "estado": "Warning",
+    "status_engine": "warning",
+    "seguimiento": "MAM-847",
+    "causa": "Sin masa artificial ni apoyos de piso añadidos.",
+    "warnings": [
+     {
+      "codigo": "API-W-COMBINED-PRESCRIBED",
+      "cantidad": 10,
+      "causa": "#85: cada combinación suma factor·δ de los prescritos. El Engine avisa también para los empotramientos de base con δ=0; no hay asentamientos impuestos."
+     }
+    ],
+    "evidencia_engine": "_ref/engine_r3.json"
+   }
+  ]
+ },
+ "node_count": 72,
+ "member_count": 205,
+ "model": {
+  "axes": "Z-up",
+  "nodes": [
+   {
+    "id": 1,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     0,
+     0.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 2,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     0,
+     0.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 3,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     0,
+     0.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 4,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     0,
+     0.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 5,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     5,
+     0.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 6,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     5,
+     0.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 7,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     5,
+     0.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 8,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     5,
+     0.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 9,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     10,
+     0.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 10,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     10,
+     0.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 11,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     10,
+     0.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 12,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     10,
+     0.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 101,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     0,
+     3.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 102,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     0,
+     3.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 103,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     0,
+     3.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 104,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     0,
+     3.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 105,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     5,
+     3.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 106,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     5,
+     3.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 107,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     5,
+     3.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 108,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     5,
+     3.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 109,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     10,
+     3.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 110,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     10,
+     3.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 111,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     10,
+     3.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 112,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     10,
+     3.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 201,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     0,
+     6.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 202,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     0,
+     6.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 203,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     0,
+     6.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 204,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     0,
+     6.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 205,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     5,
+     6.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 206,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     5,
+     6.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 207,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     5,
+     6.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 208,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     5,
+     6.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 209,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     10,
+     6.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 210,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     10,
+     6.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 211,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     10,
+     6.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 212,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     10,
+     6.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 301,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     0,
+     9.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 302,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     0,
+     9.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 303,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     0,
+     9.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 304,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     0,
+     9.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 305,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     5,
+     9.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 306,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     5,
+     9.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 307,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     5,
+     9.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 308,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     5,
+     9.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 309,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     10,
+     9.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 310,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     10,
+     9.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 311,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     10,
+     9.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 312,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     10,
+     9.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 401,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     0,
+     12.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 402,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     0,
+     12.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 403,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     0,
+     12.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 404,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     0,
+     12.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 405,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     5,
+     12.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 406,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     5,
+     12.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 407,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     5,
+     12.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 408,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     5,
+     12.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 409,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     10,
+     12.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 410,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     10,
+     12.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 411,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     10,
+     12.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 412,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     10,
+     12.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 501,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     0,
+     15.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 502,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     0,
+     15.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 503,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     0,
+     15.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 504,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     0,
+     15.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 505,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     5,
+     15.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 506,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     5,
+     15.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 507,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     5,
+     15.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 508,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     5,
+     15.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 509,
+    "dim": "D3",
+    "coordinates": [
+     0,
+     10,
+     15.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 510,
+    "dim": "D3",
+    "coordinates": [
+     5,
+     10,
+     15.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 511,
+    "dim": "D3",
+    "coordinates": [
+     10,
+     10,
+     15.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": 512,
+    "dim": "D3",
+    "coordinates": [
+     15,
+     10,
+     15.0
+    ],
+    "dofs": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   }
+  ],
+  "members": [
+   {
+    "id": 1,
+    "nodes": [
+     1,
+     101
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 2,
+    "nodes": [
+     2,
+     102
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 3,
+    "nodes": [
+     3,
+     103
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 4,
+    "nodes": [
+     4,
+     104
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 5,
+    "nodes": [
+     5,
+     105
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 6,
+    "nodes": [
+     6,
+     106
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 7,
+    "nodes": [
+     7,
+     107
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 8,
+    "nodes": [
+     8,
+     108
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 9,
+    "nodes": [
+     9,
+     109
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 10,
+    "nodes": [
+     10,
+     110
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 11,
+    "nodes": [
+     11,
+     111
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 12,
+    "nodes": [
+     12,
+     112
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 13,
+    "nodes": [
+     101,
+     102
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 14,
+    "nodes": [
+     102,
+     103
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 15,
+    "nodes": [
+     103,
+     104
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 16,
+    "nodes": [
+     105,
+     106
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 17,
+    "nodes": [
+     106,
+     107
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 18,
+    "nodes": [
+     107,
+     108
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 19,
+    "nodes": [
+     109,
+     110
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 20,
+    "nodes": [
+     110,
+     111
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 21,
+    "nodes": [
+     111,
+     112
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 22,
+    "nodes": [
+     101,
+     105
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 23,
+    "nodes": [
+     102,
+     106
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 24,
+    "nodes": [
+     103,
+     107
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 25,
+    "nodes": [
+     104,
+     108
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 26,
+    "nodes": [
+     105,
+     109
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 27,
+    "nodes": [
+     106,
+     110
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 28,
+    "nodes": [
+     107,
+     111
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 29,
+    "nodes": [
+     108,
+     112
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 30,
+    "nodes": [
+     101,
+     201
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 31,
+    "nodes": [
+     102,
+     202
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 32,
+    "nodes": [
+     103,
+     203
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 33,
+    "nodes": [
+     104,
+     204
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 34,
+    "nodes": [
+     105,
+     205
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 35,
+    "nodes": [
+     106,
+     206
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 36,
+    "nodes": [
+     107,
+     207
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 37,
+    "nodes": [
+     108,
+     208
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 38,
+    "nodes": [
+     109,
+     209
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 39,
+    "nodes": [
+     110,
+     210
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 40,
+    "nodes": [
+     111,
+     211
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 41,
+    "nodes": [
+     112,
+     212
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 42,
+    "nodes": [
+     201,
+     202
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 43,
+    "nodes": [
+     202,
+     203
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 44,
+    "nodes": [
+     203,
+     204
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 45,
+    "nodes": [
+     205,
+     206
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 46,
+    "nodes": [
+     206,
+     207
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 47,
+    "nodes": [
+     207,
+     208
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 48,
+    "nodes": [
+     209,
+     210
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 49,
+    "nodes": [
+     210,
+     211
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 50,
+    "nodes": [
+     211,
+     212
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 51,
+    "nodes": [
+     201,
+     205
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 52,
+    "nodes": [
+     202,
+     206
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 53,
+    "nodes": [
+     203,
+     207
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 54,
+    "nodes": [
+     204,
+     208
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 55,
+    "nodes": [
+     205,
+     209
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 56,
+    "nodes": [
+     206,
+     210
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 57,
+    "nodes": [
+     207,
+     211
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 58,
+    "nodes": [
+     208,
+     212
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 59,
+    "nodes": [
+     201,
+     301
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 60,
+    "nodes": [
+     202,
+     302
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 61,
+    "nodes": [
+     203,
+     303
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 62,
+    "nodes": [
+     204,
+     304
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 63,
+    "nodes": [
+     205,
+     305
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 64,
+    "nodes": [
+     206,
+     306
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 65,
+    "nodes": [
+     207,
+     307
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 66,
+    "nodes": [
+     208,
+     308
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 67,
+    "nodes": [
+     209,
+     309
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 68,
+    "nodes": [
+     210,
+     310
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 69,
+    "nodes": [
+     211,
+     311
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 70,
+    "nodes": [
+     212,
+     312
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 71,
+    "nodes": [
+     301,
+     302
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 72,
+    "nodes": [
+     302,
+     303
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 73,
+    "nodes": [
+     303,
+     304
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 74,
+    "nodes": [
+     305,
+     306
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 75,
+    "nodes": [
+     306,
+     307
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 76,
+    "nodes": [
+     307,
+     308
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 77,
+    "nodes": [
+     309,
+     310
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 78,
+    "nodes": [
+     310,
+     311
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 79,
+    "nodes": [
+     311,
+     312
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 80,
+    "nodes": [
+     301,
+     305
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 81,
+    "nodes": [
+     302,
+     306
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 82,
+    "nodes": [
+     303,
+     307
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 83,
+    "nodes": [
+     304,
+     308
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 84,
+    "nodes": [
+     305,
+     309
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 85,
+    "nodes": [
+     306,
+     310
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 86,
+    "nodes": [
+     307,
+     311
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 87,
+    "nodes": [
+     308,
+     312
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 88,
+    "nodes": [
+     301,
+     401
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 89,
+    "nodes": [
+     302,
+     402
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 90,
+    "nodes": [
+     303,
+     403
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 91,
+    "nodes": [
+     304,
+     404
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 92,
+    "nodes": [
+     305,
+     405
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 93,
+    "nodes": [
+     306,
+     406
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 94,
+    "nodes": [
+     307,
+     407
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 95,
+    "nodes": [
+     308,
+     408
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 96,
+    "nodes": [
+     309,
+     409
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 97,
+    "nodes": [
+     310,
+     410
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 98,
+    "nodes": [
+     311,
+     411
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 99,
+    "nodes": [
+     312,
+     412
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 100,
+    "nodes": [
+     401,
+     402
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 101,
+    "nodes": [
+     402,
+     403
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 102,
+    "nodes": [
+     403,
+     404
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 103,
+    "nodes": [
+     405,
+     406
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 104,
+    "nodes": [
+     406,
+     407
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 105,
+    "nodes": [
+     407,
+     408
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 106,
+    "nodes": [
+     409,
+     410
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 107,
+    "nodes": [
+     410,
+     411
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 108,
+    "nodes": [
+     411,
+     412
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 109,
+    "nodes": [
+     401,
+     405
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 110,
+    "nodes": [
+     402,
+     406
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 111,
+    "nodes": [
+     403,
+     407
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 112,
+    "nodes": [
+     404,
+     408
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 113,
+    "nodes": [
+     405,
+     409
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 114,
+    "nodes": [
+     406,
+     410
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 115,
+    "nodes": [
+     407,
+     411
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 116,
+    "nodes": [
+     408,
+     412
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 117,
+    "nodes": [
+     401,
+     501
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 118,
+    "nodes": [
+     402,
+     502
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 119,
+    "nodes": [
+     403,
+     503
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 120,
+    "nodes": [
+     404,
+     504
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 121,
+    "nodes": [
+     405,
+     505
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 122,
+    "nodes": [
+     406,
+     506
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 123,
+    "nodes": [
+     407,
+     507
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 124,
+    "nodes": [
+     408,
+     508
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 125,
+    "nodes": [
+     409,
+     509
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 126,
+    "nodes": [
+     410,
+     510
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 127,
+    "nodes": [
+     411,
+     511
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 128,
+    "nodes": [
+     412,
+     512
+    ],
+    "section": "columna",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     1,
+     0,
+     0
+    ]
+   },
+   {
+    "id": 129,
+    "nodes": [
+     501,
+     502
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 130,
+    "nodes": [
+     502,
+     503
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 131,
+    "nodes": [
+     503,
+     504
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 132,
+    "nodes": [
+     505,
+     506
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 133,
+    "nodes": [
+     506,
+     507
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 134,
+    "nodes": [
+     507,
+     508
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 135,
+    "nodes": [
+     509,
+     510
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 136,
+    "nodes": [
+     510,
+     511
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 137,
+    "nodes": [
+     511,
+     512
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 138,
+    "nodes": [
+     501,
+     505
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 139,
+    "nodes": [
+     502,
+     506
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 140,
+    "nodes": [
+     503,
+     507
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 141,
+    "nodes": [
+     504,
+     508
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 142,
+    "nodes": [
+     505,
+     509
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 143,
+    "nodes": [
+     506,
+     510
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 144,
+    "nodes": [
+     507,
+     511
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 145,
+    "nodes": [
+     508,
+     512
+    ],
+    "section": "viga",
+    "law": "hormigon",
+    "element": "frame3d.euler_elastic",
+    "orientation": [
+     0,
+     0,
+     1
+    ]
+   },
+   {
+    "id": 146,
+    "nodes": [
+     101,
+     106
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 147,
+    "nodes": [
+     102,
+     105
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 148,
+    "nodes": [
+     102,
+     107
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 149,
+    "nodes": [
+     103,
+     106
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 150,
+    "nodes": [
+     103,
+     108
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 151,
+    "nodes": [
+     104,
+     107
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 152,
+    "nodes": [
+     105,
+     110
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 153,
+    "nodes": [
+     106,
+     109
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 154,
+    "nodes": [
+     106,
+     111
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 155,
+    "nodes": [
+     107,
+     110
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 156,
+    "nodes": [
+     107,
+     112
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 157,
+    "nodes": [
+     108,
+     111
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 158,
+    "nodes": [
+     201,
+     206
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 159,
+    "nodes": [
+     202,
+     205
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 160,
+    "nodes": [
+     202,
+     207
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 161,
+    "nodes": [
+     203,
+     206
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 162,
+    "nodes": [
+     203,
+     208
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 163,
+    "nodes": [
+     204,
+     207
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 164,
+    "nodes": [
+     205,
+     210
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 165,
+    "nodes": [
+     206,
+     209
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 166,
+    "nodes": [
+     206,
+     211
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 167,
+    "nodes": [
+     207,
+     210
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 168,
+    "nodes": [
+     207,
+     212
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 169,
+    "nodes": [
+     208,
+     211
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 170,
+    "nodes": [
+     301,
+     306
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 171,
+    "nodes": [
+     302,
+     305
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 172,
+    "nodes": [
+     302,
+     307
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 173,
+    "nodes": [
+     303,
+     306
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 174,
+    "nodes": [
+     303,
+     308
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 175,
+    "nodes": [
+     304,
+     307
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 176,
+    "nodes": [
+     305,
+     310
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 177,
+    "nodes": [
+     306,
+     309
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 178,
+    "nodes": [
+     306,
+     311
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 179,
+    "nodes": [
+     307,
+     310
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 180,
+    "nodes": [
+     307,
+     312
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 181,
+    "nodes": [
+     308,
+     311
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 182,
+    "nodes": [
+     401,
+     406
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 183,
+    "nodes": [
+     402,
+     405
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 184,
+    "nodes": [
+     402,
+     407
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 185,
+    "nodes": [
+     403,
+     406
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 186,
+    "nodes": [
+     403,
+     408
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 187,
+    "nodes": [
+     404,
+     407
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 188,
+    "nodes": [
+     405,
+     410
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 189,
+    "nodes": [
+     406,
+     409
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 190,
+    "nodes": [
+     406,
+     411
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 191,
+    "nodes": [
+     407,
+     410
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 192,
+    "nodes": [
+     407,
+     412
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 193,
+    "nodes": [
+     408,
+     411
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 194,
+    "nodes": [
+     501,
+     506
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 195,
+    "nodes": [
+     502,
+     505
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 196,
+    "nodes": [
+     502,
+     507
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 197,
+    "nodes": [
+     503,
+     506
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 198,
+    "nodes": [
+     503,
+     508
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 199,
+    "nodes": [
+     504,
+     507
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 200,
+    "nodes": [
+     505,
+     510
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 201,
+    "nodes": [
+     506,
+     509
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 202,
+    "nodes": [
+     506,
+     511
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 203,
+    "nodes": [
+     507,
+     510
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 204,
+    "nodes": [
+     507,
+     512
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   },
+   {
+    "id": 205,
+    "nodes": [
+     508,
+     511
+    ],
+    "section": "losa_diagonal",
+    "law": "losa_elastica",
+    "element": "truss3d.linear"
+   }
+  ],
+  "sections": [
+   {
+    "id": "columna",
+    "properties": [
+     {
+      "name": "A",
+      "value": 0.25
+     },
+     {
+      "name": "Iy",
+      "value": 0.005208333333333333
+     },
+     {
+      "name": "Iz",
+      "value": 0.005208333333333333
+     },
+     {
+      "name": "J",
+      "value": 0.008802083333333334
+     }
+    ]
+   },
+   {
+    "id": "viga",
+    "properties": [
+     {
+      "name": "A",
+      "value": 0.15
+     },
+     {
+      "name": "Iy",
+      "value": 0.0031249999999999997
+     },
+     {
+      "name": "Iz",
+      "value": 0.001125
+     },
+     {
+      "name": "J",
+      "value": 0.0028173707999999994
+     }
+    ]
+   },
+   {
+    "id": "losa_diagonal",
+    "properties": [
+     {
+      "name": "A",
+      "value": 10.0
+     }
+    ]
+   }
+  ],
+  "laws": [
+   {
+    "name": "hormigon",
+    "parameters": [
+     {
+      "name": "E",
+      "value": 24870062324.007156
+     },
+     {
+      "name": "G",
+      "value": 10362525968.336315
+     },
+     {
+      "name": "rho",
+      "value": 0.0
+     }
+    ]
+   },
+   {
+    "name": "losa_elastica",
+    "parameters": [
+     {
+      "name": "E",
+      "value": 24870062324.007156
+     },
+     {
+      "name": "rho",
+      "value": 0.0
+     }
+    ]
+   }
+  ],
+  "supports": [
+   {
+    "id": "base_1",
+    "node": 1,
+    "restrained": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": "base_2",
+    "node": 2,
+    "restrained": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": "base_3",
+    "node": 3,
+    "restrained": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": "base_4",
+    "node": 4,
+    "restrained": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": "base_5",
+    "node": 5,
+    "restrained": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": "base_6",
+    "node": 6,
+    "restrained": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": "base_7",
+    "node": 7,
+    "restrained": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": "base_8",
+    "node": 8,
+    "restrained": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": "base_9",
+    "node": 9,
+    "restrained": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": "base_10",
+    "node": 10,
+    "restrained": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": "base_11",
+    "node": 11,
+    "restrained": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   },
+   {
+    "id": "base_12",
+    "node": 12,
+    "restrained": [
+     "Ux",
+     "Uy",
+     "Uz",
+     "Rx",
+     "Ry",
+     "Rz"
+    ]
+   }
+  ],
+  "masses": [],
+  "diaphragms": []
+ },
+ "runs": [
+  {
+   "id": "E5b-combinaciones",
+   "engine_input": {
+    "schema": "engine-input/1",
+    "units": "SI",
+    "model": {
+     "axes": "Z-up",
+     "nodes": [
+      {
+       "id": 1,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        0,
+        0.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 2,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        0,
+        0.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 3,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        0,
+        0.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 4,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        0,
+        0.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 5,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        5,
+        0.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 6,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        5,
+        0.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 7,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        5,
+        0.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 8,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        5,
+        0.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 9,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        10,
+        0.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 10,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        10,
+        0.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 11,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        10,
+        0.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 12,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        10,
+        0.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 101,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        0,
+        3.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 102,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        0,
+        3.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 103,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        0,
+        3.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 104,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        0,
+        3.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 105,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        5,
+        3.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 106,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        5,
+        3.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 107,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        5,
+        3.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 108,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        5,
+        3.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 109,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        10,
+        3.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 110,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        10,
+        3.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 111,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        10,
+        3.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 112,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        10,
+        3.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 201,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        0,
+        6.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 202,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        0,
+        6.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 203,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        0,
+        6.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 204,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        0,
+        6.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 205,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        5,
+        6.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 206,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        5,
+        6.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 207,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        5,
+        6.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 208,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        5,
+        6.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 209,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        10,
+        6.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 210,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        10,
+        6.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 211,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        10,
+        6.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 212,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        10,
+        6.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 301,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        0,
+        9.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 302,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        0,
+        9.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 303,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        0,
+        9.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 304,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        0,
+        9.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 305,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        5,
+        9.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 306,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        5,
+        9.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 307,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        5,
+        9.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 308,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        5,
+        9.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 309,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        10,
+        9.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 310,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        10,
+        9.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 311,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        10,
+        9.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 312,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        10,
+        9.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 401,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        0,
+        12.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 402,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        0,
+        12.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 403,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        0,
+        12.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 404,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        0,
+        12.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 405,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        5,
+        12.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 406,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        5,
+        12.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 407,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        5,
+        12.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 408,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        5,
+        12.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 409,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        10,
+        12.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 410,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        10,
+        12.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 411,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        10,
+        12.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 412,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        10,
+        12.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 501,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        0,
+        15.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 502,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        0,
+        15.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 503,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        0,
+        15.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 504,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        0,
+        15.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 505,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        5,
+        15.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 506,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        5,
+        15.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 507,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        5,
+        15.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 508,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        5,
+        15.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 509,
+       "dim": "D3",
+       "coordinates": [
+        0,
+        10,
+        15.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 510,
+       "dim": "D3",
+       "coordinates": [
+        5,
+        10,
+        15.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 511,
+       "dim": "D3",
+       "coordinates": [
+        10,
+        10,
+        15.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": 512,
+       "dim": "D3",
+       "coordinates": [
+        15,
+        10,
+        15.0
+       ],
+       "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      }
+     ],
+     "members": [
+      {
+       "id": 1,
+       "nodes": [
+        1,
+        101
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 2,
+       "nodes": [
+        2,
+        102
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 3,
+       "nodes": [
+        3,
+        103
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 4,
+       "nodes": [
+        4,
+        104
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 5,
+       "nodes": [
+        5,
+        105
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 6,
+       "nodes": [
+        6,
+        106
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 7,
+       "nodes": [
+        7,
+        107
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 8,
+       "nodes": [
+        8,
+        108
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 9,
+       "nodes": [
+        9,
+        109
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 10,
+       "nodes": [
+        10,
+        110
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 11,
+       "nodes": [
+        11,
+        111
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 12,
+       "nodes": [
+        12,
+        112
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 13,
+       "nodes": [
+        101,
+        102
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 14,
+       "nodes": [
+        102,
+        103
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 15,
+       "nodes": [
+        103,
+        104
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 16,
+       "nodes": [
+        105,
+        106
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 17,
+       "nodes": [
+        106,
+        107
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 18,
+       "nodes": [
+        107,
+        108
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 19,
+       "nodes": [
+        109,
+        110
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 20,
+       "nodes": [
+        110,
+        111
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 21,
+       "nodes": [
+        111,
+        112
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 22,
+       "nodes": [
+        101,
+        105
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 23,
+       "nodes": [
+        102,
+        106
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 24,
+       "nodes": [
+        103,
+        107
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 25,
+       "nodes": [
+        104,
+        108
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 26,
+       "nodes": [
+        105,
+        109
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 27,
+       "nodes": [
+        106,
+        110
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 28,
+       "nodes": [
+        107,
+        111
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 29,
+       "nodes": [
+        108,
+        112
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 30,
+       "nodes": [
+        101,
+        201
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 31,
+       "nodes": [
+        102,
+        202
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 32,
+       "nodes": [
+        103,
+        203
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 33,
+       "nodes": [
+        104,
+        204
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 34,
+       "nodes": [
+        105,
+        205
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 35,
+       "nodes": [
+        106,
+        206
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 36,
+       "nodes": [
+        107,
+        207
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 37,
+       "nodes": [
+        108,
+        208
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 38,
+       "nodes": [
+        109,
+        209
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 39,
+       "nodes": [
+        110,
+        210
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 40,
+       "nodes": [
+        111,
+        211
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 41,
+       "nodes": [
+        112,
+        212
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 42,
+       "nodes": [
+        201,
+        202
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 43,
+       "nodes": [
+        202,
+        203
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 44,
+       "nodes": [
+        203,
+        204
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 45,
+       "nodes": [
+        205,
+        206
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 46,
+       "nodes": [
+        206,
+        207
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 47,
+       "nodes": [
+        207,
+        208
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 48,
+       "nodes": [
+        209,
+        210
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 49,
+       "nodes": [
+        210,
+        211
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 50,
+       "nodes": [
+        211,
+        212
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 51,
+       "nodes": [
+        201,
+        205
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 52,
+       "nodes": [
+        202,
+        206
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 53,
+       "nodes": [
+        203,
+        207
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 54,
+       "nodes": [
+        204,
+        208
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 55,
+       "nodes": [
+        205,
+        209
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 56,
+       "nodes": [
+        206,
+        210
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 57,
+       "nodes": [
+        207,
+        211
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 58,
+       "nodes": [
+        208,
+        212
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 59,
+       "nodes": [
+        201,
+        301
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 60,
+       "nodes": [
+        202,
+        302
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 61,
+       "nodes": [
+        203,
+        303
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 62,
+       "nodes": [
+        204,
+        304
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 63,
+       "nodes": [
+        205,
+        305
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 64,
+       "nodes": [
+        206,
+        306
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 65,
+       "nodes": [
+        207,
+        307
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 66,
+       "nodes": [
+        208,
+        308
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 67,
+       "nodes": [
+        209,
+        309
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 68,
+       "nodes": [
+        210,
+        310
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 69,
+       "nodes": [
+        211,
+        311
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 70,
+       "nodes": [
+        212,
+        312
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 71,
+       "nodes": [
+        301,
+        302
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 72,
+       "nodes": [
+        302,
+        303
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 73,
+       "nodes": [
+        303,
+        304
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 74,
+       "nodes": [
+        305,
+        306
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 75,
+       "nodes": [
+        306,
+        307
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 76,
+       "nodes": [
+        307,
+        308
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 77,
+       "nodes": [
+        309,
+        310
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 78,
+       "nodes": [
+        310,
+        311
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 79,
+       "nodes": [
+        311,
+        312
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 80,
+       "nodes": [
+        301,
+        305
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 81,
+       "nodes": [
+        302,
+        306
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 82,
+       "nodes": [
+        303,
+        307
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 83,
+       "nodes": [
+        304,
+        308
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 84,
+       "nodes": [
+        305,
+        309
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 85,
+       "nodes": [
+        306,
+        310
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 86,
+       "nodes": [
+        307,
+        311
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 87,
+       "nodes": [
+        308,
+        312
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 88,
+       "nodes": [
+        301,
+        401
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 89,
+       "nodes": [
+        302,
+        402
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 90,
+       "nodes": [
+        303,
+        403
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 91,
+       "nodes": [
+        304,
+        404
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 92,
+       "nodes": [
+        305,
+        405
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 93,
+       "nodes": [
+        306,
+        406
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 94,
+       "nodes": [
+        307,
+        407
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 95,
+       "nodes": [
+        308,
+        408
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 96,
+       "nodes": [
+        309,
+        409
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 97,
+       "nodes": [
+        310,
+        410
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 98,
+       "nodes": [
+        311,
+        411
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 99,
+       "nodes": [
+        312,
+        412
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 100,
+       "nodes": [
+        401,
+        402
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 101,
+       "nodes": [
+        402,
+        403
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 102,
+       "nodes": [
+        403,
+        404
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 103,
+       "nodes": [
+        405,
+        406
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 104,
+       "nodes": [
+        406,
+        407
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 105,
+       "nodes": [
+        407,
+        408
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 106,
+       "nodes": [
+        409,
+        410
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 107,
+       "nodes": [
+        410,
+        411
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 108,
+       "nodes": [
+        411,
+        412
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 109,
+       "nodes": [
+        401,
+        405
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 110,
+       "nodes": [
+        402,
+        406
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 111,
+       "nodes": [
+        403,
+        407
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 112,
+       "nodes": [
+        404,
+        408
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 113,
+       "nodes": [
+        405,
+        409
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 114,
+       "nodes": [
+        406,
+        410
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 115,
+       "nodes": [
+        407,
+        411
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 116,
+       "nodes": [
+        408,
+        412
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 117,
+       "nodes": [
+        401,
+        501
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 118,
+       "nodes": [
+        402,
+        502
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 119,
+       "nodes": [
+        403,
+        503
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 120,
+       "nodes": [
+        404,
+        504
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 121,
+       "nodes": [
+        405,
+        505
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 122,
+       "nodes": [
+        406,
+        506
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 123,
+       "nodes": [
+        407,
+        507
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 124,
+       "nodes": [
+        408,
+        508
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 125,
+       "nodes": [
+        409,
+        509
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 126,
+       "nodes": [
+        410,
+        510
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 127,
+       "nodes": [
+        411,
+        511
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 128,
+       "nodes": [
+        412,
+        512
+       ],
+       "section": "columna",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        1,
+        0,
+        0
+       ]
+      },
+      {
+       "id": 129,
+       "nodes": [
+        501,
+        502
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 130,
+       "nodes": [
+        502,
+        503
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 131,
+       "nodes": [
+        503,
+        504
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 132,
+       "nodes": [
+        505,
+        506
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 133,
+       "nodes": [
+        506,
+        507
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 134,
+       "nodes": [
+        507,
+        508
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 135,
+       "nodes": [
+        509,
+        510
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 136,
+       "nodes": [
+        510,
+        511
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 137,
+       "nodes": [
+        511,
+        512
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 138,
+       "nodes": [
+        501,
+        505
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 139,
+       "nodes": [
+        502,
+        506
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 140,
+       "nodes": [
+        503,
+        507
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 141,
+       "nodes": [
+        504,
+        508
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 142,
+       "nodes": [
+        505,
+        509
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 143,
+       "nodes": [
+        506,
+        510
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 144,
+       "nodes": [
+        507,
+        511
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 145,
+       "nodes": [
+        508,
+        512
+       ],
+       "section": "viga",
+       "law": "hormigon",
+       "element": "frame3d.euler_elastic",
+       "orientation": [
+        0,
+        0,
+        1
+       ]
+      },
+      {
+       "id": 146,
+       "nodes": [
+        101,
+        106
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 147,
+       "nodes": [
+        102,
+        105
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 148,
+       "nodes": [
+        102,
+        107
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 149,
+       "nodes": [
+        103,
+        106
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 150,
+       "nodes": [
+        103,
+        108
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 151,
+       "nodes": [
+        104,
+        107
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 152,
+       "nodes": [
+        105,
+        110
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 153,
+       "nodes": [
+        106,
+        109
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 154,
+       "nodes": [
+        106,
+        111
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 155,
+       "nodes": [
+        107,
+        110
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 156,
+       "nodes": [
+        107,
+        112
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 157,
+       "nodes": [
+        108,
+        111
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 158,
+       "nodes": [
+        201,
+        206
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 159,
+       "nodes": [
+        202,
+        205
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 160,
+       "nodes": [
+        202,
+        207
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 161,
+       "nodes": [
+        203,
+        206
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 162,
+       "nodes": [
+        203,
+        208
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 163,
+       "nodes": [
+        204,
+        207
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 164,
+       "nodes": [
+        205,
+        210
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 165,
+       "nodes": [
+        206,
+        209
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 166,
+       "nodes": [
+        206,
+        211
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 167,
+       "nodes": [
+        207,
+        210
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 168,
+       "nodes": [
+        207,
+        212
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 169,
+       "nodes": [
+        208,
+        211
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 170,
+       "nodes": [
+        301,
+        306
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 171,
+       "nodes": [
+        302,
+        305
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 172,
+       "nodes": [
+        302,
+        307
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 173,
+       "nodes": [
+        303,
+        306
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 174,
+       "nodes": [
+        303,
+        308
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 175,
+       "nodes": [
+        304,
+        307
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 176,
+       "nodes": [
+        305,
+        310
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 177,
+       "nodes": [
+        306,
+        309
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 178,
+       "nodes": [
+        306,
+        311
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 179,
+       "nodes": [
+        307,
+        310
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 180,
+       "nodes": [
+        307,
+        312
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 181,
+       "nodes": [
+        308,
+        311
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 182,
+       "nodes": [
+        401,
+        406
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 183,
+       "nodes": [
+        402,
+        405
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 184,
+       "nodes": [
+        402,
+        407
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 185,
+       "nodes": [
+        403,
+        406
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 186,
+       "nodes": [
+        403,
+        408
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 187,
+       "nodes": [
+        404,
+        407
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 188,
+       "nodes": [
+        405,
+        410
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 189,
+       "nodes": [
+        406,
+        409
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 190,
+       "nodes": [
+        406,
+        411
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 191,
+       "nodes": [
+        407,
+        410
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 192,
+       "nodes": [
+        407,
+        412
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 193,
+       "nodes": [
+        408,
+        411
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 194,
+       "nodes": [
+        501,
+        506
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 195,
+       "nodes": [
+        502,
+        505
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 196,
+       "nodes": [
+        502,
+        507
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 197,
+       "nodes": [
+        503,
+        506
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 198,
+       "nodes": [
+        503,
+        508
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 199,
+       "nodes": [
+        504,
+        507
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 200,
+       "nodes": [
+        505,
+        510
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 201,
+       "nodes": [
+        506,
+        509
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 202,
+       "nodes": [
+        506,
+        511
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 203,
+       "nodes": [
+        507,
+        510
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 204,
+       "nodes": [
+        507,
+        512
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      },
+      {
+       "id": 205,
+       "nodes": [
+        508,
+        511
+       ],
+       "section": "losa_diagonal",
+       "law": "losa_elastica",
+       "element": "truss3d.linear"
+      }
+     ],
+     "sections": [
+      {
+       "id": "columna",
+       "properties": [
+        {
+         "name": "A",
+         "value": 0.25
+        },
+        {
+         "name": "Iy",
+         "value": 0.005208333333333333
+        },
+        {
+         "name": "Iz",
+         "value": 0.005208333333333333
+        },
+        {
+         "name": "J",
+         "value": 0.008802083333333334
+        }
+       ]
+      },
+      {
+       "id": "viga",
+       "properties": [
+        {
+         "name": "A",
+         "value": 0.15
+        },
+        {
+         "name": "Iy",
+         "value": 0.0031249999999999997
+        },
+        {
+         "name": "Iz",
+         "value": 0.001125
+        },
+        {
+         "name": "J",
+         "value": 0.0028173707999999994
+        }
+       ]
+      },
+      {
+       "id": "losa_diagonal",
+       "properties": [
+        {
+         "name": "A",
+         "value": 10.0
+        }
+       ]
+      }
+     ],
+     "laws": [
+      {
+       "name": "hormigon",
+       "parameters": [
+        {
+         "name": "E",
+         "value": 24870062324.007156
+        },
+        {
+         "name": "G",
+         "value": 10362525968.336315
+        },
+        {
+         "name": "rho",
+         "value": 0.0
+        }
+       ]
+      },
+      {
+       "name": "losa_elastica",
+       "parameters": [
+        {
+         "name": "E",
+         "value": 24870062324.007156
+        },
+        {
+         "name": "rho",
+         "value": 0.0
+        }
+       ]
+      }
+     ],
+     "supports": [
+      {
+       "id": "base_1",
+       "node": 1,
+       "restrained": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": "base_2",
+       "node": 2,
+       "restrained": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": "base_3",
+       "node": 3,
+       "restrained": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": "base_4",
+       "node": 4,
+       "restrained": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": "base_5",
+       "node": 5,
+       "restrained": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": "base_6",
+       "node": 6,
+       "restrained": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": "base_7",
+       "node": 7,
+       "restrained": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": "base_8",
+       "node": 8,
+       "restrained": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": "base_9",
+       "node": 9,
+       "restrained": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": "base_10",
+       "node": 10,
+       "restrained": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": "base_11",
+       "node": 11,
+       "restrained": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      },
+      {
+       "id": "base_12",
+       "node": 12,
+       "restrained": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+       ]
+      }
+     ],
+     "masses": [],
+     "diaphragms": []
+    },
+    "cases": [
+     {
+      "name": "D",
+      "loads": [
+       {
+        "node": 101,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 102,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 103,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 104,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 105,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 106,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -150000.0
+         }
+        ]
+       },
+       {
+        "node": 107,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -150000.0
+         }
+        ]
+       },
+       {
+        "node": 108,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 109,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 110,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 111,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 112,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 201,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 202,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 203,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 204,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 205,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 206,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -150000.0
+         }
+        ]
+       },
+       {
+        "node": 207,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -150000.0
+         }
+        ]
+       },
+       {
+        "node": 208,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 209,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 210,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 211,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 212,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 301,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 302,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 303,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 304,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 305,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 306,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -150000.0
+         }
+        ]
+       },
+       {
+        "node": 307,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -150000.0
+         }
+        ]
+       },
+       {
+        "node": 308,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 309,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 310,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 311,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 312,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 401,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 402,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 403,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 404,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 405,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 406,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -150000.0
+         }
+        ]
+       },
+       {
+        "node": 407,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -150000.0
+         }
+        ]
+       },
+       {
+        "node": 408,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 409,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 410,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 411,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 412,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 501,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 502,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 503,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 504,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 505,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 506,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -150000.0
+         }
+        ]
+       },
+       {
+        "node": 507,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -150000.0
+         }
+        ]
+       },
+       {
+        "node": 508,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 509,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       },
+       {
+        "node": 510,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 511,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -75000.0
+         }
+        ]
+       },
+       {
+        "node": 512,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -37500.0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "name": "L",
+      "loads": [
+       {
+        "node": 101,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 102,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 103,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 104,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 105,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 106,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -50000.0
+         }
+        ]
+       },
+       {
+        "node": 107,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -50000.0
+         }
+        ]
+       },
+       {
+        "node": 108,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 109,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 110,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 111,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 112,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 201,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 202,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 203,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 204,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 205,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 206,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -50000.0
+         }
+        ]
+       },
+       {
+        "node": 207,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -50000.0
+         }
+        ]
+       },
+       {
+        "node": 208,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 209,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 210,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 211,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 212,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 301,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 302,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 303,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 304,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 305,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 306,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -50000.0
+         }
+        ]
+       },
+       {
+        "node": 307,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -50000.0
+         }
+        ]
+       },
+       {
+        "node": 308,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 309,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 310,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 311,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 312,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 401,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 402,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 403,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 404,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 405,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 406,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -50000.0
+         }
+        ]
+       },
+       {
+        "node": 407,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -50000.0
+         }
+        ]
+       },
+       {
+        "node": 408,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 409,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 410,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 411,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 412,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 501,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 502,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 503,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 504,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 505,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 506,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -50000.0
+         }
+        ]
+       },
+       {
+        "node": 507,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -50000.0
+         }
+        ]
+       },
+       {
+        "node": 508,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 509,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       },
+       {
+        "node": 510,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 511,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -25000.0
+         }
+        ]
+       },
+       {
+        "node": 512,
+        "values": [
+         {
+          "dof": "Uz",
+          "value": -12500.0
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "name": "EX",
+      "loads": [
+       {
+        "node": 101,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 1718.4424258088177
+         }
+        ]
+       },
+       {
+        "node": 102,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 3436.8848516176354
+         }
+        ]
+       },
+       {
+        "node": 103,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 3436.8848516176354
+         }
+        ]
+       },
+       {
+        "node": 104,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 1718.4424258088177
+         }
+        ]
+       },
+       {
+        "node": 105,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 3436.8848516176354
+         }
+        ]
+       },
+       {
+        "node": 106,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 6873.769703235271
+         }
+        ]
+       },
+       {
+        "node": 107,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 6873.769703235271
+         }
+        ]
+       },
+       {
+        "node": 108,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 3436.8848516176354
+         }
+        ]
+       },
+       {
+        "node": 109,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 1718.4424258088177
+         }
+        ]
+       },
+       {
+        "node": 110,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 3436.8848516176354
+         }
+        ]
+       },
+       {
+        "node": 111,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 3436.8848516176354
+         }
+        ]
+       },
+       {
+        "node": 112,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 1718.4424258088177
+         }
+        ]
+       },
+       {
+        "node": 201,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 3594.3780685946654
+         }
+        ]
+       },
+       {
+        "node": 202,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 7188.756137189331
+         }
+        ]
+       },
+       {
+        "node": 203,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 7188.756137189331
+         }
+        ]
+       },
+       {
+        "node": 204,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 3594.3780685946654
+         }
+        ]
+       },
+       {
+        "node": 205,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 7188.756137189331
+         }
+        ]
+       },
+       {
+        "node": 206,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 14377.512274378661
+         }
+        ]
+       },
+       {
+        "node": 207,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 14377.512274378661
+         }
+        ]
+       },
+       {
+        "node": 208,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 7188.756137189331
+         }
+        ]
+       },
+       {
+        "node": 209,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 3594.3780685946654
+         }
+        ]
+       },
+       {
+        "node": 210,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 7188.756137189331
+         }
+        ]
+       },
+       {
+        "node": 211,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 7188.756137189331
+         }
+        ]
+       },
+       {
+        "node": 212,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 3594.3780685946654
+         }
+        ]
+       },
+       {
+        "node": 301,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 5534.745651753306
+         }
+        ]
+       },
+       {
+        "node": 302,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 11069.491303506613
+         }
+        ]
+       },
+       {
+        "node": 303,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 11069.491303506613
+         }
+        ]
+       },
+       {
+        "node": 304,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 5534.745651753306
+         }
+        ]
+       },
+       {
+        "node": 305,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 11069.491303506613
+         }
+        ]
+       },
+       {
+        "node": 306,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 22138.982607013226
+         }
+        ]
+       },
+       {
+        "node": 307,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 22138.982607013226
+         }
+        ]
+       },
+       {
+        "node": 308,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 11069.491303506613
+         }
+        ]
+       },
+       {
+        "node": 309,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 5534.745651753306
+         }
+        ]
+       },
+       {
+        "node": 310,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 11069.491303506613
+         }
+        ]
+       },
+       {
+        "node": 311,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 11069.491303506613
+         }
+        ]
+       },
+       {
+        "node": 312,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 5534.745651753306
+         }
+        ]
+       },
+       {
+        "node": 401,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 7518.1766383086615
+         }
+        ]
+       },
+       {
+        "node": 402,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 15036.353276617323
+         }
+        ]
+       },
+       {
+        "node": 403,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 15036.353276617323
+         }
+        ]
+       },
+       {
+        "node": 404,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 7518.1766383086615
+         }
+        ]
+       },
+       {
+        "node": 405,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 15036.353276617323
+         }
+        ]
+       },
+       {
+        "node": 406,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 30072.706553234646
+         }
+        ]
+       },
+       {
+        "node": 407,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 30072.706553234646
+         }
+        ]
+       },
+       {
+        "node": 408,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 15036.353276617323
+         }
+        ]
+       },
+       {
+        "node": 409,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 7518.1766383086615
+         }
+        ]
+       },
+       {
+        "node": 410,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 15036.353276617323
+         }
+        ]
+       },
+       {
+        "node": 411,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 15036.353276617323
+         }
+        ]
+       },
+       {
+        "node": 412,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 7518.1766383086615
+         }
+        ]
+       },
+       {
+        "node": 501,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 9534.257215534548
+         }
+        ]
+       },
+       {
+        "node": 502,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 19068.514431069096
+         }
+        ]
+       },
+       {
+        "node": 503,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 19068.514431069096
+         }
+        ]
+       },
+       {
+        "node": 504,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 9534.257215534548
+         }
+        ]
+       },
+       {
+        "node": 505,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 19068.514431069096
+         }
+        ]
+       },
+       {
+        "node": 506,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 38137.02886213819
+         }
+        ]
+       },
+       {
+        "node": 507,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 38137.02886213819
+         }
+        ]
+       },
+       {
+        "node": 508,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 19068.514431069096
+         }
+        ]
+       },
+       {
+        "node": 509,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 9534.257215534548
+         }
+        ]
+       },
+       {
+        "node": 510,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 19068.514431069096
+         }
+        ]
+       },
+       {
+        "node": 511,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 19068.514431069096
+         }
+        ]
+       },
+       {
+        "node": 512,
+        "values": [
+         {
+          "dof": "Ux",
+          "value": 9534.257215534548
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "name": "EY",
+      "loads": [
+       {
+        "node": 101,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 1718.4424258088177
+         }
+        ]
+       },
+       {
+        "node": 102,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 3436.8848516176354
+         }
+        ]
+       },
+       {
+        "node": 103,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 3436.8848516176354
+         }
+        ]
+       },
+       {
+        "node": 104,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 1718.4424258088177
+         }
+        ]
+       },
+       {
+        "node": 105,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 3436.8848516176354
+         }
+        ]
+       },
+       {
+        "node": 106,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 6873.769703235271
+         }
+        ]
+       },
+       {
+        "node": 107,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 6873.769703235271
+         }
+        ]
+       },
+       {
+        "node": 108,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 3436.8848516176354
+         }
+        ]
+       },
+       {
+        "node": 109,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 1718.4424258088177
+         }
+        ]
+       },
+       {
+        "node": 110,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 3436.8848516176354
+         }
+        ]
+       },
+       {
+        "node": 111,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 3436.8848516176354
+         }
+        ]
+       },
+       {
+        "node": 112,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 1718.4424258088177
+         }
+        ]
+       },
+       {
+        "node": 201,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 3594.3780685946654
+         }
+        ]
+       },
+       {
+        "node": 202,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 7188.756137189331
+         }
+        ]
+       },
+       {
+        "node": 203,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 7188.756137189331
+         }
+        ]
+       },
+       {
+        "node": 204,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 3594.3780685946654
+         }
+        ]
+       },
+       {
+        "node": 205,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 7188.756137189331
+         }
+        ]
+       },
+       {
+        "node": 206,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 14377.512274378661
+         }
+        ]
+       },
+       {
+        "node": 207,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 14377.512274378661
+         }
+        ]
+       },
+       {
+        "node": 208,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 7188.756137189331
+         }
+        ]
+       },
+       {
+        "node": 209,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 3594.3780685946654
+         }
+        ]
+       },
+       {
+        "node": 210,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 7188.756137189331
+         }
+        ]
+       },
+       {
+        "node": 211,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 7188.756137189331
+         }
+        ]
+       },
+       {
+        "node": 212,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 3594.3780685946654
+         }
+        ]
+       },
+       {
+        "node": 301,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 5534.745651753306
+         }
+        ]
+       },
+       {
+        "node": 302,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 11069.491303506613
+         }
+        ]
+       },
+       {
+        "node": 303,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 11069.491303506613
+         }
+        ]
+       },
+       {
+        "node": 304,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 5534.745651753306
+         }
+        ]
+       },
+       {
+        "node": 305,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 11069.491303506613
+         }
+        ]
+       },
+       {
+        "node": 306,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 22138.982607013226
+         }
+        ]
+       },
+       {
+        "node": 307,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 22138.982607013226
+         }
+        ]
+       },
+       {
+        "node": 308,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 11069.491303506613
+         }
+        ]
+       },
+       {
+        "node": 309,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 5534.745651753306
+         }
+        ]
+       },
+       {
+        "node": 310,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 11069.491303506613
+         }
+        ]
+       },
+       {
+        "node": 311,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 11069.491303506613
+         }
+        ]
+       },
+       {
+        "node": 312,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 5534.745651753306
+         }
+        ]
+       },
+       {
+        "node": 401,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 7518.1766383086615
+         }
+        ]
+       },
+       {
+        "node": 402,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 15036.353276617323
+         }
+        ]
+       },
+       {
+        "node": 403,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 15036.353276617323
+         }
+        ]
+       },
+       {
+        "node": 404,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 7518.1766383086615
+         }
+        ]
+       },
+       {
+        "node": 405,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 15036.353276617323
+         }
+        ]
+       },
+       {
+        "node": 406,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 30072.706553234646
+         }
+        ]
+       },
+       {
+        "node": 407,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 30072.706553234646
+         }
+        ]
+       },
+       {
+        "node": 408,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 15036.353276617323
+         }
+        ]
+       },
+       {
+        "node": 409,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 7518.1766383086615
+         }
+        ]
+       },
+       {
+        "node": 410,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 15036.353276617323
+         }
+        ]
+       },
+       {
+        "node": 411,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 15036.353276617323
+         }
+        ]
+       },
+       {
+        "node": 412,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 7518.1766383086615
+         }
+        ]
+       },
+       {
+        "node": 501,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 9534.257215534548
+         }
+        ]
+       },
+       {
+        "node": 502,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 19068.514431069096
+         }
+        ]
+       },
+       {
+        "node": 503,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 19068.514431069096
+         }
+        ]
+       },
+       {
+        "node": 504,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 9534.257215534548
+         }
+        ]
+       },
+       {
+        "node": 505,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 19068.514431069096
+         }
+        ]
+       },
+       {
+        "node": 506,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 38137.02886213819
+         }
+        ]
+       },
+       {
+        "node": 507,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 38137.02886213819
+         }
+        ]
+       },
+       {
+        "node": 508,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 19068.514431069096
+         }
+        ]
+       },
+       {
+        "node": 509,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 9534.257215534548
+         }
+        ]
+       },
+       {
+        "node": 510,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 19068.514431069096
+         }
+        ]
+       },
+       {
+        "node": 511,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 19068.514431069096
+         }
+        ]
+       },
+       {
+        "node": 512,
+        "values": [
+         {
+          "dof": "Uy",
+          "value": 9534.257215534548
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "combinations": [
+     {
+      "id": "C1_1.4D",
+      "terms": [
+       {
+        "case": "D",
+        "factor": 1.4
+       }
+      ]
+     },
+     {
+      "id": "C2_1.2D+1.6L",
+      "terms": [
+       {
+        "case": "D",
+        "factor": 1.2
+       },
+       {
+        "case": "L",
+        "factor": 1.6
+       }
+      ]
+     },
+     {
+      "id": "C5_1.2D+L+EX",
+      "terms": [
+       {
+        "case": "D",
+        "factor": 1.2
+       },
+       {
+        "case": "L",
+        "factor": 1.0
+       },
+       {
+        "case": "EX",
+        "factor": 1.0
+       }
+      ]
+     },
+     {
+      "id": "C7_0.9D+EX",
+      "terms": [
+       {
+        "case": "D",
+        "factor": 0.9
+       },
+       {
+        "case": "EX",
+        "factor": 1.0
+       }
+      ]
+     },
+     {
+      "id": "C5_1.2D+L-EX",
+      "terms": [
+       {
+        "case": "D",
+        "factor": 1.2
+       },
+       {
+        "case": "L",
+        "factor": 1.0
+       },
+       {
+        "case": "EX",
+        "factor": -1.0
+       }
+      ]
+     },
+     {
+      "id": "C7_0.9D-EX",
+      "terms": [
+       {
+        "case": "D",
+        "factor": 0.9
+       },
+       {
+        "case": "EX",
+        "factor": -1.0
+       }
+      ]
+     },
+     {
+      "id": "C5_1.2D+L+EY",
+      "terms": [
+       {
+        "case": "D",
+        "factor": 1.2
+       },
+       {
+        "case": "L",
+        "factor": 1.0
+       },
+       {
+        "case": "EY",
+        "factor": 1.0
+       }
+      ]
+     },
+     {
+      "id": "C7_0.9D+EY",
+      "terms": [
+       {
+        "case": "D",
+        "factor": 0.9
+       },
+       {
+        "case": "EY",
+        "factor": 1.0
+       }
+      ]
+     },
+     {
+      "id": "C5_1.2D+L-EY",
+      "terms": [
+       {
+        "case": "D",
+        "factor": 1.2
+       },
+       {
+        "case": "L",
+        "factor": 1.0
+       },
+       {
+        "case": "EY",
+        "factor": -1.0
+       }
+      ]
+     },
+     {
+      "id": "C7_0.9D-EY",
+      "terms": [
+       {
+        "case": "D",
+        "factor": 0.9
+       },
+       {
+        "case": "EY",
+        "factor": -1.0
+       }
+      ]
+     }
+    ],
+    "analyses": [
+     {
+      "method": "linearStatic"
+     }
+    ],
+    "options": {}
+   },
+   "info": {
+    "estado": "Warning",
+    "status_engine": "warning",
+    "seguimiento": "MAM-847",
+    "causa": "Sin masa artificial ni apoyos de piso añadidos.",
+    "warnings": [
+     {
+      "codigo": "API-W-COMBINED-PRESCRIBED",
+      "cantidad": 10,
+      "causa": "#85: cada combinación suma factor·δ de los prescritos. El Engine avisa también para los empotramientos de base con δ=0; no hay asentamientos impuestos."
+     }
+    ],
+    "evidencia_engine": "_ref/engine_r3.json"
+   }
+  }
+ ],
+ "tolerances_preregistered": [
+  {
+   "metric": "equilibrio global ΣR + ΣF = 0 (fuerzas y momentos)",
+   "comparison": "Engine interno",
+   "tol": 1e-09,
+   "kind": "relativa a ΣF",
+   "justification": "Identidad de equilibrio; solo error de redondeo del sistema lineal (ASME V&V 10, verificación de código).",
+   "status": "criterio"
+  },
+  {
+   "metric": "fuerzas y momentos de barra N,Vy,Vz,T,My,Mz por caso, combinación y envolvente (truss: solo N)",
+   "comparison": "Engine vs oráculos",
+   "tol": 1e-06,
+   "kind": "relativa con piso absoluto por componente",
+   "justification": "|Δ| ≤ 1e-6·|ref| o |Δ| ≤ 1e-6·max|componente del mismo tipo en el caso|. El máximo se toma en la referencia, por separado para N, Vy, Vz, T, My y Mz, sin mezclar casos; para combinaciones y envolventes se usa su propio conjunto de referencia. Mismas estaciones de extremo y convención local; no depende de #84. Frame3DD imprime en coma fija, no en notación científica. La salida del oráculo debe alcanzar ≥10 cifras significativas ajustando las unidades (p.ej. mm, kN); Q2 debe comprobarlo en una corrida en seco de formato antes de congelar. Si no se alcanza, E5b frente a Frame3DD y la parte afectada de E3 son solo diagnóstico, no criterio.",
+   "status": "criterio"
+  },
+  {
+   "metric": "reacciones por combinación",
+   "comparison": "Engine vs oráculos",
+   "tol": 1e-06,
+   "kind": "relativa",
+   "justification": "Superposición lineal. Frame3DD imprime en coma fija, no en notación científica. La salida del oráculo debe alcanzar ≥10 cifras significativas ajustando las unidades (p.ej. mm, kN); Q2 debe comprobarlo en una corrida en seco de formato antes de congelar. Si no se alcanza, E5b frente a Frame3DD y la parte afectada de E3 son solo diagnóstico, no criterio.",
+   "status": "criterio"
+  },
+  {
+   "metric": "combinación = Σ factor·caso",
+   "comparison": "Engine interno",
+   "tol": 1e-12,
+   "kind": "relativa",
+   "justification": "Identidad algebraica.",
+   "status": "criterio"
+  },
+  {
+   "metric": "períodos disponibles T1..T15 (s)",
+   "comparison": "Engine vs OpenSees/Frame3DD",
+   "tol": 1e-05,
+   "kind": "relativa",
+   "justification": "Aplica cuando el run entrega períodos; mismo modelo y masas. Frame3DD imprime en coma fija, no en notación científica. La salida del oráculo debe alcanzar ≥10 cifras significativas ajustando las unidades (p.ej. mm, kN); Q2 debe comprobarlo en una corrida en seco de formato antes de congelar. Si no se alcanza, E5b frente a Frame3DD y la parte afectada de E3 son solo diagnóstico, no criterio.",
+   "status": "criterio"
+  },
+  {
+   "metric": "desplazamientos lineales disponibles (CM y nudos)",
+   "comparison": "Engine vs OpenSees/Frame3DD",
+   "tol": 0.0001,
+   "kind": "relativa",
+   "justification": "Todos los modelos; desplazamientos y derivas P-Δ tienen las comparaciones específicas por formulación de E3. Frame3DD imprime en coma fija, no en notación científica. La salida del oráculo debe alcanzar ≥10 cifras significativas ajustando las unidades (p.ej. mm, kN); Q2 debe comprobarlo en una corrida en seco de formato antes de congelar. Si no se alcanza, E5b frente a Frame3DD y la parte afectada de E3 son solo diagnóstico, no criterio.",
+   "status": "criterio"
+  },
+  {
+   "metric": "equivalencia de formato: todas las magnitudes disponibles",
+   "comparison": "mismo Engine: entrada actual vs remapeo a bench-model/1",
+   "tol": 1e-12,
+   "kind": "relativa",
+   "justification": "Mismos números y orden del modelo. El 1e-3 de Q3 solo controla equivalencia de formato; no es criterio de verificación.",
+   "status": "criterio"
+  }
+ ]
+}
