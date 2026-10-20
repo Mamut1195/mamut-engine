@@ -2,6 +2,9 @@
 
 Toda contribución debe seguir el [protocolo clean-room](docs/CLEAN_ROOM.md).
 
+Para implementar un método en Rust, sigue la [guía de métodos](docs/GUIA_METODOS.md):
+incluye plantillas, revisión y un piloto uniaxial reproducible.
+
 Los contribuyentes externos deben firmar un **CLA obligatorio** antes de que se acepte su contribución. Este requisito responde a la licencia dual **AGPL-3.0 + licencia comercial**: el titular debe poder distribuir las contribuciones tanto bajo AGPL como bajo licencia comercial.
 
 El CLA se documentará en [docs/CLA.md](docs/CLA.md), que llegará con **ENG-GOV-007**. El texto del CLA es **PENDIENTE de revisión legal**.

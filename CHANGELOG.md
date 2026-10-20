@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- MAM-25 · ENG-CORE-011: guía en español para contribuir métodos Rust,
+  plantillas de ficha, módulo, conformidad, fixtures, prompt IA restringido,
+  provenance y revisión. Piloto `elastic.cubic` con derivación energética propia,
+  fábrica/descriptor uniaxial/1 y benchmark analítico nativo; sin modificar
+  métodos existentes ni los 16 hashes de determinismo.
 - MAM-91 / MAM-79 · #152 (2026-10-20): rutas locales de ENG-SFC-002 y ENG-PY-003 sustituidas por marcadores genéricos; solo documentación.
 - MAM-79 / #144: PyO3 y sus cuatro crates auxiliares pasan de 0.25.1 a
   0.29.3 para corregir RUSTSEC-2026-0176 y RUSTSEC-2026-0177. El adaptador

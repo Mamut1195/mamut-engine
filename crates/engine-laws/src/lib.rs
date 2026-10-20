@@ -6,6 +6,8 @@
 //! [`section::ElasticFrame`] implementa `section/1` (kind `elastic_frame`).
 //! [`uniaxial::SteelBilinearKinematic`] implementa `uniaxial/1`, con historia
 //! de plasticidad y kind `steel.bilinear_kinematic`.
+//! [`uniaxial::CubicElastic`] implementa `uniaxial/1`, kind `elastic.cubic`,
+//! con una curva elástica suave derivada de una energía cuártica propia.
 //! Los parámetros y resultados usan SI; no hay conversión de unidades, cálculo
 //! geométrico ni registro global. Las fábricas tipadas permiten construir
 //! objetos de los traits de `engine-contracts` sin acoplar al consumidor a una

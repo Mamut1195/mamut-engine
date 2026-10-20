@@ -1,6 +1,8 @@
-//! Leyes uniaxiales `uniaxial/1`: elásticas (`elastic`, `multilinear_elastic`) y
+//! Leyes uniaxiales `uniaxial/1`: elásticas (`elastic`, `elastic.cubic`, `multilinear_elastic`) y
 //! de plasticidad con historia (`steel.bilinear_kinematic`).
 
+mod cubic_elastic;
+pub use cubic_elastic::{CubicElastic, CubicElasticFactory, CubicElasticParams, CUBIC_ELASTIC};
 mod multilinear;
 pub use multilinear::{
     MultilinearElastic, MultilinearElasticFactory, MultilinearElasticParams, MultilinearMode,
