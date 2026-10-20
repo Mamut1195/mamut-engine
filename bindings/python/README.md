@@ -123,6 +123,82 @@ cancelar la operación actual se usa otro hilo. Un fallo del callback se propaga
 sin envolver y detiene la entrega de eventos; si el motor también falló,
 prevalece su `EngineError`.
 
+## Tablas y NumPy opcional
+
+`Results.to_arrays()` exporta `ArrayResults` con listas; `Results.to_numpy()`
+exporta el mismo contrato con copias `ndarray`, **dtype float64, orden C,
+memoria propia** (`OWNDATA`, `base is None`). Cada llamada crea una salida
+independiente; modificarla o destruir Results nunca afecta al backend ni a
+otra salida. Ambos accesos verifican stale. Los arreglos ya exportados siguen
+siendo válidos al cambiar el modelo. La conversión usa
+`numpy.asarray(..., dtype=numpy.float64, order="C").reshape(shape).copy(order="C")`.
+
+```python
+import mamut_engine as me
+
+result = me.run(model)  # model es un engine-input/1 explícito
+listed = result.to_arrays()  # funciona sin NumPy
+exported = result.to_numpy()  # requiere el extra mamut-engine[numpy]
+table = exported.blocks[0].matrices["displacements"]
+print(exported.status, exported.partial, table.shape)
+print(table.row_ids, table.dofs, table.units, table.values)
+```
+
+El extra `numpy = ["numpy>=1.23"]` es opcional. Solo `to_numpy()` importa NumPy;
+si falta lanza `MissingNumPyError` (`EngineError`, `PY-E-NUMPY`) indicando
+`mamut-engine[numpy]`. La API básica, JSON, listas y anotaciones no lo requieren.
+En un entorno offline debe estar provisionado o instalarse desde un almacén
+local con `pip --no-index`; el paquete no descarga dependencias por sí mismo.
+Sin NumPy, las pruebas opcionales usan `pytest.importorskip("numpy")`.
+
+`ArrayResults.document` conserva una copia completa de `results/1`, incluyendo
+estado, diagnósticos, convergencia, huella, identidades nodales/de elemento,
+conectividad, GDL activos y campos no tabulados. `status` es el string original;
+`partial` mantiene el criterio de Results, incluso para errores con bloques
+vacíos. El estado no se convierte a códigos f64. No se fabrica una solución
+cuando el análisis falla.
+
+Cada `ResultBlock.path` localiza el origen dentro de document: `("cases", i)`,
+`("combinations", i, "results")`, `("modes", i, "shape")`,
+`("modes", i, "spectrum_responses", j)` o `("envelopes", i)`.
+Los índices son posiciones originales, no IDs. No se mezclan bloques.
+
+| Matriz en `block.matrices` | Shape | GDL/columnas | Unidades por columna | Ejes |
+| --- | --- | --- | --- | --- |
+| `displacements` | `(n,6)` | Ux,Uy,Uz,Rx,Ry,Rz | m,m,m,rad,rad,rad | globales |
+| `reactions` | `(n,6)` | Ux,Uy,Uz,Rx,Ry,Rz (fuerza conjugada) | N,N,N,N*m,N*m,N*m | globales |
+| `end_forces_local/frame2d.euler_elastic` | `(e,6)` | i.Ux,i.Uy,i.Rz,j.Ux,j.Uy,j.Rz | N,N,N*m por extremo | locales |
+| `end_forces_local/frame3d.euler_elastic` | `(e,12)` | i.Ux,…,i.Rz,j.Ux,…,j.Rz | N,N,N,N*m,N*m,N*m por extremo | locales |
+| `end_forces_local/truss2d.linear` | `(e,4)` | i.Ux,i.Uy,j.Ux,j.Uy | N por columna | locales |
+| `end_forces_local/truss3d.linear` | `(e,6)` | i.Ux,i.Uy,i.Uz,j.Ux,j.Uy,j.Uz | N por columna | locales |
+| `forces_local` | `(s,6)` | N,Vy,Vz,T,My,Mz | N,N,N,N*m,N*m,N*m | locales, cara positiva |
+| `positions` | `(s,1)` | x/L | 1 (adimensional) | locales |
+
+`n` cuenta filas nodales, `e` miembros de ese tipo, `s` estaciones. Las tablas
+de extremos solo existen para tipos presentes en el bloque. Las de estaciones
+solo aparecen en casos/combinaciones con campo `members`. Vacíos conservan
+shape `(0,k)`, también `(0,1)` para posiciones; no se devuelve `(0,)`.
+Los modos normalizados a masa conservan amplitudes originales: sus columnas
+de desplazamiento tienen unidades kg^-1/2 (traslaciones) y m^-1*kg^-1/2
+(rotaciones). Sus reacciones son los ceros originales del motor, no una
+recuperación de fuerzas modales. Respuestas espectrales/envolventes usan SI.
+Los GDL ausentes conservan ceros del contrato; consulte `document["nodes"]`
+para distinguirlos de GDL activos. No se convierten unidades ni signos.
+
+Cada tabla lleva `row_ids` (IDs enteros exactos en orden de filas), `row_indices`
+(0 para nodos/extremos, índice original de estación por miembro), `dofs`,
+`units`, `shape` y `frame`. En estaciones se repite el ID del miembro; posiciones
+y fuerzas comparten IDs/índices. No se presupone que el orden de identidades
+coincida con el de las respuestas. Elementos mixtos se separan por tipo sin
+relleno ni dtype object. Shapes incompatibles, valores no finitos e IDs sin
+identidad/duplicados dan `InvalidInputError`; etiquetas de elementos desconocidos
+dan `Unsupported`. Los campos nullable, extremos, participación y convergencia
+siguen como listas/JSON en document; no se reemplaza null por NaN.
+
+Decisión: [ADR-004](../../docs/adr/ADR-004-numpy-python.md).
+Plan/script de rendimiento: [benchmarks offline](../../docs/PYTHON_BOUNDARY_BENCHMARKS.md).
+No hay dependencias Cargo nuevas, física en Python ni liberaciones nuevas del GIL.
+
 ## Construcción y pruebas sin red
 
 Desde la raíz, con toolchain, dependencias y maturin 1.15.0 ya instalados:
@@ -179,8 +255,8 @@ bash clean-room/check.sh origin/main
 
 Verificado localmente con Rust 1.99.0, maturin 1.15.0 y CPython 3.13.5/Linux.
 La wheel es `cp310-abi3-manylinux_2_34_x86_64`; no se verificaron otros
-intérpretes, Windows/macOS ni manylinux2014. No hay dependencias Python de
-runtime. El consumidor de la wheel no necesita Rust ni conexión.
+intérpretes, Windows/macOS ni manylinux2014. No hay dependencias Python obligatorias de
+runtime; NumPy se ofrece como extra opcional. El consumidor de la wheel no necesita Rust ni conexión.
 
 ## Construcción y consumo offline
 

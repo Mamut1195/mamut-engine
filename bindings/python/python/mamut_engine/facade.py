@@ -8,6 +8,7 @@ from typing import Any, Callable, ParamSpec, TypeAlias, TypeVar, cast
 
 from . import _native
 from . import _validation as checks
+from .arrays import ArrayResults, export
 from .errors import (
     AnalysisError, Cancelled, EngineError, InternalEngineError, InvalidInputError,
     NotConverged, StaleResultsError, Unstable, Unsupported,
@@ -229,6 +230,14 @@ class Results:
         """Devuelve exactamente el JSON recibido de Rust o de from_json."""
         self.assert_current()
         return self._document
+
+    def to_arrays(self) -> ArrayResults:
+        """Exporta tablas con listas independientes, IDs, GDL, unidades y estado."""
+        return export(self.data, numpy=False)
+
+    def to_numpy(self) -> ArrayResults:
+        """Exporta copias ndarray float64 C; requiere mamut-engine[numpy]."""
+        return export(self.data, numpy=True)
 
     @property
     def input_sha256(self) -> str | None:

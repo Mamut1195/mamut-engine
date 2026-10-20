@@ -13,6 +13,9 @@ license-files = ["LICENSE", "NOTICE"]
 # Licencia comercial disponible con MAMPRO SAS; texto legal pendiente (ENG-GOV-004).
 # La publicación en PyPI requiere aprobación explícita de Jonathan.
 
+[project.optional-dependencies]
+numpy = ["numpy>=1.23"]
+
 [tool.maturin]
 features = ["pyo3/extension-module"]
 module-name = "mamut_engine._native"

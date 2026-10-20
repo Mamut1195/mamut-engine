@@ -7,9 +7,15 @@ from .errors import (
     InternalEngineError as InternalEngineError,
     InvalidInputError as InvalidInputError,
     NotConverged as NotConverged,
+    MissingNumPyError as MissingNumPyError,
     StaleResultsError as StaleResultsError,
     Unstable as Unstable,
     Unsupported as Unsupported,
+)
+from .arrays import (
+    ArrayResults as ArrayResults,
+    ResultBlock as ResultBlock,
+    ResultMatrix as ResultMatrix,
 )
 from .facade import (
     CancelToken as CancelToken,
@@ -35,6 +41,7 @@ from .types import (
 
 __version__: str = version()["engine_version"]
 __all__ = [
+    "ArrayResults", "ResultBlock", "ResultMatrix", "MissingNumPyError",
     "AnalysisError", "Cancelled", "CancelledError", "CancelToken", "Engine",
     "EngineError", "InternalEngineError", "InvalidInputError", "NotConverged",
     "StaleResultsError", "Unstable", "Unsupported", "Model", "ModelLike", "Results",

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- MAM-82 / ENG-PY-004 · seguimiento #156: conserva la causa al faltar NumPy,
+  explicita el rechazo de bool numérico y comprueba la independencia de las
+  exportaciones. Pruebas NumPy migradas a unittest con skip opcional para el
+  descubrimiento oficial de la wheel.
+
+- MAM-82 / ENG-PY-004: exportación tabular de resultados con listas o copias
+  NumPy float64 C, IDs/GDL/unidades/estado y extra opcional de importación
+  perezosa. ADR-004 y benchmark offline Rust/CLI/FFI/fachada/copias, sin nuevas
+  dependencias Cargo, física Python ni cambios del GIL o resultados del motor.
+
 - MAM-105 · ENG-VAL-005, seguimiento PR #155: fuentes primarias propias con
   anclas verificadas, bibliografía por cotejar separada de la aceptación y
   cobertura calculada desde las tablas/fixtures, con diagnóstico de diferencias.

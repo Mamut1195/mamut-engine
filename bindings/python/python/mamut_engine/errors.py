@@ -64,5 +64,9 @@ class StaleResultsError(EngineError):
     """PY-E-STALE: el modelo actual difiere de input_sha256."""
 
 
+class MissingNumPyError(EngineError):
+    """PY-E-NUMPY: falta el extra opcional requerido por to_numpy."""
+
+
 # Compatibilidad nominal; son clases Python, nunca alias de _native.
 CancelledError = Cancelled
