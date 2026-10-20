@@ -4,12 +4,13 @@
 //! [`consolidation`] resuelve Terzaghi 1D multicapa por elementos finitos;
 //! [`winkler`] aporta el lecho elástico. Las hipótesis que siguen describen
 //! exclusivamente el perfil de tensiones geostáticas.
+//! [`py`] genera curvas laterales estáticas en SI sin prefijos (N, m, Pa).
 //!
 //! # Unidades, ejes e hipótesis
 //!
 //! Espesores y profundidades en m, pesos unitarios en kN/m³ y tensiones en kPa:
 //! `(kN/m³) × m = kN/m² = kPa`. Son unidades SI con prefijos explícitos.
-//! Esta API usa kPa; para integrar con los contratos estructurales en Pa, el
+//! La API de perfiles usa kPa; para integrar con los contratos estructurales en Pa, el
 //! llamador debe convertir mediante `engine_core::units::convert`. El catálogo
 //! de unidades del núcleo no representa pesos unitarios; no se amplía aquí.
 //!
@@ -73,6 +74,8 @@
 pub use engine_core::{ContractId, Diagnostic, Real};
 
 pub mod winkler;
+
+pub mod py;
 
 pub mod consolidation;
 

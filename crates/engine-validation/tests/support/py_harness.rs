@@ -1,0 +1,133 @@
+//! Mismo runner en nativo y wasm: fixtures literales, no generados por el motor.
+use super::py_table::{self, FIXTURES};
+use engine_core::{EResult, EngineError};
+use engine_geo::py::{matlock_soft_clay, reese_sand, MatlockParams, ReeseParams, Sampling};
+
+fn compare(actual: &[f64], expected: &[f64]) -> EResult<()> {
+    if actual.len() != expected.len() {
+        return Err(EngineError::new("ENG-E-0010", "Controles incompletos"));
+    }
+    for (&a, &e) in actual.iter().zip(expected) {
+        if !a.is_finite() || (a - e).abs() > py_table::ABSOLUTE + py_table::RELATIVE * e.abs() {
+            return Err(EngineError::new(
+                "ENG-E-0010",
+                format!("Fixture p-y: {a} != {e}"),
+            ));
+        }
+    }
+    Ok(())
+}
+pub fn run_all() -> EResult<usize> {
+    if py_table::JUSTIFICATION.is_empty() {
+        return Err(EngineError::new(
+            "ENG-E-0010",
+            "Tolerancia sin justificación",
+        ));
+    }
+    for (index, f) in FIXTURES.iter().enumerate() {
+        if f.source.kind != "analytical"
+            || f.source.citation.is_empty()
+            || f.source.derivation.is_empty()
+            || f.name.is_empty()
+        {
+            return Err(EngineError::new("ENG-E-0010", "Procedencia incompleta"));
+        }
+        let s = Sampling {
+            positive_y_m: vec![0.003125, 0.025],
+            plateau_y_m: Some(0.4),
+        };
+        if index == 0 {
+            let mut p = MatlockParams {
+                depth_m: Some(f.depth_m),
+                diameter_m: Some(1.0),
+                undrained_strength_pa: Some(20000.0),
+                effective_vertical_stress_pa: Some(20000.0),
+                j: Some(0.5),
+                epsilon_50: Some(0.01),
+            };
+            let r = matlock_soft_clay(&p, &s)?;
+            let xr = f.checks[6];
+            p.depth_m = Some(xr);
+            p.effective_vertical_stress_pa = Some(10000.0 * xr);
+            let transition = matlock_soft_clay(&p, &s)?;
+            compare(
+                &[
+                    r.np,
+                    r.ultimate_n_m,
+                    r.yc_m,
+                    r.curve.at(0.003125)?,
+                    r.curve.at(0.025)?,
+                    r.curve.at(0.2)?,
+                    transition.np,
+                ],
+                &[
+                    f.checks[0],
+                    f.checks[1],
+                    f.checks[2],
+                    f.checks[3],
+                    f.checks[4],
+                    f.checks[5],
+                    9.0,
+                ],
+            )?;
+            // Ec. 4 predice xr=6; los puntos vecinos comprueban el cambio de rama.
+            for (x, np) in [(xr - 1.0, 8.0), (xr + 1.0, 9.0)] {
+                p.depth_m = Some(x);
+                p.effective_vertical_stress_pa = Some(10000.0 * x);
+                compare(&[matlock_soft_clay(&p, &s)?.np], &[np])?;
+            }
+        } else {
+            let p = ReeseParams {
+                depth_m: Some(f.depth_m),
+                diameter_m: Some(1.0),
+                friction_angle_rad: Some(std::f64::consts::PI / 6.0),
+                effective_unit_weight_n_m3: Some(10000.0),
+                alpha_rad: Some(std::f64::consts::PI / 6.0),
+                k0: Some(0.4),
+                a: Some(1.0),
+                b: Some(0.5),
+                subgrade_modulus_n_m3: Some(11231384.38763306),
+            };
+            let r = reese_sand(&p, &s)?;
+            if index == 1 {
+                let yk = r
+                    .yk_m
+                    .ok_or_else(|| EngineError::new("ENG-E-0010", "yk ausente"))?;
+                compare(
+                    &[
+                        r.pct_n_m,
+                        r.pcd_n_m,
+                        r.transition_depth_m,
+                        yk,
+                        r.ym_m,
+                        r.yu_m,
+                        r.curve.at(yk)?,
+                        r.pm_n_m,
+                        r.ultimate_n_m,
+                    ],
+                    f.checks,
+                )?;
+                // Verifica los tres tramos con puntos adicionales, sin interpolar entre vértices.
+                let interior = Sampling {
+                    positive_y_m: vec![1.0 / 122880.0, 1.0 / 120.0, 13.0 / 480.0],
+                    plateau_y_m: Some(0.4),
+                };
+                let dense = reese_sand(&p, &interior)?;
+                compare(
+                    &[
+                        dense.curve.at(1.0 / 122880.0)?,
+                        dense.curve.at(1.0 / 120.0)?,
+                        dense.curve.at(13.0 / 480.0)?,
+                    ],
+                    &[182.80248026746517, 53756.13654338948, 140392.30484541325],
+                )?;
+            } else {
+                compare(&[r.pct_n_m, r.pcd_n_m, r.ultimate_n_m], f.checks)?;
+            }
+            for &(y, v) in r.curve.points() {
+                compare(&[r.curve.at(-y)?], &[-v])?;
+            }
+        }
+    }
+    Ok(FIXTURES.len())
+}

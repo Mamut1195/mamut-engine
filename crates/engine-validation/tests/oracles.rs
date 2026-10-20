@@ -13,6 +13,9 @@ mod linear;
 #[path = "support/winkler_table.rs"]
 mod winkler;
 
+#[path = "support/py_table.rs"]
+mod py;
+
 use engine_validation::fixtures::{Fixture, REPOSITORY_FIXTURES};
 use serde_json::Value;
 use std::collections::BTreeSet;
@@ -176,6 +179,7 @@ fn inventario_cubre_todas_las_tablas_y_fixtures() {
         .chain(winkler::FIXTURES.iter().map(|f| f.name))
         .chain(consolidation::FIXTURES.iter().map(|f| f.name))
         .chain(MULTILAYER_CASES.iter().copied())
+        .chain(py::FIXTURES.iter().map(|f| f.name))
         .chain(REPOSITORY_FIXTURES.iter().map(|(id, _)| *id))
         .collect();
     let expected_count = linear::FIXTURES.len()
@@ -185,6 +189,7 @@ fn inventario_cubre_todas_las_tablas_y_fixtures() {
         + winkler::FIXTURES.len()
         + consolidation::FIXTURES.len()
         + MULTILAYER_CASES.len()
+        + py::FIXTURES.len()
         + REPOSITORY_FIXTURES.len();
     matrix_coverage(&cases, MATRIX).unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(matrix_rows(MATRIX).count(), expected_count);
@@ -266,6 +271,23 @@ fn inventario_cubre_todas_las_tablas_y_fixtures() {
     .unwrap();
     for name in MULTILAYER_CASES {
         matrix_row(&mut names, name, "ENG-GEO-006.md", &geo_tolerance(t));
+    }
+    for f in py::FIXTURES {
+        assert_eq!(f.source.kind, "analytical");
+        assert!(f.depth_m >= 0.0 && !f.checks.is_empty());
+        metadata(
+            f.source.derivation,
+            f.source.citation,
+            py::JUSTIFICATION,
+            &[py::ABSOLUTE, py::RELATIVE],
+        )
+        .unwrap();
+        matrix_row(
+            &mut names,
+            f.name,
+            "ENG-GEO-003.md",
+            &tolerance(py::ABSOLUTE, py::RELATIVE),
+        );
     }
     for (name, text) in REPOSITORY_FIXTURES {
         let (id, tolerance) = repository_fixture(text).unwrap_or_else(|e| panic!("{name}: {e}"));

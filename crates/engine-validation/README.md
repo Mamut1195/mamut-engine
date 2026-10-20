@@ -194,3 +194,21 @@ La interfaz pública `Target` recibe engine-input/1 y devuelve results/1, por
 lo que otros adaptadores comparten el mismo comparador. El target CLI
 `mamut-engine` se añadirá cuando **ENG-SFC-002** se fusione; no hay dependencia
 del CLI ni de su contrato aún pendiente.
+
+## Curvas p-y estáticas · ENG-GEO-003
+
+Tres fixtures SI con `source.kind = analytical` y controles literales de
+OTC 1204 (1970), Ec. 1–5/Fig. 5a estática, y OTC 2080 (1974), Ec. 4–9,
+11–16/pasos 2 y 4–8, derivados en [la bitácora](../../provenance/ENG-GEO-003.md).
+La tabla `tests/support/py_table.rs` y su runner se comparten entre targets.
+No usan el formato de modelos fixture/1 ni añaden modelos estructurales.
+
+```bash
+cargo test --offline -p engine-validation --test py
+cargo build --offline -p engine-validation --example py_wasm --target wasm32-unknown-unknown
+node crates/engine-validation/scripts/run-py-wasm.cjs "$CARGO_TARGET_DIR/wasm32-unknown-unknown/debug/examples/py_wasm.wasm"
+```
+
+El script exige tres fixtures aprobados y ningún import externo. Los controles
+incluyen Matlock en yc/8, yc, 8yc y la transición Np=9; Reese verifica pct, pcd,
+Xt, k/m/u, los interiores de cada tramo y la selección de la rama profunda.

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- MAM-46 · ENG-GEO-003: generadores estáticos `py.matlock_soft_clay`,
+  `py.reese_sand` y tabla simétrica `py.user` en engine-geo, puntos (m, N/m),
+  parámetros obligatorios y errores tipados; adaptador de tensión efectiva
+  del perfil a Pa. Tres fixtures analíticos compartidos nativo/wasm,
+  integración dimensional con multilinear_elastic y bitácora clean-room.
+  Sin cambios de los análisis existentes ni exposición JSON del futuro pilote.
+
 - MAM-82 · #162: quitar rutas locales de provenance ENG-PY-004 y anotar licencia BSD-3-Clause de NumPy en ADR-004
 
 - MAM-82 / ENG-PY-004 · seguimiento #156: conserva la causa al faltar NumPy,

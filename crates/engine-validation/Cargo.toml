@@ -16,6 +16,7 @@ name = "fixture_wasm"
 crate-type = ["cdylib"]
 
 [dev-dependencies]
+engine-laws = { path = "../engine-laws" }
 engine-elements-frame3d = { path = "../engine-elements-frame3d" }
 engine-geo = { path = "../engine-geo" }
 engine-core = { path = "../engine-core" }

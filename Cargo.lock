@@ -230,6 +230,7 @@ dependencies = [
  "engine-elements-frame3d",
  "engine-elements-truss",
  "engine-geo",
+ "engine-laws",
  "engine-linalg",
  "engine-model",
  "serde",

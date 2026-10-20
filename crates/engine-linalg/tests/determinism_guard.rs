@@ -433,6 +433,11 @@ const SOURCE_POLICY_EXCEPTIONS: &[SourcePolicyException] = &[
         reason: "ABI pública wasm para comparar hashes nativos/wasm",
     },
     SourcePolicyException {
+        path: "engine-validation/examples/py_wasm.rs",
+        allowed: &[Construction::NoMangle, Construction::ExternCFunction],
+        reason: "ABI pública wasm para ejecutar fixtures analíticos p-y, sin unsafe ni punteros",
+    },
+    SourcePolicyException {
         path: "engine-validation/examples/winkler_wasm.rs",
         allowed: &[Construction::NoMangle, Construction::ExternCFunction],
         reason: "ABI pública wasm para ejecutar los benchmarks Winkler",

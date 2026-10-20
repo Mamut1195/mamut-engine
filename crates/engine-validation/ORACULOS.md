@@ -7,9 +7,9 @@ de CI o condición de aceptación. No se incorporan sus archivos ni resultados.
 
 **ENG-REL-001 depende de ENG-VAL-005 y no exige ENG-VAL-003.**
 
-Inventario: **91 casos** = 42 estáticos + 12 modales + 10 P-Delta +
+Inventario: **94 casos** = 42 estáticos + 12 modales + 10 P-Delta +
 9 espectrales de ENG-VAL-001 + 6 Winkler (ENG-GEO-002) + 7 de consolidación
-(ENG-GEO-006) + 5 documentos `fixture/1` (ENG-CORE-009). No hay archivos ni
+(ENG-GEO-006) + 3 p-y estáticos (ENG-GEO-003) + 5 documentos `fixture/1` (ENG-CORE-009). No hay archivos ni
 casos identificados como ENG-VAL-002 en este árbol; no se declara una suite
 adicional inexistente. Toda futura incorporación debe tener fuente libre,
 valor esperado y tolerancia, además de entrar en esta matriz y su guardia.
@@ -17,7 +17,8 @@ valor esperado y tolerancia, además de entrar en esta matriz y su guardia.
 Cada fila enlaza la derivación independiente del solver. Los valores esperados
 se evalúan desde las ecuaciones y los parámetros SI de las tablas, en
 `tests/analytical.rs`, `tests/dynamic.rs`, `tests/support/winkler_harness.rs` y
-`tests/support/consolidation_harness.rs` (más `consolidation_multilayer.rs`).
+`tests/support/consolidation_harness.rs` (más `consolidation_multilayer.rs`) y
+`tests/support/py_harness.rs`.
 No se usan resultados del Engine como valores esperados. Los JSON declaran
 cada número esperado en `expected` y su tolerancia explícita en `tolerance`.
 Los tests numéricos recorren todos los casos; `tests/oracles.rs` comprueba
@@ -193,3 +194,14 @@ en esta sesión.
 
 Estos pendientes bibliográficos no se rellenan de memoria ni convierten un
 resultado de otro motor en referencia. Revisión clean-room: **PENDIENTE (J4)**.
+
+## Curvas p-y estáticas · ENG-GEO-003
+
+Puntos SI y controles con source.kind=analytical en tests/support/py_table.rs,
+compartidos por tests/py.rs y examples/py_wasm.rs. No se digitalizan figuras.
+
+| Caso | Derivación | Tolerancia |
+| --- | --- | --- |
+| `py-matlock-estatico` | [Propia](../../provenance/ENG-GEO-003.md#matlock-derivación-analítica) | A=1e-8; R=1e-12 |
+| `py-reese-superficial` | [Propia](../../provenance/ENG-GEO-003.md#reese-derivación-analítica) | A=1e-8; R=1e-12 |
+| `py-reese-profundo` | [Propia](../../provenance/ENG-GEO-003.md#reese-derivación-analítica) | A=1e-8; R=1e-12 |
