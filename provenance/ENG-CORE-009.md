@@ -93,7 +93,7 @@ exactitud; no introduce mediciones de rendimiento ni tiempos no deterministas.
 ## Evidencia local
 
 Ejecución offline el 2026-10-17: rustc 1.99.0 (b940084d7 2026-09-28),
-Node v22.19.0, CARGO_TARGET_DIR=/workspace/.cargo-target/me-fix9 y flags Cargo
+Node v22.19.0, un CARGO_TARGET_DIR por worktree y flags Cargo
 habituales. Las comprobaciones terminaron con código 0:
 
 | Comprobación | Resultado |
@@ -131,12 +131,34 @@ Logs e informes retenidos bajo CARGO_TARGET_DIR:
 
 ## Incidencia de alcance y pendientes
 
-La búsqueda inicial de instrucciones ejecutó `find .. -name AGENTS.md -print`
-y enumeró nombres de archivos en directorios hermanos, fuera del alcance de
-directorio indicado. No se abrió ninguno de esos archivos ni código, datos,
-informes o resultados externos. Se corrigió el alcance de las búsquedas
-posteriores al worktree; no hubo acceso de red ni lectura de fuentes prohibidas.
+Los agentes deben permanecer dentro de su worktree, también al buscar instrucciones.
+Durante ENG-CORE-009, Codex ejecutó `find .. -name AGENTS.md -print` y recorrió
+directorios hermanos, incluidos los de opensees, calculix y stabileo, fuera del
+alcance indicado. Solo listó nombres, sin abrir contenido: no se abrió ninguno
+de esos archivos ni código, datos, informes o resultados externos. Se corrigió
+el alcance de las búsquedas posteriores al worktree; no hubo acceso de red ni
+lectura de fuentes prohibidas.
 
 Pendientes externos: revisión clean-room **J4** y futuro adaptador CLI después
 de la fusión de **ENG-SFC-002**. No quedan comprobaciones técnicas pendientes
 de este entregable.
+
+## Seguimiento MAM-22 · issue #142
+
+Codex gpt-6.1-sol high, 2026-10-17 (America/Guayaquil), rol implementador.
+Se exige exactamente cinco fixtures JSON y se sustituyen las rutas locales de
+esta bitácora y del README de engine-validation por un CARGO_TARGET_DIR por
+worktree. Se explicita arriba la regla de alcance y el incidente previo.
+Fuentes: petición del ticket, archivos locales y provenance/TEMPLATE.md;
+sin nuevas derivaciones, datos numéricos ni código de terceros copiado.
+Validación: oráculos analíticos propios existentes, sin comparación externa.
+Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para
+este ticket." Tampoco consulté código ni resultados de CalculiX o LAPACK.
+Revisor clean-room: **PENDIENTE (J4)**.
+
+Verificación offline del seguimiento: fmt, Clippy con `-D warnings`, tests del
+workspace (**655 passed / 0 failed / 0 ignored**, incluidos los 9 de fixtures),
+rustdoc con `-D warnings`, check wasm32-unknown-unknown y
+`bash clean-room/check.sh origin/main`: todo OK. Los 16 hashes coinciden con
+docs/DETERMINISMO.md y entre nativo y wasm en debug, diez corridas por caso/target.
+Logs del seguimiento bajo CARGO_TARGET_DIR/mam-22-142/.

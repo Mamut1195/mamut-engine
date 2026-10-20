@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- MAM-22 / #142: exige exactamente cinco fixtures JSON, elimina rutas locales de la documentación de engine-validation y explicita el alcance de los agentes dentro de su worktree.
 - MAM-91 / #141: regresiones del CLI para lectura acotada a MAX+1 y mapeo de ENG-E-0013 en validate a salida 3, verificadas mediante mutaciones.
 - MAM-79 / ENG-PY-003: fachada Python pública tipada y documentada sobre
   engine-api, con modelos/resultados versionados, errores completos, controles

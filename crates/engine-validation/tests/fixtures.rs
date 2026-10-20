@@ -38,7 +38,7 @@ fn native_runner_passes_every_repository_fixture() {
         .filter(|p| p.extension().is_some_and(|e| e == "json"))
         .collect();
     paths.sort();
-    assert!((4..=6).contains(&paths.len()));
+    assert_eq!(paths.len(), 5, "Se requieren exactamente 5 fixtures JSON");
     let documents: Vec<_> = paths
         .iter()
         .map(|p| {

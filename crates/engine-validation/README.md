@@ -56,9 +56,10 @@ unidades y cotas están en [ENG-GEO-002](../../provenance/ENG-GEO-002.md).
 El mismo harness y tabla se ejecutan en nativo y en wasm, sin paquetes de JS:
 
 ```sh
-CARGO_TARGET_DIR=/workspace/.cargo-target cargo test --offline -p engine-validation --test winkler --test winkler_elements
-CARGO_TARGET_DIR=/workspace/.cargo-target cargo build --offline -p engine-validation --example winkler_wasm --release --target wasm32-unknown-unknown
-node crates/engine-validation/scripts/run-winkler-wasm.cjs /workspace/.cargo-target/wasm32-unknown-unknown/release/examples/winkler_wasm.wasm
+export CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-$PWD/target}  # un directorio por worktree
+cargo test --offline -p engine-validation --test winkler --test winkler_elements
+cargo build --offline -p engine-validation --example winkler_wasm --release --target wasm32-unknown-unknown
+node crates/engine-validation/scripts/run-winkler-wasm.cjs "$CARGO_TARGET_DIR/wasm32-unknown-unknown/release/examples/winkler_wasm.wasm"
 ```
 
 Se necesita el target wasm ya instalado y Node con WebAssembly. El export
