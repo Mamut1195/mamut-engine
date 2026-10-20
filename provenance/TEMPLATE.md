@@ -9,5 +9,5 @@
 - Código de terceros copiado: ninguno | (archivo, licencia, NOTICE)
 - Validación: analítico | libro (ed., ej./pág.) | ejemplo publicado (cita)
 - Comparación con oráculo (repo hermano, informativa): no | sí (id del informe, versión)
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+- Declaración: "No consulté código fuente de OpenSees, Frame3DD, Stabileo ni derivados para este ticket."
 - Revisor clean-room:

@@ -16,6 +16,13 @@
   compartidos en nativo/wasm, sin nuevas dependencias. Coyle–Reese queda
   solo vía tablas del usuario, pendiente de la fuente original.
   Seguimiento J4 r1: `Explicit` valida el signo de resistencia en ambas ramas.
+- MAM-855 / ENG-VAL-006: incorpora Frame3DD a la comparación externa de
+  §5.1 del protocolo clean-room y formaliza la opción A: Q2 opera en sesión
+  aislada, J4 audita y J2/J0 solo reciben discrepancias sin valores.
+  Seguimiento de revisión: alinea §2/§3 y exige versión y hash por campaña,
+  con nuevo registro y auditoría de J4 al cambiar de versión.
+  Seguimiento J4 r1 (#178): precisa aprobación directa y antecedentes,
+  alcance de la opción A, acceso a `results/` y declaración de la plantilla.
 
 - MAM-82 · #162: quitar rutas locales de provenance ENG-PY-004 y anotar licencia BSD-3-Clause de NumPy en ADR-004
 
