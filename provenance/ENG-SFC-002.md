@@ -270,3 +270,44 @@ Logs de los controles, `native-{debug,release}.txt`,
 `$CARGO_TARGET_DIR/mam91-146/`. Código de producción idéntico a HEAD;
 sin cambios en rutas protegidas ni Cargo.toml/lock.
 Pendiente únicamente la revisión clean-room **PENDIENTE (J4)**.
+
+## Arreglo BrokenPipe en tests
+
+- Ticket: MAM-91; autor: Codex gpt-6.1-sol high · 2026-10-17
+  (America/Guayaquil); rol: implementador de pruebas.
+- Contrato: tests del CLI conservan códigos de salida y diagnósticos cuando
+  el hijo termina antes de leer stdin. Fuentes: tests propios de
+  `crates/engine-cli/tests/cli.rs`, `docs/CLEAN_ROOM.md` y `provenance/TEMPLATE.md`.
+- Derivación propia del manejo de E/S; sin fuentes externas, código de terceros
+  copiado, derivaciones numéricas ni comparación con oráculos.
+- Declaración: "No consulté código fuente ni resultados de OpenSees, Stabileo,
+  CalculiX ni LAPACK, ni derivados o rutas prohibidas para este ticket."
+- Revisor clean-room: **PENDIENTE (J4)**.
+
+Se elige (a): `write_child_stdin` tolera exclusivamente `io::ErrorKind::BrokenPipe`;
+cualquier otro error de escritura falla el test. Es la opción más simple:
+no añade hilos ni sincronización para una entrada pequeña cuyo lector puede
+terminar legítimamente con salida 2. El handle tomado se cierra al salir del
+helper, antes de `wait_with_output`. Se aplica a las cuatro escrituras a stdin
+de hijos: `Files::run`, catálogo, cancelación y stdout cerrado. Todos los asserts
+existentes de código de salida, stdout y stderr se mantienen sin cambios.
+Solo se modifican tests y documentación; sin cambios en producción ni cálculos.
+
+Validación offline con Rust 1.99.0, PATH de stable indicado,
+`CARGO_TARGET_DIR=/workspace/.cargo-target/me-bp`, `CARGO_NET_OFFLINE=true`
+y `PIP_NO_INDEX=1`: el test afectado pasa **400/400 ejecuciones**, con ocho
+procesos concurrentes (`--exact` sobre el binario compilado por Cargo).
+
+| Comprobación | Resultado |
+| --- | --- |
+| `cargo fmt --all -- --check` | OK |
+| `cargo clippy --workspace --all-targets --offline -- -D warnings` | OK |
+| `cargo test --workspace --offline` | **658 passed / 0 failed / 0 ignored**, incluidos doctests; CLI: **13/13** de integración |
+| `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace --offline` | OK |
+| `cargo check --workspace --offline --target wasm32-unknown-unknown` | OK |
+| `bash clean-room/check.sh origin/main` y `git diff --check` | OK |
+
+Los **16/16 hashes** de `docs/DETERMINISMO.md` coinciden con diez ejecuciones
+nativas debug por caso de `determinism_native`, sin `MAMUT_ENGINE_GIT_COMMIT`.
+Logs en `$CARGO_TARGET_DIR/mam91-brokenpipe/`. Pendiente: revisión clean-room
+**PENDIENTE (J4)**; cambios sin commitear.

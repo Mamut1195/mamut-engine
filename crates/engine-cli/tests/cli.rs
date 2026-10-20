@@ -5,7 +5,7 @@ use std::{
     fs,
     io::{self, Write},
     path::{Path, PathBuf},
-    process::{Command, Output, Stdio},
+    process::{Child, Command, Output, Stdio},
     rc::Rc,
     sync::atomic::{AtomicUsize, Ordering},
 };
@@ -59,12 +59,7 @@ impl Files {
             .stderr(Stdio::piped())
             .spawn()
             .unwrap();
-        child
-            .stdin
-            .take()
-            .unwrap()
-            .write_all(workflow.as_bytes())
-            .unwrap();
+        write_child_stdin(&mut child, workflow);
         child.wait_with_output().unwrap()
     }
     fn args(&self) -> Vec<String> {
@@ -81,6 +76,18 @@ impl Drop for Files {
     fn drop(&mut self) {
         let _ = fs::remove_dir_all(&self.0);
     }
+}
+fn write_child_stdin(child: &mut Child, input: &str) {
+    let mut stdin = child.stdin.take().unwrap();
+    // El hijo puede terminar sin leer stdin; los asserts comprobarán su salida.
+    if let Err(error) = stdin.write_all(input.as_bytes()) {
+        assert_eq!(
+            error.kind(),
+            io::ErrorKind::BrokenPipe,
+            "Error al escribir stdin del hijo: {error}"
+        );
+    }
+    // Al salir se cierra stdin antes de esperar al hijo con wait_with_output.
 }
 fn value(bytes: &[u8]) -> Value {
     serde_json::from_slice(bytes).unwrap()
@@ -197,12 +204,7 @@ fn methods_reads_catalog_from_stdin_and_lists_engine_methods() {
         .stderr(Stdio::piped())
         .spawn()
         .unwrap();
-    child
-        .stdin
-        .take()
-        .unwrap()
-        .write_all(CATALOG.as_bytes())
-        .unwrap();
+    write_child_stdin(&mut child, CATALOG);
     let output = child.wait_with_output().unwrap();
     assert_code(&output, 0);
     let methods = value(&output.stdout);
@@ -474,12 +476,7 @@ fn cancellation_marker_returns_five_from_binary_before_and_after_spawn() {
         if !before_spawn {
             files.write("cancel", "");
         }
-        child
-            .stdin
-            .take()
-            .unwrap()
-            .write_all(RUN.as_bytes())
-            .unwrap();
+        write_child_stdin(&mut child, RUN);
         let output = child.wait_with_output().unwrap();
         assert_code(&output, 5);
         assert!(output.stdout.is_empty());
@@ -508,12 +505,7 @@ fn closed_stdout_pipe_returns_internal_seventy_from_binary() {
         .unwrap();
     // El workflow por stdin impide escribir antes de cerrar el lector de stdout.
     drop(child.stdout.take());
-    child
-        .stdin
-        .take()
-        .unwrap()
-        .write_all(RUN.as_bytes())
-        .unwrap();
+    write_child_stdin(&mut child, RUN);
     let output = child.wait_with_output().unwrap();
     assert_code(&output, 70);
     assert_eq!(value(&output.stderr)["outcome"], "internal");

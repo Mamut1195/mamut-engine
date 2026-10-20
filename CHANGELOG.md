@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- MAM-91: helpers de tests del CLI toleran solo BrokenPipe al escribir stdin de hijos que terminan antes de leerlo; se mantienen los asserts de salida y stderr, sin cambios del CLI.
 - MAM-79 / #143: engine-api rechaza literales enteros fuera de ±(2^53−1)
   antes de JCS con `InvalidInput` (`API-E-INPUT`, salida 2, huella null).
   Python aplica el mismo rango simétrico antes del FFI y detecta como stale
