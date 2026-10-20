@@ -88,7 +88,7 @@ con `code`, `exit_code` y el resultado de `validation` (`invalidInput`,
 #88: `ENG-E-0009` para contratos incompatibles, `ENG-E-0003` para referencias
 ausentes y `API-E-INPUT` para parseo/estructura. `1e400` representa el rechazo
 de un número no finito; NaN no es un literal JSON. Hay fronteras distintas para
-enteros léxicos fuera de u64 e identificadores fuera de u32.
+enteros léxicos fuera de ±(2^53−1) e identificadores fuera de u32.
 
 La prueba de nombres lee la lista clean-room mediante `include_str!` y examina
 schemas y fixtures completos, incluidas claves escapadas y duplicadas. Compara
@@ -121,7 +121,7 @@ run verifica esas fronteras y nunca resuelve un modelo con errores topológicos.
 
 Antes de parsear el documento con serde o construir el modelo, una inspección
 léxica sin recursión comprueba estos límites públicos (inclusive). Se aplican
-a `run`, `validate`, `validate_with` y `canonical_json`:
+a `run`, `validate`, `validate_with`, `input_sha256` y `canonical_json`:
 
 | Constante pública | Máximo | Alcance |
 | --- | --- | --- |
@@ -141,10 +141,16 @@ Al superar un límite se obtiene `InvalidInput` con el nombre y máximo; en run,
 La cancelación ya solicitada se comprueba primero. La canonización de results/1
 opera sobre el árbol de salida y no aplica los límites del input a sus bytes.
 
-Los tokens enteros (sin punto decimal ni exponente) deben caber en i64 si son
-negativos y u64 si son no negativos: `18446744073709551616`, enteros gigantes
-y negativos menores que −9223372036854775808 se rechazan antes de que serde
-pueda convertirlos a float. Los tokens con punto/exponente conservan binary64;
+Los tokens enteros (sin punto decimal ni exponente), en cualquier campo,
+requieren `|n| <= 9007199254740991` (2^53−1, `Number.MAX_SAFE_INTEGER`).
+La frontera léxica rechaza ambos signos fuera de ese rango antes de que serde
+pueda convertirlos a float o JCS calcule una huella ambigua (#143).
+Se devuelve `ApiError::InvalidInput`; en `run`, `API-E-INPUT`, status invalid,
+salida 2 e `input_sha256: null`, sin callbacks de parseo.
+Los ids y referencias numéricos siguen limitados a u32; los contadores
+`max_iterations` y `mode_count` a 16 384. No hay seeds ni índices enteros
+grandes en engine-input/1; los otros identificadores son cadenas y los GDL
+son etiquetas. `bool` no es un entero. Los tokens con punto/exponente conservan binary64;
 overflow como `-1e400` produce un error explícito de rango finito f64. En run
 ambos errores dan salida 2. Los ids además deben caber en u32 según el contrato.
 
@@ -249,10 +255,15 @@ del parseo estricto, que mantiene rechazo de duplicados/overflow y límites.
 
 **Cambio de huella en ENG-CORE-005:** sustituye la representación propia de #88.
 JCS serializa `1.0` como `1`, `-0.0` como `0`, ordena claves por UTF-16 y convierte
-números a binary64 (incluidos enteros mayores que 2⁵³). Por tanto pueden cambiar
+números a binary64. Por tanto pueden cambiar
 los hashes de las mismas entradas. Los vectores fijos con hashes anteriores y
 nuevos están en [fingerprints.json](fixtures/results/fingerprints.json);
 incluyen sondas de JSON que se rechazan como engine-input/1 después de la huella.
+La sonda histórica `9007199254740993` está marcada `rejected_by_engine`: desde
+#143 se rechaza antes de la huella. Conserva los valores históricos del SDK
+como evidencia; no son huellas emitidas por la fachada para esa entrada.
+El control no modifica mamut-canon ni las huellas de entradas seguras; los
+16 hashes de [DETERMINISMO.md](../../docs/DETERMINISMO.md) siguen iguales.
 Por ejemplo `{"v":1.0}` pasa de
 `f3c8be97307d38261061fa08e74365e54a239cddb1d189f3bea18022adbe2f35` a
 `afbf9d0f3560b0fd7795e81c42a0a79ee6b6fc67e064f77826aee642cad28d91`.

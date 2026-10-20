@@ -19,6 +19,7 @@
   },
   {
     "input": "{\"v\":9007199254740993}",
+    "rejected_by_engine": true,
     "canonical": "{\"v\":9007199254740992}",
     "input_sha256": "e7b4b245a4ee0feb03c7c89a9f9a4fff2ef33d95b8fc40b016cd2620d49842bd",
     "previous_sha256": "b33840c3287663f6da0c495884bd8d587474de0391f249e29a4115fd1229b6e1"

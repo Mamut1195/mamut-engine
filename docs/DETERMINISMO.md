@@ -6,6 +6,14 @@ externo. Esto incluye `git_commit` y `target`: al cambiar de target cambia
 la procedencia y puede cambiar el hash del documento completo. El campo
 `input_sha256` identifica la entrada canónica: no es el hash del resultado. No hay relojes, rutas ni estado aleatorio en `run`.
 
+MAM-79 / #143: el parseo de entrada rechaza literales enteros con
+`|n| > 2^53-1` antes de convertirlos a binary64 o calcular JCS; Python aplica
+el mismo rango simétrico. Así `2^63-1` y `2^63` no pueden publicarse con una
+huella indistinguible ni ocultar cambios en stale. Los tokens con decimal o
+exponente conservan la semántica binary64; la huella identifica su valor
+canónico, no su escritura léxica. El SDK y los cálculos no cambian, y las
+entradas de los 16 casos publicados cumplen el rango: sus hashes se conservan.
+
 ## Auditoría inicial de main y #88
 
 Auditoría local sin red, 2026-10-14: `origin/main` = `eed45dd`;

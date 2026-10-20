@@ -200,13 +200,14 @@ pub fn explain(code: &str) -> Result<&'static str, ApiError> {
 /// Conserva el orden de arrays y los floats f64 con round-trip; no es RFC 8785.
 /// Rechaza claves duplicadas, NaN/Inf, overflow y documentos con texto sobrante.
 /// Aplica los límites públicos de entrada antes de construir el árbol JSON.
-/// Los enteros léxicos deben caber en i64 (negativos) o u64 (no negativos).
+/// Los enteros léxicos requieren |n| <= 2^53-1 (rango seguro de JCS/binary64).
 pub fn canonical_json(input_json: &str) -> Result<String, ApiError> {
     json::canonical(input_json)
 }
 
 /// Huella SHA-256 RFC 8785 del input, idéntica a `results/1.input_sha256`.
 /// Aplica el mismo parseo estricto y límites de `run`, sin ejecutar física.
+/// Rechaza literales enteros fuera de ±(2^53-1) antes de convertirlos a binary64.
 /// No usa la serialización propia de `canonical_json` como preimagen.
 pub fn input_sha256(input_json: &str) -> Result<String, ApiError> {
     fingerprint_value(&json::parse(input_json)?)

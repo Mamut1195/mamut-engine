@@ -10,6 +10,7 @@ from .errors import InvalidInputError, Unsupported
 from .types import JSONDocument, JSONValue
 
 MAX_BYTES = 8 * 1024 * 1024
+MAX_SAFE_INTEGER = 2**53 - 1
 
 
 def invalid(message: str, path: str = "$") -> InvalidInputError:
@@ -48,8 +49,8 @@ def check_tree(value: object, path: str = "$", depth: int = 0, *, bounded: bool 
         if not math.isfinite(value):
             raise invalid("se requiere número finito", path)
     elif type(value) is int:
-        if bounded and not -(2**63) <= value <= 2**64 - 1:
-            raise invalid("entero fuera de i64/u64", path)
+        if bounded and not -MAX_SAFE_INTEGER <= value <= MAX_SAFE_INTEGER:
+            raise invalid("entero fuera del rango seguro JCS: |n| <= 9007199254740991 (2^53-1)", path)
     elif value is not None and type(value) not in (bool, str):
         raise invalid("se requiere un valor JSON (sin coerciones)", path)
 

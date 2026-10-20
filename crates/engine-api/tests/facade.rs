@@ -153,6 +153,7 @@ fn strict_fields_types_units_and_axes() {
         ("/model/nodes/0/coordinates/2", json!(1.0)),
         ("/analyses/0/method", json!("newton")),
         ("/model/nodes/0/id", json!(4294967296_u64)),
+        ("/model/nodes/0/id", json!(true)),
     ] {
         let mut v = baseline.clone();
         *v.pointer_mut(pointer).unwrap() = value;
@@ -287,8 +288,8 @@ fn canonical_keys_nested_arrays_and_negative_zero() {
     assert_eq!(canonical_json(expected).unwrap(), expected);
     assert_eq!(canonical_json("-0.0").unwrap(), "0.0");
     assert_eq!(
-        canonical_json("18446744073709551615").unwrap(),
-        "18446744073709551615"
+        canonical_json("9007199254740991").unwrap(),
+        "9007199254740991"
     );
     let v = input().to_string();
     for _ in 0..20 {

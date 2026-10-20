@@ -181,16 +181,18 @@ fn check_number(token: &str) -> Result<(), ApiError> {
             "Número JSON fuera del rango finito f64".into(),
         ));
     }
-    let valid = if token.starts_with('-') {
-        token.parse::<i64>().is_ok()
-    } else {
-        token.parse::<u64>().is_ok()
-    };
+    // JCS convierte a binary64: impedir pérdida de identidad antes de serde,
+    // incluso para enteros enormes que serde podría convertir a float.
+    const MAX_SAFE_INTEGER: i64 = (1_i64 << 53) - 1;
+    let valid = token
+        .parse::<i64>()
+        .is_ok_and(|n| (-MAX_SAFE_INTEGER..=MAX_SAFE_INTEGER).contains(&n));
     if valid {
         Ok(())
     } else {
         Err(ApiError::InvalidInput(
-            "Entero JSON fuera de rango: negativos requieren i64; no negativos, u64".into(),
+            "Entero JSON fuera de rango seguro JCS: se requiere |n| <= 9007199254740991 (2^53-1)"
+                .into(),
         ))
     }
 }

@@ -1,7 +1,7 @@
 //! Límites y rangos comprobados antes del árbol JSON y de callbacks del motor.
 use engine_api::{
-    canonical_json, run, validate, validate_with, ApiError, CancelToken, Status, MAX_CASES,
-    MAX_COMBINATIONS, MAX_INPUT_BYTES, MAX_JSON_ARRAY_ITEMS, MAX_JSON_DEPTH, MAX_LOADS,
+    canonical_json, input_sha256, run, validate, validate_with, ApiError, CancelToken, Status,
+    MAX_CASES, MAX_COMBINATIONS, MAX_INPUT_BYTES, MAX_JSON_ARRAY_ITEMS, MAX_JSON_DEPTH, MAX_LOADS,
     MAX_MEMBERS, MAX_NODES,
 };
 use serde_json::Value;
@@ -9,6 +9,7 @@ use serde_json::Value;
 fn invalid_before_parse(input: &str, expected: &str) {
     for error in [
         canonical_json(input).unwrap_err(),
+        input_sha256(input).unwrap_err(),
         validate(input).unwrap_err(),
     ] {
         assert!(matches!(error, ApiError::InvalidInput(_)));
@@ -134,8 +135,15 @@ fn escaped_keys_enforce_limits_without_counting_member_node_references() {
 }
 
 #[test]
-fn integers_outside_i64_u64_are_never_rounded_to_float() {
+fn integers_outside_jcs_safe_range_are_never_rounded_to_float() {
     for token in [
+        "9007199254740992",
+        "-9007199254740992",
+        "9007199254740993",
+        "9223372036854775807",
+        "9223372036854775808",
+        "18446744073709551615",
+        "-9223372036854775808",
         "18446744073709551616",
         "-9223372036854775809",
         "-18446744073709551616",
@@ -149,13 +157,44 @@ fn integers_outside_i64_u64_are_never_rounded_to_float() {
         );
     }
     invalid_before_parse(&"9".repeat(10_000), "Entero JSON fuera de rango");
-    for token in [
-        "18446744073709551615",
-        "-9223372036854775808",
-        "9007199254740993",
-    ] {
+    for token in ["9007199254740991", "-9007199254740991"] {
         assert_eq!(canonical_json(token).unwrap(), token);
+        assert!(input_sha256(token).is_ok());
     }
+}
+
+#[test]
+fn safe_integer_boundaries_are_accepted_in_engine_input() {
+    let mut input: Value = serde_json::from_str(include_str!(
+        "../fixtures/input/valid/cantilever-linear-static.json"
+    ))
+    .unwrap();
+    // Carga sobre el apoyo: prueba el parseo sin grandes desplazamientos ni
+    // cancelación numérica en la recuperación del miembro.
+    input["cases"][0]["loads"][0]["node"] = 1.into();
+    for n in [9007199254740991_i64, -9007199254740991] {
+        input["cases"][0]["loads"][0]["values"][0]["value"] = n.into();
+        let source = input.to_string();
+        assert!(validate(&source).unwrap().is_empty());
+        let outcome = run(&source, &CancelToken::new(), |_| {});
+        assert_eq!(outcome.status, Status::Ok, "{}", outcome.document);
+        let document: Value = serde_json::from_str(&outcome.document).unwrap();
+        assert_eq!(document["input_sha256"], input_sha256(&source).unwrap());
+    }
+    // bool es JSON válido, pero nunca un id ni contador entero.
+    input["model"]["nodes"][0]["id"] = true.into();
+    assert!(matches!(
+        validate(&input.to_string()),
+        Err(ApiError::InvalidInput(_))
+    ));
+    input["model"]["nodes"][0]["id"] = 1.into();
+    input["analyses"] = serde_json::json!([{"method":"modal","options":{
+        "mode_count":true,"mass_kind":"lumped","directions":[[1,0,0]]
+    }}]);
+    assert_eq!(
+        run(&input.to_string(), &CancelToken::new(), |_| {}).status,
+        Status::Invalid
+    );
 }
 
 #[test]

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- MAM-79 / #143: engine-api rechaza literales enteros fuera de ±(2^53−1)
+  antes de JCS con `InvalidInput` (`API-E-INPUT`, salida 2, huella null).
+  Python aplica el mismo rango simétrico antes del FFI y detecta como stale
+  mutaciones hacia enteros inseguros. Regresiones de fronteras y de bool como
+  entero; sin cambios de vendor, cálculos ni los 16 hashes de determinismo.
 - MAM-91 / #146: pruebas del CLI con EOF para aceptar exactamente MAX_INPUT_BYTES y rechazar MAX+1 como Document/2; mutación del límite verificada y bitácora sin ruta local de compilación.
 - MAM-22 / #142: exige exactamente cinco fixtures JSON, elimina rutas locales de la documentación de engine-validation y explicita el alcance de los agentes dentro de su worktree.
 - MAM-91 / #141: regresiones del CLI para lectura acotada a MAX+1 y mapeo de ENG-E-0013 en validate a salida 3, verificadas mediante mutaciones.

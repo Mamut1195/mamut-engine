@@ -80,6 +80,15 @@ entrada. Los límites son los schemas del Rust instalado (además de 8 MiB de
 entrada, profundidad 64 y arrays de hasta 16384 entradas). La topología y toda
 validación/cálculo físico pertenecen a engine-api.
 
+Los enteros Python y los literales JSON sin decimal/exponente requieren el
+rango simétrico `-(2**53-1) <= n <= 2**53-1`, también en campos numéricos físicos.
+Fuera de él se lanza `InvalidInputError` con la ruta antes del FFI (#143).
+Rust aplica el mismo control antes de JCS para evitar identidades ambiguas en
+stale. `bool` no se acepta como id ni contador. Los floats finitos conservan
+binary64 y su identidad canónica (incluida la igualdad de `4` y `4.0`);
+no se conserva la escritura original de un float. Los resultados importados
+conservan extensiones sin imponerles el rango de los enteros de entrada.
+
 `EngineError` conserva `code`, `entities`, `cause`, `severity` y `details` del
 primer diagnóstico con severidad `error`; `diagnostics` conserva todos los
 avisos/errores y `document` conserva el JSON completo cuando Rust lo produjo.

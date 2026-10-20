@@ -57,6 +57,29 @@ fn fingerprint_regressions_document_jcs_changes() {
         let input = vector["input"].as_str().unwrap();
         let outcome = run(input, &CancelToken::new(), |_| {});
         let value: Value = serde_json::from_str(&outcome.document).unwrap();
+        if vector["rejected_by_engine"] == true {
+            // Vector histórico de JCS: el SDK no cambia; la frontera Engine
+            // ahora rechaza el entero antes de publicar una huella ambigua.
+            assert_eq!(outcome.exit_code(), 2);
+            assert!(value["input_sha256"].is_null());
+            assert!(matches!(
+                engine_api::input_sha256(input),
+                Err(ApiError::InvalidInput(_))
+            ));
+            assert!(matches!(
+                canonical_json(input),
+                Err(ApiError::InvalidInput(_))
+            ));
+            assert_eq!(
+                mamut_canon::fingerprint(input).unwrap().value,
+                vector["input_sha256"]
+            );
+            assert_eq!(
+                mamut_canon::canonicalize(input).unwrap(),
+                vector["canonical"].as_str().unwrap().as_bytes()
+            );
+            continue;
+        }
         assert_eq!(value["input_sha256"], vector["input_sha256"]);
         assert_eq!(
             engine_api::input_sha256(input).unwrap(),

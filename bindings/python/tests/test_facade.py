@@ -133,6 +133,64 @@ class PublicFacadeTest(unittest.TestCase):
             with self.assertRaises(engine.InvalidInputError):
                 engine.run(SOURCE, **kwargs)
 
+    def test_jcs_safe_integer_boundaries_and_stale(self):
+        for n in (2**53 - 1, -(2**53 - 1)):
+            data = json.loads(SOURCE)
+            # Carga en apoyo: verifica la frontera sin grandes desplazamientos.
+            data["cases"][0]["loads"][0]["node"] = 1
+            data["cases"][0]["loads"][0]["values"][0]["value"] = n
+            for source in (data, json.dumps(data)):
+                with self.subTest(n=n, source=type(source).__name__):
+                    model = (engine.Model.from_dict(source) if isinstance(source, dict)
+                             else engine.Model.from_json(source))
+                    self.assertEqual(engine.validate(model), {"diagnostics": []})
+                    result = engine.run(model)
+                    self.assertEqual(result.input_sha256, model.input_sha256)
+                    for unsafe in (2**53, -(2**53), 2**63 - 1, 2**63):
+                        model.data["cases"][0]["loads"][0]["values"][0]["value"] = unsafe
+                        self.assertTrue(result.is_stale)
+                        with self.assertRaises(engine.StaleResultsError):
+                            result.to_json()
+                    model.data["cases"][0]["loads"][0]["values"][0]["value"] = n
+                    self.assertFalse(result.is_stale)
+
+    def test_unsafe_integers_are_rejected_before_ffi_for_dict_and_json(self):
+        with patch.object(facade._native, "run") as native_run, \
+             patch.object(facade._native, "validate") as native_validate, \
+             patch.object(facade._native, "input_sha256") as fingerprint:
+            for n in (2**53, -(2**53), 2**53 + 1, 2**63 - 1, 2**63,
+                      -(2**63), 2**64 - 1, 10**100, -(10**100)):
+                data = json.loads(SOURCE)
+                data["cases"][0]["loads"][0]["values"][0]["value"] = n
+                for source in (data, json.dumps(data)):
+                    constructor = (engine.Model.from_dict if isinstance(source, dict)
+                                   else engine.Model.from_json)
+                    for function in (constructor, engine.run, engine.validate):
+                        with self.subTest(n=n, function=function.__name__,
+                                          source=type(source).__name__):
+                            with self.assertRaises(engine.InvalidInputError) as caught:
+                                function(source)
+                            self.assertIn("9007199254740991", caught.exception.cause)
+                            self.assertEqual(caught.exception.details["path"],
+                                             "$.cases[0].loads[0].values[0].value")
+            native_run.assert_not_called()
+            native_validate.assert_not_called()
+            fingerprint.assert_not_called()
+
+    def test_bool_is_never_an_integer_id_or_counter(self):
+        for value in (True, False):
+            for path, source in (("id", SOURCE), ("mode_count",
+                                 (FIXTURES / "modal-single-dof.json").read_text()),
+                                 ("max_iterations", (FIXTURES / "p-delta.json").read_text())):
+                data = json.loads(source)
+                target = (data["model"]["nodes"][0] if path == "id"
+                          else data["analyses"][0]["options"])
+                target[path] = value
+                for model in (data, json.dumps(data)):
+                    with self.subTest(path=path, value=value, source=type(model).__name__):
+                        with self.assertRaises(engine.InvalidInputError):
+                            engine.validate(model)
+
     def test_optional_fields_and_results_extensions_survive(self):
         # Campos opcionales publicados después del modelo estático inicial.
         data = json.loads(SOURCE)
@@ -151,7 +209,8 @@ class PublicFacadeTest(unittest.TestCase):
         engine.run(spatial)
         document = result.to_dict()
         # Los límites de entrada no recortan las extensiones de results/1.
-        document["future_optional"] = {"identity": ["a", 2], "large": [0] * 16385}
+        document["future_optional"] = {"identity": ["a", 2], "large": [0] * 16385,
+                                       "integer": 2**63}
         document["cases"][0]["future_optional"] = 3
         source = json.dumps(document)
         imported = engine.Results.from_json(source)
