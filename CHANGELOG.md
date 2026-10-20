@@ -8,6 +8,14 @@
   del perfil a Pa. Tres fixtures analíticos compartidos nativo/wasm,
   integración dimensional con multilinear_elastic y bitácora clean-room.
   Sin cambios de los análisis existentes ni exposición JSON del futuro pilote.
+- MAM-45 · ENG-GEO-004: tablas axiales inmutables `tz.api_clay`,
+  `tz.api_sand`, `qz.api`, `tz.user` y `qz.user` en m/Pa/N; parámetros
+  obligatorios, tracción explícita, mesetas y errores tipados. Adaptadores
+  a la ley multilineal con conversión de unidades/signos y rechazo claro
+  del ablandamiento que esa ley no admite. Fixtures API RP 2GEO y analíticos
+  compartidos en nativo/wasm, sin nuevas dependencias. Coyle–Reese queda
+  solo vía tablas del usuario, pendiente de la fuente original.
+  Seguimiento J4 r1: `Explicit` valida el signo de resistencia en ambas ramas.
 
 - MAM-82 · #162: quitar rutas locales de provenance ENG-PY-004 y anotar licencia BSD-3-Clause de NumPy en ADR-004
 

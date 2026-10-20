@@ -5,6 +5,8 @@
 //! [`winkler`] aporta el lecho elástico. Las hipótesis que siguen describen
 //! exclusivamente el perfil de tensiones geostáticas.
 //! [`py`] genera curvas laterales estáticas en SI sin prefijos (N, m, Pa).
+//! Las curvas axiales [`tz`] y [`qz`] usan SI sin prefijos: m, Pa y N; su z es
+//! desplazamiento local.
 //!
 //! # Unidades, ejes e hipótesis
 //!
@@ -14,7 +16,7 @@
 //! llamador debe convertir mediante `engine_core::units::convert`. El catálogo
 //! de unidades del núcleo no representa pesos unitarios; no se amplía aquí.
 //!
-//! La profundidad `z` es positiva hacia abajo desde el terreno: con Z global
+//! En el perfil, la profundidad `z` es positiva hacia abajo: con Z global
 //! hacia arriba, `z = Z_superficie − Z`. La compresión geotécnica es positiva;
 //! al representar una tensión normal con tracción positiva debe invertirse su
 //! signo. No se interpreta el plano D2 horizontal como sección vertical.
@@ -76,6 +78,8 @@ pub use engine_core::{ContractId, Diagnostic, Real};
 pub mod winkler;
 
 pub mod py;
+pub mod tz;
+pub use tz::qz;
 
 pub mod consolidation;
 

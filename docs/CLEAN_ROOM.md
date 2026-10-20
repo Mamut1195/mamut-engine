@@ -35,6 +35,7 @@ Una misma persona o sesión no puede combinar los roles de operador de oráculo 
 - Libros de referencia: la lista canónica está en Notion (`02_PROTOCOLO_CLEAN_ROOM`, §3). **PENDIENTE:** decidir si se copia al repo.
 - No se copian listados de código de libros salvo que su licencia lo permita y quede registrado.
 - Documentos con copyright (p. ej. API RP 2GEO): se adquiere copia legal, se implementan ecuaciones, no se copia texto (**PENDIENTE** ENG-GOV-004).
+  - **Dispensa ENG-GOV-004 limitada a API RP 2GEO en ENG-GEO-004 (MAM-45).** El 2026-10-20 Jonathan (vía J0) confirmó que su copia de API RP 2GEO, 1.ª edición (2011) con Addendum 1 (2014), es legal, autorizó implementar con código propio las curvas t-z y Q-z de §8.4.2 (Fig. 2, Tabla 2) y §8.4.3 (Fig. 3), citando sección, figura y tabla, sin copiar texto ni figuras, incluidos los vértices numéricos que definen las curvas, como constantes del código, y dispensó el memo ENG-GOV-004 **solo** para este uso. La dispensa no cubre otras secciones de API RP 2GEO, otros tickets ni otros documentos con copyright; el PDF no entra en ningún repositorio. Evidencia: `provenance/ENG-GEO-004.md`; la fusión de este cambio por Jonathan es su aprobación directa (§5.1).
 - Código permisivo de terceros: por defecto no se copia. Copiar un fragmento requiere aprobación de Jonathan, registro en `THIRD_PARTY_NOTICES` y nota en la bitácora.
 - Dependencias de álgebra lineal: solo con licencia permisiva aceptada por `cargo-deny` (ENG-GOV-005).
 

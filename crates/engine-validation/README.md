@@ -212,3 +212,23 @@ node crates/engine-validation/scripts/run-py-wasm.cjs "$CARGO_TARGET_DIR/wasm32-
 El script exige tres fixtures aprobados y ningún import externo. Los controles
 incluyen Matlock en yc/8, yc, 8yc y la transición Np=9; Reese verifica pct, pcd,
 Xt, k/m/u, los interiores de cada tramo y la selección de la rama profunda.
+
+## Curvas axiales · ENG-GEO-004 (MAM-45)
+
+Cinco fixtures compartidos con `engine-geo/tests/support/axial_benchmarks.rs`:
+API arena, arcilla y punta, más dos tablas de usuario artificiales. Fuente:
+API RP 2GEO, primera edición (abril 2011), Addendum 1 (octubre 2014),
+reafirmada 2021; §8.4.2 figura 2/tabla 2 y §8.4.3 figura 3. Comprueban
+vértices, interpolación calculada a mano, mesetas y tracción. La tolerancia
+relativa `2e-14` (escala mínima 1 SI) cubre solo redondeo binary64;
+las ordenadas de los vértices se comprueban además exactamente.
+
+```sh
+cargo test --offline -p engine-validation --test axial
+cargo build --offline -p engine-validation --example axial_wasm --release --target wasm32-unknown-unknown
+node crates/engine-validation/scripts/run-axial-wasm.cjs "$CARGO_TARGET_DIR/wasm32-unknown-unknown/release/examples/axial_wasm.wasm"
+```
+
+El export `axial_benchmarks()` devuelve cinco al aprobar todos, cero si falla
+alguno. El script exige ausencia de imports. No incorpora barras ni pilotes,
+ni altera los 91 casos de la línea base ENG-VAL-005.
