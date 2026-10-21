@@ -2,6 +2,37 @@
 
 ## Unreleased
 
+- MAM-80 / ENG-PY-005 · PR #170, ronda 6 (J4 r3, S1): sincroniza la
+  preparación de los tests de timeout con PID publicado después de exec/setsid;
+  conserva el tope de terminación de 2 s y añade subcaso, PID y tiempo a los fallos.
+
+- MAM-80 / ENG-PY-005 · PR #170, ronda 5 (J4 r2, H6/H7/N4/N5): Ctrl-C y
+  otras excepciones durante la espera del CLI terminan el grupo POSIX antes
+  de propagarse; una sonda de grupo denegada conserva el timeout tipado.
+  Regresiones de interrupción y tiempo de terminación inferior a 2 s;
+  README aclara los descendientes con `setsid` y la espera de limpieza de ~5 s.
+
+- MAM-80 / ENG-PY-005 · PR #170, ronda 4: limpieza de timeout acotada
+  incluso si un descendiente fuera del grupo retiene stdout/stderr; cierre
+  explícito de tuberías y recolección acotada, conservando el error tipado.
+  Tests con sondeo de PID y ejecutables independientes del PATH.
+
+- MAM-80 / ENG-PY-005 · PR #170, ronda 3 (H1): el timeout de workflows
+  Python termina todo el grupo POSIX (SIGTERM y SIGKILL tras espera acotada),
+  incluidos nietos de envoltorios; conserva error tipado, causa y limpieza.
+  Sin `killpg` (Windows) se mantiene la terminación del proceso directo.
+
+- MAM-80 / ENG-PY-005 · PR #170, ronda 2: timeout configurable y validado
+  en workflows Python (300 s por defecto), error tipado y limpieza al expirar;
+  estado de variantes sin Results derivado del documento/categoría del error.
+  Tests de CLI simulado que duerme y de copias independientes del catálogo.
+
+- MAM-80 / ENG-PY-005: experimentos Python externos sobre la fachada Rust:
+  barridos por rutas, comparación de escenarios con métricas y huellas,
+  perfiles versionados y errores tipados por variante. Transporte al CLI SDK
+  existente para workflows compilados/manifiestos, sin registro, planificador,
+  callbacks ni cálculo numérico Python. Ejemplos de voladizo y pruebas offline;
+  sin cambios Rust, Cargo ni pyproject.
 - MAM-835 / ENG-SFC-010, r3 (J4 H1'): presupuesto público denso de
   consolidation1d `Σ intervalos n³ + Σ subpasos n² ≤ 500000000`, 256 intervalos
   y 100000 subpasos totales; rechazo temprano API-E-CONSOLIDATION-COST,

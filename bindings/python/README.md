@@ -360,3 +360,136 @@ en memoria. Detén/reinicia consumidores antes de reabrirlos. Si falla el smoke,
 reinstala la wheel conservada de la versión que funcionaba y vuelve a comprobar.
 La evidencia y las limitaciones del ensayo local se registran en
 `provenance/ENG-PY-007.md`; no equivale a rollback de una versión publicada.
+
+## Experimentos externos · ENG-PY-005 / MAM-80
+
+`mamut_engine.experiments` es Python puro en el proceso del usuario. Ejecuta
+copias del modelo mediante `run` de ENG-PY-003; Rust sigue validando el modelo,
+resolviendo el registro SDK y calculando. No añade métodos oficiales, servidor,
+planificador, plugins ni callbacks. No depende de NumPy.
+
+```python
+from mamut_engine.experiments import sweep, comparison_table, methods
+
+profile = {
+    "schema": "mamut.experiment/1", "name": "carga-voladizo", "version": 1,
+    "seed": 42,
+    "parameters": {"P": {
+        "path": ["cases", 0, "loads", 0, "values", 0, "value"],
+        "values": [-6, -12, -24],
+    }},
+    "metrics": {"Uy": {
+        "path": ["cases", 0, "nodes", 1, "displacements", 1], "unit": "m",
+    }},
+}
+rows = sweep(model, profile)  # model: Model, dict engine-input/1 o JSON str
+print(comparison_table(rows))
+print(methods())  # descriptores originales de capabilities(), sin registro Python
+```
+
+El perfil es JSON versionado: `schema` fija el contrato, `version` identifica la
+revisión del experimento y `name` su identidad. `seed` es metadato opcional para
+el productor de los datos; este módulo no genera números aleatorios. El mismo
+perfil y modelo, con la misma compilación/target Rust, repiten las huellas.
+El barrido usa producto cartesiano en orden de nombres de parámetros y en el
+orden declarado de valores. Las rutas son listas de claves/índices existentes,
+sin expresiones ejecutables; se rechazan solapamientos, bool y NaN/Inf antes
+del lote. No se mutan el modelo, perfil ni listas originales.
+
+`compare_scenarios({nombre: modelo, ...}, profile)` ejecuta por nombre ordenado
+con un perfil sin `parameters`; devuelve los mismos registros que `sweep`.
+`comparison_table` produce filas con métricas, unidades declaradas, estado,
+huellas y procedencia. Las métricas seleccionan escalares de results/1 por
+ruta, sin agregación ni conversión; `unit` es una etiqueta declarada por el
+usuario, que debe corresponder a las unidades SI del campo seleccionado.
+El resultado completo conserva unidades implícitas del contrato y sus GDL.
+
+Cada `VariantResult` conserva `result`, `error` tipado original y su diagnóstico,
+`input_sha256` JCS de Rust, `result_sha256` de los **bytes UTF-8 exactos** de
+results/1, perfil completo, versión del engine, `git_commit` y target emitidos
+por Rust. Un commit no suministrado al compilar queda `None`. Se conserva el
+estado original incluso en inestabilidad/no convergencia. Una entrada que no
+puede obtener huella se identifica con `None`. Las fallas Engine se guardan por
+variante y continúa el lote; `row.raise_for_error()` vuelve a lanzar la misma
+instancia. Errores del perfil se lanzan antes de empezar; otras excepciones
+Python se propagan. Un selector de métrica fallido marca `metricError` y conserva
+el resultado Rust y su estado en `row.result.status`.
+
+Si el error no adjunta `Results`, se usa primero el estado de fallo de su
+documento JSON, si es legible. En su ausencia se mapea la categoría pública:
+`InvalidInputError` → `invalid`, `Unstable` → `unstable`, `NotConverged` →
+`notConverged`, `Unsupported` → `unsupported`, `Cancelled` → `cancelled` e
+`InternalEngineError` → `internalError`. Un `AnalysisError` genérico queda
+`analysisError`; otro `EngineError`, `error`. Estos dos últimos son estados
+de la variante Python. Se conserva la instancia original con su código y
+diagnósticos. Un documento ilegible no oculta el error original.
+
+El campo opcional `analyses` del perfil sustituye la lista completa del modelo
+para cada ejecución, con el contrato engine-input/1 existente. La procedencia
+conserva `base_analyses`, `requested_analyses` y los `methods` realmente emitidos
+por Rust. Esto permite comparar métodos registrados sin introducir otro
+registro ni aceptar funciones Python como métodos.
+
+Los ejemplos pequeños usan el fixture existente de voladizo:
+
+```sh
+python bindings/python/examples/parametric_sweep.py
+python bindings/python/examples/compare_scenarios.py
+```
+
+### Workflows SDK existentes
+
+La fachada FFI no expone objetos `CompiledWorkflow`. El transporte mínimo
+`compile_workflow` / `run_workflow` usa el **CLI Rust local existente**, sin Cargo
+en runtime. Python solo escribe snapshots temporales de los documentos y lee
+su respuesta. El compilador, validación, registro, proveedor y executor son los
+de ENG-SFC-002 / SDK-WF-003 / ENG-CORE-006, sin implementación paralela.
+
+```python
+import json
+from pathlib import Path
+from mamut_engine.experiments import compile_workflow, run_workflow
+
+catalog = json.loads(Path("crates/engine-cli/catalog.json").read_text())
+workflow = json.loads(Path("crates/engine-cli/run.workflow.json").read_text())
+compiled = compile_workflow(catalog, workflow, executable="/ruta/local/mamut-engine")
+execution = run_workflow(compiled, model, {
+    "schema": "mamut.experiment/1", "name": "workflow-voladizo", "version": 1,
+})
+manifest = execution["envelope"]["data"]
+```
+
+`compiled.plan` conserva el plan emitido por Rust. El CLI actual no importa
+planes serializados: `run` **recompila los mismos snapshots** antes de ejecutar.
+No se simula la ejecución del plan en Python. El sobre íntegro conserva
+`engineResults`, `recordFingerprint`, huellas de entradas/salidas de cada paso,
+selecciones efectivas (incluidas sustituciones) y estados del SDK. La respuesta
+adjunta el perfil y la huella del modelo; no cambia el manifiesto sellado.
+Los workflows usan el modelo recibido y sus selecciones compiladas: el perfil
+en esta vía no admite `parameters`, `metrics` ni `analyses`. Los errores del CLI se mapean
+a errores públicos tipados; si hay results/1, se conservan los diagnósticos y
+el documento semántico. Sin documento Engine, se conserva el sobre en details
+y el código `SDK-EXIT-*`. La representación JSON anidada del CLI no conserva
+los bytes originales de results/1; sus huellas SDK sí se conservan intactas.
+El binario debe instalarse aparte de la wheel. No se carga Python en CLI,
+WASM, MCP ni dentro del solver.
+
+Ambas funciones aceptan `timeout` solo por keyword, en segundos, con valor
+predeterminado de 300. Debe ser un número finito mayor que cero (sin bool).
+Al expirar se lanza `AnalysisError` con código `PY-E-WORKFLOW-TIMEOUT` y causa
+`subprocess.TimeoutExpired`. En POSIX el CLI se lanza en una sesión propia y
+el timeout termina su grupo de procesos completo, incluidos los descendientes
+de envoltorios shell/scripts: SIGTERM, hasta 0,2 s de espera y SIGKILL si el
+grupo sigue existiendo. En plataformas sin `os.killpg` (Windows) solo se mata
+el proceso directo. Un descendiente que abandone el grupo (por ejemplo, con
+`setsid`) sobrevive al timeout; si conserva las tuberías abiertas, el error puede
+llegar hasta unos 5 s más tarde por la espera acotada de limpieza. Ctrl-C y otras
+excepciones durante la espera también terminan el grupo; `KeyboardInterrupt`
+se propaga como tal. El transporte recoge el proceso CLI y elimina sus archivos
+temporales antes de propagar el error o la interrupción.
+
+Las pruebas nuevas son descubribles tanto con pytest como con unittest, para
+incluirlas en `scripts/build-python-wheel.sh`. Para cubrir el SDK real, construir
+`cargo build -p engine-cli --offline` y exportar `MAMUT_EXPERIMENT_CLI` con la
+ruta absoluta al binario antes de ejecutar pytest o el script de wheel. Sin esa
+variable solo se omiten los tests de transporte SDK, no los de la fachada.
