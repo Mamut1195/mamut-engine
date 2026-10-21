@@ -85,7 +85,7 @@ pub(crate) struct Failure(Status, Vec<Diagnostic>);
 impl From<EngineError> for Failure {
     fn from(e: EngineError) -> Self {
         let status = match e.code {
-            "ENG-E-0006" => Status::Unstable,
+            "ENG-E-0006" | "ENG-E-0014" => Status::Unstable,
             "ENG-E-0007" => Status::NotConverged,
             "ENG-E-0012" => Status::InternalError,
             "ENG-E-0013" => Status::Unsupported,

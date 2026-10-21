@@ -41,9 +41,9 @@ GDL del pivote; identificar el nodo o el movimiento del mecanismo requiere el
 mapa del ensamblador, pendiente de ENG-LA-008. Un factor exitoso tiene
 `singular_dofs` vacío; los factores singulares no se entregan para resolver.
 
-El problema modal exige masa definida positiva. Masa singular devuelve ENG-E-0006
-sin generar NaN; masa indefinida ENG-E-0010. No se eliminan GDL sin masa ni se
-regulariza. Los autovalores son ascendentes; los vectores columna se normalizan
+La primitiva `generalized_eigen` exige masa definida positiva. Masa singular
+devuelve ENG-E-0006 sin generar NaN; masa indefinida ENG-E-0010. La reducción
+explícita de GDL sin masa está en `guyan_condense`; no se regularizan matrices. Los autovalores son ascendentes; los vectores columna se normalizan
 con φᵀMφ=1 y signo de su componente dominante positivo. Una multiplicidad admite
 bases diferentes del mismo subespacio. Jacobi para cuando el máximo fuera de
 diagonal de la matriz escalada es ≤ 4 ε max(n,1), con hasta 100 n² rotaciones;
@@ -76,7 +76,8 @@ de la feature final verifica el stub, no un adaptador faer funcional.
 La reincorporación requiere resolver ese alcance documental y volver a probar
 la dependencia optional con la configuración exacta anterior y la misma suite.
 El solver directo disperso con AMD y separación simbólica/numérica sigue en
-ENG-LA-008. Autovalores dispersos y eliminación de GDL sin masa siguen pendientes.
+ENG-LA-008. Los autovalores dispersos siguen pendientes; la condensación
+de GDL sin masa está implementada en ENG-LA-009 (#184).
 Los controles densos de Sturm y modos faltantes se implementan en ENG-LA-009.
 **Nalgebra PENDIENTE**, sin dependencia
 ni feature en esta entrega. Sprs-ldl permanece excluido.
@@ -153,3 +154,24 @@ clásica Toeplitz en `provenance/ENG-LA-007.md`; cita bibliográfica precisa
 PENDIENTE. La prueba de integración de frontera escanea Cargo.toml y archivos
 Rust de los crates del workspace, detectando proveedores directos y aliases,
 sin crear ni modificar workflows.
+
+## Condensación estática de Guyan · ENG-LA-009 (#184)
+
+`guyan_condense(backend, &k, &m)` opera sobre las matrices ya transformadas por
+apoyos y diafragmas. Devuelve `None` si todas las filas tienen masa, conservando
+el camino numérico anterior. Solo considera sin masa las filas/columnas
+exactamente nulas: una masa positiva pequeña y los acoplamientos se conservan.
+
+`GuyanReduction` contiene Kred=Kmm−Kms Kss⁻¹ Ksm, Mmm y la recuperación
+φs=−Kss⁻¹ Ksm φm. Kss se factoriza una vez con LDLᵀ propia, comprobando
+inercia (s,0,0); todas las RHS se resuelven juntas. `recover` conserva el orden
+original y la norma de masa. La integración en assembly/modal recupera también
+los esclavos del diafragma antes de participación, masa efectiva y espectro.
+
+**ENG-E-0014: Mecanismo sin masa** identifica Kss singular o no definida positiva,
+con GDL del bloque implicado (assembly añade el nudo y componente global).
+La masa negativa o ausencia de GDL libres con masa da ENG-E-0006; no se añade
+masa o rigidez artificial. Se mantienen los checkpoints y el presupuesto de
+pasos existentes. La reducción densa, como el eigensolver, es indivisible.
+Derivación, fuente teórica y comprobaciones en
+[provenance/ENG-LA-009-GUYAN.md](../../provenance/ENG-LA-009-GUYAN.md).

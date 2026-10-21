@@ -28,6 +28,70 @@ fn spectrum() -> Value {
             "damping":0.05,"interpolation":"linear","extrapolation":"error"}]}]}}]);
     v
 }
+// Columna Euler E=200, I=3, L=4, ρ=0; solo m=5 en Uy de punta.
+// Axial y giro libres no tienen masa: k=3EI/L³=28.125, λ=k/m=5.625.
+fn massless_column(spectral: bool) -> Value {
+    let mut v = column(1, 0.0);
+    v["model"]["masses"] = json!([{"id":"m","node":2,"values":[{"dof":"Uy","value":5.0}]}]);
+    v["cases"] = json!([]);
+    v["analyses"] = if spectral {
+        spectrum()["analyses"].clone()
+    } else {
+        oscillator()["analyses"].clone()
+    };
+    if spectral {
+        v["analyses"][0]["options"]["directions"][0]["direction"] = json!([0.0, 1.0, 0.0]);
+    } else {
+        v["analyses"][0]["options"]["directions"] = json!([[0.0, 1.0, 0.0]]);
+    }
+    v
+}
+
+#[test]
+fn guyan_nodal_mass_period_participation_and_spectrum_recovery() {
+    for combination in [None, Some("srss"), Some("cqc")] {
+        let spectral = combination.is_some();
+        let mut v = massless_column(spectral);
+        if let Some(combination) = combination {
+            v["analyses"][0]["options"]["modal_combination"] = json!(combination);
+        }
+        let (outcome, document) = solve(&v);
+        assert_eq!(outcome.status, Status::Ok, "{}", outcome.document);
+        let mode = &document["modes"][0];
+        close(&mode["eigenvalue"], 5.625);
+        close(
+            &mode["period"],
+            std::f64::consts::TAU * math::sqrt(5.0 / 28.125),
+        );
+        close(&mode["participation"][0]["effective_mass"], 5.0);
+        close(&mode["participation"][0]["mass_fraction"], 1.0);
+        let shape = &mode["shape"][1]["displacements"];
+        close(&shape[5], 0.375 * num(&shape[1]));
+        if spectral {
+            let nodes = &document["envelopes"][0]["nodes"];
+            close(&nodes[1]["displacements"][1], 15.0 / 28.125);
+            close(&nodes[1]["displacements"][5], 0.375 * 15.0 / 28.125);
+            close(&document["envelopes"][0]["base_shear"], 15.0);
+        }
+    }
+}
+
+#[test]
+fn guyan_massless_mechanism_returns_unstable_with_node_and_dof() {
+    let mut v = oscillator();
+    v["model"]["supports"].as_array_mut().unwrap().pop();
+    let (outcome, document) = solve(&v);
+    assert_eq!(outcome.status, Status::Unstable);
+    assert_eq!(document["diagnostics"][0]["code"], "ENG-E-0014");
+    let cause = document["diagnostics"][0]["cause"].as_str().unwrap();
+    assert!(cause.contains("Nodo 2, GDL Uy (global 3)."), "{cause}");
+    assert_eq!(
+        document["diagnostics"][0]["entities"],
+        json!([{"kind":"node","id":2},{"kind":"dof","id":3}])
+    );
+    assert_eq!(document["modes"], json!([]));
+}
+
 fn two_oscillators(mut v: Value) -> Value {
     // Dos barras independientes desde el apoyo, L=4 y L=1, EA=400,
     // masas 5: autovalores 20 y 80; participación 50% por modo.
@@ -334,6 +398,8 @@ fn cancellation_at_every_dynamic_boundary_discards_all_responses() {
         two_oscillators(oscillator()),
         two_oscillators(spectrum()),
         multi,
+        massless_column(false),
+        massless_column(true),
         column(4, 0.2),
     ] {
         let mut stages = Vec::new();

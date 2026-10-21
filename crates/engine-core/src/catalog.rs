@@ -120,6 +120,13 @@ pub static CODES: &[CodeInfo] = &[
         message: "La operación solicitada no está soportada por este componente.",
         explanation: "La entrada es válida, pero el componente no implementa la capacidad pedida (por ejemplo, evaluar la rigidez geométrica en un estado distinto del de referencia). Use un componente que la soporte o limite la solicitud a lo admitido; no reintente con los mismos datos.",
     },
+    CodeInfo {
+        code: "ENG-E-0014",
+        severity: Severity::Error,
+        title: "Mecanismo sin masa",
+        message: "La rigidez de los grados de libertad sin masa no es definida positiva.",
+        explanation: "La condensación de Guyan requiere Kss definida positiva. Un pivote singular o una dirección de rigidez negativa impide recuperar los GDL sin masa. Revise los apoyos, la conectividad y las liberaciones del nodo/GDL indicado; no se añade masa ni rigidez artificial.",
+    },
 ];
 
 /// Busca un código exacto y devuelve su información estática, o `None`.

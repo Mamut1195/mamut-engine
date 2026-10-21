@@ -1,12 +1,12 @@
 //! SOURCE: derivación propia; CITATION: provenance/ENG-ANL-002.md.
 //! Sin valores publicados, fuentes externas ni oráculos.
 use engine_analysis::modal::{Modal, ModalResults};
-use engine_assembly::{DofMap, ElementContribution, LinearSystem, PrescribedDof};
+use engine_assembly::{DofMap, ElementContribution, LinearSystem, PrescribedDof, RigidDiaphragm};
 use engine_contracts::{Element, ElementCtx, ElementParams, MassKind, SystemView};
 use engine_core::math;
 use engine_core::{Dim, Dof, DofIndex, EntityRef, NodeId};
 use engine_elements_frame::{EulerFrame2D, MomentReleases};
-use engine_linalg::{DMat, ReferenceBackend, SparseMatrix};
+use engine_linalg::{DMat, LinAlgBackend, ReferenceBackend, SparseMatrix, SymMatrix};
 use engine_loads::mass::{rigid_translation, system_total_mass};
 use engine_model::{DofValue, Model, NodalMass, Node, Support};
 use std::f64::consts::{PI, TAU};
@@ -374,11 +374,47 @@ fn rotated_model_direction_and_modal_shapes_are_invariant() {
 }
 
 #[test]
-fn singular_mass_propagates_node_and_global_dof_without_reduction() {
+fn lumped_beam_recovers_massless_rotation_with_analytic_period() {
     let mut system = beam(1, true, 0.0);
+    let result = Modal::run(&mut system, 2, MassKind::Lumped, &[[0.0, 1.0, 0.0]]).unwrap();
+    // L=E=A=ρ=1, I=1e−4. Masa traslacional en punta m=ρAL/2=0.5,
+    // giro sin masa: k=12EI/L³−(6EI/L²)²/(4EI/L)=3EI/L³.
+    let exact = TAU * math::sqrt(0.5 / (3.0 * 1e-4));
+    close(result.modes[0].period.unwrap(), exact, 1e-9 * exact);
+    close(
+        result.modes[0].free_shape[2],
+        1.5 * result.modes[0].free_shape[1],
+        1e-12,
+    );
+    orthogonal(&system, &result, 1e-12);
+    complete(&system, &result);
+}
+
+#[test]
+fn massless_mechanism_names_node_and_global_dof() {
+    let mut model = Model::new();
+    model.nodes.push(Node::new(NodeId(2), Dim::D2, [0.0; 3]));
+    support(&mut model, 2, &[Dof::Ux]);
+    model.masses.push(NodalMass {
+        id: "m".into(),
+        node: NodeId(2),
+        values: vec![DofValue {
+            dof: Dof::Uy,
+            value: 1.0,
+        }],
+    });
+    let element = ElementContribution {
+        location: vec![DofIndex(1), DofIndex(2)],
+        stiffness: DMat::new(2, 2, vec![1.0, 0.0, 0.0, 0.0]).unwrap(),
+        mass_lumped: None,
+        mass_consistent: None,
+        geometric: None,
+        loads: vec![],
+    };
+    let mut system = LinearSystem::from_model(ReferenceBackend, &model, &[element], &[]).unwrap();
     let error = Modal::run(&mut system, 1, MassKind::Lumped, &[[0.0, 1.0, 0.0]]).unwrap_err();
-    assert_eq!(error.code, "ENG-E-0006");
-    assert!(error.message.contains("Nodo 2") && error.message.contains("GDL Rz"));
+    assert_eq!(error.code, "ENG-E-0014");
+    assert!(error.message.contains("Nodo 2, GDL Rz (global 2)."));
     assert!(error
         .entities
         .iter()
@@ -386,7 +422,7 @@ fn singular_mass_propagates_node_and_global_dof_without_reduction() {
     assert!(error
         .entities
         .iter()
-        .any(|e| matches!(e, EntityRef::Dof(DofIndex(5)))));
+        .any(|e| matches!(e, EntityRef::Dof(DofIndex(2)))));
 }
 
 #[test]
@@ -470,4 +506,120 @@ fn invalid_requests_zero_count_and_rigid_period() {
     let error = Modal::run(&mut multiple, 1, MassKind::Lumped, &[[1.0, 0.0, 0.0]]).unwrap_err();
     assert_eq!(error.code, "ENG-E-0007");
     assert!(error.message.contains("multiplicidad"));
+}
+
+#[test]
+fn no_massless_dofs_lowest_modes_matches_direct_backend_bits() {
+    // Incluye masa diagonal y consistente acoplada, conteo vacío, parcial y total.
+    for (mut system, kind) in [
+        (shear(3, 17., 3.), MassKind::Lumped),
+        (beam(1, true, 0.37), MassKind::Consistent),
+    ] {
+        assert!(!system.has_massless_dofs(kind));
+        let n = system.n_free_dofs();
+        let mut k = SymMatrix::zeros(n).unwrap();
+        let mut m = SymMatrix::zeros(n).unwrap();
+        system.tangent(&vec![0.; n], &mut k).unwrap();
+        system.mass(kind, &mut m).unwrap();
+        let bits = |values: &[f64]| values.iter().map(|v| v.to_bits()).collect::<Vec<_>>();
+        for count in [0, 1, n] {
+            let direct = ReferenceBackend.lowest_modes(&k, &m, count).unwrap();
+            let actual = system.lowest_modes(kind, count).unwrap();
+            assert_eq!(bits(&actual.eigenvalues), bits(&direct.eigenvalues));
+            assert_eq!(actual.vectors.rows(), direct.vectors.rows());
+            assert_eq!(actual.vectors.cols(), direct.vectors.cols());
+            assert_eq!(bits(actual.vectors.values()), bits(direct.vectors.values()));
+            assert_eq!(actual.rigid_mode_count, direct.rigid_mode_count);
+        }
+    }
+}
+
+#[test]
+fn consistent_coupled_mass_condenses_and_recovers_full_orthonormal_modes() {
+    let mut model = Model::new();
+    model.nodes.push(Node::new(NodeId(1), Dim::D2, [0.; 3]));
+    let contribution = ElementContribution {
+        location: vec![DofIndex(0), DofIndex(1), DofIndex(2)],
+        stiffness: DMat::new(3, 3, vec![6., 1., 2., 1., 5., -1., 2., -1., 4.]).unwrap(),
+        mass_lumped: None,
+        mass_consistent: Some(DMat::new(3, 3, vec![2., 0.5, 0., 0.5, 1., 0., 0., 0., 0.]).unwrap()),
+        geometric: None,
+        loads: vec![],
+    };
+    let mut system =
+        LinearSystem::from_model(ReferenceBackend, &model, &[contribution], &[]).unwrap();
+    assert!(system.has_massless_dofs(MassKind::Consistent));
+    // Eliminación propia: R=[-1/2,1/4], Kred=[[5,3/2],[3/2,19/4]].
+    let k = SymMatrix::new(DMat::new(2, 2, vec![5., 1.5, 1.5, 4.75]).unwrap()).unwrap();
+    let m = SymMatrix::new(DMat::new(2, 2, vec![2., 0.5, 0.5, 1.]).unwrap()).unwrap();
+    let direct = ReferenceBackend.lowest_modes(&k, &m, 2).unwrap();
+    let result = Modal::run(&mut system, 2, MassKind::Consistent, &[[1., 0., 0.]]).unwrap();
+    for (mode, eigenvalue) in result.modes.iter().zip(direct.eigenvalues) {
+        close(mode.eigenvalue, eigenvalue, 1e-13);
+        close(
+            mode.global_shape[2],
+            -0.5 * mode.global_shape[0] + 0.25 * mode.global_shape[1],
+            1e-14,
+        );
+    }
+    orthogonal(&system, &result, 1e-13);
+    complete(&system, &result);
+}
+
+#[test]
+fn condensed_diaphragm_modes_follow_rigid_slave_kinematics() {
+    let mut model = Model::new();
+    for (id, coordinates) in [(1, [0., 0., 0.]), (2, [2., 3., 0.])] {
+        let mut node = Node::new(NodeId(id), Dim::D3, coordinates);
+        node.dofs = vec![Dof::Ux, Dof::Uy, Dof::Uz, Dof::Rz];
+        model.nodes.push(node);
+        model.masses.push(NodalMass {
+            id: format!("m{id}"),
+            node: NodeId(id),
+            values: [Dof::Ux, Dof::Uy, Dof::Rz]
+                .into_iter()
+                .map(|dof| DofValue { dof, value: 1. })
+                .collect(),
+        });
+    }
+    // Uz sin masa en ambos nudos, acoplado con Ux del maestro en K.
+    let mut k = vec![0.; 64];
+    for i in 0..8 {
+        k[i * 8 + i] = 10. + i as f64;
+    }
+    k[2] = 1.;
+    k[16] = 1.;
+    let element = ElementContribution {
+        location: (0..8).map(DofIndex).collect(),
+        stiffness: DMat::new(8, 8, k).unwrap(),
+        mass_lumped: None,
+        mass_consistent: None,
+        geometric: None,
+        loads: vec![],
+    };
+    let diaphragm = RigidDiaphragm {
+        master: NodeId(1),
+        slaves: vec![NodeId(2)],
+    };
+    let mut system = LinearSystem::from_model_with_diaphragms(
+        ReferenceBackend,
+        &model,
+        &[element],
+        &[],
+        &[diaphragm],
+    )
+    .unwrap();
+    assert!(system.has_massless_dofs(MassKind::Lumped));
+    let result = Modal::run(&mut system, 3, MassKind::Lumped, &[[1., 0., 0.]]).unwrap();
+    assert!(result.modes.iter().any(|m| m.global_shape[3].abs() > 0.1));
+    for mode in &result.modes {
+        let u = &mode.global_shape;
+        close(u[4], u[0] - 3. * u[3], 1e-14);
+        close(u[5], u[1] + 2. * u[3], 1e-14);
+        close(u[7], u[3], 1e-14);
+        close(u[2], -u[0] / 12., 1e-14);
+        close(u[6], 0., 1e-14);
+    }
+    orthogonal(&system, &result, 1e-13);
+    complete(&system, &result);
 }

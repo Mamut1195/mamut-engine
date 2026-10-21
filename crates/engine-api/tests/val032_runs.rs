@@ -3,23 +3,18 @@ use engine_api::{CancelToken, Status};
 use serde_json::Value;
 use std::{collections::BTreeSet, fs, path::Path};
 
-// #184: condensación modal pendiente. Los ocho bloqueos conservan estado y
-// error exactos como centinela hasta revisar evidencia y documentación.
-// #185 habilita E3-pdelta sin cambiar los fixtures ni sus tolerancias.
-const BLOCKED: &[(&str, Status, &str, &str)] = &[
-    ("E1-modal", Status::Unstable, "unstable", "ENG-E-0006"),
-    ("E2-cqc-X", Status::Unstable, "unstable", "ENG-E-0006"),
-    ("E2-cqc-Y", Status::Unstable, "unstable", "ENG-E-0006"),
-    ("E2-srss-X", Status::Unstable, "unstable", "ENG-E-0006"),
-    ("E2b-cqc-X", Status::Unstable, "unstable", "ENG-E-0006"),
-    ("E2b-cqc-Y", Status::Unstable, "unstable", "ENG-E-0006"),
-    (
-        "E2b-cqc-XY-srss",
-        Status::Unstable,
-        "unstable",
-        "ENG-E-0006",
-    ),
-    ("E4-modal", Status::Unstable, "unstable", "ENG-E-0006"),
+// #184 (Guyan) habilita los ocho runs modales y #185/#186 habilita E3-pdelta:
+// no queda ningún bloqueo del Engine en VAL-032.
+const BLOCKED: &[(&str, Status, &str, &str)] = &[];
+const MODAL: &[&str] = &[
+    "E1-modal",
+    "E2-cqc-X",
+    "E2-cqc-Y",
+    "E2-srss-X",
+    "E2b-cqc-X",
+    "E2b-cqc-Y",
+    "E2b-cqc-XY-srss",
+    "E4-modal",
 ];
 const EXECUTABLE: &[&str] = &[
     "E3-lineal",
@@ -39,7 +34,9 @@ const COMBINATIONS: &[&str] = &[
     "C5_1.2D+L-EY",
     "C7_0.9D-EY",
 ];
-// Pares run/código, incluidos avisos previos al fallo modal. No se permiten
+// Pares run/código revisados individualmente. Los ocho runs modales conservan
+// API-W-DIAPHRAGM-RECOVERY (#84): recuperación de esfuerzos/reacciones físicas
+// de diafragma pendiente; no afecta los períodos ni la cinemática modal. No se permiten
 // avisos nuevos sin revisión de su causa en el documento results/1.
 const WARNINGS: &[(&str, &str)] = &[
     ("E1-modal", "API-W-DIAPHRAGM-RECOVERY"),
@@ -61,6 +58,10 @@ const WARNINGS: &[(&str, &str)] = &[
 fn val032_runs() {
     let root =
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/validation-report/fixtures/val032");
+    // Referencia propia ya versionada; generada por _ref/val032_calibrate.py,
+    // Reference.periods(), sin oráculos externos ni regeneración de fixtures.
+    let reference: Value =
+        serde_json::from_slice(&fs::read(root.join("_ref/calibrate_r3.json")).unwrap()).unwrap();
     let mut paths: Vec<_> = fs::read_dir(root)
         .unwrap()
         .map(|entry| entry.unwrap().path())
@@ -75,6 +76,7 @@ fn val032_runs() {
         .iter()
         .map(|(id, _, _, _)| *id)
         .chain(EXECUTABLE.iter().copied())
+        .chain(MODAL.iter().copied())
         .collect();
     let mut seen = BTreeSet::new();
     let mut observed_warnings = BTreeSet::new();
@@ -133,6 +135,92 @@ fn val032_runs() {
                     },
                     "{id}"
                 );
+            }
+            if MODAL.contains(&id) {
+                // Cada run tiene revisado el mismo aviso #84 en WARNINGS.
+                assert_eq!(outcome.status, Status::Warning, "{id}");
+                let building = id.split('-').next().unwrap();
+                let calibrated = reference["edificios"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .find(|entry| entry["id"] == building)
+                    .unwrap();
+                let periods = calibrated["comprobaciones"]["T1_T15"]["nuevo_s"]
+                    .as_array()
+                    .unwrap();
+                let tolerances: Vec<_> = fixture["tolerances_preregistered"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .filter(|t| t["metric"].as_str().unwrap().contains("T1..T15"))
+                    .collect();
+                assert!(
+                    !tolerances.is_empty(),
+                    "{id}: falta tolerancia pre-registrada"
+                );
+                let tolerance = tolerances
+                    .iter()
+                    .map(|t| {
+                        assert_eq!(t["kind"], "relativa");
+                        t["tol"].as_f64().unwrap()
+                    })
+                    .fold(f64::INFINITY, f64::min);
+                let modes = result["modes"].as_array().unwrap();
+                assert_eq!(modes.len(), 15, "{id}");
+                assert_eq!(periods.len(), 15, "{id}");
+                let mut maximum = 0.0_f64;
+                for (i, (mode, period)) in modes.iter().zip(periods).enumerate() {
+                    let expected = period.as_f64().unwrap();
+                    let error = (mode["period"].as_f64().unwrap() / expected - 1.0).abs();
+                    assert!(
+                        error <= tolerance,
+                        "{id}: T{}, error={error:e}, tol={tolerance:e}",
+                        i + 1
+                    );
+                    maximum = maximum.max(error);
+                }
+                // Cinemática maestro/esclavo completa, también para espectro.
+                for mode in modes {
+                    let nodes = mode["shape"].as_array().unwrap();
+                    let input_model = &run["engine_input"]["model"];
+                    for diaphragm in input_model["diaphragms"].as_array().unwrap() {
+                        let master = &nodes
+                            .iter()
+                            .find(|n| n["id"] == diaphragm["master"])
+                            .unwrap()["displacements"];
+                        let coords = |id: &Value| {
+                            input_model["nodes"]
+                                .as_array()
+                                .unwrap()
+                                .iter()
+                                .find(|n| n["id"] == *id)
+                                .unwrap()["coordinates"]
+                                .as_array()
+                                .unwrap()
+                        };
+                        let origin = coords(&diaphragm["master"]);
+                        for slave in diaphragm["slaves"].as_array().unwrap() {
+                            let position = coords(slave);
+                            let shape =
+                                &nodes.iter().find(|n| n["id"] == *slave).unwrap()["displacements"];
+                            let rz = master[5].as_f64().unwrap();
+                            let dx = position[0].as_f64().unwrap() - origin[0].as_f64().unwrap();
+                            let dy = position[1].as_f64().unwrap() - origin[1].as_f64().unwrap();
+                            for (dof, expected) in [
+                                (0, master[0].as_f64().unwrap() - dy * rz),
+                                (1, master[1].as_f64().unwrap() + dx * rz),
+                                (5, rz),
+                            ] {
+                                assert!(
+                                    (shape[dof].as_f64().unwrap() - expected).abs() < 1e-12,
+                                    "{id}: cinemática"
+                                );
+                            }
+                        }
+                    }
+                }
+                eprintln!("PERIODS {id}: max_rel={maximum:.12e}; tol={tolerance:e}; T1–T15=15/15");
             }
             let recovery_warnings = diagnostics
                 .iter()

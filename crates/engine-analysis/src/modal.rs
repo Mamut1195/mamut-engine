@@ -11,8 +11,10 @@
 //! No se usa M_fp r_p para excitar los GDL libres. Para una matriz consistente
 //! con apoyos, la identidad de completitud es la de M_ff, no la masa global.
 //!
-//! No condensa ni descarta GDL sin masa: esa reducción queda en ENG-LA-009/ASM.
-//! M_ff singular propaga ENG-E-0006 y su nodo/GDL cuando el solver aporta índice.
+//! Guyan (ENG-LA-009) condensa filas/columnas de M_ff exactamente nulas tras
+//! apoyos y diafragmas; recupera φs antes de participación y espectro.
+//! Kss singular/no positiva da ENG-E-0014 con nodo/GDL; masa negativa o ausencia
+//! de masa libre da ENG-E-0006. Sin filas nulas conserva el camino numérico.
 //! También propaga el corte de multiplicidad y los límites densos de
 //! [`engine_linalg::lowest_modes`]. No distingue mecanismos de modos rígidos.
 
@@ -145,6 +147,7 @@ impl Modal {
             translations.push(r);
         }
         let n = free.len();
+        let condensed = system.has_massless_dofs(kind);
         let spectrum = system.lowest_modes(kind, count)?;
         if spectrum.eigenvalues.len() != count
             || spectrum.vectors.rows() != n
@@ -174,6 +177,23 @@ impl Modal {
             let mut global = vec![0.0; system.dof_map().len()];
             for (row, index) in free.iter().enumerate() {
                 global[index.0 as usize] = spectrum.vectors.values()[row * count + col];
+            }
+            if condensed && !system.constraints().diaphragms().is_empty() {
+                // Perturbación homogénea T_f φ: nunca sumar asentamientos.
+                // Solo tras Guyan: el camino existente sin condensación conserva
+                // sus resultados y hashes, incluido el alcance pendiente de
+                // API-W-DIAPHRAGM-RECOVERY (#84). Ampliarlo requiere otro cambio.
+                let mut expanded = vec![0.0; global.len()];
+                for (row, value) in expanded.iter_mut().enumerate() {
+                    for &(index, coefficient) in system
+                        .constraints()
+                        .free_transformation_row(engine_core::DofIndex(row as u32))?
+                    {
+                        *value +=
+                            coefficient * spectrum.vectors.values()[index.0 as usize * count + col];
+                    }
+                }
+                global = expanded;
             }
             let norm = product(matrix, &global, &global)?;
             if norm <= 0.0 {

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- #184 · ENG-LA-009: condensación estática de Guyan para GDL libres sin masa
+  en modal y espectro, tras apoyos/diafragmas; recuperación de modos completos
+  y un solo factor de Kss. ENG-E-0014 identifica mecanismos sin masa.
+  Ocho runs modales VAL-032 habilitados con períodos contra referencia NumPy
+  propia y tolerancias originales; fixtures y camino sin condensación intactos.
+  Ronda 2: pruebas bit a bit del camino directo, masa consistente acoplada,
+  M-ortogonalidad completa tras recover, GDL exactos y cinemática de esclavos;
+  decisión de compatibilidad de diafragmas #84 y cita p. 380 documentadas.
 - #185 · ENG-E-0007: P-Δ proyecta la rigidez geométrica, sus fuerzas y el
   residuo mediante la transformación de diafragmas rígidos; la inercia LDLᵀ
   se evalúa en la rigidez total proyectada. Regresiones de restricciones

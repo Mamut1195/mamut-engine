@@ -25,11 +25,13 @@
 
 use engine_core::{DofIndex, EResult, EngineError, EntityRef, Real};
 mod budget;
+mod guyan;
 mod matrix;
 mod modes;
 mod reference;
 mod sparse;
 pub use budget::{dense_bytes, eigen_working_bytes, factor_bytes, sparse_bytes, MemoryBudget};
+pub use guyan::{guyan_condense, GuyanReduction};
 pub use matrix::{DMat, SparsityPattern, SymMatrix};
 pub use modes::{lowest_modes, sturm_count, LowestModes};
 pub use reference::ReferenceBackend;
@@ -97,7 +99,7 @@ pub struct GeneralizedEigen {
 /// Factorizar/solve usa ENG-E-0006 para singularidad con entidad GDL;
 /// autovalores usa ENG-E-0007 si no converge. La masa debe ser definida positiva:
 /// una masa singular se rechaza con ENG-E-0006 sin producir NaN; una masa
-/// indefinida con ENG-E-0010. La reducción de GDL sin masa queda en ENG-LA-009.
+/// indefinida con ENG-E-0010. La reducción explícita de GDL sin masa está en [`guyan_condense`].
 /// En factorización simétrica y masa (Cholesky) la matriz se equilibra antes con
 /// `S A S` (equilibrado iterativo tipo Ruiz) para tolerar GDL de escalas muy
 /// distintas. Esto MITIGA, no garantiza, la invariancia al reescalado diagonal

@@ -254,11 +254,25 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         }
     }
 
+    /// Indica si M_ff contiene filas/columnas exactamente nulas tras apoyos y MPC.
+    /// No emplea tolerancias ni clasifica como nula una masa pequeña positiva.
+    pub fn has_massless_dofs(&self, kind: MassKind) -> bool {
+        let mass = match kind {
+            MassKind::Lumped => &self.lumped_free,
+            MassKind::Consistent => &self.consistent_free,
+        };
+        mass.dense()
+            .values()
+            .chunks_exact(mass.order().max(1))
+            .any(|row| row.iter().all(|&v| v == 0.0))
+    }
+
     /// Modos inferiores de K_ff y M_ff, con el backend propio del sistema.
     /// Ambas matrices proceden del ensamblaje global y la partición de GDL
-    /// libres. No modifica estados ni elimina GDL sin masa (ENG-LA-009/ASM).
+    /// libres. Condensa filas de masa nulas con Guyan y recupera los modos completos.
+    /// No modifica estados; sin GDL sin masa conserva el solver original.
     /// Propaga los diagnósticos de `engine_linalg::lowest_modes`, traduciendo
-    /// índices reducidos de ENG-E-0006 a nodo/GDL global cuando se proporcionan.
+    /// índices reducidos de ENG-E-0006/0014 a nodo/GDL global cuando se proporcionan.
     /// Un índice diagnóstico inexistente devuelve ENG-E-0012.
     pub fn lowest_modes(
         &mut self,
@@ -269,17 +283,37 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             MassKind::Lumped => &self.lumped_free,
             MassKind::Consistent => &self.consistent_free,
         };
-        self.backend
-            .lowest_modes(&self.k_free, mass, count)
-            .map_err(|e| {
-                if e.code == "ENG-E-0006"
-                    && !e.entities.iter().any(|v| matches!(v, EntityRef::Dof(_)))
-                {
-                    e
-                } else {
-                    self.translate_solver_error(e)
-                }
-            })
+        let mut solve = || -> EResult<engine_linalg::LowestModes> {
+            if let Some(reduction) =
+                engine_linalg::guyan_condense(&mut self.backend, &self.k_free, mass)?
+            {
+                let mut spectrum = self
+                    .backend
+                    .lowest_modes(&reduction.stiffness, &reduction.mass, count)
+                    .map_err(|mut e| {
+                        for entity in &mut e.entities {
+                            if let EntityRef::Dof(d) = entity {
+                                if let Some(&original) = reduction.massive().get(d.0 as usize) {
+                                    *d = DofIndex(original as u32);
+                                }
+                            }
+                        }
+                        e
+                    })?;
+                spectrum.vectors = reduction.recover(&spectrum.vectors)?;
+                Ok(spectrum)
+            } else {
+                self.backend.lowest_modes(&self.k_free, mass, count)
+            }
+        };
+        solve().map_err(|e| {
+            if e.code == "ENG-E-0006" && !e.entities.iter().any(|v| matches!(v, EntityRef::Dof(_)))
+            {
+                e
+            } else {
+                self.translate_solver_error(e)
+            }
+        })
     }
     /// Instantánea global CSR estática recibida en from_model.
     /// No incluye sustituciones ni evaluaciones de productores registrados;
@@ -647,7 +681,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
     }
 
     fn translate_solver_error(&self, mut e: EngineError) -> EngineError {
-        if e.code != "ENG-E-0006" {
+        if e.code != "ENG-E-0006" && e.code != "ENG-E-0014" {
             return e;
         }
         let mut entities = Vec::new();
