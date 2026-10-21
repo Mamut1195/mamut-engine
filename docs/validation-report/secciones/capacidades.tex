@@ -1,0 +1,12 @@
+\chapter{Capacidades de la V1}
+\begin{description}
+\item[Estática lineal] Desplazamientos, reacciones y esfuerzos internos bajo cargas fijas, con varios casos de carga a la vez.
+\item[Combinaciones] Suma de casos con factores definidos por el usuario, más envolventes. El Engine no aplica factores normativos.
+\item[P-Delta] Efecto elástico de segundo orden: las cargas verticales amplifican la deriva lateral.
+\item[Modal] Periodos, frecuencias, formas modales, factores de participación y masa efectiva. Masa concentrada o consistente.
+\item[Espectro de respuesta] Espectro tabulado en periodo o frecuencia, con interpolación lineal o log-log, combinación modal SRSS o CQC y combinación direccional.
+\item[Elementos] Barra articulada 2D/3D y viga-columna de Euler--Bernoulli 2D/3D, con torsión de Saint-Venant y liberaciones de extremo.
+\item[Cargas y apoyos] Cargas nodales, carga uniforme en barras, peso propio, desplazamientos impuestos, apoyos por grado de libertad, masas nodales y diafragma rígido.
+\item[Geotecnia y no lineal] Viga sobre lecho de Winkler, resortes lineales y no lineales, leyes multilineal, cúbica y de acero bilineal cinemático, Newton con pasos de carga, perfil geostático y consolidación de Terzaghi multicapa. \emph{Su exposición por CLI, Python y WASM está en curso; requisito previo de la campaña.}
+\item[Interfaces y determinismo] CLI \texttt{mamut-engine}, módulo Python y WebAssembly. Una misma entrada produce los mismos bytes de salida y la misma huella SHA-256.
+\end{description}

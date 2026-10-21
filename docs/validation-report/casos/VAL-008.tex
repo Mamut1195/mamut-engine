@@ -1,0 +1,38 @@
+% VAL-008 -- generado por herramientas/gen_casos.py; editar el texto libremente.
+\section{VAL-008: Combinaciones y envolventes}\label{sec:VAL-008}
+\begin{ficha}
+Fuente & [S] (superposición algebraica)\\
+Ticket & MAM-100\\
+Engine & commit \texttt{\EngineCommit}\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-008}}\\
+Tolerancia & $|c-r|\le A+R|r|$, $A=0$, $R=1e-12$ (fijada a priori)\\
+Estado de datos & \directlua{mamut.estado('VAL-008')}\\
+\end{ficha}
+
+\paragraph{Modelo.}
+\begin{center}\diag{combinacion}\end{center}
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-008}
+
+\paragraph{Reproducción.}
+\reproducir{VAL-008}
+
+\paragraph{Contraste OpenSees.} No aplica a este caso (ver plan de validación).
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={$x$}, ylabel={$y$}]
+\directlua{mamut.serie('VAL-008','referencia','x','y','ref','Referencia analítica')}
+\directlua{mamut.serie('VAL-008','engine','x','y','eng','MAMUT Engine')}
+
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrrl}\toprule
+$x$ & Ref. & Engine & OpenSees & Error rel. & Tol. & Veredicto\\\midrule
+\directlua{mamut.tabla('VAL-008','x','y',0,1e-12)}
+\bottomrule\end{tabular}
+\end{center}

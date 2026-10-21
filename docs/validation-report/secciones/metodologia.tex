@@ -1,0 +1,19 @@
+\chapter{Metodología}
+\section{Oráculos}
+\begin{enumerate}
+\item \textbf{Analítico:} solución cerrada con derivación propia, generada por\\ \texttt{herramientas/gen\_referencia.py}.
+\item \textbf{Publicado:} benchmarks y ejemplos de la literatura, citados con página cuando se pudo cotejar.
+\item \textbf{OpenSees (contraste):} modelo independiente, preparado por Q2. OpenSees se cita como programa de terceros \cite{opensees}. Su uso no implica respaldo, certificación ni aval del Engine por parte de sus autores o de la Universidad de California.
+\end{enumerate}
+\section{Tolerancias}
+Cada caso fija $A$ y $R$ en su ficha antes de la ejecución. No se ajustan después de ver los resultados.
+\section{Construcción reproducible}\label{sec:build}
+\begin{verbatim}
+RUSTUP_TOOLCHAIN=1.99.0 MAMUT_ENGINE_GIT_COMMIT=<sha40> \
+RUSTFLAGS="--remap-path-prefix=$SRC=/build/mamut-engine \
+           --remap-path-prefix=$CARGO_HOME=/cargo" \
+cargo build --release --locked -p engine-cli
+\end{verbatim}
+La imagen de construcción se fija por digest (pendiente, H6). El SHA-256 del binario obtenido se anota en la portada.
+\section{Flujo de datos del informe}
+Los archivos \texttt{datos/<caso>/\{referencia,engine,opensees\}.csv} son la única fuente de las tablas y los gráficos. El módulo \texttt{lua/mamutdata.lua} los lee al compilar. Si un archivo está vacío, la serie se marca como pendiente y no se inventa ningún valor.

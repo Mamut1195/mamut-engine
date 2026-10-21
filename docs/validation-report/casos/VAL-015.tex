@@ -1,0 +1,42 @@
+% VAL-015 -- generado por herramientas/gen_casos.py; editar el texto libremente.
+\section{VAL-015: Modal 3D con modos desacoplados (M3)}\label{sec:VAL-015}
+\begin{ficha}
+Fuente & [S] catálogo MAM-253\\
+Ticket & MAM-103\\
+Engine & commit \texttt{\EngineCommit}\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-015}}\\
+Tolerancia & $|c-r|\le A+R|r|$, $A=0$, $R=0.001$ (fijada a priori)\\
+Estado de datos & \directlua{mamut.estado('VAL-015')}\\
+\end{ficha}
+
+\paragraph{Modelo.}
+\begin{center}\diag{portico3d}\end{center}
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-015}
+
+\paragraph{Reproducción.}
+\reproducir{VAL-015}
+
+% Q2-PLACEHOLDER INICIO (VAL-015)
+% Solo Q2 escribe datos/VAL-015/opensees.csv y el texto de modelo OpenSees de este bloque,
+% en su propio PR. J2 no lee ni escribe valores de OpenSees.
+\paragraph{Modelo de contraste (OpenSees).} \QdosPendiente
+% Q2-PLACEHOLDER FIN (VAL-015)
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={modo}, ylabel={$T$ [s]}]
+\directlua{mamut.serie('VAL-015','referencia','x','y','ref','Referencia analítica')}
+\directlua{mamut.serie('VAL-015','engine','x','y','eng','MAMUT Engine')}
+\directlua{mamut.serie('VAL-015','opensees','x','y','ops','OpenSees (contraste)')}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrrl}\toprule
+modo & Ref. & Engine & OpenSees & Error rel. & Tol. & Veredicto\\\midrule
+\directlua{mamut.tabla('VAL-015','x','y',0,0.001)}
+\bottomrule\end{tabular}
+\end{center}

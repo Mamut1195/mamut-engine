@@ -1,0 +1,6 @@
+Viga-columna biapoyada W14$\times$48 (eje fuerte) con los datos geométricos del benchmark \cite{aisc16}: $L=336$~in ($8{,}534$~m), $E=29\,000$~ksi, $I=484$~in$^4$, $w=0{,}200$~kip/ft, compresión $P$. Integrando $EI\,v''''+P\,v''=w$ con $v=v''=0$ en los extremos y $u=\tfrac{L}{2}\sqrt{P/EI}$, se obtiene (derivación propia, Euler--Bernoulli, sin cortante):
+\[
+M_\text{mid}=\frac{wL^2}{8}\,\frac{2(\sec u-1)}{u^2},\qquad
+\Delta_\text{mid}=\frac{5wL^4}{384EI}\,\frac{12\,(2\sec u-2-u^2)}{5u^4}.
+\]
+Los valores se calculan con \texttt{herramientas/gen\_referencia.py}. Los valores publicados por AISC (entre corchetes en la norma, sin cortante) se citan en el plan como contraste; el criterio de aceptación AISC es 3\,\% en momento y 5\,\% en flecha.

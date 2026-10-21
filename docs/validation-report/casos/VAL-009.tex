@@ -1,0 +1,42 @@
+% VAL-009 -- generado por herramientas/gen_casos.py; editar el texto libremente.
+\section{VAL-009: Articulación en extremo de viga ($R_A=5wL/8$, $M_j=0$)}\label{sec:VAL-009}
+\begin{ficha}
+Fuente & [S]\\
+Ticket & MAM-100\\
+Engine & commit \texttt{\EngineCommit}\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-009}}\\
+Tolerancia & $|c-r|\le A+R|r|$, $A=0$, $R=1e-10$ (fijada a priori)\\
+Estado de datos & \directlua{mamut.estado('VAL-009')}\\
+\end{ficha}
+
+\paragraph{Modelo.}
+\begin{center}\diag{articulada}\end{center}
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-009}
+
+\paragraph{Reproducción.}
+\reproducir{VAL-009}
+
+% Q2-PLACEHOLDER INICIO (VAL-009)
+% Solo Q2 escribe datos/VAL-009/opensees.csv y el texto de modelo OpenSees de este bloque,
+% en su propio PR. J2 no lee ni escribe valores de OpenSees.
+\paragraph{Modelo de contraste (OpenSees).} \QdosPendiente
+% Q2-PLACEHOLDER FIN (VAL-009)
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={$x$}, ylabel={$y$}]
+\directlua{mamut.serie('VAL-009','referencia','x','y','ref','Referencia analítica')}
+\directlua{mamut.serie('VAL-009','engine','x','y','eng','MAMUT Engine')}
+\directlua{mamut.serie('VAL-009','opensees','x','y','ops','OpenSees (contraste)')}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrrl}\toprule
+$x$ & Ref. & Engine & OpenSees & Error rel. & Tol. & Veredicto\\\midrule
+\directlua{mamut.tabla('VAL-009','x','y',0,1e-10)}
+\bottomrule\end{tabular}
+\end{center}

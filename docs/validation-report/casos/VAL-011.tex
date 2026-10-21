@@ -1,0 +1,42 @@
+% VAL-011 -- generado por herramientas/gen_casos.py; editar el texto libremente.
+\section{VAL-011: Voladizo espacial: flexión biaxial y torsión de Saint-Venant}\label{sec:VAL-011}
+\begin{ficha}
+Fuente & [S] ($GJ/L$, $PL^3/3EI$)\\
+Ticket & MAM-100\\
+Engine & commit \texttt{\EngineCommit}\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-011}}\\
+Tolerancia & $|c-r|\le A+R|r|$, $A=0$, $R=1e-08$ (fijada a priori)\\
+Estado de datos & \directlua{mamut.estado('VAL-011')}\\
+\end{ficha}
+
+\paragraph{Modelo.}
+\begin{center}\diag{voladizo}\end{center}
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-011}
+
+\paragraph{Reproducción.}
+\reproducir{VAL-011}
+
+% Q2-PLACEHOLDER INICIO (VAL-011)
+% Solo Q2 escribe datos/VAL-011/opensees.csv y el texto de modelo OpenSees de este bloque,
+% en su propio PR. J2 no lee ni escribe valores de OpenSees.
+\paragraph{Modelo de contraste (OpenSees).} \QdosPendiente
+% Q2-PLACEHOLDER FIN (VAL-011)
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={$x$}, ylabel={$y$}]
+\directlua{mamut.serie('VAL-011','referencia','x','y','ref','Referencia analítica')}
+\directlua{mamut.serie('VAL-011','engine','x','y','eng','MAMUT Engine')}
+\directlua{mamut.serie('VAL-011','opensees','x','y','ops','OpenSees (contraste)')}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrrl}\toprule
+$x$ & Ref. & Engine & OpenSees & Error rel. & Tol. & Veredicto\\\midrule
+\directlua{mamut.tabla('VAL-011','x','y',0,1e-08)}
+\bottomrule\end{tabular}
+\end{center}

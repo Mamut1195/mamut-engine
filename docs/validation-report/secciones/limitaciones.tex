@@ -1,0 +1,10 @@
+\chapter{Limitaciones}
+\begin{itemize}
+\item Viga-columna de Euler--Bernoulli: no incluye deformación por cortante. Por eso se comparan los valores AISC sin cortante.
+\item P-Delta solo elástico, con axiales del caso de gravedad. No hay pandeo (autovalores), grandes desplazamientos ni plasticidad de sección.
+\item No hay análisis dinámico en el tiempo, pushover ni elementos finitos de continuo. Quedan para después de la V1.
+\item El Engine no aplica factores ni combinaciones normativas por su cuenta.
+\item Límites del formato: 256 nudos, 1024 barras y 16\,384 registros de carga.
+\item Curvas $p$-$y$ y $t$-$z$: en revisión (PR \#168, MAM-45), fuera del núcleo validado mientras no se fusionen.
+\item El backend algebraico \texttt{faer} no está habilitado. Se usa el backend de referencia propio.
+\end{itemize}

@@ -1,0 +1,42 @@
+% VAL-028 -- generado por herramientas/gen_casos.py; editar el texto libremente.
+\section{VAL-028: Resorte no lineal y Newton por pasos de carga}\label{sec:VAL-028}
+\begin{ficha}
+Fuente & [S] (1 GDL con ley conocida)\\
+Ticket & MAM-105\\
+Engine & commit \texttt{\EngineCommit}\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-028}}\\
+Tolerancia & $|c-r|\le A+R|r|$, $A=0$, $R=1e-06$ (fijada a priori)\\
+Estado de datos & \directlua{mamut.estado('VAL-028')}\\
+\end{ficha}
+
+\paragraph{Modelo.}
+\begin{center}\diag{resorte}\end{center}
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-028}
+
+\paragraph{Reproducción.}
+\reproducir{VAL-028}
+
+% Q2-PLACEHOLDER INICIO (VAL-028)
+% Solo Q2 escribe datos/VAL-028/opensees.csv y el texto de modelo OpenSees de este bloque,
+% en su propio PR. J2 no lee ni escribe valores de OpenSees.
+\paragraph{Modelo de contraste (OpenSees).} \QdosPendiente
+% Q2-PLACEHOLDER FIN (VAL-028)
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={$u$}, ylabel={$F$}]
+\directlua{mamut.serie('VAL-028','referencia','x','y','ref','Referencia analítica')}
+\directlua{mamut.serie('VAL-028','engine','x','y','eng','MAMUT Engine')}
+\directlua{mamut.serie('VAL-028','opensees','x','y','ops','OpenSees (contraste)')}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrrl}\toprule
+$u$ & Ref. & Engine & OpenSees & Error rel. & Tol. & Veredicto\\\midrule
+\directlua{mamut.tabla('VAL-028','x','y',0,1e-06)}
+\bottomrule\end{tabular}
+\end{center}

@@ -1,0 +1,38 @@
+% VAL-029 -- generado por herramientas/gen_casos.py; editar el texto libremente.
+\section{VAL-029: Determinismo y paridad CLI/Python/WASM}\label{sec:VAL-029}
+\begin{ficha}
+Fuente & [S] (igualdad de bytes)\\
+Ticket & MAM-105\\
+Engine & commit \texttt{\EngineCommit}\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-029}}\\
+Tolerancia & $|c-r|\le A+R|r|$, $A=0$, $R=0$ (fijada a priori)\\
+Estado de datos & \directlua{mamut.estado('VAL-029')}\\
+\end{ficha}
+
+\paragraph{Modelo.}
+\begin{center}\diag{combinacion}\end{center}
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-029}
+
+\paragraph{Reproducción.}
+\reproducir{VAL-029}
+
+\paragraph{Contraste OpenSees.} No aplica a este caso (ver plan de validación).
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={ejecución}, ylabel={SHA}]
+\directlua{mamut.serie('VAL-029','referencia','x','y','ref','Referencia analítica')}
+\directlua{mamut.serie('VAL-029','engine','x','y','eng','MAMUT Engine')}
+
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrrl}\toprule
+ejecución & Ref. & Engine & OpenSees & Error rel. & Tol. & Veredicto\\\midrule
+\directlua{mamut.tabla('VAL-029','x','y',0,0)}
+\bottomrule\end{tabular}
+\end{center}

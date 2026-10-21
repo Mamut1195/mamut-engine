@@ -1,0 +1,56 @@
+\NeedsTeXFormat{LaTeX2e}\ProvidesPackage{mamut}[2026/10/20 ENG-VAL-006]
+\RequirePackage{fontspec,polyglossia,luacode,amsmath,amssymb,booktabs,longtable,xcolor,geometry,fancyhdr,tabularx,hyperref,siunitx}
+\setmainlanguage{spanish}
+\geometry{a4paper,margin=25mm}
+\RequirePackage{tikz,pgfplots}\pgfplotsset{compat=1.18}
+\usetikzlibrary{patterns,arrows.meta,decorations.pathmorphing,3d}
+\definecolor{ok}{RGB}{0,120,60}\definecolor{mamut}{RGB}{20,60,110}
+\hypersetup{colorlinks,linkcolor=mamut,citecolor=mamut,urlcolor=mamut}
+% --- datos reproducibles (Lua) ---
+\directlua{mamut = dofile('lua/mamutdata.lua')}
+% --- versión del Engine ---
+\newcommand\EngineCommit{43b5f4505e6189f8109d50ea2254e0d4dee1f60a}
+% PENDIENTE: SHA-256 del binario engine-cli construido en 43b5f45 con la imagen fijada por digest (H6).
+\newcommand\EngineBinSHA{PENDIENTE (build reproducible H6)}
+\newcommand\EntradaSHA[1]{PENDIENTE (\texttt{mamut\_engine.input\_sha256} del fixture #1)}
+\newcommand\QdosPendiente{\textit{[Sección reservada a Q2, operador del oráculo. Pendiente.]}}
+\newenvironment{ficha}{\par\noindent\small\tabularx{\linewidth}{@{}>{\bfseries}lX@{}}\toprule}{\bottomrule\endtabularx\par}
+\newcommand\reproducir[1]{%
+\begin{enumerate}\small
+\item \texttt{git -C mamut-engine checkout \EngineCommit}
+\item Construir \texttt{engine-cli} con la receta reproducible (sec.~\ref{sec:build}) y comprobar el SHA-256 del binario.
+\item {\footnotesize\ttfamily MAMUT\_ENGINE\_INPUT=fixtures/#1/input.json \textbackslash\\ mamut-engine run --catalog harness/cli\_catalog.json \textbackslash\\ \hspace*{2em}--workflow harness/run.workflow.json > results.json}
+\item {\footnotesize\ttfamily python3 herramientas/results\_a\_csv.py results.json #1 \dots}\\ (genera \texttt{datos/#1/engine.csv})
+\item \texttt{latexmk -lualatex informe.tex}
+\end{enumerate}}
+% --- estilos de gráfico ---
+\pgfplotsset{grafico/.style={width=0.82\linewidth,height=6.2cm,grid=major,grid style={gray!25},
+  legend pos=north west,legend cell align=left,legend style={font=\footnotesize}},
+  ref/.style={black,thick,mark=*,mark size=1.2pt},eng/.style={mamut,only marks,mark=o,mark size=2.2pt},
+  ops/.style={orange!80!black,only marks,mark=x,mark size=2.8pt}}
+% --- primitivas de esquema ---
+\tikzset{barra/.style={line width=1.6pt},carga/.style={-{Stealth[length=2.5mm]},red!70!black,thick}}
+\newcommand\apoyoA[1]{\draw (#1)--++(-0.2,-0.3)--++(0.4,0)--cycle;\fill[pattern=north east lines]($(#1)+(-0.3,-0.3)$) rectangle ++(0.6,-0.1);}
+\newcommand\apoyoR[1]{\draw (#1)--++(-0.2,-0.3)--++(0.4,0)--cycle;\draw ($(#1)+(-0.25,-0.38)$)--++(0.5,0);}
+\newcommand\empotr[1]{\fill[pattern=north east lines]($(#1)+(-0.4,-0.15)$) rectangle ++(0.8,-0.15);\draw[thick]($(#1)+(-0.4,0)$)--++(0.8,0);}
+\newcommand\empotrV[1]{\fill[pattern=north east lines]($(#1)+(-0.3,-0.4)$) rectangle ++(0.15,0.8);\draw[thick]($(#1)+(0,-0.4)$)--++(0,0.8);}
+\newcommand\uniforme[3]{\foreach \x in {#1,...,#2}{\draw[carga](\x,#3+0.6)--(\x,#3+0.05);}\draw[red!70!black](#1,#3+0.6)--(#2,#3+0.6);}
+\usetikzlibrary{calc}
+\newcommand\diag[1]{\csname diag@#1\endcsname}
+\expandafter\def\csname diag@biapoyada\endcsname{\begin{tikzpicture}\draw[barra](0,0)--(6,0);\apoyoA{0,0}\apoyoR{6,0}\uniforme{0}{6}{0}\draw[carga](3,1.4)--(3,0.7)node[above=6mm]{$P$};\node at(3,-0.6){$L$};\end{tikzpicture}}
+\expandafter\def\csname diag@continua\endcsname{\begin{tikzpicture}\draw[barra](0,0)--(8,0);\apoyoA{0,0}\apoyoR{4,0}\apoyoR{8,0}\uniforme{0}{8}{0}\node at(2,-0.6){$L_1$};\node at(6,-0.6){$L_2$};\end{tikzpicture}}
+\expandafter\def\csname diag@voladizo\endcsname{\begin{tikzpicture}\draw[barra](0,0)--(6,0);\empotrV{0,0}\draw[carga](6,1)--(6,0.05)node[pos=0,above]{$P$};\node at(3,-0.5){$L$};\end{tikzpicture}}
+\expandafter\def\csname diag@biapoyadaP\endcsname{\begin{tikzpicture}\draw[barra](0,0)--(6,0);\apoyoA{0,0}\apoyoR{6,0}\uniforme{0}{6}{0}\draw[carga](7.2,0)--(6.1,0)node[pos=0,right]{$P$};\node at(3,-0.6){$L$};\draw[dashed,mamut](0,0)..controls(2,-0.7)and(4,-0.7)..(6,0);\node[mamut]at(3,-0.95){$\delta$};\end{tikzpicture}}
+\expandafter\def\csname diag@voladizoP\endcsname{\begin{tikzpicture}\draw[barra](0,0)--(0,5);\empotr{0,0}\draw[carga](-1.2,5)--(-0.05,5)node[pos=0,left]{$H$};\draw[carga](0,6.2)--(0,5.05)node[pos=0,above]{$P$};\draw[dashed,mamut](0,0)..controls(0,2.5)..(0.9,5);\node[mamut]at(1.3,5){$\Delta$};\node at(0.5,2.5){$L$};\end{tikzpicture}}
+\expandafter\def\csname diag@portico\endcsname{\begin{tikzpicture}\draw[barra](0,0)--(0,3)--(5,3)--(5,0);\empotr{0,0}\empotr{5,0}\draw[carga](-1.2,3)--(-0.05,3)node[pos=0,left]{$H$};\node at(2.5,3.3){$EI_v$};\node at(-0.4,1.5){$EI_c$};\end{tikzpicture}}
+\expandafter\def\csname diag@portico3d\endcsname{\begin{tikzpicture}[x={(1cm,0)},y={(0.5cm,0.35cm)},z={(0,1cm)}]\foreach \p in {(0,0),(4,0),(0,3),(4,3)}{\draw[barra]\p++(0,0,0)--++(0,0,3);}\draw[barra](0,0,3)--(4,0,3)--(4,3,3)--(0,3,3)--cycle;\draw[carga](-1.2,0,3)--(-0.05,0,3)node[pos=0,left]{$F_x$};\draw[carga](0,-1.6,3)--(0,-0.05,3)node[pos=0,below]{$F_y$};\draw[->](5,0,0)--(6,0,0)node[right]{$X$};\draw[->](5,0,0)--(5,1.2,0)node[right]{$Y$};\draw[->](5,0,0)--(5,0,1)node[above]{$Z$};\end{tikzpicture}}
+\expandafter\def\csname diag@armadura\endcsname{\begin{tikzpicture}\draw[barra](0,0)--(2,0)--(4,0)--(6,0)(0,0)--(1,1.6)--(3,1.6)--(5,1.6)--(6,0)(1,1.6)--(2,0)--(3,1.6)--(4,0)--(5,1.6);\apoyoA{0,0}\apoyoR{6,0}\draw[carga](3,2.6)--(3,1.65)node[pos=0,above]{$P$};\end{tikzpicture}}
+\expandafter\def\csname diag@asentamiento\endcsname{\begin{tikzpicture}\draw[barra](0,0)--(5,0);\empotrV{0,0}\draw[dashed](5,0)--(5,-0.5);\draw[-{Stealth},mamut,thick](5.4,0)--(5.4,-0.5)node[right]{$s$};\apoyoR{5,-0.5}\node at(2.5,0.3){$EA,\ L$};\end{tikzpicture}}
+\expandafter\def\csname diag@articulada\endcsname{\begin{tikzpicture}\draw[barra](0,0)--(6,0);\empotrV{0,0}\apoyoR{6,0}\uniforme{0}{6}{0}\draw[fill=white](6,0)circle(0.09);\node at(3,-0.6){$L$, $M_j=0$};\end{tikzpicture}}
+\expandafter\def\csname diag@diafragma\endcsname{\begin{tikzpicture}\fill[mamut!12](0,0)--(4,0)--(5,1.5)--(1,1.5)--cycle;\draw[thick](0,0)--(4,0)--(5,1.5)--(1,1.5)--cycle;\foreach \p in {(0,0),(4,0),(5,1.5),(1,1.5)}{\draw[barra]\p--++(0,-1.5);}\fill(2.5,0.75)circle(2pt)node[above]{CM};\draw[-{Stealth},thick](2.5,0.75)++(-0.4,0)arc(180:-90:0.4)node[right]{$\theta_z$};\end{tikzpicture}}
+\expandafter\def\csname diag@combinacion\endcsname{\begin{tikzpicture}\node[draw,rounded corners](a)at(0,0){Caso 1};\node[draw,rounded corners](b)at(0,-1){Caso 2};\node[draw,rounded corners](c)at(0,-2){Caso $n$};\node[draw,thick,fill=mamut!10](s)at(4,-1){$\sum_i \gamma_i R_i$, envolvente};\foreach \n in{a,b,c}\draw[-Stealth](\n)--(s);\end{tikzpicture}}
+\expandafter\def\csname diag@sdof\endcsname{\begin{tikzpicture}\empotr{0,0}\draw[barra](0,0)--(0,3);\fill[mamut](0,3)circle(0.25);\node[right=3mm]at(0,3){$m$};\node at(0.5,1.5){$k$};\draw[decorate,decoration={snake,amplitude=1mm},-{Stealth}](-2,-0.6)--(1.5,-0.6)node[right]{$\ddot u_g$};\end{tikzpicture}}
+\expandafter\def\csname diag@winkler\endcsname{\begin{tikzpicture}\draw[barra](0,0.6)--(7,0.6);\foreach \x in {0.25,0.75,...,6.75}{\draw[decorate,decoration={zigzag,segment length=1.5mm,amplitude=1mm}](\x,0)--(\x,0.6);}\fill[pattern=north east lines](0,-0.15)rectangle(7,0);\draw[carga](3.5,1.7)--(3.5,0.65)node[pos=0,above]{$P$};\node at(7.6,0.3){$k_s$};\end{tikzpicture}}
+\expandafter\def\csname diag@suelo\endcsname{\begin{tikzpicture}\fill[brown!25](0,0)rectangle(3,-1.2);\fill[brown!45](0,-1.2)rectangle(3,-2.6);\fill[brown!65](0,-2.6)rectangle(3,-4);\draw[blue,thick](0,-0.8)--(3,-0.8)node[right]{NF};\node at(1.5,-0.5){$\gamma_1$};\node at(1.5,-1.9){$\gamma_{2},c_{v2}$};\node at(1.5,-3.3){$\gamma_{3},c_{v3}$};\draw[-{Stealth}](3.8,0)--(3.8,-4)node[below]{$z$};\end{tikzpicture}}
+\expandafter\def\csname diag@resorte\endcsname{\begin{tikzpicture}\empotrV{0,0}\draw[decorate,decoration={zigzag,segment length=2mm,amplitude=1.5mm}](0,0)--(2.5,0);\draw[thick,fill=mamut!15](2.5,-0.4)rectangle(3.3,0.4);\draw[carga](3.3,0)--(4.4,0)node[right]{$F$};\begin{scope}[xshift=5.6cm,yshift=-0.9cm]\draw[->](0,0)--(2.4,0)node[right]{$u$};\draw[->](0,0)--(0,1.9)node[left]{$F$};\draw[mamut,thick](0,0)--(0.8,1.3)--(2.2,1.6);\end{scope}\end{tikzpicture}}
+\endinput

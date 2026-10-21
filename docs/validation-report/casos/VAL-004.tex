@@ -1,0 +1,42 @@
+% VAL-004 -- generado por herramientas/gen_casos.py; editar el texto libremente.
+\section{VAL-004: Pórtico 2D bajo carga lateral (F1)}\label{sec:VAL-004}
+\begin{ficha}
+Fuente & [S] catálogo MAM-253 (energía, $EA$ finito) y \cite{kassimali}\\
+Ticket & MAM-100\\
+Engine & commit \texttt{\EngineCommit}\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-004}}\\
+Tolerancia & $|c-r|\le A+R|r|$, $A=0$, $R=1e-06$ (fijada a priori)\\
+Estado de datos & \directlua{mamut.estado('VAL-004')}\\
+\end{ficha}
+
+\paragraph{Modelo.}
+\begin{center}\diag{portico}\end{center}
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-004}
+
+\paragraph{Reproducción.}
+\reproducir{VAL-004}
+
+% Q2-PLACEHOLDER INICIO (VAL-004)
+% Solo Q2 escribe datos/VAL-004/opensees.csv y el texto de modelo OpenSees de este bloque,
+% en su propio PR. J2 no lee ni escribe valores de OpenSees.
+\paragraph{Modelo de contraste (OpenSees).} \QdosPendiente
+% Q2-PLACEHOLDER FIN (VAL-004)
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={$x$}, ylabel={$y$}]
+\directlua{mamut.serie('VAL-004','referencia','x','y','ref','Referencia analítica')}
+\directlua{mamut.serie('VAL-004','engine','x','y','eng','MAMUT Engine')}
+\directlua{mamut.serie('VAL-004','opensees','x','y','ops','OpenSees (contraste)')}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrrl}\toprule
+$x$ & Ref. & Engine & OpenSees & Error rel. & Tol. & Veredicto\\\midrule
+\directlua{mamut.tabla('VAL-004','x','y',0,1e-06)}
+\bottomrule\end{tabular}
+\end{center}

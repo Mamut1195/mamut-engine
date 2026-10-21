@@ -1,0 +1,5 @@
+Voladizo W14$\times$48 de $L=336$~in con carga lateral $H=1$~kip y compresión $P$ en la punta (geometría de \cite{aisc16}, Fig.~C-C2.3). Con $k=\sqrt{P/EI}$ (derivación propia, efectos $P$-$\Delta$ y $P$-$\delta$, sin cortante):
+\[
+M_\text{base}=\frac{H\tan kL}{k},\qquad \Delta_\text{tip}=\frac{H\,(\tan kL-kL)}{P\,k},
+\]
+con los límites $HL$ y $HL^3/3EI$ cuando $P\to0$. Valores: \texttt{herramientas/gen\_referencia.py}.

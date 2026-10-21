@@ -1,0 +1,38 @@
+% VAL-021 -- generado por herramientas/gen_casos.py; editar el texto libremente.
+\section{VAL-021: Espectro con 1 GDL ($u=S_a/\omega^2$) y espectro tabulado}\label{sec:VAL-021}
+\begin{ficha}
+Fuente & [S] y \cite{chopra}, cap.~6\\
+Ticket & MAM-107\\
+Engine & commit \texttt{\EngineCommit}\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-021}}\\
+Tolerancia & $|c-r|\le A+R|r|$, $A=0$, $R=1e-06$ (fijada a priori)\\
+Estado de datos & \directlua{mamut.estado('VAL-021')}\\
+\end{ficha}
+
+\paragraph{Modelo.}
+\begin{center}\diag{sdof}\end{center}
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-021}
+
+\paragraph{Reproducción.}
+\reproducir{VAL-021}
+
+\paragraph{Contraste OpenSees.} No aplica a este caso (ver plan de validación).
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={$T$ [s]}, ylabel={$u$ [mm] ($S_a=1$ m/s$^2$)}]
+\directlua{mamut.serie('VAL-021','referencia','T_s','u_mm','ref','Referencia analítica')}
+\directlua{mamut.serie('VAL-021','engine','T_s','u_mm','eng','MAMUT Engine')}
+
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrrl}\toprule
+$T$ [s] & Ref. & Engine & OpenSees & Error rel. & Tol. & Veredicto\\\midrule
+\directlua{mamut.tabla('VAL-021','T_s','u_mm',0,1e-06)}
+\bottomrule\end{tabular}
+\end{center}

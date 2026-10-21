@@ -1,0 +1,38 @@
+% VAL-020 -- generado por herramientas/gen_casos.py; editar el texto libremente.
+\section{VAL-020: Amplificación analítica de viga-columna $\chi(u)$}\label{sec:VAL-020}
+\begin{ficha}
+Fuente & \cite{timoshenko}, cap.~1 (página no conseguida); derivación propia\\
+Ticket & MAM-104\\
+Engine & commit \texttt{\EngineCommit}\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-020}}\\
+Tolerancia & $|c-r|\le A+R|r|$, $A=0$, $R=0.001$ (fijada a priori)\\
+Estado de datos & \directlua{mamut.estado('VAL-020')}\\
+\end{ficha}
+
+\paragraph{Modelo.}
+\begin{center}\diag{biapoyadaP}\end{center}
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-020}
+
+\paragraph{Reproducción.}
+\reproducir{VAL-020}
+
+\paragraph{Contraste OpenSees.} No aplica a este caso (ver plan de validación).
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={$u=\tfrac{L}{2}\sqrt{P/EI}$}, ylabel={$\chi_M$}]
+\directlua{mamut.serie('VAL-020','referencia','u','chiM','ref','Referencia analítica')}
+\directlua{mamut.serie('VAL-020','engine','u','chiM','eng','MAMUT Engine')}
+
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrrl}\toprule
+$u=\tfrac{L}{2}\sqrt{P/EI}$ & Ref. & Engine & OpenSees & Error rel. & Tol. & Veredicto\\\midrule
+\directlua{mamut.tabla('VAL-020','u','chiM',0,0.001)}
+\bottomrule\end{tabular}
+\end{center}

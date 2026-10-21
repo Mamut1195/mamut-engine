@@ -1,0 +1,38 @@
+% VAL-025 -- generado por herramientas/gen_casos.py; editar el texto libremente.
+\section{VAL-025: Perfil geostático $\sigma_v$, $u$ y $\sigma'_v$}\label{sec:VAL-025}
+\begin{ficha}
+Fuente & [S] y \cite{das}, cap.~9 (página no conseguida)\\
+Ticket & MAM-105\\
+Engine & commit \texttt{\EngineCommit}\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-025}}\\
+Tolerancia & $|c-r|\le A+R|r|$, $A=0$, $R=1e-12$ (fijada a priori)\\
+Estado de datos & \directlua{mamut.estado('VAL-025')}\\
+\end{ficha}
+
+\paragraph{Modelo.}
+\begin{center}\diag{suelo}\end{center}
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-025}
+
+\paragraph{Reproducción.}
+\reproducir{VAL-025}
+
+\paragraph{Contraste OpenSees.} No aplica a este caso (ver plan de validación).
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={$z$ [m]}, ylabel={$\sigma'_v$ [kPa]}]
+\directlua{mamut.serie('VAL-025','referencia','x','y','ref','Referencia analítica')}
+\directlua{mamut.serie('VAL-025','engine','x','y','eng','MAMUT Engine')}
+
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrrl}\toprule
+$z$ [m] & Ref. & Engine & OpenSees & Error rel. & Tol. & Veredicto\\\midrule
+\directlua{mamut.tabla('VAL-025','x','y',0,1e-12)}
+\bottomrule\end{tabular}
+\end{center}

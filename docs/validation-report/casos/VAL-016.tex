@@ -1,0 +1,42 @@
+% VAL-016 -- generado por herramientas/gen_casos.py; editar el texto libremente.
+\section{VAL-016: Participación modal y masa efectiva}\label{sec:VAL-016}
+\begin{ficha}
+Fuente & [S] y \cite{chopra}, cap.~13\\
+Ticket & MAM-103\\
+Engine & commit \texttt{\EngineCommit}\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-016}}\\
+Tolerancia & $|c-r|\le A+R|r|$, $A=0$, $R=0.001$ (fijada a priori)\\
+Estado de datos & \directlua{mamut.estado('VAL-016')}\\
+\end{ficha}
+
+\paragraph{Modelo.}
+\begin{center}\diag{sdof}\end{center}
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-016}
+
+\paragraph{Reproducción.}
+\reproducir{VAL-016}
+
+% Q2-PLACEHOLDER INICIO (VAL-016)
+% Solo Q2 escribe datos/VAL-016/opensees.csv y el texto de modelo OpenSees de este bloque,
+% en su propio PR. J2 no lee ni escribe valores de OpenSees.
+\paragraph{Modelo de contraste (OpenSees).} \QdosPendiente
+% Q2-PLACEHOLDER FIN (VAL-016)
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={modo}, ylabel={$\sum M^*/M$}]
+\directlua{mamut.serie('VAL-016','referencia','x','y','ref','Referencia analítica')}
+\directlua{mamut.serie('VAL-016','engine','x','y','eng','MAMUT Engine')}
+\directlua{mamut.serie('VAL-016','opensees','x','y','ops','OpenSees (contraste)')}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrrl}\toprule
+modo & Ref. & Engine & OpenSees & Error rel. & Tol. & Veredicto\\\midrule
+\directlua{mamut.tabla('VAL-016','x','y',0,0.001)}
+\bottomrule\end{tabular}
+\end{center}

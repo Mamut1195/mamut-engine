@@ -1,0 +1,42 @@
+% VAL-026 -- generado por herramientas/gen_casos.py; editar el texto libremente.
+\section{VAL-026: Acero bilineal cinemático: ciclo de carga y descarga}\label{sec:VAL-026}
+\begin{ficha}
+Fuente & [S] (respuesta cerrada por tramos)\\
+Ticket & MAM-105\\
+Engine & commit \texttt{\EngineCommit}\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-026}}\\
+Tolerancia & $|c-r|\le A+R|r|$, $A=0$, $R=1e-06$ (fijada a priori)\\
+Estado de datos & \directlua{mamut.estado('VAL-026')}\\
+\end{ficha}
+
+\paragraph{Modelo.}
+\begin{center}\diag{resorte}\end{center}
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-026}
+
+\paragraph{Reproducción.}
+\reproducir{VAL-026}
+
+% Q2-PLACEHOLDER INICIO (VAL-026)
+% Solo Q2 escribe datos/VAL-026/opensees.csv y el texto de modelo OpenSees de este bloque,
+% en su propio PR. J2 no lee ni escribe valores de OpenSees.
+\paragraph{Modelo de contraste (OpenSees).} \QdosPendiente
+% Q2-PLACEHOLDER FIN (VAL-026)
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={$\varepsilon$}, ylabel={$\sigma$}]
+\directlua{mamut.serie('VAL-026','referencia','x','y','ref','Referencia analítica')}
+\directlua{mamut.serie('VAL-026','engine','x','y','eng','MAMUT Engine')}
+\directlua{mamut.serie('VAL-026','opensees','x','y','ops','OpenSees (contraste)')}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrrl}\toprule
+$\varepsilon$ & Ref. & Engine & OpenSees & Error rel. & Tol. & Veredicto\\\midrule
+\directlua{mamut.tabla('VAL-026','x','y',0,1e-06)}
+\bottomrule\end{tabular}
+\end{center}

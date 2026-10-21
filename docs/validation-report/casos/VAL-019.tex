@@ -1,0 +1,42 @@
+% VAL-019 -- generado por herramientas/gen_casos.py; editar el texto libremente.
+\section{VAL-019: P-Delta: benchmark AISC Caso 2 (voladizo con $H$)}\label{sec:VAL-019}
+\begin{ficha}
+Fuente & \cite{aisc16}, Comentario C2, Fig.~C-C2.3, p.~16.1-291; solución cerrada propia \cite{timoshenko}\\
+Ticket & MAM-104\\
+Engine & commit \texttt{\EngineCommit}\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-019}}\\
+Tolerancia & $|c-r|\le A+R|r|$, $A=0$, $R=0.03$ (fijada a priori)\\
+Estado de datos & \directlua{mamut.estado('VAL-019')}\\
+\end{ficha}
+
+\paragraph{Modelo.}
+\begin{center}\diag{voladizoP}\end{center}
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-019}
+
+\paragraph{Reproducción.}
+\reproducir{VAL-019}
+
+% Q2-PLACEHOLDER INICIO (VAL-019)
+% Solo Q2 escribe datos/VAL-019/opensees.csv y el texto de modelo OpenSees de este bloque,
+% en su propio PR. J2 no lee ni escribe valores de OpenSees.
+\paragraph{Modelo de contraste (OpenSees).} \QdosPendiente
+% Q2-PLACEHOLDER FIN (VAL-019)
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={$P$ [kN]}, ylabel={$M_\text{base}$ [kN\,m]}]
+\directlua{mamut.serie('VAL-019','referencia','P_kN','M_kNm','ref','Referencia analítica')}
+\directlua{mamut.serie('VAL-019','engine','P_kN','M_kNm','eng','MAMUT Engine')}
+\directlua{mamut.serie('VAL-019','opensees','P_kN','M_kNm','ops','OpenSees (contraste)')}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrrl}\toprule
+$P$ [kN] & Ref. & Engine & OpenSees & Error rel. & Tol. & Veredicto\\\midrule
+\directlua{mamut.tabla('VAL-019','P_kN','M_kNm',0,0.03)}
+\bottomrule\end{tabular}
+\end{center}

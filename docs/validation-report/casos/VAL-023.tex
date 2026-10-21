@@ -1,0 +1,42 @@
+% VAL-023 -- generado por herramientas/gen_casos.py; editar el texto libremente.
+\section{VAL-023: Viga sobre lecho de Winkler 2D/3D (seis casos GEO-002)}\label{sec:VAL-023}
+\begin{ficha}
+Fuente & \cite{hetenyi} y [S]\\
+Ticket & MAM-105\\
+Engine & commit \texttt{\EngineCommit}\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-023}}\\
+Tolerancia & $|c-r|\le A+R|r|$, $A=0$, $R=0.01$ (fijada a priori)\\
+Estado de datos & \directlua{mamut.estado('VAL-023')}\\
+\end{ficha}
+
+\paragraph{Modelo.}
+\begin{center}\diag{winkler}\end{center}
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-023}
+
+\paragraph{Reproducción.}
+\reproducir{VAL-023}
+
+% Q2-PLACEHOLDER INICIO (VAL-023)
+% Solo Q2 escribe datos/VAL-023/opensees.csv y el texto de modelo OpenSees de este bloque,
+% en su propio PR. J2 no lee ni escribe valores de OpenSees.
+\paragraph{Modelo de contraste (OpenSees).} \QdosPendiente
+% Q2-PLACEHOLDER FIN (VAL-023)
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={$x$ [m]}, ylabel={$w$ [mm]}]
+\directlua{mamut.serie('VAL-023','referencia','x','y','ref','Referencia analítica')}
+\directlua{mamut.serie('VAL-023','engine','x','y','eng','MAMUT Engine')}
+\directlua{mamut.serie('VAL-023','opensees','x','y','ops','OpenSees (contraste)')}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrrl}\toprule
+$x$ [m] & Ref. & Engine & OpenSees & Error rel. & Tol. & Veredicto\\\midrule
+\directlua{mamut.tabla('VAL-023','x','y',0,0.01)}
+\bottomrule\end{tabular}
+\end{center}

@@ -1,0 +1,42 @@
+% VAL-030 -- generado por herramientas/gen_casos.py; editar el texto libremente.
+\section{VAL-030: Curvas $p$-$y$ (Matlock 1970, Reese--Cox--Koop 1974, usuario) --- PR \#168}\label{sec:VAL-030}
+\begin{ficha}
+Fuente & \cite{matlock70,reese74}\\
+Ticket & MAM-105\\
+Engine & commit \texttt{\EngineCommit}\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-030}}\\
+Tolerancia & $|c-r|\le A+R|r|$, $A=0$, $R=0$ (fijada a priori)\\
+Estado de datos & \directlua{mamut.estado('VAL-030')}\\
+\end{ficha}
+
+\paragraph{Modelo.}
+\begin{center}\diag{winkler}\end{center}
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-030}
+
+\paragraph{Reproducción.}
+\reproducir{VAL-030}
+
+% Q2-PLACEHOLDER INICIO (VAL-030)
+% Solo Q2 escribe datos/VAL-030/opensees.csv y el texto de modelo OpenSees de este bloque,
+% en su propio PR. J2 no lee ni escribe valores de OpenSees.
+\paragraph{Modelo de contraste (OpenSees).} \QdosPendiente
+% Q2-PLACEHOLDER FIN (VAL-030)
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={$y$ [mm]}, ylabel={$p$ [kN/m]}]
+\directlua{mamut.serie('VAL-030','referencia','x','y','ref','Referencia analítica')}
+\directlua{mamut.serie('VAL-030','engine','x','y','eng','MAMUT Engine')}
+\directlua{mamut.serie('VAL-030','opensees','x','y','ops','OpenSees (contraste)')}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrrl}\toprule
+$y$ [mm] & Ref. & Engine & OpenSees & Error rel. & Tol. & Veredicto\\\midrule
+\directlua{mamut.tabla('VAL-030','x','y',0,0)}
+\bottomrule\end{tabular}
+\end{center}
