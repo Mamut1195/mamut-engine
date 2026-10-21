@@ -19,9 +19,19 @@ impl LinAlgBackend for ReferenceBackend {
         "reference.dense"
     }
     fn matmul(&mut self, a: &DMat, b: &DMat) -> EResult<DMat> {
+        self.matmul_with_check(a, b, &mut || Ok(()))
+    }
+    fn matmul_with_check(
+        &mut self,
+        a: &DMat,
+        b: &DMat,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<DMat> {
+        check()?;
         size(a.cols(), b.rows())?;
         let mut c = DMat::zeros(a.rows(), b.cols())?;
         for i in 0..a.rows() {
+            check()?;
             for j in 0..b.cols() {
                 for k in 0..a.cols() {
                     c.values[i * b.cols() + j] +=
@@ -42,6 +52,15 @@ impl LinAlgBackend for ReferenceBackend {
         )
     }
     fn solve_dense(&mut self, a: &DMat, b: &DMat) -> EResult<DMat> {
+        self.solve_dense_with_check(a, b, &mut || Ok(()))
+    }
+    fn solve_dense_with_check(
+        &mut self,
+        a: &DMat,
+        b: &DMat,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<DMat> {
+        check()?;
         size(a.rows(), a.cols())?;
         size(b.rows(), a.rows())?;
         let n = a.rows();
@@ -65,6 +84,7 @@ impl LinAlgBackend for ReferenceBackend {
             }
         }
         for k in 0..n {
+            check()?;
             let pivot = (k..n)
                 .max_by(|&i, &j| u[i * n + k].abs().total_cmp(&u[j * n + k].abs()))
                 .ok_or_else(|| invalid("Referencia solve: no hay candidato a pivote."))?;
@@ -88,6 +108,7 @@ impl LinAlgBackend for ReferenceBackend {
             }
         }
         for i in (0..n).rev() {
+            check()?;
             for j in 0..b.cols() {
                 for k in i + 1..n {
                     x.values[i * b.cols() + j] -= u[i * n + k] * x.values[k * b.cols() + j];
@@ -114,27 +135,43 @@ impl LinAlgBackend for ReferenceBackend {
         Ok(Box::new(Ldlt::build_with_check(a, false, check)?))
     }
     fn symmetric_inertia(&mut self, a: &SymMatrix) -> EResult<(usize, usize, usize)> {
-        Ldlt::build(a, true)?
+        self.symmetric_inertia_with_check(a, &mut || Ok(()))
+    }
+    fn symmetric_inertia_with_check(
+        &mut self,
+        a: &SymMatrix,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<(usize, usize, usize)> {
+        Ldlt::build_with_check(a, true, check)?
             .info
             .inertia
             .ok_or_else(|| unsupported("Referencia LDLᵀ: inercia no disponible."))
     }
     fn generalized_eigen(&mut self, k: &SymMatrix, m: &SymMatrix) -> EResult<GeneralizedEigen> {
+        self.generalized_eigen_with_check(k, m, &mut || Ok(()))
+    }
+    fn generalized_eigen_with_check(
+        &mut self,
+        k: &SymMatrix,
+        m: &SymMatrix,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<GeneralizedEigen> {
+        check()?;
         size(k.order(), m.order())?;
-        let l = cholesky(m)?;
-        let inverse = self.solve_dense(&l, &identity(m.order())?)?;
-        let left = self.matmul(&inverse, k.dense())?;
+        let l = cholesky_with_check(m, check)?;
+        let inverse = self.solve_dense_with_check(&l, &identity(m.order())?, check)?;
+        let left = self.matmul_with_check(&inverse, k.dense(), check)?;
         let inverse_t = self.transpose(&inverse)?;
-        let mut reduced = self.matmul(&left, &inverse_t)?;
+        let mut reduced = self.matmul_with_check(&left, &inverse_t, check)?;
         // A single half determines the symmetric congruence despite rounding.
         for i in 0..m.order() {
             for j in 0..i {
                 reduced.values[j * m.order() + i] = reduced.values[i * m.order() + j];
             }
         }
-        let (eigenvalues, q) = jacobi(&SymMatrix::new(reduced)?)?;
-        let vectors = self.matmul(&inverse_t, &q)?;
-        normalize_modes(eigenvalues, vectors, m)
+        let (eigenvalues, q) = jacobi(&SymMatrix::new(reduced)?, check)?;
+        let vectors = self.matmul_with_check(&inverse_t, &q, check)?;
+        normalize_modes_with_check(eigenvalues, vectors, m, check)
     }
 }
 
@@ -437,6 +474,14 @@ impl SymFactorization for Ldlt {
         &self.info
     }
     fn solve_in_place(&self, b: &mut DMat) -> EResult<()> {
+        self.solve_in_place_with_check(b, &mut || Ok(()))
+    }
+    fn solve_in_place_with_check(
+        &self,
+        b: &mut DMat,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<()> {
+        check()?;
         size(b.rows(), self.n)?;
         if self.n == 0 {
             // Without unknowns there is nothing to solve: avoids traversing `cols`
@@ -445,6 +490,7 @@ impl SymFactorization for Ldlt {
         }
         let mut x = b.clone();
         for rhs in 0..b.cols() {
+            check()?;
             // The RHS scale is that of b (unbalanced): b·s may overflow
             // even if the solution is finite (J4 r3).
             let rhs_scale = magnitude_iter((0..self.n).map(|i| b.values()[i * b.cols() + rhs]));
@@ -454,6 +500,7 @@ impl SymFactorization for Ldlt {
                 .map(|&i| (b.values()[i * b.cols() + rhs] / rhs_scale) * self.equil[i])
                 .collect();
             for i in 0..self.n {
+                check()?;
                 for j in 0..i {
                     y[i] -= self.l[i * self.n + j] * y[j];
                 }
@@ -478,6 +525,7 @@ impl SymFactorization for Ldlt {
                 k += block;
             }
             for i in (0..self.n).rev() {
+                check()?;
                 for j in i + 1..self.n {
                     y[i] -= self.l[j * self.n + i] * y[j];
                 }
@@ -495,6 +543,14 @@ impl SymFactorization for Ldlt {
 }
 
 pub(crate) fn cholesky(m: &SymMatrix) -> EResult<DMat> {
+    cholesky_with_check(m, &mut || Ok(()))
+}
+
+pub(crate) fn cholesky_with_check(
+    m: &SymMatrix,
+    check: &mut dyn FnMut() -> EResult<()>,
+) -> EResult<DMat> {
+    check()?;
     let n = m.order();
     let mut l = DMat::zeros(n, n)?;
     let equil = equilibration(m.dense().values(), n);
@@ -503,6 +559,7 @@ pub(crate) fn cholesky(m: &SymMatrix) -> EResult<DMat> {
         .collect();
     let scale = magnitude(&balanced);
     for i in 0..n {
+        check()?;
         for j in 0..=i {
             let mut value = balanced[i * n + j] / scale;
             for k in 0..j {
@@ -512,7 +569,7 @@ pub(crate) fn cholesky(m: &SymMatrix) -> EResult<DMat> {
                 if value.abs() <= cutoff(n) || value < 0.0 {
                     // A zero Cholesky pivot may also belong to an
                     // invertible indefinite mass; LDLᵀ distinguishes the two cases.
-                    return match Ldlt::new(m) {
+                    return match Ldlt::build_with_check(m, false, check) {
                         Err(error) => Err(error),
                         Ok(factor)
                             if factor
@@ -546,7 +603,10 @@ pub(crate) fn cholesky(m: &SymMatrix) -> EResult<DMat> {
     Ok(l)
 }
 
-fn jacobi(matrix: &SymMatrix) -> EResult<(Vec<Real>, DMat)> {
+fn jacobi(
+    matrix: &SymMatrix,
+    check: &mut dyn FnMut() -> EResult<()>,
+) -> EResult<(Vec<Real>, DMat)> {
     let n = matrix.order();
     let scale = magnitude(matrix.dense().values());
     let mut a: Vec<_> = matrix.dense().values().iter().map(|v| v / scale).collect();
@@ -557,6 +617,7 @@ fn jacobi(matrix: &SymMatrix) -> EResult<(Vec<Real>, DMat)> {
         .ok_or_else(|| invalid("Iteraciones Jacobi desbordadas."))?;
     let mut converged = n < 2;
     for _ in 0..iterations {
+        check()?;
         let mut p = 0;
         let mut r = 0;
         let mut max = 0.0;
@@ -621,14 +682,16 @@ fn jacobi(matrix: &SymMatrix) -> EResult<(Vec<Real>, DMat)> {
     Ok((values, sorted))
 }
 
-pub(crate) fn normalize_modes(
+pub(crate) fn normalize_modes_with_check(
     eigenvalues: Vec<Real>,
     mut vectors: DMat,
     m: &SymMatrix,
+    check: &mut dyn FnMut() -> EResult<()>,
 ) -> EResult<GeneralizedEigen> {
     finite(&eigenvalues)?;
     let n = m.order();
     for col in 0..n {
+        check()?;
         let mut norm = 0.0;
         for i in 0..n {
             for j in 0..n {

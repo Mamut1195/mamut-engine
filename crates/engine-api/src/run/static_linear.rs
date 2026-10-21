@@ -25,7 +25,18 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
     let mut solutions = Vec::new();
     for (index, case) in model.cases.iter().enumerate() {
         cancel.check()?;
-        let solution = StaticLinear::run(system, &[(CaseRef(case.name.clone()), 1.0)])?
+        let solution = StaticLinear::run_about_with_check(
+            system,
+            &[(CaseRef(case.name.clone()), 1.0)],
+            [0.0; 3],
+            &mut || {
+                cancel.check().map_err(|_| {
+                    EngineError::new("ENG-E-0012", "Cancelación solicitada por la fachada")
+                })
+            },
+        );
+        cancel.check()?;
+        let solution = solution?
             .cases
             .into_iter()
             .next()
@@ -43,7 +54,11 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
                 stations: None,
             })
             .collect();
-        cases.push(CaseResults::recover(&solution, system, &views)?);
+        let recovered = CaseResults::recover_with_check(&solution, system, &views, &mut || {
+            check_cancel(cancel)
+        });
+        cancel.check()?;
+        cases.push(recovered?);
         solutions.push(solution);
         step(cancel, progress, "case", index + 4, total)?;
     }
@@ -81,7 +96,11 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
                     stations: Some(stations),
                 })
                 .collect();
-            cases[index] = CaseResults::recover(solution, system, &views)?;
+            let recovered = CaseResults::recover_with_check(solution, system, &views, &mut || {
+                check_cancel(cancel)
+            });
+            cancel.check()?;
+            cases[index] = recovered?;
         }
     }
     document["cases"] = json!(cases.iter().map(case_json).collect::<Vec<_>>());
@@ -128,7 +147,12 @@ pub(crate) fn combinations(context: MethodContext<'_>) -> Result<(), Failure> {
     let mut combinations = Vec::new();
     for combination in &model.combinations {
         cancel.check()?;
-        let combined = combine(combination, cases)?;
+        let combined =
+            engine_analysis::combination::combine_with_check(combination, cases, &mut || {
+                check_cancel(cancel)
+            });
+        cancel.check()?;
+        let combined = combined?;
         if combined
             .results
             .nodes
@@ -145,4 +169,10 @@ pub(crate) fn combinations(context: MethodContext<'_>) -> Result<(), Failure> {
     }
     document["combinations"] = json!(combinations);
     step(cancel, progress, "combinations", total - 1, total)
+}
+
+fn check_cancel(cancel: &CancelToken) -> engine_core::EResult<()> {
+    cancel
+        .check()
+        .map_err(|_| EngineError::new("ENG-E-0012", "Cancelación solicitada por la fachada"))
 }

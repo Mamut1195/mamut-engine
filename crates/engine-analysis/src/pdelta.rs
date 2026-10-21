@@ -137,8 +137,21 @@ impl PDelta {
         gravity: &(CaseRef, Real),
         lateral: &(CaseRef, Real),
         options: PDeltaOptions,
-        mut checkpoint: impl FnMut(usize) -> EResult<()>,
+        checkpoint: impl FnMut(usize) -> EResult<()>,
     ) -> EResult<PDeltaResult> {
+        Self::run_with_check(system, gravity, lateral, options, checkpoint, || Ok(()))
+    }
+
+    /// Control independiente del progreso; consulta durante LDLᵀ y por iteración.
+    pub fn run_with_check<B: LinAlgBackend>(
+        system: &mut LinearSystem<B>,
+        gravity: &(CaseRef, Real),
+        lateral: &(CaseRef, Real),
+        options: PDeltaOptions,
+        mut checkpoint: impl FnMut(usize) -> EResult<()>,
+        mut check: impl FnMut() -> EResult<()>,
+    ) -> EResult<PDeltaResult> {
+        check()?;
         finite(&[
             gravity.1,
             lateral.1,
@@ -160,18 +173,21 @@ impl PDelta {
         // Validar también el caso lateral antes de cualquier factorización.
         let force = system.global_force(&lateral.0, lateral.1)?;
         let elastic_rhs = system.reduced_rhs(&lateral.0, lateral.1)?;
-        let gravity = StaticLinear::run(system, std::slice::from_ref(gravity))?
-            .cases
-            .into_iter()
-            .next()
-            .ok_or_else(|| {
-                EngineError::new("ENG-E-0012", "P-Delta: falta solución de gravedad.")
-            })?;
+        let gravity = StaticLinear::run_about_with_check(
+            system,
+            std::slice::from_ref(gravity),
+            [0.0; 3],
+            &mut check,
+        )?
+        .cases
+        .into_iter()
+        .next()
+        .ok_or_else(|| EngineError::new("ENG-E-0012", "P-Delta: falta solución de gravedad."))?;
         checkpoint(0)?;
         let kg = system.geometric_at(&gravity.free_displacements)?;
         let total = sum(system.stiffness(), &kg)?;
         let total_free = reduce(system, &total)?;
-        let total_factor = system.factorize_reduced(&total_free)?;
+        let total_factor = system.factorize_reduced_with_check(&total_free, &mut check)?;
         let inertia = total_factor.info().inertia.ok_or_else(|| {
             EngineError::new("ENG-E-0013", "P-Delta: el backend no ofrece inercia LDLᵀ.")
         })?;
@@ -216,7 +232,7 @@ impl PDelta {
         // Este factor solo diagnosticó estabilidad, nunca se usa un eigensolver.
         drop(total_factor);
         let elastic = system.reduced_stiffness().clone();
-        let factor = system.factorize_reduced(&elastic)?;
+        let factor = system.factorize_reduced_with_check(&elastic, &mut check)?;
         let n = elastic.order();
         let mut previous = vec![0.0; n];
         let scales = (0..n)
@@ -230,6 +246,7 @@ impl PDelta {
             })
             .collect::<EResult<Vec<_>>>()?;
         for iteration in 1..=options.max_iterations {
+            check()?;
             let old_global = system.constraints().expand(&previous)?;
             let geometric_force = multiply(&kg, &old_global)?;
             let projected_geometric = system.constraints().project_force(&geometric_force)?;
@@ -239,7 +256,7 @@ impl PDelta {
                 .map(|(f, geometric)| f - geometric)
                 .collect();
             let rhs = DMat::new(n, 1, rhs)?;
-            let solution = factor.solve(&rhs)?;
+            let solution = factor.solve_with_check(&rhs, &mut check)?;
             if solution.rows() != n || solution.cols() != 1 {
                 return Err(EngineError::new(
                     "ENG-E-0012",

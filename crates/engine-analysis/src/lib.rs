@@ -108,10 +108,22 @@ impl StaticLinear {
         cases: &[(CaseRef, Real)],
         point: [Real; 3],
     ) -> EResult<StaticResults> {
+        Self::run_about_with_check(system, cases, point, &mut || Ok(()))
+    }
+
+    /// Variante cooperativa por caso y durante la factorización de referencia.
+    pub fn run_about_with_check<B: LinAlgBackend>(
+        system: &mut LinearSystem<B>,
+        cases: &[(CaseRef, Real)],
+        point: [Real; 3],
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<StaticResults> {
+        check()?;
         finite(&point)?;
-        let solutions = system.solve_cases(cases)?;
+        let solutions = system.solve_cases_with_check(cases, check)?;
         let mut results = Vec::new();
         for ((case, factor), free) in cases.iter().zip(solutions) {
+            check()?;
             let global = system.constraints().expand(&free)?;
             let reactions = system.reactions(&free, case, *factor)?;
             let force = system.global_force(case, *factor)?;

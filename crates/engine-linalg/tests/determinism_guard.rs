@@ -115,7 +115,15 @@ fn rust_tokens(input: &str) -> Vec<&str> {
     tokens
 }
 fn rust_violation(input: &str) -> bool {
-    rust_tokens(input).into_iter().any(forbidden)
+    rust_source_violation(input, Path::new(""))
+}
+
+fn rust_source_violation(input: &str, path: &Path) -> bool {
+    rust_tokens(input).into_iter().any(|token| {
+        forbidden(token)
+            // MAM-865: only the CLI adapter timer, without computation.
+            && !(token == "thread" && path == Path::new("crates/engine-cli/src/timeout.rs"))
+    })
 }
 
 fn scalar_name(name: &str) -> bool {
@@ -584,14 +592,40 @@ fn numerical_libraries_have_no_hash_collections_or_threads() -> std::io::Result<
     paths.sort();
     assert!(!paths.is_empty(), "La guardia no encontró fuentes");
     // Includes engine-api: currently needs no serialization exception.
+    // Only the CLI timer may use thread; no numerical kernel may do so.
     for path in paths {
         assert!(
-            !rust_violation(&fs::read_to_string(&path)?),
+            !rust_source_violation(
+                &fs::read_to_string(&path)?,
+                path.strip_prefix(&root).unwrap()
+            ),
             "Colección hash o concurrencia prohibida en {}",
             path.display()
         );
     }
     Ok(())
+}
+
+#[test]
+fn cli_timer_exception_only_allows_threads_in_its_exact_source() {
+    let timer = Path::new("crates/engine-cli/src/timeout.rs");
+    assert!(!rust_source_violation("use std::thread;", timer));
+    for path in [
+        "crates/engine-cli/src/lib.rs",
+        "crates/engine-cli/src/other.rs",
+        "crates/engine-analysis/src/timeout.rs",
+        "crates/engine-cli/src/timeout.rs/nested.rs",
+    ] {
+        assert!(rust_source_violation("use std::thread;", Path::new(path)));
+    }
+    for source in [
+        "use std::collections::HashMap;",
+        "use std::collections::HashSet;",
+        "use rayon::join;",
+        "extern crate rayon_core;",
+    ] {
+        assert!(rust_source_violation(source, timer));
+    }
 }
 
 #[test]

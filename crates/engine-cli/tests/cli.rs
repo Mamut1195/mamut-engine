@@ -8,6 +8,7 @@ use std::{
     process::{Child, Command, Output, Stdio},
     rc::Rc,
     sync::atomic::{AtomicUsize, Ordering},
+    time::{Duration, Instant},
 };
 
 use engine_cli::{Control, EngineCli, CATALOG};
@@ -46,6 +47,7 @@ impl Files {
     fn command(&self) -> Command {
         let mut command = Command::new(env!("CARGO_BIN_EXE_mamut-engine"));
         command.env_remove("MAMUT_ENGINE_CANCEL_FILE");
+        command.env_remove("MAMUT_ENGINE_TIMEOUT");
         command.env("MAMUT_ENGINE_INPUT", self.path("input.json"));
         command
     }
@@ -105,6 +107,232 @@ fn assert_code(output: &Output, code: i32) {
     );
 }
 
+// Derivada del fixture «consolidation» de engine-api/tests/support/sfc010.rs.
+// 80 elementos, 64 intervalos y 72000 subpasos; permanece bajo las cotas
+// públicas de trabajo y coste denso. Sin datos ni solvers externos.
+fn heavy_consolidation() -> String {
+    let mut input: Value = serde_json::from_str(include_str!(
+        "../../engine-api/fixtures/input/valid/sfc010-consolidation.json"
+    ))
+    .unwrap();
+    let options = &mut input["analyses"][0]["options"];
+    let mut layer = options["layers"][0].clone();
+    layer["elements"] = json!(20);
+    options["layers"] = json!([layer, layer, layer, layer]);
+    let mut time = 0.0;
+    options["history"] = json!((0..=64)
+        .map(|i| {
+            if i > 0 {
+                time += if i % 2 == 0 { 1.0 } else { 1.25 };
+            }
+            json!({"time_s":time,"delta_stress_kpa":{"value":20 + i % 3,"provenance":"measured"}})
+        })
+        .collect::<Vec<_>>());
+    options["output_times_s"] = json!([0.0, time]);
+    options["max_step_s"] = json!(0.001);
+    input.to_string()
+}
+
+fn timed_run(files: &Files, timeout: &str, from_env: bool, progress: bool) -> Output {
+    let start = Instant::now();
+    let limit = Duration::from_secs_f64(timeout.parse::<f64>().unwrap() + 1.0);
+    let mut command = files.command();
+    command.args(files.args());
+    if progress {
+        command.args(["--progress", "ndjson"]);
+    }
+    if from_env {
+        command.env("MAMUT_ENGINE_TIMEOUT", timeout);
+    } else {
+        command.args(["--timeout", timeout]);
+    }
+    let mut child = command
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    write_child_stdin(&mut child, RUN);
+    while child.try_wait().unwrap().is_none() {
+        if start.elapsed() >= limit {
+            let _ = child.kill();
+            let output = child.wait_with_output().unwrap();
+            panic!("El timeout no terminó en {limit:?}: {output:?}");
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    let output = child.wait_with_output().unwrap();
+    assert!(
+        start.elapsed() < limit,
+        "Plazo excedido: {:?}",
+        start.elapsed()
+    );
+    output
+}
+
+#[test]
+fn timeout_flag_and_environment_cancel_heavy_consolidation_with_six() {
+    let files = Files::new();
+    files.write("input.json", &heavy_consolidation());
+    // Confirma que la entrada es ejecutable y no dispara las cotas de trabajo.
+    let start = Instant::now();
+    let baseline = files.run(RUN, false);
+    assert_code(&baseline, 0);
+    eprintln!("Consolidación pesada sin timeout: {:?}", start.elapsed());
+    for from_env in [false, true] {
+        let output = timed_run(&files, "0.15", from_env, false);
+        assert_code(&output, 6);
+        assert!(output.stdout.is_empty());
+        let envelope = value(&output.stderr);
+        assert_eq!(envelope["exitCode"], 6);
+        assert_eq!(envelope["outcome"], "timeout");
+        assert_eq!(envelope["engineId"], "mamut-engine");
+    }
+}
+
+#[test]
+fn timeout_with_ndjson_emits_only_complete_json_lines_and_timeout_last() {
+    let files = Files::new();
+    files.write("input.json", &heavy_consolidation());
+    let mut saw_started = false;
+    // Incluye vencimientos durante el arranque y durante el método pesado.
+    for from_env in [false, true] {
+        for timeout in ["0.000000001", "0.0001", "0.001", "0.15"] {
+            let output = timed_run(&files, timeout, from_env, true);
+            assert_code(&output, 6);
+            assert!(output.stdout.is_empty());
+            assert_eq!(output.stderr.last(), Some(&b'\n'));
+            let stderr = std::str::from_utf8(&output.stderr).unwrap();
+            let lines: Vec<Value> = stderr
+                .lines()
+                .map(|line| {
+                    serde_json::from_str(line).expect("Línea stderr debe ser JSON completo")
+                })
+                .collect();
+            let (envelope, events) = lines.split_last().unwrap();
+            for event in events {
+                assert_eq!(event["phase"], "started");
+                assert_eq!(event["method_id"], "engine.run");
+                saw_started = true;
+            }
+            assert_eq!(envelope["exitCode"], 6);
+            assert_eq!(envelope["outcome"], "timeout");
+            assert_eq!(envelope["engineId"], "mamut-engine");
+            assert!(envelope.get("engineResults").is_none());
+        }
+    }
+    assert!(
+        saw_started,
+        "Debe comprobarse también un evento de progreso"
+    );
+}
+
+#[test]
+fn invalid_timeout_is_usage_and_flag_overrides_environment() {
+    let files = Files::new();
+    for timeout in [
+        "",
+        "0",
+        "-1",
+        "NaN",
+        "inf",
+        "-inf",
+        "abc",
+        "31536000.001",
+        "1e300",
+    ] {
+        for from_env in [false, true] {
+            let mut command = files.command();
+            command.args(files.args());
+            if from_env {
+                command.env("MAMUT_ENGINE_TIMEOUT", timeout);
+            } else {
+                command.args(["--timeout", timeout]);
+            }
+            let output = command.output().unwrap();
+            assert_code(&output, 2);
+            assert!(output.stdout.is_empty());
+            let envelope = value(&output.stderr);
+            assert_eq!(envelope["outcome"], "usage");
+            assert_eq!(envelope["exitCode"], 2);
+            assert_eq!(envelope["error"]["message"], "Invalid command or arguments");
+            assert_eq!(envelope["engineId"], "mamut-engine");
+        }
+    }
+    for extra in [vec!["--timeout"], vec!["--timeout", "1", "--timeout", "2"]] {
+        let output = files
+            .command()
+            .args(files.args())
+            .args(extra)
+            .output()
+            .unwrap();
+        assert_code(&output, 2);
+    }
+    files.write("workflow.json", RUN);
+    let baseline = files.run(RUN, false);
+    for variable in ["0.000000001", "invalid", "31536000.001", "1e300"] {
+        let output = files
+            .command()
+            .env("MAMUT_ENGINE_TIMEOUT", variable)
+            .args(["--timeout", "60", "run", "--catalog"])
+            .arg(files.path("catalog.json"))
+            .arg("--workflow")
+            .arg(files.path("workflow.json"))
+            .output()
+            .unwrap();
+        assert_code(&output, 0);
+        assert_eq!(output.stdout, baseline.stdout);
+        assert_eq!(output.stderr, baseline.stderr);
+    }
+}
+
+#[test]
+fn generous_timeout_preserves_every_output_byte_and_does_not_delay_exit() {
+    let files = Files::new();
+    let baseline = files.run(RUN, false);
+    for (timeout, from_env) in [
+        ("60", false),
+        ("60", true),
+        ("31536000", false),
+        ("31536000", true),
+    ] {
+        let start = Instant::now();
+        let output = timed_run(&files, timeout, from_env, false);
+        assert!(start.elapsed() < Duration::from_secs(1));
+        assert_code(&output, 0);
+        assert_eq!(output.stdout, baseline.stdout);
+        assert_eq!(output.stderr, baseline.stderr);
+    }
+}
+
+#[test]
+fn timeout_is_not_extracted_from_a_base_flag_value() {
+    let files = Files::new();
+    files.write("workflow.json", RUN);
+    for flag in ["--catalog", "--workflow", "--progress", "--input"] {
+        let mut command = files.command();
+        command.arg("run");
+        for (option, argument) in [
+            ("--catalog", files.path("catalog.json")),
+            ("--workflow", files.path("workflow.json")),
+            ("--progress", PathBuf::from("ndjson")),
+            ("--input", files.path("input.json")),
+        ] {
+            command.arg(option);
+            if option == flag {
+                command.args(["--timeout", "5"]);
+            }
+            command.arg(argument);
+        }
+        let output = command.output().unwrap();
+        assert_code(&output, 2);
+        assert!(output.stdout.is_empty());
+        let envelope = value(&output.stderr);
+        assert_eq!(envelope["exitCode"], 2);
+        assert_eq!(envelope["outcome"], "usage");
+    }
+}
+
 fn with_input_stdin(files: &Files, args: &[&str], input: &[u8]) -> Output {
     let mut child = files
         .command()
@@ -122,6 +350,43 @@ fn with_input_stdin(files: &Files, args: &[&str], input: &[u8]) -> Output {
     }
     drop(stdin);
     child.wait_with_output().unwrap()
+}
+
+#[test]
+fn timeout_and_input_share_embedded_documents_and_stdin() {
+    let files = Files::new();
+    for command in ["run", "validate"] {
+        let baseline = with_input_stdin(&files, &[command, "--input", "-"], INPUT.as_bytes());
+        assert_code(&baseline, 0);
+        let stdin = with_input_stdin(
+            &files,
+            &["--timeout", "60", command, "--input", "-"],
+            INPUT.as_bytes(),
+        );
+        let path = files
+            .command()
+            .args([command, "--input"])
+            .arg(files.path("input.json"))
+            .args(["--timeout", "60"])
+            .output()
+            .unwrap();
+        for output in [stdin, path] {
+            assert_code(&output, 0);
+            assert_eq!(output.stdout, baseline.stdout);
+            assert_eq!(output.stderr, baseline.stderr);
+        }
+    }
+
+    let output = with_input_stdin(
+        &files,
+        &["run", "--input", "-", "--timeout", "0.001"],
+        heavy_consolidation().as_bytes(),
+    );
+    assert_code(&output, 6);
+    assert!(output.stdout.is_empty());
+    let envelope = value(&output.stderr);
+    assert_eq!(envelope["outcome"], "timeout");
+    assert!(envelope.get("engineResults").is_none());
 }
 
 #[test]
@@ -205,6 +470,28 @@ fn input_stdin_e1_preserves_existing_warning_and_results_contract() {
         .unwrap()
         .iter()
         .any(|diagnostic| { diagnostic["code"] == "API-W-DIAPHRAGM-RECOVERY" }));
+}
+
+#[test]
+fn validate_input_e1_with_timeout_preserves_report_bytes() {
+    let files = Files::new();
+    let fixture = value(include_bytes!(
+        "../../../docs/validation-report/fixtures/val032/E1-v1.1.2.json"
+    ));
+    files.write("e1.json", &fixture["runs"][0]["engine_input"].to_string());
+    let mut command = files.command();
+    command
+        .args(["validate", "--input"])
+        .arg(files.path("e1.json"));
+    let baseline = command.output().unwrap();
+    assert_code(&baseline, 0);
+    assert_validate_report(&value(&baseline.stdout));
+    assert!(baseline.stderr.is_empty());
+
+    let timed = command.args(["--timeout", "60"]).output().unwrap();
+    assert_code(&timed, 0);
+    assert_eq!(timed.stdout, baseline.stdout);
+    assert_eq!(timed.stderr, baseline.stderr);
 }
 
 #[test]

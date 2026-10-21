@@ -321,13 +321,17 @@ impl ConsolidationProfile {
         (first, end)
     }
 
-    fn matrices(&self) -> GeoResult<(SparseMatrix, SparseMatrix, Vec<Real>)> {
+    fn matrices(
+        &self,
+        cancelled: &mut dyn FnMut() -> bool,
+    ) -> GeoResult<(SparseMatrix, SparseMatrix, Vec<Real>)> {
         let (first, end) = self.free_range();
         let n = end - first;
         let mut mass = Vec::with_capacity(4 * self.elements.len());
         let mut diffusion = Vec::with_capacity(4 * self.elements.len());
         let mut source = vec![0.0; n];
         for (e, el) in self.elements.iter().enumerate() {
+            check_cancelled(cancelled).map_err(algebra)?;
             let c = el.mv * el.h / 6.0;
             let d = el.conductivity / el.h;
             for a in 0..2 {
@@ -446,6 +450,7 @@ impl ConsolidationProfile {
         let mut assumed = self.assumed.clone();
         let mut loads = Vec::with_capacity(history.len());
         for (i, point) in history.iter().enumerate() {
+            check_cancelled(cancelled).map_err(algebra)?;
             finite(point.time_s, "tiempo de carga")?;
             if (i == 0 && point.time_s != 0.0) || (i > 0 && point.time_s <= history[i - 1].time_s) {
                 return Err(invalid(
@@ -459,6 +464,7 @@ impl ConsolidationProfile {
             )?);
         }
         for (i, &t) in output_times_s.iter().enumerate() {
+            check_cancelled(cancelled).map_err(algebra)?;
             finite(t, "tiempo de salida")?;
             if t < 0.0
                 || t > history[history.len() - 1].time_s
@@ -469,7 +475,7 @@ impl ConsolidationProfile {
                 ));
             }
         }
-        let (m, k, source) = self.matrices()?;
+        let (m, k, source) = self.matrices(cancelled)?;
         let (first, end) = self.free_range();
         let n = end - first;
         let mut u = vec![loads[0]; n];
@@ -479,6 +485,7 @@ impl ConsolidationProfile {
         let mut segment = 0;
         let mut cached_factor: Option<(u64, Box<dyn SymFactorization>)> = None;
         for &target in output_times_s {
+            check_cancelled(cancelled).map_err(algebra)?;
             while time < target {
                 while segment + 1 < history.len() - 1 && time >= history[segment + 1].time_s {
                     segment += 1;
@@ -551,7 +558,9 @@ impl ConsolidationProfile {
                         rhs[row] = finite(value, "RHS temporal")?;
                     }
                     let solution = factor
-                        .solve(&DMat::new(n, 1, rhs).map_err(algebra)?)
+                        .solve_with_check(&DMat::new(n, 1, rhs).map_err(algebra)?, &mut || {
+                            check_cancelled(cancelled)
+                        })
                         .map_err(algebra)?;
                     u.copy_from_slice(solution.values());
                     stress = next_stress;
@@ -564,6 +573,7 @@ impl ConsolidationProfile {
             let mut settlement = 0.0;
             let mut compliance = 0.0;
             for (e, el) in self.elements.iter().enumerate() {
+                check_cancelled(cancelled).map_err(algebra)?;
                 let c = finite(el.mv * el.h, "mv h")?;
                 compliance = finite(compliance + c, "∫mv dz")?;
                 settlement = finite(

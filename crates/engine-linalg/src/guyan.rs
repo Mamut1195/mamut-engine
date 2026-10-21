@@ -35,6 +35,15 @@ impl GuyanReduction {
     /// Recovers modal columns in the original space, without changing their mass
     /// norm (φᵀMφ = φmᵀMmmφm). ENG-E-0010 for incompatible shape.
     pub fn recover(&self, modes: &DMat) -> EResult<DMat> {
+        self.recover_with_check(modes, &mut || Ok(()))
+    }
+
+    /// Cooperative recovery, checks per row without changing the reductions.
+    pub fn recover_with_check(
+        &self,
+        modes: &DMat,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<DMat> {
         size(modes.rows(), self.massive.len())?;
         let count = modes.cols();
         let mut full = DMat::zeros(self.massive.len() + self.massless.len(), count)?;
@@ -44,6 +53,7 @@ impl GuyanReduction {
             }
         }
         for (i, &row) in self.massless.iter().enumerate() {
+            check()?;
             for col in 0..count {
                 let mut value = 0.0;
                 for j in 0..self.massive.len() {
@@ -71,10 +81,22 @@ pub fn guyan_condense<B: LinAlgBackend + ?Sized>(
     k: &SymMatrix,
     m: &SymMatrix,
 ) -> EResult<Option<GuyanReduction>> {
+    guyan_condense_with_check(backend, k, m, &mut || Ok(()))
+}
+
+/// Cooperative condensation: checks per row and during factorization.
+pub fn guyan_condense_with_check<B: LinAlgBackend + ?Sized>(
+    backend: &mut B,
+    k: &SymMatrix,
+    m: &SymMatrix,
+    check: &mut dyn FnMut() -> EResult<()>,
+) -> EResult<Option<GuyanReduction>> {
+    check()?;
     let n = k.order();
     size(m.order(), n)?;
     let mut has_massless = false;
     for i in 0..n {
+        check()?;
         if m.dense().values()[i * n + i] < 0.0 {
             return Err(singular("Guyan: masa negativa", i));
         }
@@ -88,6 +110,7 @@ pub fn guyan_condense<B: LinAlgBackend + ?Sized>(
     let mut massive = Vec::new();
     let mut massless = Vec::new();
     for i in 0..n {
+        check()?;
         if m.dense().values()[i * n..(i + 1) * n]
             .iter()
             .any(|&v| v != 0.0)
@@ -103,17 +126,22 @@ pub fn guyan_condense<B: LinAlgBackend + ?Sized>(
             massless[0],
         ));
     }
-    let block = |rows: &[usize], cols: &[usize], matrix: &SymMatrix| -> EResult<DMat> {
+    let block = |rows: &[usize],
+                 cols: &[usize],
+                 matrix: &SymMatrix,
+                 check: &mut dyn FnMut() -> EResult<()>|
+     -> EResult<DMat> {
         let mut result = DMat::zeros(rows.len(), cols.len())?;
         for (i, &row) in rows.iter().enumerate() {
+            check()?;
             for (j, &col) in cols.iter().enumerate() {
                 result.values[i * cols.len() + j] = matrix.dense().values()[row * n + col];
             }
         }
         Ok(result)
     };
-    let kss = SymMatrix::new(block(&massless, &massless, k)?)?;
-    let factor = backend.factorize(&kss).map_err(|e| {
+    let kss = SymMatrix::new(block(&massless, &massless, k, check)?)?;
+    let factor = backend.factorize_with_check(&kss, check).map_err(|e| {
         if e.code != "ENG-E-0006" {
             return e;
         }
@@ -132,14 +160,15 @@ pub fn guyan_condense<B: LinAlgBackend + ?Sized>(
     if inertia != (massless.len(), 0, 0) {
         return Err(massless_mechanism(massless[0]));
     }
-    let ksm = block(&massless, &massive, k)?;
-    let mut recovery = factor.solve(&ksm)?;
+    let ksm = block(&massless, &massive, k, check)?;
+    let mut recovery = factor.solve_with_check(&ksm, check)?;
     for value in &mut recovery.values {
         *value = -*value;
     }
-    let mut condensed = block(&massive, &massive, k)?;
+    let mut condensed = block(&massive, &massive, k, check)?;
     let nm = massive.len();
     for i in 0..nm {
+        check()?;
         for j in 0..=i {
             let mut value = condensed.values[i * nm + j];
             for s in 0..massless.len() {
@@ -152,7 +181,7 @@ pub fn guyan_condense<B: LinAlgBackend + ?Sized>(
     finite(condensed.values())?;
     Ok(Some(GuyanReduction {
         stiffness: SymMatrix::new(condensed)?,
-        mass: SymMatrix::new(block(&massive, &massive, m)?)?,
+        mass: SymMatrix::new(block(&massive, &massive, m, check)?)?,
         massive,
         massless,
         recovery,

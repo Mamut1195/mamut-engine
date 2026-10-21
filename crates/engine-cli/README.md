@@ -9,8 +9,9 @@ El bloqueo anterior queda resuelto por SDK-WF-012 / MAM-493. Se usan las
 bibliotecas vendorizadas `mamut-workflow-cli` y `mamut-workflow-execution` del
 commit `1eeb91a1ca9128ad4a02ead2ab66b6b25aa08f3d`. `EngineCli::run` llama al
 `parse_args` público y a un único `dispatch` de la base para workflows con `CliConfig`,
-`MethodProvider`, `CliIdentity` y `ExitCodes::engine_v1()`. El adaptador hace un
-pre-parseo de `--input` y los documentos predeterminados; la compilación y la
+`MethodProvider`, `CliIdentity` and `ExitCodes::engine_v1()`. The adapter extracts
+`--timeout <s>` in `timeout::parse_timeout_args` and then pre-parses
+`--input` and the default documents. The SDK parser, compilation and
 ejecución de workflows siguen en la base. `validate --input` sin documentos de
 workflow llama directamente a `engine_api::validate_with`. No se modifica vendor.
 
@@ -160,7 +161,7 @@ analizando mensajes. El callback de progreso y el manifiesto siguen siendo del S
 | Unsupported | 3 | FailureKind::Unsupported |
 | NotConverged o Unstable | 4 | FailureKind::NotConverged |
 | Cancelled | 5 | FailureKind::Cancelled |
-| Timeout | 6 | Reservado; no se instala temporizador |
+| Timeout | 6 | FailureKind::Timeout; cooperative deadline expiration |
 | InternalError, fallo sin clasificación o E/S de salida/progreso | 70 | Internal / Method |
 
 El status de `Outcome` determina el mapeo de run. En el método engine.validate
@@ -170,7 +171,10 @@ como en engine-api, y los restantes son Invalid. Un diagnóstico warning sin err
 da Warning. Un contrato de entrada desconocido es inválido (2), como en engine-api.
 
 `--progress ndjson` usa los eventos de la base en stderr: `started` y `finished`
-por paso, sin timestamps, escritos y vaciados inmediatamente. El fallo de método
+per step, without timestamps, written and flushed immediately. The adapter
+serializes each event together with its newline into a complete buffer before
+passing it to stderr via `write_all`; it does the same with the error envelope.
+A timeout does not interleave the envelope with event fragments. A method failure
 emite started y el sobre final, sin finished. stdout sigue siendo un único JSON.
 Las etapas internas `engine_api::Progress` están disponibles en biblioteca mediante
 `with_engine_progress`; aún no forman otro dialecto NDJSON.
@@ -188,8 +192,57 @@ callbacks del motor. En biblioteca se configura con `Control::with_cancel_file`.
 No se crea ni elimina el marcador; use una ruta propia por ejecución. Una ruta
 ausente o cuya existencia no pueda comprobarse no solicita cancelación. Una vez
 observada, la cancelación permanece activa aunque se retire el marcador.
-La cancelación no añade hilos ni manejadores de señales de SO. Ctrl-C
-conserva el comportamiento del SO y no garantiza el código cooperativo 5.
+
+`--timeout <s>` and `MAMUT_ENGINE_TIMEOUT=<s>` set a deadline in seconds,
+allowing fractional values or scientific notation, finite and strictly positive,
+with an inclusive maximum of **31536000 seconds (1 year)** for both forms.
+The flag takes precedence even if the environment variable is invalid; invalid values, a value
+above the maximum, a missing value or repeated flags result in invalid usage (2),
+with the usual error envelope and empty stdout. `--timeout` is not extracted when
+it occupies the value position of `--catalog`, `--workflow`, `--progress` or `--input`;
+the input pre-parser and the base validate those arguments. For example:
+
+```sh
+MAMUT_ENGINE_INPUT=modelo.json mamut-engine run --timeout 2.5 \
+  --catalog crates/engine-cli/catalog.json --workflow crates/engine-cli/run.workflow.json
+```
+
+The timeout is parsed and validated for all commands, before pre-parsing
+`--input`. Direct validation with `validate --input` accepts the flag and the
+environment variable, but does not start a timer or enforce the deadline; it retains its
+`validate-report/1` report and external cooperative cancellation. For example,
+`validate --input modelo.json --timeout 60` produces the same bytes as without a timeout.
+
+For commands dispatched by the base, the deadline starts after argument
+parsing, before dispatch. A
+`std` thread, with a monotonic `Instant` deadline, cancels the existing `CancelToken`;
+`Control` synchronizes the SDK flag on subsequent checks. It does not run computations
+or callbacks on another thread. If dispatch observes cancellation from the deadline,
+`run` leaves stdout empty and emits the same type of error envelope as cancellation,
+with `exitCode: 6`, `outcome: "timeout"`
+and the message `Execution timed out`. The adapter identifies expiration without
+changing vendor or engine-api statuses; it omits partial documents.
+A terminal success result (including warning) or an error other than cancellation
+already obtained from dispatch retains its code, even if the deadline has expired when
+checked afterward: the timeout only converts cancellation caused by the
+timer to 6. Cancellation already observed retains code 5.
+The timer is woken and joined on completion, without waiting for the deadline;
+without a timeout, no thread is created
+and the previous bytes are preserved. `describe` retains the entire table from the
+vendored SDK, including its historical `reserved_exit_code_categories` metadata.
+
+This is cooperative cancellation: analysis loops check the token between
+iterations, rows, members and substeps; LDLᵀ also checks it during
+factorization and substitution. Kernels in third-party backends that do not override
+the cooperative variants only check on entry. Blocking reads
+from stdin/files and SDK I/O cannot be interrupted with this token;
+the deadline is not a hard limit on those operations. MCP retains its
+own frames and errors; the terminal semantics described here apply to `run`.
+
+SIGINT/SIGTERM will be implemented in a separate PR using `signal-hook`,
+per decision #203. This ticket installs no handlers:
+Ctrl-C and SIGTERM retain the OS behavior and do not guarantee cooperative
+exit code 5.
 
 ## Correspondencia real con engine-api
 
@@ -218,7 +271,7 @@ fuera de la correspondencia describe/methods/validate/run de este ticket.
 Los tests propios solo crean archivos locales y ejecutan el propio binario mediante
 `env!("CARGO_BIN_EXE_mamut-engine")`; la cancelación entre etapas y fallos de
 escritores se prueban además en biblioteca, sin señales, shells ni red.
-Cubren **0/1/2/3/4/5/70 con ejecuciones reales del binario**, identidad/tabla en describe,
+They cover **0/1/2/3/4/5/6/70 with actual binary executions**, identity/table in describe,
 stdin de entrada/catálogo/workflow, límites de 8 MiB, UTF-8 inválido, conflictos
 de stdin, precedencia sobre la variable y bytes idénticos entre transportes,
 NDJSON, igualdad del resultado con engine-api,
@@ -227,7 +280,18 @@ de las dos validaciones. El 4 incluye
 inestabilidad y P-Delta sin convergencia; el 70 del binario usa un pipe stdout
 cerrado antes de entregar el workflow por stdin, sin depender de una carrera.
 El 5 usa un marcador antes y después de lanzar el binario, mientras stdin
-retiene el workflow; no depende de sleeps ni de señales. El 6 queda reservado.
+holds the workflow; it does not depend on sleeps or signals. Code 6 is verified through
+the flag and environment variable with a heavy consolidation case of four layers, 80 elements and
+72000 substeps, valid within the public bounds; completion is required in less than
+timeout + 1 s. Tests also cover invalid values, flag precedence,
+byte-identical output and immediate thread joining with a long timeout.
+A unit test without a clock establishes terminal result precedence over
+expiration. Another checks that events and errors reach the writer as
+complete JSON lines. The binary combines NDJSON with several deadlines via the flag and
+environment variable: each stderr line must be valid JSON and the last must be the timeout envelope.
+
+The MAM-865 verification from 2026-10-21 and the decision on signals are in
+[`provenance/ENG-SFC-014.md`](../../provenance/ENG-SFC-014.md).
 
 MAM-863 añade pruebas del binario para informes válidos/invalid por esquema,
 límites internos y topología, determinismo stdin/ruta, cancelación y ausencia de

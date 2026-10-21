@@ -4,9 +4,7 @@ pub(crate) mod geo;
 pub(crate) mod nonlinear;
 pub(crate) mod static_linear;
 use crate::{input, ApiError, CancelToken, Diagnostic, Progress};
-use engine_analysis::{
-    combination::combine, results::CaseResults, results::MemberRecovery, StaticLinear,
-};
+use engine_analysis::{results::CaseResults, results::MemberRecovery, StaticLinear};
 use engine_assembly::{DofMap, ElementContribution, ElementLoad, LinearSystem};
 use engine_contracts::{
     CaseRef, Element, ElementCtx, ElementFactory, ElementParams, JsonValue, ModelView,

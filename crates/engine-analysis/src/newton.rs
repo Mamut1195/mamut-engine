@@ -180,7 +180,7 @@ impl<B: LinAlgBackend> NewtonSystem<B> {
             accepted_factor: None,
         };
         let u = result.linear.accepted_displacement().to_vec();
-        result.evaluate(&u)?;
+        result.evaluate(&u, &mut || Ok(()))?;
         Ok(result)
     }
 
@@ -199,16 +199,25 @@ impl<B: LinAlgBackend> NewtonSystem<B> {
         self.accepted_factor
     }
 
-    fn evaluate(&mut self, free: &[Real]) -> EResult<Evaluation> {
+    fn evaluate(
+        &mut self,
+        free: &[Real],
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<Evaluation> {
+        check()?;
         let global = self.linear.constraints().expand(free)?;
         let mut internal = self.linear.global_internal_force(free)?;
         let responses = self
             .elements
             .iter()
             .zip(&self.accepted_states)
-            .map(|(e, state)| e.respond(&global, state))
+            .map(|(e, state)| {
+                check()?;
+                e.respond(&global, state)
+            })
             .collect::<EResult<Vec<_>>>()?;
         for (e, response) in self.elements.iter().zip(&responses) {
+            check()?;
             assemble_vector(&mut internal, &e.location, &response.internal_force)?;
         }
         let blocks = self
@@ -347,7 +356,20 @@ impl StaticNewton {
         factors: &[Real],
         options: NewtonOptions,
     ) -> EResult<NewtonResults> {
-        let result = Self::run_inner(system, case, factors, options);
+        Self::run_with(system, case, factors, options, || Ok(()))
+    }
+
+    /// Variante cooperativa: consulta antes de cada paso, evaluación e iteración
+    /// y antes de aceptar estado. Ante error conserva el último paso aceptado
+    /// y revierte el estado de prueba, igual que [`Self::run`].
+    pub fn run_with<B: LinAlgBackend>(
+        system: &mut NewtonSystem<B>,
+        case: &CaseRef,
+        factors: &[Real],
+        options: NewtonOptions,
+        mut check: impl FnMut() -> EResult<()>,
+    ) -> EResult<NewtonResults> {
+        let result = Self::run_inner(system, case, factors, options, &mut check);
         system.linear.rollback();
         result
     }
@@ -357,6 +379,7 @@ impl StaticNewton {
         case: &CaseRef,
         factors: &[Real],
         options: NewtonOptions,
+        check: &mut dyn FnMut() -> EResult<()>,
     ) -> EResult<NewtonResults> {
         options.validate()?;
         if factors.is_empty() {
@@ -365,27 +388,33 @@ impl StaticNewton {
         finite(factors)?;
         // Valida también los productos λF antes del primer commit.
         for &factor in factors {
+            check()?;
             system.linear.global_force(case, factor)?;
         }
         let mut steps = Vec::new();
         let mut status = Status::Completed;
         for &factor in factors {
+            check()?;
             let force = system.linear.global_force(case, factor)?;
             let mut u = system.linear.accepted_displacement().to_vec();
-            let mut evaluation = system.evaluate(&u)?;
+            let mut evaluation = system.evaluate(&u, check)?;
             let mut residual = free_residual(system, &force, &evaluation.internal)?;
             for iteration in 1..=options.max_iterations {
-                let delta = system
-                    .linear
-                    .solve_correction(&evaluation.tangent, &residual)?;
+                check()?;
+                let delta = system.linear.solve_correction_with_check(
+                    &evaluation.tangent,
+                    &residual,
+                    check,
+                )?;
                 for (value, correction) in u.iter_mut().zip(&delta) {
                     *value += correction;
                 }
                 finite(&u)?;
-                evaluation = system.evaluate(&u)?;
+                evaluation = system.evaluate(&u, check)?;
                 residual = free_residual(system, &force, &evaluation.internal)?;
                 let report = report(factor, iteration, &residual, &delta, options)?;
                 if report.converged {
+                    check()?;
                     // Toda la respuesta y la historia se validaron en exactamente u.
                     // accept lineal es fallible/atómico; después solo se mueven buffers.
                     system.linear.accept(&u)?;

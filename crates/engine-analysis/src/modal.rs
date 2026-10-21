@@ -111,14 +111,28 @@ impl Modal {
     }
 
     /// Variante cooperativa: callback tras el eigensolver (0) y cada modo.
-    /// La extracción de autovalores es indivisible; no acepta estado.
+    /// No acepta estado; para controlar también el eigensolver use `run_with_check`.
     pub fn run_with<B: LinAlgBackend>(
         system: &mut LinearSystem<B>,
         count: usize,
         kind: MassKind,
         directions: &[[Real; 3]],
-        mut checkpoint: impl FnMut(usize) -> EResult<()>,
+        checkpoint: impl FnMut(usize) -> EResult<()>,
     ) -> EResult<ModalResults> {
+        Self::run_with_check(system, count, kind, directions, checkpoint, || Ok(()))
+    }
+
+    /// Control independiente del progreso, incluido el eigensolver de referencia.
+    /// Consulta por dirección y modo sin añadir eventos de progreso.
+    pub fn run_with_check<B: LinAlgBackend>(
+        system: &mut LinearSystem<B>,
+        count: usize,
+        kind: MassKind,
+        directions: &[[Real; 3]],
+        mut checkpoint: impl FnMut(usize) -> EResult<()>,
+        mut check: impl FnMut() -> EResult<()>,
+    ) -> EResult<ModalResults> {
+        check()?;
         if directions.is_empty() {
             return Err(EngineError::new(
                 "ENG-E-0010",
@@ -129,6 +143,7 @@ impl Modal {
         let mut translations = Vec::new();
         let mut totals = Vec::new();
         for &direction in directions {
+            check()?;
             let mut r = rigid_translation(system.dof_map(), direction)?;
             let total = total_mass(system.dof_map(), system.global_mass(kind), direction)?;
             for (value, prescribed) in r.iter_mut().zip(system.constraints().prescribed_values()) {
@@ -148,7 +163,7 @@ impl Modal {
         }
         let n = free.len();
         let condensed = system.has_massless_dofs(kind);
-        let spectrum = system.lowest_modes(kind, count)?;
+        let spectrum = system.lowest_modes_with_check(kind, count, &mut check)?;
         if spectrum.eigenvalues.len() != count
             || spectrum.vectors.rows() != n
             || spectrum.vectors.cols() != count
@@ -174,6 +189,7 @@ impl Modal {
         let matrix = system.global_mass(kind);
         let mut modes = Vec::new();
         for (col, &eigenvalue) in spectrum.eigenvalues.iter().enumerate() {
+            check()?;
             let mut global = vec![0.0; system.dof_map().len()];
             for (row, index) in free.iter().enumerate() {
                 global[index.0 as usize] = spectrum.vectors.values()[row * count + col];
@@ -215,6 +231,7 @@ impl Modal {
             }
             let mut participation = Vec::new();
             for (r, total) in translations.iter().zip(&mut totals) {
+                check()?;
                 let projection = product(matrix, &global, r)?;
                 let factor = projection / denominator;
                 let effective_mass = projection * projection;

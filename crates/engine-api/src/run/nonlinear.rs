@@ -30,6 +30,7 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
     let map = linear.dof_map();
     let mut elements = Vec::new();
     for spring in e.springs.iter().filter(|s| s.kind == "spring.nonlinear") {
+        cancel.check()?;
         let (dim, element) = spring.build(e)?;
         let coords = spring
             .nodes
@@ -61,23 +62,35 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
     // Valida todos los productos λF antes del primer paso aceptado, como run
     // sobre la lista completa; el fraccionamiento solo añade checkpoints.
     for &factor in &o.load_factors {
+        cancel.check()?;
         system
             .linear_system()
             .global_force(&CaseRef(o.case.clone()), factor)?;
     }
     for (index, &factor) in o.load_factors.iter().enumerate() {
         cancel.check()?;
-        let result =
-            match StaticNewton::run(&mut system, &CaseRef(o.case.clone()), &[factor], options) {
-                Ok(result) => result,
-                Err(error) => {
-                    if error.code == "ENG-E-0006" {
-                        document["convergence"]["status"] = json!("unstable");
-                        document["convergence"]["failed_factor"] = json!(factor);
-                    }
-                    return Err(error.into());
+        let result = StaticNewton::run_with(
+            &mut system,
+            &CaseRef(o.case.clone()),
+            &[factor],
+            options,
+            || {
+                cancel.check().map_err(|_| {
+                    EngineError::new("ENG-E-0012", "Cancelación solicitada por la fachada")
+                })
+            },
+        );
+        cancel.check()?;
+        let result = match result {
+            Ok(result) => result,
+            Err(error) => {
+                if error.code == "ENG-E-0006" {
+                    document["convergence"]["status"] = json!("unstable");
+                    document["convergence"]["failed_factor"] = json!(factor);
                 }
-            };
+                return Err(error.into());
+            }
+        };
         let report = result
             .steps
             .first()

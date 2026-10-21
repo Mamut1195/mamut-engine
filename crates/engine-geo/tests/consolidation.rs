@@ -54,8 +54,10 @@ fn cancellation_callback_checks_every_substep_and_preserves_result_bits() {
             false
         })
         .unwrap();
-    // Ocho subpasos, cuatro intervalos y una sola factorización (dt idéntico).
-    assert_eq!(calls, 13);
+    // Ocho subpasos, cuatro intervalos y una sola factorización (dt idéntico),
+    // más validación (7), ensamblaje (4), salidas (4), integración (16)
+    // y sustitución cooperativa (8 × 10).
+    assert_eq!(calls, 124);
     assert_eq!(actual.depths_m, expected.depths_m);
     assert_eq!(actual.assumed_parameters, expected.assumed_parameters);
     assert_eq!(actual.states.len(), expected.states.len());

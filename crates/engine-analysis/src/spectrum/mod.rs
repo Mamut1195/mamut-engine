@@ -35,7 +35,6 @@ use crate::{
     finite,
     modal::{Modal, ModalResults},
 };
-use combination::{correlations, quadratic};
 use engine_assembly::{LinearSystem, Reaction};
 use engine_contracts::MassKind;
 use engine_core::math;
@@ -155,14 +154,26 @@ impl Spectrum {
     }
 
     /// Variante cooperativa: etapas modal, spectrumMode y spectrumDirection.
-    /// Callback después de cada modo/dirección; el eigensolver es indivisible.
+    /// Callback después de cada modo/dirección; `run_with_check` controla los kernels.
     /// Un error detiene el análisis sin aceptar estado.
     pub fn run_with<B: LinAlgBackend>(
         system: &mut LinearSystem<B>,
         directions: &[SpectrumDirection<'_>],
         options: &SpectrumOptions,
-        mut checkpoint: impl FnMut(&'static str, usize) -> EResult<()>,
+        checkpoint: impl FnMut(&'static str, usize) -> EResult<()>,
     ) -> EResult<SpectrumResults> {
+        Self::run_with_check(system, directions, options, checkpoint, || Ok(()))
+    }
+
+    /// Control independiente del progreso, incluido el eigensolver y CQC.
+    pub fn run_with_check<B: LinAlgBackend>(
+        system: &mut LinearSystem<B>,
+        directions: &[SpectrumDirection<'_>],
+        options: &SpectrumOptions,
+        mut checkpoint: impl FnMut(&'static str, usize) -> EResult<()>,
+        mut check: impl FnMut() -> EResult<()>,
+    ) -> EResult<SpectrumResults> {
+        check()?;
         if options.mode_count == 0 || directions.is_empty() {
             return Err(invalid("Se requieren modos y direcciones no vacíos."));
         }
@@ -178,23 +189,31 @@ impl Spectrum {
             }
         }
         let input_directions: Vec<_> = directions.iter().map(|d| d.direction).collect();
-        let modal = Modal::run_with(
+        let modal = Modal::run_with_check(
             system,
             options.mode_count,
             options.mass_kind,
             &input_directions,
             |n| checkpoint("modal", n),
+            &mut check,
         )?;
         let frequencies: Vec<_> = modal.modes.iter().map(|m| m.angular_frequency).collect();
         let mut results = Vec::new();
         for (d, input) in directions.iter().enumerate() {
+            check()?;
             let unit_direction = unit(input.direction)?;
             let dampings: Vec<_> = (0..options.mode_count)
                 .map(|n| input.spectra[if input.spectra.len() == 1 { 0 } else { n }].damping())
                 .collect();
-            let rho = correlations(&frequencies, &dampings, options.modal_combination)?;
+            let rho = combination::correlations_with_check(
+                &frequencies,
+                &dampings,
+                options.modal_combination,
+                &mut check,
+            )?;
             let mut modes = Vec::new();
             for (n, mode) in modal.modes.iter().enumerate() {
+                check()?;
                 let table = &input.spectra[if input.spectra.len() == 1 { 0 } else { n }];
                 let period = mode
                     .period
@@ -247,7 +266,9 @@ impl Spectrum {
                 checkpoint("spectrumMode", d * options.mode_count + n + 1)?;
             }
             let responses: Vec<_> = modes.iter().map(|m| &m.response).collect();
-            let combined = combine_responses(&responses, |v| quadratic(v, &rho))?;
+            let combined = combine_responses(&responses, |v| {
+                combination::quadratic_with_check(v, &rho, &mut check)
+            })?;
             results.push(SpectrumDirectionResult {
                 unit_direction,
                 spectra: input.spectra.to_vec(),
@@ -258,6 +279,7 @@ impl Spectrum {
         }
         let responses: Vec<_> = results.iter().map(|d| &d.combined).collect();
         let combined = combine_responses(&responses, |v| {
+            check()?;
             combine_directions(
                 v,
                 &options.directional_factors,

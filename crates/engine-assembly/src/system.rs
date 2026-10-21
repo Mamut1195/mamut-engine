@@ -279,17 +279,31 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         kind: MassKind,
         count: usize,
     ) -> EResult<engine_linalg::LowestModes> {
+        self.lowest_modes_with_check(kind, count, &mut || Ok(()))
+    }
+
+    /// Cooperative modal variant; propagates the control to Guyan and the backend.
+    pub fn lowest_modes_with_check(
+        &mut self,
+        kind: MassKind,
+        count: usize,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<engine_linalg::LowestModes> {
+        check()?;
         let mass = match kind {
             MassKind::Lumped => &self.lumped_free,
             MassKind::Consistent => &self.consistent_free,
         };
         let mut solve = || -> EResult<engine_linalg::LowestModes> {
-            if let Some(reduction) =
-                engine_linalg::guyan_condense(&mut self.backend, &self.k_free, mass)?
-            {
+            if let Some(reduction) = engine_linalg::guyan_condense_with_check(
+                &mut self.backend,
+                &self.k_free,
+                mass,
+                check,
+            )? {
                 let mut spectrum = self
                     .backend
-                    .lowest_modes(&reduction.stiffness, &reduction.mass, count)
+                    .lowest_modes_with_check(&reduction.stiffness, &reduction.mass, count, check)
                     .map_err(|mut e| {
                         for entity in &mut e.entities {
                             if let EntityRef::Dof(d) = entity {
@@ -300,10 +314,11 @@ impl<B: LinAlgBackend> LinearSystem<B> {
                         }
                         e
                     })?;
-                spectrum.vectors = reduction.recover(&spectrum.vectors)?;
+                spectrum.vectors = reduction.recover_with_check(&spectrum.vectors, check)?;
                 Ok(spectrum)
             } else {
-                self.backend.lowest_modes(&self.k_free, mass, count)
+                self.backend
+                    .lowest_modes_with_check(&self.k_free, mass, count, check)
             }
         };
         solve().map_err(|e| {
@@ -356,9 +371,18 @@ impl<B: LinAlgBackend> LinearSystem<B> {
     /// Maps mechanisms to node/DOF as [`Self::solve`]; ENG-E-0010 for incorrect
     /// order. Does not regularize or commit states; preserves factor inertia.
     pub fn factorize_reduced(&mut self, matrix: &SymMatrix) -> EResult<Box<dyn SymFactorization>> {
+        self.factorize_reduced_with_check(matrix, &mut || Ok(()))
+    }
+
+    /// Cooperative reduced factorization, without committing state.
+    pub fn factorize_reduced_with_check(
+        &mut self,
+        matrix: &SymMatrix,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<Box<dyn SymFactorization>> {
         size(matrix.order(), self.n_free_dofs())?;
         self.backend
-            .factorize(matrix)
+            .factorize_with_check(matrix, check)
             .map_err(|e| self.translate_solver_error(e))
     }
     /// Declares the reduced state u (m/rad) at which static Kg was evaluated.
@@ -490,16 +514,27 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         tangent: &SymMatrix,
         residual: &[Real],
     ) -> EResult<Vec<Real>> {
+        self.solve_correction_with_check(tangent, residual, &mut || Ok(()))
+    }
+
+    /// Cooperative correction; checks during backend factorization.
+    pub fn solve_correction_with_check(
+        &mut self,
+        tangent: &SymMatrix,
+        residual: &[Real],
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<Vec<Real>> {
+        check()?;
         size(tangent.order(), self.n_free_dofs())?;
         size(residual.len(), self.n_free_dofs())?;
         finite(residual)?;
         let rhs = DMat::new(self.n_free_dofs(), 1, residual.to_vec())?;
         let factorization = self
             .backend
-            .factorize(tangent)
+            .factorize_with_check(tangent, check)
             .map_err(|e| self.translate_solver_error(e))?;
         let solution = factorization
-            .solve(&rhs)
+            .solve_with_check(&rhs, check)
             .map_err(|e| self.translate_solver_error(e))?;
         size(solution.rows(), self.n_free_dofs())?;
         size(solution.cols(), 1)?;
@@ -577,11 +612,22 @@ impl<B: LinAlgBackend> LinearSystem<B> {
     /// [`Constraints::expand`] recovers dependent and prescribed DOFs through
     /// `u = T_f q_f + u_0`. Without diaphragms this equals `factor F_f − K_fp u_p`.
     pub fn solve_cases(&mut self, cases: &[(CaseRef, Real)]) -> EResult<Vec<Vec<Real>>> {
+        self.solve_cases_with_check(cases, &mut || Ok(()))
+    }
+
+    /// Cooperative case solve; preserves a single factorization and its order.
+    pub fn solve_cases_with_check(
+        &mut self,
+        cases: &[(CaseRef, Real)],
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<Vec<Vec<Real>>> {
+        check()?;
         if cases.is_empty() {
             return Err(error("ENG-E-0010", "Lista de casos vacía."));
         }
         let mut names = BTreeSet::new();
         for (case, _) in cases {
+            check()?;
             if !names.insert(&case.0) {
                 return Err(error("ENG-E-0010", "Caso duplicado en análisis."));
             }
@@ -589,17 +635,19 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         let rhs = cases
             .iter()
             .map(|(case, factor)| {
+                check()?;
                 DMat::new(self.n_free_dofs(), 1, self.reduced_rhs(case, *factor)?)
             })
             .collect::<EResult<Vec<_>>>()?;
         let factorization = self
             .backend
-            .factorize(&self.k_free)
+            .factorize_with_check(&self.k_free, check)
             .map_err(|e| self.translate_solver_error(e))?;
         rhs.iter()
             .map(|rhs| {
+                check()?;
                 let solution = factorization
-                    .solve(rhs)
+                    .solve_with_check(rhs, check)
                     .map_err(|e| self.translate_solver_error(e))?;
                 size(solution.rows(), self.n_free_dofs())?;
                 size(solution.cols(), 1)?;

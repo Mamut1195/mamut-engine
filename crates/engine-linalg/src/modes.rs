@@ -41,7 +41,7 @@ pub fn sturm_count<B: LinAlgBackend + ?Sized>(
     size(k.order(), m.order())?;
     finite(&[sigma])?;
     crate::reference::cholesky(m)?;
-    count_with_valid_mass(backend, k, m, sigma)
+    count_with_valid_mass(backend, k, m, sigma, &mut || Ok(()))
 }
 
 fn count_with_valid_mass<B: LinAlgBackend + ?Sized>(
@@ -49,7 +49,9 @@ fn count_with_valid_mass<B: LinAlgBackend + ?Sized>(
     k: &SymMatrix,
     m: &SymMatrix,
     sigma: Real,
+    check: &mut dyn FnMut() -> EResult<()>,
 ) -> EResult<usize> {
+    check()?;
     let n = k.order();
     let mut shifted = DMat::zeros(n, n)?;
     for ((entry, &ki), &mi) in shifted
@@ -64,7 +66,8 @@ fn count_with_valid_mass<B: LinAlgBackend + ?Sized>(
         *entry = (-sigma).mul_add(mi, ki);
     }
     finite(&shifted.values)?;
-    let (positive, negative, null) = backend.symmetric_inertia(&SymMatrix::new(shifted)?)?;
+    let (positive, negative, null) =
+        backend.symmetric_inertia_with_check(&SymMatrix::new(shifted)?, check)?;
     if positive
         .checked_add(negative)
         .and_then(|v| v.checked_add(null))
@@ -108,6 +111,17 @@ pub fn lowest_modes<B: LinAlgBackend + ?Sized>(
     m: &SymMatrix,
     count: usize,
 ) -> EResult<LowestModes> {
+    lowest_modes_with_check(backend, k, m, count, &mut || Ok(()))
+}
+
+pub(crate) fn lowest_modes_with_check<B: LinAlgBackend + ?Sized>(
+    backend: &mut B,
+    k: &SymMatrix,
+    m: &SymMatrix,
+    count: usize,
+    check: &mut dyn FnMut() -> EResult<()>,
+) -> EResult<LowestModes> {
+    check()?;
     let n = k.order();
     size(n, m.order())?;
     if count > n {
@@ -122,8 +136,8 @@ pub fn lowest_modes<B: LinAlgBackend + ?Sized>(
             rigid_mode_count: 0,
         });
     }
-    crate::reference::cholesky(m)?;
-    let all = backend.generalized_eigen(k, m)?;
+    crate::reference::cholesky_with_check(m, check)?;
+    let all = backend.generalized_eigen_with_check(k, m, check)?;
     if all.eigenvalues.len() != n || all.vectors.rows() != n || all.vectors.cols() != n {
         return Err(incomplete(
             "MODOS FALTANTES: el backend no devolvió el espectro denso completo.",
@@ -149,18 +163,19 @@ pub fn lowest_modes<B: LinAlgBackend + ?Sized>(
         (last * (1.0 + 1e-7)).max(last + 16.0 * zero_tol)
     };
     finite(&[sigma, zero_tol])?;
-    let found = count_with_valid_mass(backend, k, m, sigma)?;
+    let found = count_with_valid_mass(backend, k, m, sigma, check)?;
     if found != count {
         return Err(incomplete(&format!(
             "MODOS FALTANTES / corte de multiplicidad: Sturm(σ={sigma})={found}, modos solicitados/devueltos={count}. Solicite el grupo completo o revise la convergencia del backend."
         )));
     }
     // Reapplies the backend normalization contract before selecting.
-    let all = crate::reference::normalize_modes(all.eigenvalues, all.vectors, m)?;
+    let all = crate::reference::normalize_modes_with_check(all.eigenvalues, all.vectors, m, check)?;
     let mut eigenvalues = crate::alloc_vec(count, 0.0)?;
     let mut vectors = DMat::zeros(n, count)?;
     let mut rigid_mode_count = 0;
     for (col, eigenvalue) in eigenvalues.iter_mut().enumerate() {
+        check()?;
         if all.eigenvalues[col].abs() <= zero_tol {
             rigid_mode_count += 1;
         } else {

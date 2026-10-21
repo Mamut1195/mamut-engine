@@ -140,6 +140,43 @@ fn ground_bilinear_crosses_corner_in_exactly_two_corrections() {
 }
 
 #[test]
+fn cancellation_inside_newton_iteration_keeps_last_accepted_step_and_rolls_back() {
+    let m = model(1, 16.0);
+    let backend = CountingBackend::default();
+    let solves = backend.solves.clone();
+    let linear = LinearSystem::from_model(backend, &m, &[], &[]).unwrap();
+    let mut system = NewtonSystem::new(linear, vec![binding(&m, &[1], bilinear(100.0))]).unwrap();
+    let previous = run(&mut system, &[0.25], NewtonOptions::default());
+    let previous_solves = solves.get();
+    let error = StaticNewton::run_with(
+        &mut system,
+        &case(),
+        &[1.0],
+        NewtonOptions::default(),
+        || {
+            if solves.get() > previous_solves {
+                Err(engine_core::EngineError::new("TEST-CANCEL", "Cancelado"))
+            } else {
+                Ok(())
+            }
+        },
+    )
+    .unwrap_err();
+    assert_eq!(error.code, "TEST-CANCEL");
+    assert_eq!(solves.get(), previous_solves + 1);
+    assert_eq!(system.accepted_factor(), previous.accepted_factor);
+    assert_eq!(system.accepted_element_states(), previous.element_states);
+    assert_eq!(
+        system.linear_system().accepted_displacement(),
+        previous.free_displacements
+    );
+    assert_eq!(
+        system.linear_system().trial_displacement(),
+        previous.free_displacements
+    );
+}
+
+#[test]
 fn two_nonlinear_springs_in_series_closed_form_each_segment() {
     let m = model(2, 24.0);
     let mut s = NewtonSystem::new(

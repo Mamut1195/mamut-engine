@@ -25,6 +25,8 @@ use mamut_workflow_cli::{
 };
 use serde_json::{json, Value};
 
+mod timeout;
+
 /// Catálogo propio; también disponible como archivo `catalog.json` del crate.
 pub const CATALOG: &str = include_str!("../catalog.json");
 
@@ -88,8 +90,9 @@ impl Cancellation for Control {
 
 type EngineProgress = Rc<RefCell<Box<dyn FnMut(Progress)>>>;
 
-/// Configuración del anfitrión y transporte de entrada sobre la base.
+/// Configuración del anfitrión, transporte de entrada y timeout sobre la base.
 /// `--input` tiene prioridad sobre la ruta de compatibilidad del constructor.
+/// Una invocación reutiliza un único documento engine-input/1 para todos sus pasos.
 pub struct EngineCli {
     input: Option<PathBuf>,
     control: Control,
@@ -121,7 +124,8 @@ impl EngineCli {
         self
     }
 
-    /// Extrae `--input` y configura documentos embebidos antes de delegar a la base.
+    /// Extrae timeout, luego `--input`, y configura documentos embebidos para la base.
+    /// Acepta segundos finitos en (0, 31536000]; fuera de rango es uso inválido (2).
     /// Añade resultados completos y semántica Engine al sobre terminal de `run`.
     /// stdout contiene resultados; stderr contiene NDJSON y errores sanitizados.
     pub fn run<R: Read, O: Write, E: Write>(
@@ -131,7 +135,13 @@ impl EngineCli {
         stdout: &mut O,
         stderr: &mut E,
     ) -> u8 {
-        let prepared = match PreparedArgs::new(args) {
+        let (args, timeout) = match timeout::parse_timeout_args(args) {
+            Ok(parsed) => parsed,
+            Err(kind) => {
+                return report_failure(kind, args.iter().any(|arg| arg == "run"), None, stderr);
+            }
+        };
+        let prepared = match PreparedArgs::new(&args) {
             Ok(prepared) => prepared,
             Err(kind) => {
                 return report_failure(
@@ -143,6 +153,7 @@ impl EngineCli {
             }
         };
         if prepared.direct_validation {
+            // Timeout ya validado; esta vía breve no inicia un temporizador.
             let input = match prepared.input.as_deref() {
                 Some("-") => read_engine_input(stdin),
                 Some(path) => read_engine_path(Some(Path::new(path))),
@@ -178,6 +189,13 @@ impl EngineCli {
             command => command,
         };
         let is_run = matches!(command, Command::Run { .. });
+        let timer = match timeout
+            .map(|duration| timeout::Timer::start(duration, self.control.clone()))
+            .transpose()
+        {
+            Ok(timer) => timer,
+            Err(kind) => return report_failure(kind, is_run, None, stderr),
+        };
         let input = match prepared.input.as_deref() {
             Some(source) => {
                 let document = if source == "-" {
@@ -214,16 +232,35 @@ impl EngineCli {
         let mut buffered = Vec::new();
         // Solo se retiene el sobre terminal. MCP y NDJSON conservan streaming.
         let mut output: &mut dyn Write = if is_run { &mut buffered } else { stdout };
-        let result = dispatch(command, stdin, &mut output, stderr, &config);
+        let result = dispatch(
+            command,
+            stdin,
+            &mut output,
+            &mut EventWriter(stderr),
+            &config,
+        );
         let state = state.borrow();
-        if let Err(error) = result {
-            let (kind, document) = if error.kind == FailureKind::Method {
-                match &state.failure {
-                    Some((kind, document)) => (*kind, document.as_ref()),
-                    None => (error.kind, None),
-                }
+        let (result, document) = match result {
+            Ok(()) => (Ok(()), None),
+            Err(error) => {
+                let (kind, document) = if error.kind == FailureKind::Method {
+                    match &state.failure {
+                        Some((kind, document)) => (*kind, document.as_ref()),
+                        None => (error.kind, None),
+                    }
+                } else {
+                    (error.kind, None)
+                };
+                (Err(kind), document)
+            }
+        };
+        if let Err(kind) =
+            timeout::resolve(result, timer.as_ref().is_some_and(timeout::Timer::expired))
+        {
+            let document = if kind == FailureKind::Timeout {
+                None
             } else {
-                (error.kind, None)
+                document
             };
             return report_failure(kind, is_run, document, stderr);
         }
@@ -291,6 +328,26 @@ fn validation_report(diagnostics: &[Diagnostic]) -> (u8, Value) {
         json!({"schema":"validate-report/1", "operation":"validate",
         "status":status, "diagnostics":diagnostics}),
     )
+}
+
+// El SDK emite cada evento mediante writeln!. Materializar todo el formato
+// antes de escribir evita exponer fragmentos JSON durante la serialización.
+struct EventWriter<'a, W>(&'a mut W);
+
+impl<W: Write> Write for EventWriter<'_, W> {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        self.0.write(bytes)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.0.flush()
+    }
+
+    fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> std::io::Result<()> {
+        let mut line = Vec::new();
+        line.write_fmt(args)?;
+        self.0.write_all(&line)
+    }
 }
 
 struct PreparedArgs {
@@ -486,7 +543,7 @@ fn report_failure(
     if let Some(document) = document {
         envelope["engineResults"] = json!([document]);
     }
-    if writeln!(stderr, "{envelope}").is_err() {
+    if writeln!(EventWriter(stderr), "{envelope}").is_err() {
         ExitCodes::engine_v1().internal
     } else {
         code
@@ -669,6 +726,36 @@ fn failure_kind(status: Status) -> Option<FailureKind> {
 mod tests {
     use super::*;
     use std::io;
+
+    #[test]
+    fn ndjson_event_and_error_are_buffered_as_complete_lines() {
+        #[derive(Default)]
+        struct CompleteLines(Vec<Value>);
+        impl Write for CompleteLines {
+            fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+                assert_eq!(bytes.last(), Some(&b'\n'));
+                self.0.push(serde_json::from_slice(bytes).unwrap());
+                Ok(bytes.len())
+            }
+            fn flush(&mut self) -> io::Result<()> {
+                Ok(())
+            }
+        }
+        let mut stderr = CompleteLines::default();
+        // Mismo despacho dinámico de Write que usa el SDK; Value::fmt produce
+        // muchos fragmentos, pero el escritor solo recibe la línea completa.
+        let mut writer = EventWriter(&mut stderr);
+        let writer: &mut dyn Write = &mut writer;
+        writeln!(writer, "{}", json!({"phase":"started", "index":0})).unwrap();
+        writer.flush().unwrap();
+        assert_eq!(
+            report_failure(FailureKind::Timeout, true, None, &mut stderr),
+            6
+        );
+        assert_eq!(stderr.0.len(), 2);
+        assert_eq!(stderr.0[0]["phase"], "started");
+        assert_eq!(stderr.0[1]["outcome"], "timeout");
+    }
 
     #[test]
     fn direct_validation_maps_warnings_and_all_model_errors() {

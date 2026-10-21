@@ -230,6 +230,17 @@ impl CaseResults {
         system: &LinearSystem<B>,
         members: &[MemberRecovery<'_>],
     ) -> EResult<Self> {
+        Self::recover_with_check(solution, system, members, &mut || Ok(()))
+    }
+
+    /// Recuperación cooperativa, consultada entre nodos y miembros.
+    pub fn recover_with_check<B: LinAlgBackend>(
+        solution: &StaticCaseResult,
+        system: &LinearSystem<B>,
+        members: &[MemberRecovery<'_>],
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<Self> {
+        check()?;
         let map = system.dof_map();
         let global = &solution.global_displacements;
         size(global.len(), map.len())?;
@@ -274,6 +285,7 @@ impl CaseResults {
         }
         let mut nodes = BTreeMap::new();
         for (i, &value) in global.iter().enumerate() {
+            check()?;
             let index =
                 u32::try_from(i).map_err(|_| error("ENG-E-0010", "Índice global excede u32."))?;
             let (id, dof) = map.label(DofIndex(index))?;
@@ -295,6 +307,7 @@ impl CaseResults {
         }
         let mut recovered = BTreeMap::new();
         for member in members {
+            check()?;
             if recovered.contains_key(&member.id) {
                 return Err(with_member(
                     error("ENG-E-0002", "Miembro duplicado."),

@@ -170,11 +170,22 @@ pub struct EnvelopeResults {
 /// de factor cero. Los casos no referenciados solo se comprueban por duplicidad.
 /// No modifica las entradas. Los extremos se calculan después de sumar.
 pub fn combine(combination: &Combination, cases: &[CaseResults]) -> EResult<CombinationResults> {
+    combine_with_check(combination, cases, &mut || Ok(()))
+}
+
+/// Superposición cooperativa por término, nodo y miembro, sin reordenar sumas.
+pub fn combine_with_check(
+    combination: &Combination,
+    cases: &[CaseResults],
+    check: &mut dyn FnMut() -> EResult<()>,
+) -> EResult<CombinationResults> {
+    check()?;
     if combination.terms.is_empty() || cases.is_empty() {
         return Err(invalid("Combinación o repositorio de casos vacío."));
     }
     let mut available = BTreeMap::new();
     for case in cases {
+        check()?;
         if available.insert(case.case.0.as_str(), case).is_some() {
             return Err(invalid("Caso duplicado en el repositorio."));
         }
@@ -183,6 +194,7 @@ pub fn combine(combination: &Combination, cases: &[CaseResults]) -> EResult<Comb
     let mut terms = Vec::new();
     let mut settlement_case = None;
     for term in &combination.terms {
+        check()?;
         number(term.factor)?;
         if !seen.insert(term.case.as_str()) {
             return Err(invalid("Caso duplicado en los términos."));
@@ -214,6 +226,7 @@ pub fn combine(combination: &Combination, cases: &[CaseResults]) -> EResult<Comb
         .first()
         .ok_or_else(|| invalid("Combinación sin términos."))?;
     for (_, next) in &terms {
+        check()?;
         compatible(first, next)?;
         for (a, b) in first.nodes.values().zip(next.nodes.values()) {
             if a.prescribed_displacements.map(|p| p.is_some())
@@ -244,11 +257,14 @@ pub fn combine(combination: &Combination, cases: &[CaseResults]) -> EResult<Comb
         m.extremes.clear();
     }
     for (factor, input) in &terms {
+        check()?;
         for (n, source) in output.nodes.iter_mut().zip(input.nodes.values()) {
+            check()?;
             add(&mut n.displacements, &source.displacements, *factor)?;
             add(&mut n.reactions, &source.reactions, *factor)?;
         }
         for (m, source) in output.members.iter_mut().zip(input.members.values()) {
+            check()?;
             add(&mut m.end_forces_local, &source.end_forces_local, *factor)?;
             for (s, source) in m.stations.iter_mut().zip(&source.stations) {
                 add(&mut s.forces_local, &source.forces_local, *factor)?;

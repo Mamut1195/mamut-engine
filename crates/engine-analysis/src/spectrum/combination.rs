@@ -83,6 +83,15 @@ pub(super) fn correlations(
     dampings: &[Real],
     method: ModalCombination,
 ) -> EResult<Vec<Vec<Real>>> {
+    correlations_with_check(frequencies, dampings, method, &mut || Ok(()))
+}
+
+pub(super) fn correlations_with_check(
+    frequencies: &[Real],
+    dampings: &[Real],
+    method: ModalCombination,
+    check: &mut dyn FnMut() -> EResult<()>,
+) -> EResult<Vec<Vec<Real>>> {
     if frequencies.is_empty() || frequencies.len() != dampings.len() {
         return Err(invalid(
             "Modos vacíos o dimensiones de amortiguamiento incompatibles.",
@@ -94,6 +103,7 @@ pub(super) fn correlations(
     }
     let mut rows = Vec::new();
     for (i, &omega) in frequencies.iter().enumerate() {
+        check()?;
         let mut row = Vec::new();
         for (j, &other) in frequencies.iter().enumerate() {
             row.push(if i == j {
@@ -128,6 +138,15 @@ pub fn combine_modal(
 }
 
 pub(super) fn quadratic(values: &[Real], rho: &[Vec<Real>]) -> EResult<Real> {
+    quadratic_with_check(values, rho, &mut || Ok(()))
+}
+
+pub(super) fn quadratic_with_check(
+    values: &[Real],
+    rho: &[Vec<Real>],
+    check: &mut dyn FnMut() -> EResult<()>,
+) -> EResult<Real> {
+    check()?;
     finite(values)?;
     let scale = values.iter().fold(0.0_f64, |s, v| s.max(v.abs()));
     if scale == 0.0 {
@@ -135,6 +154,7 @@ pub(super) fn quadratic(values: &[Real], rho: &[Vec<Real>]) -> EResult<Real> {
     }
     let mut sum = 0.0;
     for (i, &a) in values.iter().enumerate() {
+        check()?;
         for (j, &b) in values.iter().enumerate() {
             sum += rho[i][j] * (a / scale) * (b / scale);
         }

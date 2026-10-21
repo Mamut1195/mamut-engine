@@ -36,6 +36,11 @@ fn checkpoint(
     step(cancel, progress, stage, completed, total)
         .map_err(|_| EngineError::new("ENG-E-0012", "Cancelación solicitada por la fachada"))
 }
+fn check_cancel(cancel: &CancelToken) -> engine_core::EResult<()> {
+    cancel
+        .check()
+        .map_err(|_| EngineError::new("ENG-E-0012", "Cancelación solicitada por la fachada"))
+}
 fn prepare_mass(
     execution: &input::Execution,
     contributions: &[ElementContribution],
@@ -183,7 +188,7 @@ pub(crate) fn pdelta(context: MethodContext<'_>) -> Result<(), Failure> {
         )?);
     }
     system.set_geometric_producers(producers)?;
-    let result = pdelta::PDelta::run_with(
+    let result = pdelta::PDelta::run_with_check(
         system,
         &(CaseRef(o.gravity.0.case.clone()), o.gravity.0.factor),
         &(CaseRef(o.lateral.0.case.clone()), o.lateral.0.factor),
@@ -202,6 +207,7 @@ pub(crate) fn pdelta(context: MethodContext<'_>) -> Result<(), Failure> {
                 total,
             )
         },
+        || check_cancel(cancel),
     );
     cancel.check()?;
     let result = result?;
@@ -278,9 +284,14 @@ pub(crate) fn modal(context: MethodContext<'_>) -> Result<(), Failure> {
         document,
     )?;
     cancel.check()?;
-    let result = Modal::run_with(system, o.mode_count, kind, &o.directions, |n| {
-        checkpoint(cancel, progress, "modal", n + 4, total)
-    });
+    let result = Modal::run_with_check(
+        system,
+        o.mode_count,
+        kind,
+        &o.directions,
+        |n| checkpoint(cancel, progress, "modal", n + 4, total),
+        || check_cancel(cancel),
+    );
     cancel.check()?;
     document["modes"] = json!(modes_json(system, &result?)?);
     Ok(())
@@ -356,10 +367,16 @@ pub(crate) fn spectrum(context: MethodContext<'_>) -> Result<(), Failure> {
     )?;
     cancel.check()?;
     let mut completed = 3;
-    let result = spectrum::Spectrum::run_with(system, &directions, &options, |stage, _| {
-        completed += 1;
-        checkpoint(cancel, progress, stage, completed, total)
-    });
+    let result = spectrum::Spectrum::run_with_check(
+        system,
+        &directions,
+        &options,
+        |stage, _| {
+            completed += 1;
+            checkpoint(cancel, progress, stage, completed, total)
+        },
+        || check_cancel(cancel),
+    );
     cancel.check()?;
     let result = result?;
     let mut modes = modes_json(system, &result.modal)?;

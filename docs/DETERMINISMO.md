@@ -34,6 +34,20 @@ The remote PR status was not queried. The base incorporates main.
 Threads in `engine-linalg/tests/heap_peak.rs` are test instrumentation,
 outside `src`; they are not backend numerical execution.
 
+MAM-865 / ENG-SFC-014 (2026-10-21): `engine-cli` may create a single timer
+thread when a timeout is configured. It only waits for a monotonic deadline and
+sets the atomic token; it does not compute, accumulate results or run progress
+callbacks. It is stopped and joined on completion. Without a timeout, that thread is not created.
+The cooperative checks added to Newton, static, P-Delta, modal,
+recovery, combinations and consolidation, and to the reference kernels
+(LDLᵀ, substitution, Cholesky, Jacobi, normalization, Sturm and Guyan), precede
+rows/iterations/blocks and preserve expressions, order, pivots and tolerances.
+Uncancelled control does not alter results; consolidation/modal bits
+and CLI bytes are compared with a long deadline and without a deadline.
+The guard allows `thread` only in `crates/engine-cli/src/timeout.rs`; a test
+keeps hash collections and Rayon prohibited there, and threads prohibited in the other
+source files. This is an adapter exception, without parallel computation.
+
 ## V1 configuration and operation order
 
 - One execution thread per analysis. Internal threads, pools, rayon,

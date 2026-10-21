@@ -100,6 +100,64 @@ fn fixed_end_spring_chain_matches_closed_form_and_sturm() {
 }
 
 #[test]
+fn modal_kernel_control_interrupts_every_checkpoint_without_changing_bits() {
+    let (k, m, _) = chain(4, 17.0, 2.3);
+    let expected = ReferenceBackend.lowest_modes(&k, &m, 4).unwrap();
+    let mut checks = 0;
+    let actual = ReferenceBackend
+        .lowest_modes_with_check(&k, &m, 4, &mut || {
+            checks += 1;
+            Ok(())
+        })
+        .unwrap();
+    assert!(
+        checks > 20,
+        "Debe consultar dentro de los kernels: {checks}"
+    );
+    assert_eq!(
+        actual
+            .eigenvalues
+            .iter()
+            .map(|v| v.to_bits())
+            .collect::<Vec<_>>(),
+        expected
+            .eigenvalues
+            .iter()
+            .map(|v| v.to_bits())
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(
+        actual
+            .vectors
+            .values()
+            .iter()
+            .map(|v| v.to_bits())
+            .collect::<Vec<_>>(),
+        expected
+            .vectors
+            .values()
+            .iter()
+            .map(|v| v.to_bits())
+            .collect::<Vec<_>>()
+    );
+    for stop in 1..=checks {
+        let mut calls = 0;
+        let error = ReferenceBackend
+            .lowest_modes_with_check(&k, &m, 4, &mut || {
+                calls += 1;
+                if calls == stop {
+                    Err(engine_core::EngineError::new("TEST-CANCEL", "Cancelado"))
+                } else {
+                    Ok(())
+                }
+            })
+            .unwrap_err();
+        assert_eq!(error.code, "TEST-CANCEL", "Checkpoint {stop}");
+        assert_eq!(calls, stop);
+    }
+}
+
+#[test]
 fn strict_sturm_at_roots_and_two_by_two_pivot() {
     let m = diagonal(&[1.0; 4]);
     let k = diagonal(&[0.0, 2.0, 2.0, 5.0]);

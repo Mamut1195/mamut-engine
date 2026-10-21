@@ -31,7 +31,7 @@ mod modes;
 mod reference;
 mod sparse;
 pub use budget::{dense_bytes, eigen_working_bytes, factor_bytes, sparse_bytes, MemoryBudget};
-pub use guyan::{guyan_condense, GuyanReduction};
+pub use guyan::{guyan_condense, guyan_condense_with_check, GuyanReduction};
 pub use matrix::{DMat, SparsityPattern, SymMatrix};
 pub use modes::{lowest_modes, sturm_count, LowestModes};
 pub use reference::ReferenceBackend;
@@ -72,6 +72,21 @@ pub trait SymFactorization {
     /// ENG-E-0010 indicates incompatible size, ENG-E-0008 nonfinite data or
     /// result. On error, all of `b` is preserved, without partial writes.
     fn solve_in_place(&self, b: &mut DMat) -> EResult<()>;
+    /// Cooperative substitution; by default, checks before the backend kernel.
+    fn solve_in_place_with_check(
+        &self,
+        b: &mut DMat,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<()> {
+        check()?;
+        self.solve_in_place(b)
+    }
+    /// New solution with cooperative control, without modifying the original RHS.
+    fn solve_with_check(&self, b: &DMat, check: &mut dyn FnMut() -> EResult<()>) -> EResult<DMat> {
+        let mut x = b.clone();
+        self.solve_in_place_with_check(&mut x, check)?;
+        Ok(x)
+    }
     /// Returns a new solution, preserving the original load matrix.
     fn solve(&self, b: &DMat) -> EResult<DMat> {
         let mut x = b.clone();
@@ -118,11 +133,31 @@ pub trait LinAlgBackend {
     fn name(&self) -> &'static str;
     /// Computes `a b`; ENG-E-0010 if `a.cols()!=b.rows()`.
     fn matmul(&mut self, a: &DMat, b: &DMat) -> EResult<DMat>;
+    /// Cooperative product; by default, checks before the backend kernel.
+    fn matmul_with_check(
+        &mut self,
+        a: &DMat,
+        b: &DMat,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<DMat> {
+        check()?;
+        self.matmul(a, b)
+    }
     /// Transposes a rectangular matrix, preserving its quantities.
     fn transpose(&mut self, a: &DMat) -> EResult<DMat>;
     /// Solves a square dense, possibly nonsymmetric system with multiple RHS.
     /// ENG-E-0010 for squareness/sizes and ENG-E-0006 for singularity.
     fn solve_dense(&mut self, a: &DMat, b: &DMat) -> EResult<DMat>;
+    /// Cooperative solve; by default, checks before the backend kernel.
+    fn solve_dense_with_check(
+        &mut self,
+        a: &DMat,
+        b: &DMat,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<DMat> {
+        check()?;
+        self.solve_dense(a, b)
+    }
     /// Assembles general triplets into CSR, summing duplicates in input order.
     ///
     /// Each triplet represents a single entry, without automatic mirroring or
@@ -162,10 +197,39 @@ pub trait LinAlgBackend {
     /// Solves the dense generalized problem with positive definite mass.
     /// ENG-E-0010 if orders differ; see the trait's mass policy.
     fn generalized_eigen(&mut self, k: &SymMatrix, m: &SymMatrix) -> EResult<GeneralizedEigen>;
+    /// Cooperative eigenvalues; the reference checks within its loops.
+    fn generalized_eigen_with_check(
+        &mut self,
+        k: &SymMatrix,
+        m: &SymMatrix,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<GeneralizedEigen> {
+        check()?;
+        self.generalized_eigen(k, m)
+    }
+    /// Cooperative inertia; the reference checks during LDLᵀ.
+    fn symmetric_inertia_with_check(
+        &mut self,
+        a: &SymMatrix,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<(usize, usize, usize)> {
+        check()?;
+        self.symmetric_inertia(a)
+    }
     /// Lowest mass-normalized modes with a Sturm completeness check.
     /// See [`lowest_modes`] and [`LowestModes`] for tolerances and diagnostics.
     fn lowest_modes(&mut self, k: &SymMatrix, m: &SymMatrix, count: usize) -> EResult<LowestModes> {
         lowest_modes(self, k, m, count)
+    }
+    /// Cooperative mode selection, including normalization and the Sturm check.
+    fn lowest_modes_with_check(
+        &mut self,
+        k: &SymMatrix,
+        m: &SymMatrix,
+        count: usize,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<LowestModes> {
+        modes::lowest_modes_with_check(self, k, m, count, check)
     }
 }
 
