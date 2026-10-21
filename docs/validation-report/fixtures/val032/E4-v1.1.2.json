@@ -1,15 +1,16 @@
 {
  "schema": "val032-fixture/1",
  "schema_status": "BORRADOR — envoltura VAL-032; documentos bench-model/1 separados conformes a #183 (797535d8); ver README §Brechas",
- "id": "E1",
- "version": "1.1.1",
+ "id": "E4",
+ "version": "1.1.2",
  "case": "VAL-032",
  "linear": "MAM-847",
  "parent": "MAM-604",
- "title": "Pórtico 3D de 5 pisos con diafragma rígido y excentricidad de masa (torsión, modos acoplados)",
+ "title": "Pórtico 3D simétrico regular de 5 pisos (control de desacople)",
  "tests": [
-  "acoplamiento traslación-torsión",
-  "períodos y participación"
+  "modos desacoplados X/Y/torsión",
+  "participación cruzada nula",
+  "períodos"
  ],
  "units": "SI",
  "common": {
@@ -45,152 +46,111 @@
   "masa_piso_kg": 91774.45916801355,
   "inercia_Rz_kgm2": 2485558.2691337005,
   "CM": [
-   9.0,
-   5.5
+   7.5,
+   5.0
   ],
   "excentricidad": [
-   1.5,
-   0.5
+   0,
+   0
   ],
-  "nota": "e=0.10·Lx, 0.05·Ly",
   "diafragma_r3": {
    "pisos": [
     {
      "piso": 1,
-     "master": 107,
+     "master": 103,
      "coordinates": [
       10,
-      5,
+      0,
       3.0
      ],
      "pesos": [
       {
        "node": 106,
-       "w_kg": 16519.40265024244
+       "w_kg": 45887.229584006775
       },
       {
        "node": 107,
-       "w_kg": 66077.61060096975
-      },
-      {
-       "node": 110,
-       "w_kg": 1835.489183360271
-      },
-      {
-       "node": 111,
-       "w_kg": 7341.956733441084
+       "w_kg": 45887.229584006775
       }
      ],
      "Rz_extra_kgm2": 1911967.8993336158
     },
     {
      "piso": 2,
-     "master": 207,
+     "master": 203,
      "coordinates": [
       10,
-      5,
+      0,
       6.0
      ],
      "pesos": [
       {
        "node": 206,
-       "w_kg": 16519.40265024244
+       "w_kg": 45887.229584006775
       },
       {
        "node": 207,
-       "w_kg": 66077.61060096975
-      },
-      {
-       "node": 210,
-       "w_kg": 1835.489183360271
-      },
-      {
-       "node": 211,
-       "w_kg": 7341.956733441084
+       "w_kg": 45887.229584006775
       }
      ],
      "Rz_extra_kgm2": 1911967.8993336158
     },
     {
      "piso": 3,
-     "master": 307,
+     "master": 303,
      "coordinates": [
       10,
-      5,
+      0,
       9.0
      ],
      "pesos": [
       {
        "node": 306,
-       "w_kg": 16519.40265024244
+       "w_kg": 45887.229584006775
       },
       {
        "node": 307,
-       "w_kg": 66077.61060096975
-      },
-      {
-       "node": 310,
-       "w_kg": 1835.489183360271
-      },
-      {
-       "node": 311,
-       "w_kg": 7341.956733441084
+       "w_kg": 45887.229584006775
       }
      ],
      "Rz_extra_kgm2": 1911967.8993336158
     },
     {
      "piso": 4,
-     "master": 407,
+     "master": 403,
      "coordinates": [
       10,
-      5,
+      0,
       12.0
      ],
      "pesos": [
       {
        "node": 406,
-       "w_kg": 16519.40265024244
+       "w_kg": 45887.229584006775
       },
       {
        "node": 407,
-       "w_kg": 66077.61060096975
-      },
-      {
-       "node": 410,
-       "w_kg": 1835.489183360271
-      },
-      {
-       "node": 411,
-       "w_kg": 7341.956733441084
+       "w_kg": 45887.229584006775
       }
      ],
      "Rz_extra_kgm2": 1911967.8993336158
     },
     {
      "piso": 5,
-     "master": 507,
+     "master": 503,
      "coordinates": [
       10,
-      5,
+      0,
       15.0
      ],
      "pesos": [
       {
        "node": 506,
-       "w_kg": 16519.40265024244
+       "w_kg": 45887.229584006775
       },
       {
        "node": 507,
-       "w_kg": 66077.61060096975
-      },
-      {
-       "node": 510,
-       "w_kg": 1835.489183360271
-      },
-      {
-       "node": 511,
-       "w_kg": 7341.956733441084
+       "w_kg": 45887.229584006775
       }
      ],
      "Rz_extra_kgm2": 1911967.8993336158
@@ -203,11 +163,11 @@
   },
   "estado_engine": [
    {
-    "run": "E1-modal",
-    "estado": "bloqueado por ENG-E-0006",
-    "status_engine": "unstable",
+    "run": "E4-modal",
+    "estado": "ejecutable; warning API-W-DIAPHRAGM-RECOVERY (#84)",
+    "status_engine": "warning",
     "seguimiento": "MAM-847",
-    "causa": "El Engine no condensa los 180 GDL Uz/Rx/Ry libres sin masa; falla en Uz del nodo 101. Issue del Engine pendiente de abrir.",
+    "causa": "Condensación de Guyan de GDL libres sin masa habilitada por #188 (#184); períodos y cinemática modal verificados con la referencia propia. Recuperación de esfuerzos/reacciones de diafragma bajo aviso #84.",
     "warnings": [
      {
       "codigo": "API-W-DIAPHRAGM-RECOVERY",
@@ -215,7 +175,7 @@
       "causa": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados."
      }
     ],
-    "evidencia_engine": "_ref/engine_r3.json"
+    "evidencia_engine": "crates/engine-api/tests/val032_runs.rs"
    }
   ]
  },
@@ -3842,11 +3802,11 @@
     "values": [
      {
       "dof": "Ux",
-      "value": 16519.40265024244
+      "value": 45887.229584006775
      },
      {
       "dof": "Uy",
-      "value": 16519.40265024244
+      "value": 45887.229584006775
      }
     ]
    },
@@ -3856,43 +3816,21 @@
     "values": [
      {
       "dof": "Ux",
-      "value": 66077.61060096975
+      "value": 45887.229584006775
      },
      {
       "dof": "Uy",
-      "value": 66077.61060096975
-     },
+      "value": 45887.229584006775
+     }
+    ]
+   },
+   {
+    "id": "piso_1_nodo_103",
+    "node": 103,
+    "values": [
      {
       "dof": "Rz",
       "value": 1911967.8993336158
-     }
-    ]
-   },
-   {
-    "id": "piso_1_nodo_110",
-    "node": 110,
-    "values": [
-     {
-      "dof": "Ux",
-      "value": 1835.489183360271
-     },
-     {
-      "dof": "Uy",
-      "value": 1835.489183360271
-     }
-    ]
-   },
-   {
-    "id": "piso_1_nodo_111",
-    "node": 111,
-    "values": [
-     {
-      "dof": "Ux",
-      "value": 7341.956733441084
-     },
-     {
-      "dof": "Uy",
-      "value": 7341.956733441084
      }
     ]
    },
@@ -3902,11 +3840,11 @@
     "values": [
      {
       "dof": "Ux",
-      "value": 16519.40265024244
+      "value": 45887.229584006775
      },
      {
       "dof": "Uy",
-      "value": 16519.40265024244
+      "value": 45887.229584006775
      }
     ]
    },
@@ -3916,43 +3854,21 @@
     "values": [
      {
       "dof": "Ux",
-      "value": 66077.61060096975
+      "value": 45887.229584006775
      },
      {
       "dof": "Uy",
-      "value": 66077.61060096975
-     },
+      "value": 45887.229584006775
+     }
+    ]
+   },
+   {
+    "id": "piso_2_nodo_203",
+    "node": 203,
+    "values": [
      {
       "dof": "Rz",
       "value": 1911967.8993336158
-     }
-    ]
-   },
-   {
-    "id": "piso_2_nodo_210",
-    "node": 210,
-    "values": [
-     {
-      "dof": "Ux",
-      "value": 1835.489183360271
-     },
-     {
-      "dof": "Uy",
-      "value": 1835.489183360271
-     }
-    ]
-   },
-   {
-    "id": "piso_2_nodo_211",
-    "node": 211,
-    "values": [
-     {
-      "dof": "Ux",
-      "value": 7341.956733441084
-     },
-     {
-      "dof": "Uy",
-      "value": 7341.956733441084
      }
     ]
    },
@@ -3962,11 +3878,11 @@
     "values": [
      {
       "dof": "Ux",
-      "value": 16519.40265024244
+      "value": 45887.229584006775
      },
      {
       "dof": "Uy",
-      "value": 16519.40265024244
+      "value": 45887.229584006775
      }
     ]
    },
@@ -3976,43 +3892,21 @@
     "values": [
      {
       "dof": "Ux",
-      "value": 66077.61060096975
+      "value": 45887.229584006775
      },
      {
       "dof": "Uy",
-      "value": 66077.61060096975
-     },
+      "value": 45887.229584006775
+     }
+    ]
+   },
+   {
+    "id": "piso_3_nodo_303",
+    "node": 303,
+    "values": [
      {
       "dof": "Rz",
       "value": 1911967.8993336158
-     }
-    ]
-   },
-   {
-    "id": "piso_3_nodo_310",
-    "node": 310,
-    "values": [
-     {
-      "dof": "Ux",
-      "value": 1835.489183360271
-     },
-     {
-      "dof": "Uy",
-      "value": 1835.489183360271
-     }
-    ]
-   },
-   {
-    "id": "piso_3_nodo_311",
-    "node": 311,
-    "values": [
-     {
-      "dof": "Ux",
-      "value": 7341.956733441084
-     },
-     {
-      "dof": "Uy",
-      "value": 7341.956733441084
      }
     ]
    },
@@ -4022,11 +3916,11 @@
     "values": [
      {
       "dof": "Ux",
-      "value": 16519.40265024244
+      "value": 45887.229584006775
      },
      {
       "dof": "Uy",
-      "value": 16519.40265024244
+      "value": 45887.229584006775
      }
     ]
    },
@@ -4036,43 +3930,21 @@
     "values": [
      {
       "dof": "Ux",
-      "value": 66077.61060096975
+      "value": 45887.229584006775
      },
      {
       "dof": "Uy",
-      "value": 66077.61060096975
-     },
+      "value": 45887.229584006775
+     }
+    ]
+   },
+   {
+    "id": "piso_4_nodo_403",
+    "node": 403,
+    "values": [
      {
       "dof": "Rz",
       "value": 1911967.8993336158
-     }
-    ]
-   },
-   {
-    "id": "piso_4_nodo_410",
-    "node": 410,
-    "values": [
-     {
-      "dof": "Ux",
-      "value": 1835.489183360271
-     },
-     {
-      "dof": "Uy",
-      "value": 1835.489183360271
-     }
-    ]
-   },
-   {
-    "id": "piso_4_nodo_411",
-    "node": 411,
-    "values": [
-     {
-      "dof": "Ux",
-      "value": 7341.956733441084
-     },
-     {
-      "dof": "Uy",
-      "value": 7341.956733441084
      }
     ]
    },
@@ -4082,11 +3954,11 @@
     "values": [
      {
       "dof": "Ux",
-      "value": 16519.40265024244
+      "value": 45887.229584006775
      },
      {
       "dof": "Uy",
-      "value": 16519.40265024244
+      "value": 45887.229584006775
      }
     ]
    },
@@ -4096,57 +3968,35 @@
     "values": [
      {
       "dof": "Ux",
-      "value": 66077.61060096975
+      "value": 45887.229584006775
      },
      {
       "dof": "Uy",
-      "value": 66077.61060096975
-     },
+      "value": 45887.229584006775
+     }
+    ]
+   },
+   {
+    "id": "piso_5_nodo_503",
+    "node": 503,
+    "values": [
      {
       "dof": "Rz",
       "value": 1911967.8993336158
-     }
-    ]
-   },
-   {
-    "id": "piso_5_nodo_510",
-    "node": 510,
-    "values": [
-     {
-      "dof": "Ux",
-      "value": 1835.489183360271
-     },
-     {
-      "dof": "Uy",
-      "value": 1835.489183360271
-     }
-    ]
-   },
-   {
-    "id": "piso_5_nodo_511",
-    "node": 511,
-    "values": [
-     {
-      "dof": "Ux",
-      "value": 7341.956733441084
-     },
-     {
-      "dof": "Uy",
-      "value": 7341.956733441084
      }
     ]
    }
   ],
   "diaphragms": [
    {
-    "master": 107,
+    "master": 103,
     "slaves": [
      101,
      102,
-     103,
      104,
      105,
      106,
+     107,
      108,
      109,
      110,
@@ -4155,14 +4005,14 @@
     ]
    },
    {
-    "master": 207,
+    "master": 203,
     "slaves": [
      201,
      202,
-     203,
      204,
      205,
      206,
+     207,
      208,
      209,
      210,
@@ -4171,14 +4021,14 @@
     ]
    },
    {
-    "master": 307,
+    "master": 303,
     "slaves": [
      301,
      302,
-     303,
      304,
      305,
      306,
+     307,
      308,
      309,
      310,
@@ -4187,14 +4037,14 @@
     ]
    },
    {
-    "master": 407,
+    "master": 403,
     "slaves": [
      401,
      402,
-     403,
      404,
      405,
      406,
+     407,
      408,
      409,
      410,
@@ -4203,14 +4053,14 @@
     ]
    },
    {
-    "master": 507,
+    "master": 503,
     "slaves": [
      501,
      502,
-     503,
      504,
      505,
      506,
+     507,
      508,
      509,
      510,
@@ -4222,7 +4072,7 @@
  },
  "runs": [
   {
-   "id": "E1-modal",
+   "id": "E4-modal",
    "engine_input": {
     "schema": "engine-input/1",
     "units": "SI",
@@ -7847,11 +7697,11 @@
        "values": [
         {
          "dof": "Ux",
-         "value": 16519.40265024244
+         "value": 45887.229584006775
         },
         {
          "dof": "Uy",
-         "value": 16519.40265024244
+         "value": 45887.229584006775
         }
        ]
       },
@@ -7861,43 +7711,21 @@
        "values": [
         {
          "dof": "Ux",
-         "value": 66077.61060096975
+         "value": 45887.229584006775
         },
         {
          "dof": "Uy",
-         "value": 66077.61060096975
-        },
+         "value": 45887.229584006775
+        }
+       ]
+      },
+      {
+       "id": "piso_1_nodo_103",
+       "node": 103,
+       "values": [
         {
          "dof": "Rz",
          "value": 1911967.8993336158
-        }
-       ]
-      },
-      {
-       "id": "piso_1_nodo_110",
-       "node": 110,
-       "values": [
-        {
-         "dof": "Ux",
-         "value": 1835.489183360271
-        },
-        {
-         "dof": "Uy",
-         "value": 1835.489183360271
-        }
-       ]
-      },
-      {
-       "id": "piso_1_nodo_111",
-       "node": 111,
-       "values": [
-        {
-         "dof": "Ux",
-         "value": 7341.956733441084
-        },
-        {
-         "dof": "Uy",
-         "value": 7341.956733441084
         }
        ]
       },
@@ -7907,11 +7735,11 @@
        "values": [
         {
          "dof": "Ux",
-         "value": 16519.40265024244
+         "value": 45887.229584006775
         },
         {
          "dof": "Uy",
-         "value": 16519.40265024244
+         "value": 45887.229584006775
         }
        ]
       },
@@ -7921,43 +7749,21 @@
        "values": [
         {
          "dof": "Ux",
-         "value": 66077.61060096975
+         "value": 45887.229584006775
         },
         {
          "dof": "Uy",
-         "value": 66077.61060096975
-        },
+         "value": 45887.229584006775
+        }
+       ]
+      },
+      {
+       "id": "piso_2_nodo_203",
+       "node": 203,
+       "values": [
         {
          "dof": "Rz",
          "value": 1911967.8993336158
-        }
-       ]
-      },
-      {
-       "id": "piso_2_nodo_210",
-       "node": 210,
-       "values": [
-        {
-         "dof": "Ux",
-         "value": 1835.489183360271
-        },
-        {
-         "dof": "Uy",
-         "value": 1835.489183360271
-        }
-       ]
-      },
-      {
-       "id": "piso_2_nodo_211",
-       "node": 211,
-       "values": [
-        {
-         "dof": "Ux",
-         "value": 7341.956733441084
-        },
-        {
-         "dof": "Uy",
-         "value": 7341.956733441084
         }
        ]
       },
@@ -7967,11 +7773,11 @@
        "values": [
         {
          "dof": "Ux",
-         "value": 16519.40265024244
+         "value": 45887.229584006775
         },
         {
          "dof": "Uy",
-         "value": 16519.40265024244
+         "value": 45887.229584006775
         }
        ]
       },
@@ -7981,43 +7787,21 @@
        "values": [
         {
          "dof": "Ux",
-         "value": 66077.61060096975
+         "value": 45887.229584006775
         },
         {
          "dof": "Uy",
-         "value": 66077.61060096975
-        },
+         "value": 45887.229584006775
+        }
+       ]
+      },
+      {
+       "id": "piso_3_nodo_303",
+       "node": 303,
+       "values": [
         {
          "dof": "Rz",
          "value": 1911967.8993336158
-        }
-       ]
-      },
-      {
-       "id": "piso_3_nodo_310",
-       "node": 310,
-       "values": [
-        {
-         "dof": "Ux",
-         "value": 1835.489183360271
-        },
-        {
-         "dof": "Uy",
-         "value": 1835.489183360271
-        }
-       ]
-      },
-      {
-       "id": "piso_3_nodo_311",
-       "node": 311,
-       "values": [
-        {
-         "dof": "Ux",
-         "value": 7341.956733441084
-        },
-        {
-         "dof": "Uy",
-         "value": 7341.956733441084
         }
        ]
       },
@@ -8027,11 +7811,11 @@
        "values": [
         {
          "dof": "Ux",
-         "value": 16519.40265024244
+         "value": 45887.229584006775
         },
         {
          "dof": "Uy",
-         "value": 16519.40265024244
+         "value": 45887.229584006775
         }
        ]
       },
@@ -8041,43 +7825,21 @@
        "values": [
         {
          "dof": "Ux",
-         "value": 66077.61060096975
+         "value": 45887.229584006775
         },
         {
          "dof": "Uy",
-         "value": 66077.61060096975
-        },
+         "value": 45887.229584006775
+        }
+       ]
+      },
+      {
+       "id": "piso_4_nodo_403",
+       "node": 403,
+       "values": [
         {
          "dof": "Rz",
          "value": 1911967.8993336158
-        }
-       ]
-      },
-      {
-       "id": "piso_4_nodo_410",
-       "node": 410,
-       "values": [
-        {
-         "dof": "Ux",
-         "value": 1835.489183360271
-        },
-        {
-         "dof": "Uy",
-         "value": 1835.489183360271
-        }
-       ]
-      },
-      {
-       "id": "piso_4_nodo_411",
-       "node": 411,
-       "values": [
-        {
-         "dof": "Ux",
-         "value": 7341.956733441084
-        },
-        {
-         "dof": "Uy",
-         "value": 7341.956733441084
         }
        ]
       },
@@ -8087,11 +7849,11 @@
        "values": [
         {
          "dof": "Ux",
-         "value": 16519.40265024244
+         "value": 45887.229584006775
         },
         {
          "dof": "Uy",
-         "value": 16519.40265024244
+         "value": 45887.229584006775
         }
        ]
       },
@@ -8101,57 +7863,35 @@
        "values": [
         {
          "dof": "Ux",
-         "value": 66077.61060096975
+         "value": 45887.229584006775
         },
         {
          "dof": "Uy",
-         "value": 66077.61060096975
-        },
+         "value": 45887.229584006775
+        }
+       ]
+      },
+      {
+       "id": "piso_5_nodo_503",
+       "node": 503,
+       "values": [
         {
          "dof": "Rz",
          "value": 1911967.8993336158
-        }
-       ]
-      },
-      {
-       "id": "piso_5_nodo_510",
-       "node": 510,
-       "values": [
-        {
-         "dof": "Ux",
-         "value": 1835.489183360271
-        },
-        {
-         "dof": "Uy",
-         "value": 1835.489183360271
-        }
-       ]
-      },
-      {
-       "id": "piso_5_nodo_511",
-       "node": 511,
-       "values": [
-        {
-         "dof": "Ux",
-         "value": 7341.956733441084
-        },
-        {
-         "dof": "Uy",
-         "value": 7341.956733441084
         }
        ]
       }
      ],
      "diaphragms": [
       {
-       "master": 107,
+       "master": 103,
        "slaves": [
         101,
         102,
-        103,
         104,
         105,
         106,
+        107,
         108,
         109,
         110,
@@ -8160,14 +7900,14 @@
        ]
       },
       {
-       "master": 207,
+       "master": 203,
        "slaves": [
         201,
         202,
-        203,
         204,
         205,
         206,
+        207,
         208,
         209,
         210,
@@ -8176,14 +7916,14 @@
        ]
       },
       {
-       "master": 307,
+       "master": 303,
        "slaves": [
         301,
         302,
-        303,
         304,
         305,
         306,
+        307,
         308,
         309,
         310,
@@ -8192,14 +7932,14 @@
        ]
       },
       {
-       "master": 407,
+       "master": 403,
        "slaves": [
         401,
         402,
-        403,
         404,
         405,
         406,
+        407,
         408,
         409,
         410,
@@ -8208,14 +7948,14 @@
        ]
       },
       {
-       "master": 507,
+       "master": 503,
        "slaves": [
         501,
         502,
-        503,
         504,
         505,
         506,
+        507,
         508,
         509,
         510,
@@ -8251,10 +7991,10 @@
     "options": {}
    },
    "info": {
-    "estado": "bloqueado por ENG-E-0006",
-    "status_engine": "unstable",
+    "estado": "ejecutable; warning API-W-DIAPHRAGM-RECOVERY (#84)",
+    "status_engine": "warning",
     "seguimiento": "MAM-847",
-    "causa": "El Engine no condensa los 180 GDL Uz/Rx/Ry libres sin masa; falla en Uz del nodo 101. Issue del Engine pendiente de abrir.",
+    "causa": "Condensación de Guyan de GDL libres sin masa habilitada por #188 (#184); períodos y cinemática modal verificados con la referencia propia. Recuperación de esfuerzos/reacciones de diafragma bajo aviso #84.",
     "warnings": [
      {
       "codigo": "API-W-DIAPHRAGM-RECOVERY",
@@ -8262,7 +8002,7 @@
       "causa": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados."
      }
     ],
-    "evidencia_engine": "_ref/engine_r3.json"
+    "evidencia_engine": "crates/engine-api/tests/val032_runs.rs"
    }
   }
  ],
@@ -8272,15 +8012,23 @@
    "comparison": "Engine vs OpenSees/Frame3DD",
    "tol": 1e-05,
    "kind": "relativa",
-   "justification": "Modelo lineal idéntico.",
+   "justification": "Mismo modelo lineal Euler, masa concentrada idéntica; diferencias solo del autosolver.",
    "status": "criterio"
   },
   {
-   "metric": "fracciones de masa efectiva por modo y dirección",
-   "comparison": "Engine vs oráculos",
-   "tol": 1e-05,
+   "metric": "fracción de masa efectiva cruzada (X en modos Y y Y en modos X)",
+   "comparison": "valor absoluto",
+   "tol": 1e-08,
    "kind": "absoluta",
-   "justification": "Modos acoplados bien separados; sensible sólo si hay modos casi repetidos (se vigila).",
+   "justification": "Simetría exacta CM=CR: la participación cruzada es analíticamente cero.",
+   "status": "criterio"
+  },
+  {
+   "metric": "masa efectiva acumulada modos 1–6 / masa libre, en X e Y",
+   "comparison": "Engine vs oráculos",
+   "tol": 1e-06,
+   "kind": "absoluta",
+   "justification": "Control no trivial de participación modal; acumulación por modo pendiente de corrida.",
    "status": "criterio"
   },
   {

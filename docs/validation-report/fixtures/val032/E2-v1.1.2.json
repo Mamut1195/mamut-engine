@@ -2,7 +2,7 @@
  "schema": "val032-fixture/1",
  "schema_status": "BORRADOR — envoltura VAL-032; documentos bench-model/1 separados conformes a #183 (797535d8); ver README §Brechas",
  "id": "E2",
- "version": "1.1.1",
+ "version": "1.1.2",
  "case": "VAL-032",
  "linear": "MAM-847",
  "parent": "MAM-604",
@@ -220,10 +220,10 @@
   "estado_engine": [
    {
     "run": "E2-cqc-X",
-    "estado": "bloqueado por ENG-E-0006",
-    "status_engine": "unstable",
+    "estado": "ejecutable; warning API-W-DIAPHRAGM-RECOVERY (#84)",
+    "status_engine": "warning",
     "seguimiento": "MAM-847",
-    "causa": "El Engine no condensa los 180 GDL Uz/Rx/Ry libres sin masa; falla en Uz del nodo 101. Issue del Engine pendiente de abrir.",
+    "causa": "Condensación de Guyan de GDL libres sin masa habilitada por #188 (#184); períodos y cinemática modal verificados con la referencia propia. Recuperación de esfuerzos/reacciones de diafragma bajo aviso #84.",
     "warnings": [
      {
       "codigo": "API-W-DIAPHRAGM-RECOVERY",
@@ -231,14 +231,14 @@
       "causa": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados."
      }
     ],
-    "evidencia_engine": "_ref/engine_r3.json"
+    "evidencia_engine": "crates/engine-api/tests/val032_runs.rs"
    },
    {
     "run": "E2-srss-X",
-    "estado": "bloqueado por ENG-E-0006",
-    "status_engine": "unstable",
+    "estado": "ejecutable; warning API-W-DIAPHRAGM-RECOVERY (#84)",
+    "status_engine": "warning",
     "seguimiento": "MAM-847",
-    "causa": "El Engine no condensa los 180 GDL Uz/Rx/Ry libres sin masa; falla en Uz del nodo 101. Issue del Engine pendiente de abrir.",
+    "causa": "Condensación de Guyan de GDL libres sin masa habilitada por #188 (#184); períodos y cinemática modal verificados con la referencia propia. Recuperación de esfuerzos/reacciones de diafragma bajo aviso #84.",
     "warnings": [
      {
       "codigo": "API-W-DIAPHRAGM-RECOVERY",
@@ -246,14 +246,14 @@
       "causa": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados."
      }
     ],
-    "evidencia_engine": "_ref/engine_r3.json"
+    "evidencia_engine": "crates/engine-api/tests/val032_runs.rs"
    },
    {
     "run": "E2-cqc-Y",
-    "estado": "bloqueado por ENG-E-0006",
-    "status_engine": "unstable",
+    "estado": "ejecutable; warning API-W-DIAPHRAGM-RECOVERY (#84)",
+    "status_engine": "warning",
     "seguimiento": "MAM-847",
-    "causa": "El Engine no condensa los 180 GDL Uz/Rx/Ry libres sin masa; falla en Uz del nodo 101. Issue del Engine pendiente de abrir.",
+    "causa": "Condensación de Guyan de GDL libres sin masa habilitada por #188 (#184); períodos y cinemática modal verificados con la referencia propia. Recuperación de esfuerzos/reacciones de diafragma bajo aviso #84.",
     "warnings": [
      {
       "codigo": "API-W-DIAPHRAGM-RECOVERY",
@@ -261,7 +261,7 @@
       "causa": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados."
      }
     ],
-    "evidencia_engine": "_ref/engine_r3.json"
+    "evidencia_engine": "crates/engine-api/tests/val032_runs.rs"
    }
   ]
  },
@@ -9121,10 +9121,10 @@
     "options": {}
    },
    "info": {
-    "estado": "bloqueado por ENG-E-0006",
-    "status_engine": "unstable",
+    "estado": "ejecutable; warning API-W-DIAPHRAGM-RECOVERY (#84)",
+    "status_engine": "warning",
     "seguimiento": "MAM-847",
-    "causa": "El Engine no condensa los 180 GDL Uz/Rx/Ry libres sin masa; falla en Uz del nodo 101. Issue del Engine pendiente de abrir.",
+    "causa": "Condensación de Guyan de GDL libres sin masa habilitada por #188 (#184); períodos y cinemática modal verificados con la referencia propia. Recuperación de esfuerzos/reacciones de diafragma bajo aviso #84.",
     "warnings": [
      {
       "codigo": "API-W-DIAPHRAGM-RECOVERY",
@@ -9132,7 +9132,7 @@
       "causa": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados."
      }
     ],
-    "evidencia_engine": "_ref/engine_r3.json"
+    "evidencia_engine": "crates/engine-api/tests/val032_runs.rs"
    }
   },
   {
@@ -13989,10 +13989,10 @@
     "options": {}
    },
    "info": {
-    "estado": "bloqueado por ENG-E-0006",
-    "status_engine": "unstable",
+    "estado": "ejecutable; warning API-W-DIAPHRAGM-RECOVERY (#84)",
+    "status_engine": "warning",
     "seguimiento": "MAM-847",
-    "causa": "El Engine no condensa los 180 GDL Uz/Rx/Ry libres sin masa; falla en Uz del nodo 101. Issue del Engine pendiente de abrir.",
+    "causa": "Condensación de Guyan de GDL libres sin masa habilitada por #188 (#184); períodos y cinemática modal verificados con la referencia propia. Recuperación de esfuerzos/reacciones de diafragma bajo aviso #84.",
     "warnings": [
      {
       "codigo": "API-W-DIAPHRAGM-RECOVERY",
@@ -14000,7 +14000,7 @@
       "causa": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados."
      }
     ],
-    "evidencia_engine": "_ref/engine_r3.json"
+    "evidencia_engine": "crates/engine-api/tests/val032_runs.rs"
    }
   },
   {
@@ -18857,10 +18857,10 @@
     "options": {}
    },
    "info": {
-    "estado": "bloqueado por ENG-E-0006",
-    "status_engine": "unstable",
+    "estado": "ejecutable; warning API-W-DIAPHRAGM-RECOVERY (#84)",
+    "status_engine": "warning",
     "seguimiento": "MAM-847",
-    "causa": "El Engine no condensa los 180 GDL Uz/Rx/Ry libres sin masa; falla en Uz del nodo 101. Issue del Engine pendiente de abrir.",
+    "causa": "Condensación de Guyan de GDL libres sin masa habilitada por #188 (#184); períodos y cinemática modal verificados con la referencia propia. Recuperación de esfuerzos/reacciones de diafragma bajo aviso #84.",
     "warnings": [
      {
       "codigo": "API-W-DIAPHRAGM-RECOVERY",
@@ -18868,7 +18868,7 @@
       "causa": "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados."
      }
     ],
-    "evidencia_engine": "_ref/engine_r3.json"
+    "evidencia_engine": "crates/engine-api/tests/val032_runs.rs"
    }
   }
  ],

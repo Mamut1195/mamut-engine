@@ -333,31 +333,20 @@ def engine_gaps(document):
     if slaves & supports.keys():
         gaps.append(dict(codigo='ENG-E-0013', referencia='Engine: diafragmas/apoyos',
             detalle='Un esclavo de diafragma tiene apoyo; retirarlo cambiaría el modelo físico.'))
-    if document['analyses'][0]['method'] == 'pDelta' and model['diaphragms']:
-        gaps.append(dict(codigo='ENG-E-0007', referencia='Engine: pDelta + diafragma',
-            detalle='Las fuerzas geométricas y el residual no se proyectan por la transformación del diafragma. '
-            'E3-pdelta termina con status notConverged, residual mínimo ≈1.14e6. '
-            'Seguimiento MAM-847; issue del Engine pendiente de abrir, corrección en ticket aparte del Engine. '
-            'El esquema sí permite el modelo; no se cambian física ni tolerancias.'))
-    if document['analyses'][0]['method'] in ('modal', 'responseSpectrum'):
-        masses = {(m['node'], v['dof']): v['value']
-                  for m in model['masses'] for v in m['values']}
-        missing = []
-        for node in model['nodes']:
-            for dof in node['dofs']:
-                if dof in supports.get(node['id'], set()):
-                    continue
-                if node['id'] in slaves and dof in ('Ux', 'Uy', 'Rz'):
-                    continue  # eliminados por el diafragma XY
-                if masses.get((node['id'], dof), 0.0) <= 0:
-                    missing.append((node['id'], dof))
-        if missing:
-            gaps.append(dict(codigo='ENG-E-0006', referencia='Engine: masa modal positiva por gdl libre',
-                detalle=f'{len(missing)} gdl libres sin masa positiva: Uz/Rx/Ry de los '
-                '60 nodos de piso (55 esclavos y 5 maestros). nodal_masses conserva '
-                'el reparto exacto Ux/Uy y Rz_extra. El Engine no condensa GDL sin masa; '
-                'seguimiento MAM-847, issue del Engine pendiente de abrir. '
-                'Añadir masa o restringir esos gdl cambiaría la física; '
-                'apoyar esclavos además viola ENG-E-0013. El esquema sí permite el modelo.',
-                gdl_sin_masa=[dict(node=n, dof=d) for n, d in missing]))
+    # #185/#186 proyectan P-Delta con diafragmas; #188 (#184) condensa
+    # los GDL libres sin masa. Esas combinaciones ya no son brechas.
     return gaps
+
+
+def engine_state(document):
+    """Estado documental actual; la ejecución real se contrasta en val032_runs.rs."""
+    gaps = engine_gaps(document)
+    if gaps:
+        return '; '.join(f"bloqueado por {code}" for code in
+                         dict.fromkeys(gap['codigo'] for gap in gaps))
+    warnings = []
+    if document['model']['diaphragms']:
+        warnings.append('API-W-DIAPHRAGM-RECOVERY (#84)')
+    if document['combinations']:
+        warnings.append('API-W-COMBINED-PRESCRIBED (#85)')
+    return 'ejecutable' + ('; warning ' + ', '.join(warnings) if warnings else '')

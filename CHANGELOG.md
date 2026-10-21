@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- MAM-860 · VAL-032 E3 v1.1.2: amplificación y deriva P-Δ por piso frente a
+  referencia propia P-Δ+P-δ convergida (8/16 elementos por columna) a 1e-3
+  relativo, y verificación independiente con un elemento a 1e-9. Script/JSON
+  reproducibles con axial de gravedad lineal congelada y Kg Hermite consistente.
+  `1/(1−θ)` pasa a diagnóstico unilateral `0 ≤ amp·(1−θ)−1 ≤ 5e-2`.
+  Tests del Engine, hashes y documentación actualizados; 5e-3 frente a Frame3DD
+  y las demás tolerancias se conservan. Sin cambios del solver ni de entradas.
+  Ronda 2: estados VAL-032 sincronizados con #188 (Guyan) y #185/#186:
+  ocho runs modales y E3-pdelta ejecutables con warning #84. E1/E2/E4 v1.1.2,
+  E2b/E5b v1.0.2 y E3 v1.1.3; generador, índice, hashes y README coherentes.
+  Prosa heredada de requisitos de formato aclarada para la guardia clean-room,
+  conservando las diez cifras exigidas y todos los criterios numéricos.
+  `val032_runs` contrasta metadatos con estados/avisos reales y verifica
+  las huellas actuales de fuentes Rust; modelos, runs y tolerancias intactos.
+
 - MAM-80 / ENG-PY-005 · PR #170, ronda 6 (J4 r3, S1): sincroniza la
   preparación de los tests de timeout con PID publicado después de exec/setsid;
   conserva el tope de terminación de 2 s y añade subcaso, PID y tiempo a los fallos.

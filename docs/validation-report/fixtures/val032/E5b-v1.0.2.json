@@ -2,7 +2,7 @@
  "schema": "val032-fixture/1",
  "schema_status": "BORRADOR — envoltura VAL-032; documentos bench-model/1 separados conformes a #183 (797535d8); ver README §Brechas",
  "id": "E5b",
- "version": "1.0.1",
+ "version": "1.0.2",
  "case": "VAL-032",
  "linear": "MAM-847",
  "parent": "MAM-604",
@@ -68,7 +68,7 @@
    "diagonales_totales": 60,
    "justificacion": "Rigidez finita de penalización: EA/Ldiag≈3.52e10 N/m, ≈611 veces 12EcIcol/h³ de una columna y ≈13000 veces 12EcIz_viga/5³. Solo rigidez axial en plano; no es losa física ni igualdad exacta con MPC. Los cruces no añaden nudo."
   },
-  "requisitos_oraculos": "La salida de los oráculos debe imprimir ≥10 cifras significativas para ser comparable como criterio. Frame3DD imprime en coma fija, no en notación científica. La salida del oráculo debe alcanzar ≥10 cifras significativas ajustando las unidades (p.ej. mm, kN); Q2 debe comprobarlo en una corrida en seco de formato antes de congelar. Si no se alcanza, E5b frente a Frame3DD y la parte afectada de E3 son solo diagnóstico, no criterio. Si un oráculo modela truss como barra con I pequeña, debe declarar esa aproximación y la I utilizada.",
+  "requisitos_oraculos": "La salida de los oráculos debe imprimir al menos diez cifras significativas para ser comparable como criterio. Frame3DD imprime en coma fija, no en notación científica. La salida del oráculo debe alcanzar al menos diez cifras significativas ajustando las unidades (p.ej. mm, kN); Q2 debe comprobarlo en una corrida en seco de formato antes de congelar. Si no se alcanza, E5b frente a Frame3DD y la parte afectada de E3 son solo diagnóstico, no criterio. Si un oráculo modela truss como barra con I pequeña, debe declarar esa aproximación y la I utilizada.",
   "combinaciones_cita": "NEC-SE-CG 2015 §3.4.3: numeración 1, 2, 5, 7 y factores NO VERIFICADOS",
   "envolvente": "max/min sobre las 10 combinaciones, calculada fuera del Engine (engine-input/1 no declara envolventes en linearStatic)",
   "diafragma_r3": {
@@ -10945,7 +10945,7 @@
    "comparison": "Engine vs oráculos",
    "tol": 1e-06,
    "kind": "relativa con piso absoluto por componente",
-   "justification": "|Δ| ≤ 1e-6·|ref| o |Δ| ≤ 1e-6·max|componente del mismo tipo en el caso|. El máximo se toma en la referencia, por separado para N, Vy, Vz, T, My y Mz, sin mezclar casos; para combinaciones y envolventes se usa su propio conjunto de referencia. Mismas estaciones de extremo y convención local; no depende de #84. Frame3DD imprime en coma fija, no en notación científica. La salida del oráculo debe alcanzar ≥10 cifras significativas ajustando las unidades (p.ej. mm, kN); Q2 debe comprobarlo en una corrida en seco de formato antes de congelar. Si no se alcanza, E5b frente a Frame3DD y la parte afectada de E3 son solo diagnóstico, no criterio.",
+   "justification": "|Δ| ≤ tol·|ref| o |Δ| ≤ tol·max|componente del mismo tipo en el caso|; tol es el umbral de esta tolerancia. El máximo se toma en la referencia, por separado para N, Vy, Vz, T, My y Mz, sin mezclar casos; para combinaciones y envolventes se usa su propio conjunto de referencia. Mismas estaciones de extremo y convención local; no depende de #84. Frame3DD imprime en coma fija, no en notación científica. La salida del oráculo debe alcanzar al menos diez cifras significativas ajustando las unidades (p.ej. mm, kN); Q2 debe comprobarlo en una corrida en seco de formato antes de congelar. Si no se alcanza, E5b frente a Frame3DD y la parte afectada de E3 son solo diagnóstico, no criterio.",
    "status": "criterio"
   },
   {
@@ -10953,7 +10953,7 @@
    "comparison": "Engine vs oráculos",
    "tol": 1e-06,
    "kind": "relativa",
-   "justification": "Superposición lineal. Frame3DD imprime en coma fija, no en notación científica. La salida del oráculo debe alcanzar ≥10 cifras significativas ajustando las unidades (p.ej. mm, kN); Q2 debe comprobarlo en una corrida en seco de formato antes de congelar. Si no se alcanza, E5b frente a Frame3DD y la parte afectada de E3 son solo diagnóstico, no criterio.",
+   "justification": "Superposición lineal. Frame3DD imprime en coma fija, no en notación científica. La salida del oráculo debe alcanzar al menos diez cifras significativas ajustando las unidades (p.ej. mm, kN); Q2 debe comprobarlo en una corrida en seco de formato antes de congelar. Si no se alcanza, E5b frente a Frame3DD y la parte afectada de E3 son solo diagnóstico, no criterio.",
    "status": "criterio"
   },
   {
@@ -10969,7 +10969,7 @@
    "comparison": "Engine vs OpenSees/Frame3DD",
    "tol": 1e-05,
    "kind": "relativa",
-   "justification": "Aplica cuando el run entrega períodos; mismo modelo y masas. Frame3DD imprime en coma fija, no en notación científica. La salida del oráculo debe alcanzar ≥10 cifras significativas ajustando las unidades (p.ej. mm, kN); Q2 debe comprobarlo en una corrida en seco de formato antes de congelar. Si no se alcanza, E5b frente a Frame3DD y la parte afectada de E3 son solo diagnóstico, no criterio.",
+   "justification": "Aplica cuando el run entrega períodos; mismo modelo y masas. Frame3DD imprime en coma fija, no en notación científica. La salida del oráculo debe alcanzar al menos diez cifras significativas ajustando las unidades (p.ej. mm, kN); Q2 debe comprobarlo en una corrida en seco de formato antes de congelar. Si no se alcanza, E5b frente a Frame3DD y la parte afectada de E3 son solo diagnóstico, no criterio.",
    "status": "criterio"
   },
   {
@@ -10977,7 +10977,7 @@
    "comparison": "Engine vs OpenSees/Frame3DD",
    "tol": 0.0001,
    "kind": "relativa",
-   "justification": "Todos los modelos; desplazamientos y derivas P-Δ tienen las comparaciones específicas por formulación de E3. Frame3DD imprime en coma fija, no en notación científica. La salida del oráculo debe alcanzar ≥10 cifras significativas ajustando las unidades (p.ej. mm, kN); Q2 debe comprobarlo en una corrida en seco de formato antes de congelar. Si no se alcanza, E5b frente a Frame3DD y la parte afectada de E3 son solo diagnóstico, no criterio.",
+   "justification": "Todos los modelos; desplazamientos y derivas P-Δ tienen las comparaciones específicas por formulación de E3. Frame3DD imprime en coma fija, no en notación científica. La salida del oráculo debe alcanzar al menos diez cifras significativas ajustando las unidades (p.ej. mm, kN); Q2 debe comprobarlo en una corrida en seco de formato antes de congelar. Si no se alcanza, E5b frente a Frame3DD y la parte afectada de E3 son solo diagnóstico, no criterio.",
    "status": "criterio"
   },
   {

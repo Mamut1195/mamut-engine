@@ -1,6 +1,6 @@
 # Generador VAL-032 (E1–E5, E2b y E5b). Determinista; sin red; sin salidas de oráculos.
 import json, math, hashlib, pathlib, copy
-from bench_translate import make_bench, translate, remap_document, require_exact, engine_gaps
+from bench_translate import make_bench, translate, remap_document, require_exact, engine_gaps, engine_state
 OUT = pathlib.Path(__file__).resolve().parent.parent
 # Identidad de la copia revisada; generar no requiere acceso al esquema externo.
 BENCH_MODEL_SPEC = dict(pr=183, sha="797535d86af8fe6f57f935fbaa978e14b15cfe89",
@@ -10,8 +10,9 @@ g = 9.80665
 fc = 28.0                      # MPa
 E = 4700*math.sqrt(fc)*1e6     # Pa, ACI 318-25 19.2.2.1(b)
 nu = 0.2; G = E/(2*(1+nu))
-SLAB_A = 10.0  # m², penalización axial común a E5b y al diafragma de E3 en Frame3DD
-FRAME3DD_FORMAT = ("Frame3DD imprime en coma fija, no en notación científica. La salida del oráculo debe alcanzar ≥10 cifras significativas ajustando las unidades (p.ej. mm, kN); Q2 debe comprobarlo en una corrida en seco de formato antes de congelar. Si no se alcanza, E5b frente a Frame3DD y la parte afectada de E3 son solo diagnóstico, no criterio.")
+# Área propia de penalización axial común a E5b y al diafragma equivalente E3.
+SLAB_A = 10.0  # m²
+FRAME3DD_FORMAT = ("Frame3DD imprime en coma fija, no en notación científica. La salida del oráculo debe alcanzar al menos diez cifras significativas ajustando las unidades (p.ej. mm, kN); Q2 debe comprobarlo en una corrida en seco de formato antes de congelar. Si no se alcanza, E5b frente a Frame3DD y la parte afectada de E3 son solo diagnóstico, no criterio.")
 def rect(b, h):  # b ancho (horizontal local y), h canto (vertical local z)
     A = b*h; Iy = b*h**3/12; Iz = h*b**3/12
     a, c = max(b, h), min(b, h)
@@ -136,7 +137,7 @@ fixtures = {}
 def fixture(fid, title, tests, model, info, runs, tol, extra=None):
     nn = len(model['nodes']); assert nn <= 256
     d = {"schema":"val032-fixture/1","schema_status":"BORRADOR — envoltura VAL-032; documentos bench-model/1 separados conformes a #183 (797535d8); ver README §Brechas",
-         "id":fid, "version":"1.0.1" if fid in ("E2b", "E5b") else "1.1.1", "case":"VAL-032", "linear":"MAM-847", "parent":"MAM-604", "title":title, "tests":tests,
+         "id":fid, "version":{"E1":"1.1.2", "E2":"1.1.2", "E2b":"1.0.2", "E3":"1.1.3", "E4":"1.1.2", "E5":"1.1.1", "E5b":"1.0.2"}[fid], "case":"VAL-032", "linear":"MAM-847", "parent":"MAM-604", "title":title, "tests":tests,
          "units":"SI", "common":common, "info":info, "node_count":nn, "member_count":len(model['members']),
          "model":model, "runs":runs, "tolerances_preregistered":tol + tolmk([
              ("períodos disponibles T1..T15 (s)", "Engine vs OpenSees/Frame3DD", 1e-5, "relativa",
@@ -230,11 +231,12 @@ fixture("E3", "P-Δ de piso con factor de estabilidad θ (5 pisos, columnas 0.25
        gravedad="G = (D + D_adicional) + L = 24 kPa, sin mayorar, en nudos de columna por área tributaria; D_adicional=16 kPa solo G, sin modificar masa ni ELF",
        CM=cm3, lateral="EX: fuerzas ELF y momento r×F en maestros conectados; Δ_i de primer orden en el CM; P_i acumula G desde piso i hasta cubierta",
        formulacion_pdelta="Engine pDelta usa la matriz geométrica consistente Hermite (coeficientes N/(30L)·[36, 3L, 4L², −L²]; crates/engine-elements-frame3d/src/geometric.rs): P-Δ + P-δ por elemento, no P-Δ puro de cuerda.",
-       configuracion_frame3dd=dict(obligatoria=True, shear=0, geom=1, elementos_por_columna=1,
+       configuracion_frame3dd=dict(
+           obligatoria=True, shear=0, geom=1, elementos_por_columna=1,
            tolerancia_newton_raphson_max=1e-9,
            descripcion="Kg consistente: shear=0 sin deformación por cortante; geom=1 con rigidez geométrica activada; 1 elemento por columna igual que el Engine; tolerancia de Newton-Raphson ≤1e-9.",
            diafragma=dict(A_m2=SLAB_A, E_Pa=E, EA_N=E*SLAB_A,
-               representacion="Frame3DD no ofrece constraints de diafragma: se debe declarar su representación con la penalización de diagonales axiales de E5b, misma disposición y mismo EA/A. Efecto medido ≤5.3e-6 (J4 r2)."),
+               representacion="Frame3DD no ofrece constraints de diafragma: se debe declarar su representación con la penalización de diagonales axiales de E5b, misma disposición y mismo EA/A. La revisión J4 r2 de la penalización se documenta en README; no es un criterio nuevo."),
            torsion_alabeo="Frame3DD incluye términos geométricos de torsión-alabeo que el Engine no tiene; en E3 (carga X, planta simétrica) se esperan despreciables, no cuantificado."),
        requisitos_formato_frame3dd=FRAME3DD_FORMAT,
        estabilidad_previa=dict(etiqueta="estimación previa con modelo independiente de J2, no oráculo",
@@ -243,8 +245,10 @@ fixture("E3", "P-Δ de piso con factor de estabilidad θ (5 pisos, columnas 0.25
    dict(id="E3-pdelta", engine_input=doc(m3, [G3, EX3], [], dict(method="pDelta", options=dict(gravity=dict(case="G",factor=1.0), lateral=dict(case="EX",factor=1.0), tolerance=1e-10, max_iterations=100, displacement_scale=0.01, rotation_scale=0.001))))],
   tolmk([EQ,
          ("desplazamientos laterales y derivas P-Δ en CM reales (reconstruidos desde maestros)", "Engine vs oráculo con Kg consistente (Frame3DD geom. no lineal)", 5e-3, "relativa", "Configuración obligatoria según info.configuracion_frame3dd; comparación pendiente de corrida. " + FRAME3DD_FORMAT),
-         ("desplazamientos laterales y derivas P-Δ en CM reales (reconstruidos desde maestros)", "Engine vs oráculo con transformación geométrica P-Δ (solo cuerda)", 5e-2, "relativa", "Diagnóstico: diferencia de formulación P-Δ + P-δ por elemento frente a solo cuerda, 0.5–3.2 % por piso medida por J4.", "diagnóstico, no criterio (diferencia de formulación)"),
-         ("factor de amplificación de deriva Δ_PΔ/Δ_lin por piso", "Engine vs 1/(1−θ_i) con θ de primer orden", 2e-2, "relativa", "Comparar amplificaciones de las derivas de entrepiso; 1/(1−θ) es aproximación de piso, pendiente de corrida."),
+         ("desplazamientos laterales y derivas P-Δ en CM reales (reconstruidos desde maestros)", "Engine vs oráculo con transformación geométrica P-Δ (solo cuerda)", 5e-2, "relativa", "Diagnóstico por diferencia de formulación P-Δ + P-δ por elemento frente a solo cuerda; revisión histórica J4 r2 documentada en README.", "diagnóstico, no criterio (diferencia de formulación)"),
+         ("amplificación Δ_PΔ/Δ_lin y deriva de entrepiso P-Δ por piso", "Engine vs referencia propia P-Δ+P-δ convergida (8 y 16 elementos por columna)", 1e-3, "relativa", "MAM-860: Kg Hermite consistente con axial congelada en gravedad lineal; _ref/e3_pdelta_reference.py; convergencia 8 vs 16 ≤2e-6 relativo por piso."),
+         ("amplificación Δ_PΔ/Δ_lin y deriva de entrepiso P-Δ por piso", "Engine vs implementación independiente de 1 elemento por columna", 1e-9, "relativa", "MAM-860: verificación de código con idéntica discretización; mismo script independiente y axial de gravedad congelada."),
+         ("exceso unilateral amp·(1−θ_i)−1 por piso", "Engine vs estimación de cuerda 1/(1−θ_i), θ de primer orden", 5e-2, "intervalo unilateral [0, tol]", "MAM-860: diagnóstico 0 ≤ amp·(1−θ_i)−1 ≤ 5e-2; la estimación P-Δ de cuerda no incluye P-δ.", "diagnóstico unilateral, no criterio de referencia convergida"),
          ("θ_i de primer orden", "Engine vs oráculos", 1e-4, "relativa", "Lineal; mismo cálculo.")]))
 # E5 combinaciones
 D5, L5 = grav(5, qD, "D"), grav(5, qL, "L")
@@ -284,12 +288,12 @@ fixture("E5b", "Combinaciones sobre E4 sin diafragmas: losa mediante diagonales 
   dict(ELF=e4, carga_lateral="EX/EY repartidas por área tributaria; mismas resultantes y CM que E4",
        losa=dict(A_m2=SLAB_A, E_Pa=E, EA_N=E*SLAB_A, diagonales_por_pano=2, diagonales_totales=60,
            justificacion="Rigidez finita de penalización: EA/Ldiag≈3.52e10 N/m, ≈611 veces 12EcIcol/h³ de una columna y ≈13000 veces 12EcIz_viga/5³. Solo rigidez axial en plano; no es losa física ni igualdad exacta con MPC. Los cruces no añaden nudo."),
-       requisitos_oraculos="La salida de los oráculos debe imprimir ≥10 cifras significativas para ser comparable como criterio. " + FRAME3DD_FORMAT + " Si un oráculo modela truss como barra con I pequeña, debe declarar esa aproximación y la I utilizada.",
+       requisitos_oraculos="La salida de los oráculos debe imprimir al menos diez cifras significativas para ser comparable como criterio. " + FRAME3DD_FORMAT + " Si un oráculo modela truss como barra con I pequeña, debe declarar esa aproximación y la I utilizada.",
        combinaciones_cita=fixtures['E5']['info']['combinaciones_cita'], envolvente=fixtures['E5']['info']['envolvente']),
   [dict(id="E5b-combinaciones", engine_input=doc(m5b,
       [D5,L5,lat_tributary(e4['F'],"Ux","EX"),lat_tributary(e4['F'],"Uy","EY")], combos, dict(method="linearStatic")))],
   tolmk([EQ,
-         ("fuerzas y momentos de barra N,Vy,Vz,T,My,Mz por caso, combinación y envolvente (truss: solo N)", "Engine vs oráculos", 1e-6, "relativa con piso absoluto por componente", "|Δ| ≤ 1e-6·|ref| o |Δ| ≤ 1e-6·max|componente del mismo tipo en el caso|. El máximo se toma en la referencia, por separado para N, Vy, Vz, T, My y Mz, sin mezclar casos; para combinaciones y envolventes se usa su propio conjunto de referencia. Mismas estaciones de extremo y convención local; no depende de #84."),
+         ("fuerzas y momentos de barra N,Vy,Vz,T,My,Mz por caso, combinación y envolvente (truss: solo N)", "Engine vs oráculos", 1e-6, "relativa con piso absoluto por componente", "|Δ| ≤ tol·|ref| o |Δ| ≤ tol·max|componente del mismo tipo en el caso|; tol es el umbral de esta tolerancia. El máximo se toma en la referencia, por separado para N, Vy, Vz, T, My y Mz, sin mezclar casos; para combinaciones y envolventes se usa su propio conjunto de referencia. Mismas estaciones de extremo y convención local; no depende de #84."),
          ("reacciones por combinación", "Engine vs oráculos", 1e-6, "relativa", "Superposición lineal."),
          ("combinación = Σ factor·caso", "Engine interno", 1e-12, "relativa", "Identidad algebraica.")]))
 
@@ -330,13 +334,12 @@ for fid, fixture_data in fixtures.items():
         evidencia="_ref/calibrate_r3.json")
     for run in fixture_data['runs']:
         method = run['engine_input']['analyses'][0]['method']
-        blocked = method in ('modal', 'responseSpectrum')
-        if blocked:
-            state, status, cause = ("bloqueado por ENG-E-0006", "unstable",
-                "El Engine no condensa los 180 GDL Uz/Rx/Ry libres sin masa; falla en Uz del nodo 101. Issue del Engine pendiente de abrir.")
+        if method in ('modal', 'responseSpectrum'):
+            state, status, cause = (engine_state(run['engine_input']), "warning",
+                "Condensación de Guyan de GDL libres sin masa habilitada por #188 (#184); períodos y cinemática modal verificados con la referencia propia. Recuperación de esfuerzos/reacciones de diafragma bajo aviso #84.")
         elif run['id'] == 'E3-pdelta':
-            state, status, cause = ("bloqueado por ENG-E-0007", "notConverged",
-                "Defecto del Engine (pDelta + diafragma): las fuerzas geométricas y el residual no se proyectan por la transformación del diafragma; el residual no baja de 1.14e6. Issue del Engine pendiente de abrir; corrección en ticket aparte del Engine.")
+            state, status, cause = (engine_state(run['engine_input']), "warning",
+                "P-Delta proyectado por la transformación del diafragma tras #185/#186; converge y satisface la referencia propia MAM-860. Recuperación de esfuerzos/reacciones de diafragma bajo aviso #84.")
         else:
             state, status, cause = "Warning", "warning", "Sin masa artificial ni apoyos de piso añadidos."
         run['info'] = dict(estado=state, status_engine=status, seguimiento="MAM-847", causa=cause)
@@ -348,6 +351,8 @@ for fid, fixture_data in fixtures.items():
             run['info']['warnings'].append(dict(codigo="API-W-COMBINED-PRESCRIBED", cantidad=10,
                 causa="#85: cada combinación suma factor·δ de los prescritos. El Engine avisa también para los empotramientos de base con δ=0; no hay asentamientos impuestos."))
         run['info']['evidencia_engine'] = "_ref/engine_r3.json"
+        if method in ('modal', 'responseSpectrum') or run['id'] == 'E3-pdelta':
+            run['info']['evidencia_engine'] = "crates/engine-api/tests/val032_runs.rs"
     fixture_data['info']['estado_engine'] = [dict(run=r['id'], **r['info']) for r in fixture_data['runs']]
 
 def write_json(path, value):
@@ -398,7 +403,7 @@ for fid in ("E1","E2","E2b","E3","E4","E5","E5b"):
     bench_path.parent.mkdir(exist_ok=True)
     write_json(bench_path, bench)
     idx['bench_models'].append(dict(id=fid, path=str(bench_path.relative_to(OUT)), sha256=sha(bench_path),
-        estado_engine="; ".join(f"bloqueado por {code}" for code in dict.fromkeys(gap['codigo'] for gap in gaps)) if gaps else "ejecutable",
+        estado_engine="; ".join(dict.fromkeys(engine_state(r['engine_input']) for r in d['runs'])),
         seguimiento="MAM-847"))
 csv_path = OUT/"nec_se_ds_tabla_Sa.csv"
 csv_bytes = ("T_s,Sa_g,Sa_m_s2\n"+"".join(f"{T},{Sa(T)},{v}\n" for T, v in SA_TABLE)).encode('utf-8')
@@ -407,7 +412,10 @@ if csv_path.exists():
         raise ValueError('El generador alteraría el CSV existente')
 else:
     csv_path.write_bytes(csv_bytes)
-for rel in ("_ref/gen.py", "_ref/validate_bench.py", "_ref/bench_translate.py", "_ref/postproc_derivas.py", "_ref/val032_calibrate.py", "_ref/calibrate_r3.json", "_ref/record_engine.py", "_ref/engine_r3.json", "_ref/engine-input-1.json", "nec_se_ds_tabla_Sa.csv"):
+# MAM-860: la referencia lee el fixture recién emitido; no importa el Engine.
+from e3_pdelta_reference import main as generate_e3_reference
+generate_e3_reference()
+for rel in ("_ref/e3_pdelta_reference.py", "_ref/e3_pdelta_reference.json", "_ref/gen.py", "_ref/validate_bench.py", "_ref/bench_translate.py", "_ref/postproc_derivas.py", "_ref/val032_calibrate.py", "_ref/calibrate_r3.json", "_ref/record_engine.py", "_ref/engine_r3.json", "_ref/engine-input-1.json", "nec_se_ds_tabla_Sa.csv"):
     idx['herramientas'].append(dict(path=rel, sha256=sha(OUT/rel)))
 idx['calibration_r3'] = dict(path="_ref/calibrate_r3.json", sha256=sha(OUT/'_ref/calibrate_r3.json'),
     tolerancia_relativa=1e-10, max_error_relativo_por_edificio={e['id']: e['max_error_relativo']

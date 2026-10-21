@@ -14,7 +14,7 @@ import sys
 from jsonschema import Draft202012Validator
 from referencing import Registry
 from referencing.exceptions import NoSuchResource
-from bench_translate import make_bench, translate, remap_document, require_exact, engine_gaps
+from bench_translate import make_bench, translate, remap_document, require_exact, engine_gaps, engine_state
 
 ROOT = Path(__file__).resolve().parent.parent
 EXPECTED_SCHEMA_SHA256 = '4e4aa7cd2278767a0f9b2899a77657a980230539bfff3ea3a18fb7f6d0e8b005'
@@ -116,8 +116,8 @@ def main():
             if not emitted:
                 raise ValueError(f"{entry['id']}: candidato representable no emitido")
             require_exact(check['engine_gaps'], gaps)
-            expected_state = '; '.join(f'bloqueado por {code}' for code in
-                                      dict.fromkeys(gap['codigo'] for gap in gaps)) if gaps else 'ejecutable'
+            expected_state = '; '.join(dict.fromkeys(engine_state(r['engine_input'])
+                                                     for r in fixture['runs']))
             if emitted['estado_engine'] != expected_state:
                 raise ValueError(f"{entry['id']}: estado Engine incorrecto")
         if entries:
