@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- #185 · ENG-E-0007: P-Δ proyecta la rigidez geométrica, sus fuerzas y el
+  residuo mediante la transformación de diafragmas rígidos; la inercia LDLᵀ
+  se evalúa en la rigidez total proyectada. Regresiones de restricciones
+  exactas y E3-pdelta con referencia NumPy propia reproducible que lee el
+  fixture de main, sin duplicarlo ni cambiar los JSON/hashes de VAL-032.
+  VAL-032 acepta E3-pdelta ejecutable con aviso #84 justificado y conserva
+  los ocho bloqueos modales exactos de #184 / ENG-E-0006.
+
 - MAM-46 · ENG-GEO-003: generadores estáticos `py.matlock_soft_clay`,
   `py.reese_sand` y tabla simétrica `py.user` en engine-geo, puntos (m, N/m),
   parámetros obligatorios y errores tipados; adaptador de tensión efectiva

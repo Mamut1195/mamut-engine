@@ -3,9 +3,9 @@ use engine_api::{CancelToken, Status};
 use serde_json::Value;
 use std::{collections::BTreeSet, fs, path::Path};
 
-// MAM-847: issues del Engine pendientes de abrir. Corregir condensación modal
-// o proyección geométrica P-Δ con diafragma debe hacer fallar este test hasta
-// revisar fixtures, evidencia y documentación.
+// #184: condensación modal pendiente. Los ocho bloqueos conservan estado y
+// error exactos como centinela hasta revisar evidencia y documentación.
+// #185 habilita E3-pdelta sin cambiar los fixtures ni sus tolerancias.
 const BLOCKED: &[(&str, Status, &str, &str)] = &[
     ("E1-modal", Status::Unstable, "unstable", "ENG-E-0006"),
     ("E2-cqc-X", Status::Unstable, "unstable", "ENG-E-0006"),
@@ -20,14 +20,13 @@ const BLOCKED: &[(&str, Status, &str, &str)] = &[
         "ENG-E-0006",
     ),
     ("E4-modal", Status::Unstable, "unstable", "ENG-E-0006"),
-    (
-        "E3-pdelta",
-        Status::NotConverged,
-        "notConverged",
-        "ENG-E-0007",
-    ),
 ];
-const EXECUTABLE: &[&str] = &["E3-lineal", "E5-combinaciones", "E5b-combinaciones"];
+const EXECUTABLE: &[&str] = &[
+    "E3-lineal",
+    "E3-pdelta",
+    "E5-combinaciones",
+    "E5b-combinaciones",
+];
 const COMBINATIONS: &[&str] = &[
     "C1_1.4D",
     "C2_1.2D+1.6L",
@@ -115,7 +114,7 @@ fn val032_runs() {
             if let Some((_, status, serialized_status, code)) =
                 BLOCKED.iter().find(|(blocked, _, _, _)| *blocked == id)
             {
-                assert_eq!(outcome.status, *status, "{id}: revisar bloqueo MAM-847");
+                assert_eq!(outcome.status, *status, "{id}: revisar bloqueo #184");
                 assert_eq!(result["status"], *serialized_status, "{id}");
                 assert_eq!(errors, [*code], "{id}: {}", outcome.document);
             } else {
@@ -125,6 +124,15 @@ fn val032_runs() {
                     outcome.document
                 );
                 assert!(errors.is_empty(), "{id}: {errors:?}");
+                assert_eq!(
+                    result["status"],
+                    if outcome.status == Status::Ok {
+                        "ok"
+                    } else {
+                        "warning"
+                    },
+                    "{id}"
+                );
             }
             let recovery_warnings = diagnostics
                 .iter()

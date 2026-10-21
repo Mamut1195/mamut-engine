@@ -81,3 +81,97 @@ fn projected_residual_detects_inexact_solver_with_rigid_slaves() -> EResult<()> 
     }
     Ok(())
 }
+
+#[test]
+fn pdelta_projects_stability_geometric_force_and_residual_through_diaphragm() -> EResult<()> {
+    use engine_analysis::pdelta::{PDelta, PDeltaOptions, PDeltaOutcome};
+    use engine_assembly::GeometricProducer;
+    use engine_contracts::CaseRef;
+    use engine_core::DofIndex;
+    use engine_linalg::{DMat, ReferenceBackend};
+
+    // Kg = alpha*K: la solución exacta es StaticLinear(F/(1+alpha)),
+    // incluso con un maestro prescrito. La rigidez física del maestro es cero:
+    // toda la estabilidad, fuerza geométrica y equilibrio llegan de esclavos.
+    for settlement in [None, Some(0.03)] {
+        for alpha in [-0.1, 0.2, -1.1] {
+            let mut system = rigid_cases::system(ReferenceBackend, settlement)?;
+            let dense = system.stiffness().to_dense()?;
+            let order = dense.rows();
+            let kg = DMat::new(
+                order,
+                order,
+                dense.values().iter().map(|value| alpha * value).collect(),
+            )?;
+            system.set_geometric_producers(vec![GeometricProducer {
+                location: (0..order).map(|i| DofIndex(i as u32)).collect(),
+                eval: Box::new(move |_| Ok(kg.clone())),
+            }])?;
+            for lateral in rigid_cases::cases().into_iter().take(2) {
+                let result = PDelta::run(
+                    &mut system,
+                    &(CaseRef("cero".into()), 1.0),
+                    &lateral,
+                    PDeltaOptions {
+                        tolerance: 1e-12,
+                        max_iterations: 100,
+                        displacement_scale: 0.01,
+                        rotation_scale: 0.001,
+                    },
+                )?;
+                if alpha < -1.0 {
+                    assert_eq!(
+                        result.outcome,
+                        PDeltaOutcome::Unstable {
+                            negative_eigenvalues: if settlement.is_some() { 2 } else { 3 },
+                        }
+                    );
+                    assert!(result.iterations.is_empty());
+                    continue;
+                }
+                assert_eq!(result.outcome, PDeltaOutcome::Completed);
+                let expected = system.solve(&lateral.0, lateral.1 / (1.0 + alpha))?;
+                let expected = system.constraints().expand(&expected)?;
+                for (actual, expected) in result.global_displacements.unwrap().iter().zip(expected)
+                {
+                    assert!((actual - expected).abs() <= 1e-11 * expected.abs().max(1.0));
+                }
+                let last = result.iterations.last().unwrap();
+                assert!(last.residual_convergence_ratio <= 1.0);
+                assert!(last.free_residual_norm < 1e-9);
+            }
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn pdelta_rejects_stationary_inexact_solution_with_unbalanced_slaves() -> EResult<()> {
+    use engine_analysis::pdelta::{PDelta, PDeltaOptions, PDeltaOutcome};
+    use engine_contracts::CaseRef;
+
+    let mut system = rigid_cases::system(
+        CountingBackend {
+            solution_scale: 0.5,
+            ..CountingBackend::default()
+        },
+        None,
+    )?;
+    let result = PDelta::run(
+        &mut system,
+        &(CaseRef("cero".into()), 1.0),
+        &rigid_cases::cases()[0],
+        PDeltaOptions {
+            tolerance: 1e-10,
+            max_iterations: 3,
+            displacement_scale: 0.01,
+            rotation_scale: 0.001,
+        },
+    )?;
+    assert_eq!(result.outcome, PDeltaOutcome::NotConverged);
+    let last = result.iterations.last().unwrap();
+    assert_eq!(last.relative_displacement_change, 0.0);
+    rigid_cases::close(last.free_residual_norm, 20.0);
+    assert!(last.residual_convergence_ratio > 1.0);
+    Ok(())
+}

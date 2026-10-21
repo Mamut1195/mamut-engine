@@ -2,10 +2,10 @@
 //!
 //! Se congela Kg en u_g: los productores recuperan el axial de cada miembro con
 //! su geometría original. Se resuelve el caso lateral mediante iteración de
-//! punto fijo `K_ff u_{i+1} = F_f − K_fp u_p − (Kg u_i)_f`, equivalente a
-//! `(K + Kg)u = F`. No se actualizan ejes, materiales ni axiales por la carga
+//! punto fijo `K_red q_{i+1} = T_fᵀ(F − K u_0 − Kg u_i)`, equivalente a
+//! `T_fᵀ(K + Kg)(T_f q + u_0) = T_fᵀF`. No se actualizan ejes, materiales ni axiales por la carga
 //! lateral; esta es una aproximación de pretensión inicial, no gran deformación.
-//! La inercia LDLᵀ de `(K + Kg)_ff` se comprueba antes de iterar; un mecanismo
+//! La inercia LDLᵀ de `T_fᵀ(K + Kg)T_f` se comprueba antes de iterar; un mecanismo
 //! sigue siendo ENG-E-0006. Una matriz estable puede no converger por punto fijo
 //! (p. ej. tracción muy grande): se reporta sin cambiar estrategia ni reintentar.
 //! Los casos son independientes: u lateral no incluye u_g; los prescritos no se
@@ -57,17 +57,19 @@ pub struct PDeltaIteration {
     /// ‖Δu/s‖∞ / max(1, ‖u_nuevo/s‖∞, ‖u_previo/s‖∞).
     /// s es displacement_scale o rotation_scale según el GDL.
     pub relative_displacement_change: Real,
-    /// ‖((K+Kg)u−F)_f‖∞; mezcla fuerzas y momentos (N/N·m en SI).
+    /// ‖T_fᵀ((K+Kg)u−F)‖∞; mezcla fuerzas y momentos (N/N·m en SI).
     pub free_residual_norm: Real,
-    /// Residual / max(1, ‖((K+Kg)u)_f‖∞, ‖F_f‖∞).
+    /// Residual / max(1, ‖T_fᵀ((K+Kg)u)‖∞, ‖T_fᵀF‖∞).
     /// Indicador SI mixto; no es una norma física invariante de unidades.
     /// Se conserva como diagnóstico; no determina la convergencia.
     pub relative_free_residual: Real,
-    /// max_i |((K+Kg)u−F)_i| / (tolerance·ref_g + piso_i), en GDL libres.
-    /// ref_g = max_j(|F_j|, (|K+Kg||u|)_j) para libres del mismo grupo:
+    /// max_i |T_fᵀ((K+Kg)u−F)_i| / (tolerance·ref_g + piso_i).
+    /// ref_g = max_j(|(T_fᵀF)_j|, (|T_f|ᵀ|K+Kg||u|)_j) del mismo grupo:
     /// traslaciones (fuerzas) o giros (momentos), sin escala unitaria absoluta.
-    /// piso_i = 64·m_i·eps·(|K+Kg||u|)_i, con m_i el número de entradas
-    /// CSR de la fila global (incluye prescritos y ceros almacenados), mínimo 1.
+    /// piso_i = 64·m_i·eps·(|T_f|ᵀ|K+Kg||u|)_i, con m_i el número de
+    /// entradas CSR de las filas globales que contribuyen a la fila proyectada
+    /// (incluye prescritos y ceros almacenados), mínimo 1. Sin diafragmas
+    /// coincide con la fila global y conserva el criterio anterior.
     /// eps = Real::EPSILON; el factor 64 cubre acumulación y resolución previas
     /// además del producto final (derivación en ENG-ANL-003.md).
     /// Debe ser <= 1, junto al criterio de cambio de desplazamiento.
@@ -93,7 +95,7 @@ pub struct PDeltaResult {
     pub lateral_case: CaseRef,
     /// Factor de cargas lateral, sin escalar prescritos.
     pub lateral_factor: Real,
-    /// Inercia (positivos, negativos, nulos) de `(K+Kg)_ff`, dada por LDLᵀ.
+    /// Inercia (positivos, negativos, nulos) de `T_fᵀ(K+Kg)T_f`, dada por LDLᵀ.
     pub inertia: (usize, usize, usize),
     /// Bloques 2×2 usados en la inercia; None si el backend no lo informa.
     pub inertia_uses_2x2: Option<bool>,
@@ -230,12 +232,11 @@ impl PDelta {
         for iteration in 1..=options.max_iterations {
             let old_global = system.constraints().expand(&previous)?;
             let geometric_force = multiply(&kg, &old_global)?;
-            let rhs = system
-                .constraints()
-                .free_dofs()
+            let projected_geometric = system.constraints().project_force(&geometric_force)?;
+            let rhs = elastic_rhs
                 .iter()
-                .zip(&elastic_rhs)
-                .map(|(index, f)| f - geometric_force[index.0 as usize])
+                .zip(projected_geometric)
+                .map(|(f, geometric)| f - geometric)
                 .collect();
             let rhs = DMat::new(n, 1, rhs)?;
             let solution = factor.solve(&rhs)?;
@@ -353,23 +354,40 @@ fn sum(a: &SparseMatrix, b: &SparseMatrix) -> EResult<SparseMatrix> {
 
 fn reduce<B: LinAlgBackend>(system: &LinearSystem<B>, matrix: &SparseMatrix) -> EResult<SymMatrix> {
     let mut entries = Vec::new();
-    for (row, index) in system.constraints().free_dofs().iter().enumerate() {
-        let global = index.0 as usize;
+    for global in 0..matrix.rows() {
         for p in matrix.row_offsets()[global]..matrix.row_offsets()[global + 1] {
-            if let Some(col) = system
+            for &(row, a) in system
                 .constraints()
-                .reduced_index(DofIndex(matrix.column_indices()[p] as u32))?
+                .free_transformation_row(DofIndex(global as u32))?
             {
-                entries.push(Triplet {
-                    row,
-                    col: col.0 as usize,
-                    value: matrix.values()[p],
-                });
+                for &(col, b) in system
+                    .constraints()
+                    .free_transformation_row(DofIndex(matrix.column_indices()[p] as u32))?
+                {
+                    // T_fᵀ (K+Kg) T_f; acumular y reflejar una sola mitad
+                    // conserva simetría exacta, igual que en engine-assembly.
+                    if row >= col {
+                        let value = a * matrix.values()[p] * b;
+                        finite(&[value])?;
+                        entries.push(Triplet {
+                            row: row.0 as usize,
+                            col: col.0 as usize,
+                            value,
+                        });
+                    }
+                }
             }
         }
     }
     let n = system.n_free_dofs();
-    SymMatrix::new(SparseMatrix::from_triplets(n, n, &entries)?.to_dense()?)
+    let dense = SparseMatrix::from_triplets(n, n, &entries)?.to_dense()?;
+    let mut values = dense.values().to_vec();
+    for row in 0..n {
+        for col in 0..row {
+            values[col * n + row] = values[row * n + col];
+        }
+    }
+    SymMatrix::new(DMat::new(n, n, values)?)
 }
 
 fn multiply(matrix: &SparseMatrix, u: &[Real]) -> EResult<Vec<Real>> {
@@ -411,25 +429,46 @@ fn residual<B: LinAlgBackend>(
     let mut scale: Real = 1.0;
     let mut references: [Real; 2] = [0.0; 2];
     let mut rows = Vec::with_capacity(system.n_free_dofs());
-    for (free, index) in system.constraints().free_dofs().iter().enumerate() {
-        let i = index.0 as usize;
-        let value = internal[i] - force[i];
-        finite(&[value])?;
-        norm = norm.max(value.abs());
-        scale = scale.max(internal[i].abs()).max(force[i].abs());
-        let (_, dof) = system.try_dof_label(DofIndex(free as u32))?;
-        let group = usize::from(dof.index() >= 3);
-        let start = matrix.row_offsets()[i];
-        let end = matrix.row_offsets()[i + 1];
+    let projected_internal = system.constraints().project_force(internal)?;
+    let projected_force = system.constraints().project_force(force)?;
+    let mut absolute_products = vec![0.0; system.n_free_dofs()];
+    let mut term_counts = vec![0usize; system.n_free_dofs()];
+    for global in 0..matrix.rows() {
+        let transformation = system
+            .constraints()
+            .free_transformation_row(DofIndex(global as u32))?;
+        if transformation.is_empty() {
+            continue;
+        }
+        let start = matrix.row_offsets()[global];
+        let end = matrix.row_offsets()[global + 1];
         let mut absolute_product = 0.0;
         for p in start..end {
-            // Producto de la fila global: incluye desplazamientos prescritos.
+            // Incluye prescritos; |T_f|ᵀ |K+Kg| |u| acota la proyección.
             absolute_product += (matrix.values()[p] * u[matrix.column_indices()[p]]).abs();
             finite(&[absolute_product])?;
         }
-        references[group] = references[group].max(force[i].abs()).max(absolute_product);
-        // O(m eps) del producto escalar, con margen para ensamblaje y solve.
-        let floor = 64.0 * (end - start).max(1) as Real * Real::EPSILON * absolute_product;
+        for &(free, coefficient) in transformation {
+            let i = free.0 as usize;
+            absolute_products[i] += coefficient.abs() * absolute_product;
+            term_counts[i] += (end - start).max(1);
+            finite(&[absolute_products[i]])?;
+        }
+    }
+    for free in 0..system.n_free_dofs() {
+        let value = projected_internal[free] - projected_force[free];
+        finite(&[value])?;
+        norm = norm.max(value.abs());
+        scale = scale
+            .max(projected_internal[free].abs())
+            .max(projected_force[free].abs());
+        let (_, dof) = system.try_dof_label(DofIndex(free as u32))?;
+        let group = usize::from(dof.index() >= 3);
+        let absolute_product = absolute_products[free];
+        references[group] = references[group]
+            .max(projected_force[free].abs())
+            .max(absolute_product);
+        let floor = 64.0 * term_counts[free].max(1) as Real * Real::EPSILON * absolute_product;
         finite(&[floor])?;
         rows.push((value.abs(), group, floor));
     }
@@ -466,3 +505,7 @@ fn reactions<B: LinAlgBackend>(
     }
     Ok(result)
 }
+
+#[cfg(test)]
+#[path = "../tests/unit/pdelta_projection.rs"]
+mod projection_tests;
