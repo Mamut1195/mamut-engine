@@ -1,52 +1,52 @@
-# ENG-PY-004 · plan offline de rendimiento de frontera
+# ENG-PY-004 · offline boundary performance plan
 
-Benchmark manual, fuera de CI, sin red ni oráculos externos. Mide el mismo
-motor Rust y el mismo documento por cada tamaño; Python solo replica el
-fixture propio `cantilever-linear-static.json` y transporta resultados.
-No implementa ecuaciones físicas. El oráculo analítico del fixture y las
-referencias independientes permanecen en las pruebas del binding.
+Manual benchmark, outside CI, without network access or external reference engines. It measures the same
+Rust engine and the same document for each size; Python only replicates the project's
+own `cantilever-linear-static.json` fixture and transports results.
+It implements no physical equations. The fixture's analytical reference and
+independent references remain in the binding tests.
 
-## Tamaños y baselines
+## Sizes and baselines
 
-| Tamaño por defecto | Voladizos independientes | Nodos | Miembros | GDL activos/libres |
+| Default size | Independent cantilevers | Nodes | Members | Active/free DOFs |
 | --- | ---: | ---: | ---: | ---: |
-| Pequeño | 1 | 2 | 1 | 6/3 |
-| Mediano | 16 | 32 | 16 | 96/48 |
-| Grande | 64 | 128 | 64 | 384/192 |
+| Small | 1 | 2 | 1 | 6/3 |
+| Medium | 16 | 32 | 16 | 96/48 |
+| Large | 64 | 128 | 64 | 384/192 |
 
-Son tamaños relativos a la fachada V1 acotada y su backend de referencia;
-no representan una estructura grande de producción. Réplicas independientes
-mantienen el problema bien definido sin añadir leyes, conexiones ni métodos.
-La traslación de coordenadas y renumeración de IDs no calculan respuestas.
+These sizes are relative to the bounded V1 facade and its reference backend;
+they do not represent a large production structure. Independent replicas
+keep the problem well-defined without adding laws, connections or methods.
+Coordinate translation and ID renumbering do not compute responses.
 
-- `rust_api`: ejemplo `boundary_benchmark`, múltiples llamadas directas a
-  `engine_api::run` dentro del mismo proceso release. Excluye arranque y lectura
-  del input; incluye parseo, análisis y serialización JSON del motor.
-- `cli_process`: binario release `mamut-engine`, workflow/catalog propios.
-  Incluye proceso, lectura, despacho y sobre CLI. El parseo comparativo del
-  sobre se realiza fuera de la medición; no es una medida pura del FFI.
-- `native_json`: `_native.run` sobre el mismo string, incluyendo cruce PyO3,
-  detach/readquisición y copia de JSON al intérprete.
-- `facade_run`: API pública completa, incluyendo validación previa, huella JCS
-  y lectura/validación de `results/1`, además del análisis Rust.
-- `parse_results`: `Results.from_json` de una salida ya calculada.
-- `export_lists` y `export_numpy`: exportación de un Results ya calculado,
-  incluyendo comprobación stale/huella del input y copia completa del documento.
-  `export_numpy` incluye construcción de listas y copia explícita ndarray;
-  se importa NumPy antes del cronómetro. Sin NumPy se omite esa métrica.
+- `rust_api`: `boundary_benchmark` example, multiple direct calls to
+  `engine_api::run` within the same release process. Excludes startup and input
+  reading; includes engine parsing, analysis and JSON serialization.
+- `cli_process`: release `mamut-engine` binary, the project's own workflow/catalog.
+  Includes process, reading, dispatch and CLI envelope. Comparative envelope
+  parsing occurs outside the measurement; this is not a pure FFI measurement.
+- `native_json`: `_native.run` on the same string, including the PyO3 crossing,
+  detach/reacquisition and copying JSON to the interpreter.
+- `facade_run`: complete public API, including prevalidation, JCS fingerprint
+  and reading/validation of `results/1`, in addition to Rust analysis.
+- `parse_results`: `Results.from_json` of an already computed output.
+- `export_lists` and `export_numpy`: export of an already computed Results,
+  including the input stale/fingerprint check and full document copy.
+  `export_numpy` includes list construction and an explicit ndarray copy;
+  NumPy is imported before timing. Without NumPy that metric is skipped.
 
-Se comprueba igualdad de bytes de Rust/FFI/fachada y del documento contenido
-en CLI antes de medir; discrepancias abortan. `native_minus_rust_ns` aproxima
-el coste del cruce y copia de JSON; `facade_minus_rust_ns` incluye toda la
-fachada. Son diferencias de medianas de procesos separados, con ruido y posibles
-valores negativos; no deben interpretarse como perfiles internos exactos.
-Las fases no se suman: algunas incluyen huellas/copias comunes.
+Byte equality between Rust/FFI/facade and the document contained
+in CLI is checked before measurement; mismatches abort. `native_minus_rust_ns` approximates
+the boundary crossing and JSON copy cost; `facade_minus_rust_ns` includes the entire
+facade. These are differences of medians from separate processes, with noise and potentially
+negative values; they must not be interpreted as exact internal profiles.
+Phases are not additive: some include shared fingerprints/copies.
 
-## Reproducción
+## Reproduction
 
-Provisionar previamente Rust 1.99.0, maturin 1.15.0, pytest y, opcionalmente,
-NumPy. Desde la raíz, exportar `CARGO_TARGET_DIR` a la carpeta autorizada y
-`MATURIN` al ejecutable instalado. La salida de wheel debe ser nueva:
+Provision Rust 1.99.0, maturin 1.15.0, pytest and, optionally,
+NumPy in advance. From the root, export `CARGO_TARGET_DIR` to the authorized directory and
+`MATURIN` to the installed executable. The wheel output must be new:
 
 ```bash
 export PATH="$RUST_TOOLCHAIN_BIN:$PATH"
@@ -64,30 +64,30 @@ cargo build --release --offline --locked -p mamut-engine-py --example boundary_b
   --repeats 7 --warmups 2 > "$CARGO_TARGET_DIR/python-boundary-report.json"
 ```
 
-El directorio de inputs debe ser nuevo. `--sizes` permite una selección de
-1 a 64 réplicas. No se ejecuta Cargo ni pip dentro del cronómetro. El informe
-JSON contiene tamaños, bytes de entrada/salida, hashes de resultados, versiones
-Python/NumPy/engine, arquitectura, muestras individuales, mínimo, mediana y
-máximo en ns. Conservar junto al informe las versiones Rust/maturin, perfil,
-flags, CPU, carga de la máquina y commit/diff probado. Mantener las mismas
-herramientas y flags entre baselines y wheel; sin paralelismo interno nuevo.
-Para comparar cambios, repetir al menos tres ejecuciones completas con máquina
-ociosa y comparar dispersión además de medianas; no imponer umbrales de CI.
+The input directory must be new. `--sizes` allows a selection of
+1 to 64 replicas. Neither Cargo nor pip runs within the timed interval. The JSON
+report contains sizes, input/output bytes, result hashes, Python/NumPy/engine
+versions, architecture, individual samples, minimum, median and
+maximum in ns. Keep Rust/maturin versions, profile,
+flags, CPU, machine load and tested commit/diff alongside the report. Keep the same
+tools and flags between baselines and wheel; no new internal parallelism.
+To compare changes, repeat at least three full runs with an idle machine
+and compare dispersion as well as medians; do not impose CI thresholds.
 
-El calentamiento predeterminado es 2 y cada métrica tiene 7 muestras. La
-destrucción de cada resultado se hace fuera del intervalo. El script no mide
-RSS pico: ndarray.nbytes omitiría listas/JSON/copias temporales, por lo que
-no se usa como aproximación de memoria total. El tiempo de primera importación
-NumPy tampoco está incluido. No se promete speedup ni se relaja el GIL para
-mejorar cifras. La evidencia local y sus límites se registran en
+Default warmup is 2 and each metric has 7 samples.
+Each result is destroyed outside the interval. The script does not measure
+peak RSS: ndarray.nbytes would omit lists/JSON/temporary copies, so
+it is not used as a total-memory approximation. NumPy's first import time
+is also excluded. No speedup is promised and the GIL is not relaxed to
+improve figures. Local evidence and its limits are recorded in
 [provenance](../provenance/ENG-PY-004.md).
 
-## Pruebas de la wheel con NumPy
+## Wheel tests with NumPy
 
-El constructor ejecuta las pruebas stdlib en un consumidor aislado sin NumPy.
-Para ejecutar también pytest sobre la wheel, usar el venv temporal anterior con
-`--system-site-packages` (pytest/NumPy provisionados). Generar referencias
-independientes con el ejemplo Rust, sin pasar por PyO3:
+The builder runs stdlib tests in an isolated consumer without NumPy.
+To also run pytest against the wheel, use the previous temporary venv with
+`--system-site-packages` (provisioned pytest/NumPy). Generate independent
+references with the Rust example, bypassing PyO3:
 
 ```bash
 mkdir "$CARGO_TARGET_DIR/python-test-references"
@@ -103,9 +103,9 @@ export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1
   -q -p no:cacheprovider bindings/python/tests
 ```
 
-`numpy_test.py` se recoge con el patrón estándar `*_test.py` de pytest y usa
-`pytest.importorskip("numpy")`; no se carga en unittest, que recoge `test_*.py`
-y no requiere pytest. `test_arrays.py` prueba listas y simula la ausencia de
-NumPy mediante un importador que lo bloquea en un proceso nuevo, sin desinstalar
-paquetes del sistema. La simulación verifica importación perezosa, análisis,
-exportación básica y `MissingNumPyError`.
+`numpy_test.py` is collected with pytest's standard `*_test.py` pattern and uses
+`pytest.importorskip("numpy")`; it is not loaded in unittest, which collects `test_*.py`
+and does not require pytest. `test_arrays.py` tests lists and simulates the absence of
+NumPy with a blocking importer in a fresh process, without uninstalling
+system packages. The simulation checks lazy importing, analysis,
+basic export and `MissingNumPyError`.

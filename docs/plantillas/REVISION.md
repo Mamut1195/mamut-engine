@@ -1,32 +1,32 @@
-# Checklist de revisión de un método Rust
+# Rust method review checklist
 
-- [ ] Ficha anterior al código, con fuentes locales permitidas y citas completas;
-  derivación propia identificada, sin tablas/figuras/listados copiados.
-- [ ] Roles y sesión limpia registrados; ninguna consulta a código, datos o
-  informes prohibidos; revisión J4 diferenciada de las pruebas del autor.
-- [ ] Método distinto de los existentes; hipótesis, SI, signos, dominio físico
-  y numérico, historia y puntos no diferenciables explícitos.
-- [ ] Trait vigente respetado; tangente derivada a historia fija, origen y
-  aceptación/descarte correctos; salidas finitas y estado del llamador intacto.
-- [ ] Constructor valida parámetros y longitud antes de indexar; errores del
-  catálogo con mensajes en español; sin unsafe ni unwrap/expect/panic nuevos
-  en biblioteca; documentación de toda API pública.
-- [ ] Descriptor, versión, fábrica y exportaciones coinciden con el objeto;
-  Send + Sync, sin estado global, E/S ni hilos en la ley.
-- [ ] Conformidad sin diagnósticos; muestras/h justificados, fronteras
-  verificadas por separado; negativos de rangos, tamaños, no finitos y overflow.
-- [ ] Benchmark nativo con source/cita, esperados analíticos independientes
-  fijados antes de correr y tolerancias justificadas; tabla no vacía.
-- [ ] Si procede fixture/1: entrada API real, source válido, JSON Pointers y
-  ejecución con runner ENG-CORE-009; si no procede, límite documentado.
-- [ ] fmt, Clippy -D warnings, tests workspace, rustdoc -D warnings, check
-  wasm y clean-room origin/main en verde, incluyendo archivos nuevos.
-- [ ] 16 hashes idénticos a la referencia; cruce nativo/wasm debug/release
-  registrado sin actualizar hashes para ocultar diferencias.
-- [ ] Sin cambios en rutas protegidas ni dependencias/manifests injustificados;
-  ningún cambio numérico en métodos existentes.
-- [ ] CONTRIBUTING/guía, CHANGELOG y provenance completos en español, sin rutas
-  locales absolutas; logs con marcador `$CARGO_TARGET_DIR`.
-- [ ] Conteo passed/failed y límites de ejecución reportados; revisor clean-room
-  **PENDIENTE (J4)** hasta revisión efectiva. Merge requiere aprobación de Jonathan
-  según el protocolo; esta checklist no la concede.
+- [ ] Method sheet predates code, with permitted local sources and full citations;
+  original derivation identified, without copied tables/figures/listings.
+- [ ] Roles and clean session recorded; no consultation of prohibited code, data or
+  reports; J4 review distinguished from author tests.
+- [ ] Method distinct from existing ones; explicit assumptions, SI, signs, physical
+  and numerical domain, history and nondifferentiable points.
+- [ ] Current trait respected; tangent derived at fixed history, correct origin and
+  acceptance/discard; finite outputs and caller state intact.
+- [ ] Constructor validates parameters and length before indexing; catalog
+  errors with Spanish messages; no new unsafe or unwrap/expect/panic
+  in the library; all public API documented.
+- [ ] Descriptor, version, factory and exports match the object;
+  Send + Sync, without global state, I/O or threads in the law.
+- [ ] Conformance without diagnostics; samples/h justified, boundaries
+  checked separately; negatives for ranges, sizes, nonfinite values and overflow.
+- [ ] Native benchmark with source/citation, independent analytical expected values
+  established before running and justified tolerances; nonempty table.
+- [ ] If fixture/1 applies: actual API input, valid source, JSON Pointers and
+  execution with the ENG-CORE-009 runner; otherwise, limitation documented.
+- [ ] fmt, Clippy -D warnings, workspace tests, rustdoc -D warnings, wasm
+  check and clean-room origin/main pass, including new files.
+- [ ] 16 hashes identical to the reference; native/wasm debug/release comparison
+  recorded without updating hashes to hide differences.
+- [ ] No changes to protected paths or unjustified dependencies/manifests;
+  no numerical change to existing methods.
+- [ ] CONTRIBUTING/guide, CHANGELOG and provenance complete in Spanish, without absolute
+  local paths; logs with the `$CARGO_TARGET_DIR` marker.
+- [ ] Passed/failed counts and execution limits reported; clean-room reviewer
+  **PENDING (J4)** until actual review. Merge requires Jonathan's approval
+  according to the protocol; this checklist does not grant it.

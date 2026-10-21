@@ -1,36 +1,36 @@
-# Implementar un método en Rust · ENG-CORE-011
+# Implementing a method in Rust · ENG-CORE-011
 
-Esta guía permite pasar de una ficha matemática a una implementación revisable.
-El contrato vigente manda: no se cambia para acomodar un método. Se trabaja
-desde la raíz del worktree, sin red, con herramientas y dependencias provisionadas.
-El [protocolo clean-room](CLEAN_ROOM.md) es obligatorio; esta guía no lo sustituye.
+This guide takes a mathematical method sheet to a reviewable implementation.
+The current contract governs: it is not changed to accommodate a method. Work
+from the worktree root, offline, with provisioned tools and dependencies.
+The [clean-room protocol](CLEAN_ROOM.md) is mandatory; this guide does not replace it.
 
-## 1. Preparar la sesión y elegir el contrato
+## 1. Prepare the session and choose the contract
 
-Lee, en este orden:
+Read, in this order:
 
-1. [CLEAN_ROOM.md](CLEAN_ROOM.md), especialmente §§3–5, 7, 8 y 10, y
+1. [CLEAN_ROOM.md](CLEAN_ROOM.md), especially §§3–5, 7, 8 and 10, and
    [provenance/TEMPLATE.md](../provenance/TEMPLATE.md).
 2. [engine-core](../crates/engine-core/src/lib.rs): `Real = f64`, `EResult`,
-   `EngineError`, `ContractId`; [catálogo](../crates/engine-core/src/catalog.rs)
-   y [funciones escalares](../crates/engine-core/src/math.rs).
+   `EngineError`, `ContractId`; [catalog](../crates/engine-core/src/catalog.rs)
+   and [scalar functions](../crates/engine-core/src/math.rs).
 3. [traits](../crates/engine-contracts/src/traits.rs),
-   [tipos de intercambio](../crates/engine-contracts/src/types.rs) y
-   [conformidad ENG-CORE-007](../crates/engine-contracts/src/conformance.rs).
-4. [engine-laws](../crates/engine-laws/src/lib.rs), sus módulos y pruebas.
-   Revisa qué existe antes de elegir una ley: una parametrización de una ley
-   existente no constituye un método nuevo.
-5. [benchmarks ENG-CORE-009](../crates/engine-validation/README.md),
-   [schema fixture/1](../crates/engine-validation/schemas/fixture-1.json) y
-   [determinismo](DETERMINISMO.md).
+   [interchange types](../crates/engine-contracts/src/types.rs) and
+   [ENG-CORE-007 conformance](../crates/engine-contracts/src/conformance.rs).
+4. [engine-laws](../crates/engine-laws/src/lib.rs), its modules and tests.
+   Review what exists before choosing a law: parameterizing an existing
+   law does not constitute a new method.
+5. [ENG-CORE-009 benchmarks](../crates/engine-validation/README.md),
+   [fixture/1 schema](../crates/engine-validation/schemas/fixture-1.json) and
+   [determinism](DETERMINISMO.md).
 
-Registra rol de especificador/implementador y fuentes locales consultadas.
-Si hubo exposición a fuentes o informes prohibidos, no implementes: aplica
-las restricciones de roles del protocolo. No se inspeccionan repos hermanos.
-Las fuentes son derivaciones propias o teoría publicada aportada localmente
-con cita verificable; no se inventan páginas, ecuaciones ni resultados.
+Record the specifier/implementer role and local sources consulted.
+If exposure to prohibited sources or reports occurred, do not implement: apply
+the protocol's role restrictions. Sibling repositories are not inspected.
+Sources are original derivations or published theory supplied locally
+with a verifiable citation; do not invent pages, equations or results.
 
-Configura la sesión (el entorno proporciona un `$CARGO_TARGET_DIR` exclusivo):
+Configure the session (the environment provides a dedicated `$CARGO_TARGET_DIR`):
 
 ```sh
 export PATH=$HOME/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:$PATH
@@ -42,103 +42,105 @@ rustc --version  # toolchain del ticket: 1.99.0
 git status --short
 ```
 
-## 2. Escribir la ficha antes del código
+## 2. Write the method sheet before the code
 
-Copia [FICHA_METODO.md](plantillas/FICHA_METODO.md) y completa hipótesis,
-ecuaciones numeradas, derivación de la tangente, cita de cada fuente,
-unidades, signos, dominio físico y numérico, historia y casos analíticos.
-No copies tablas, figuras ni listados publicados. Evalúa las fórmulas por tu
-cuenta para fijar los esperados **antes** de ejecutar el método.
+Copy [FICHA_METODO.md](plantillas/FICHA_METODO.md) and complete assumptions,
+numbered equations, tangent derivation, citation of each source,
+units, signs, physical and numerical domain, history and analytical cases.
+Do not copy published tables, figures or listings. Evaluate the formulas
+yourself to establish expected values **before** executing the method.
 
-Para `uniaxial/1`, el contrato concreto es:
+For `uniaxial/1`, the specific contract is:
 
-| Aspecto | Obligación |
+| Aspect | Obligation |
 | --- | --- |
-| Entrada | Deformación **total** adimensional; tensión positiva en tracción. Si representa un resorte: desplazamiento relativo en m y fuerza en N, declarados por el kind. |
-| Salida | `UniaxialResponse { stress, tangent, trial_state }`; tangente dσ/dε en Pa (o N/m), todo finito. |
-| Estado | `state_len()` exacto; historia inicial y de prueba planas y finitas. Documentar orden/unidades de componentes. |
-| Propiedad | `respond(&self, strain, committed)` no muta el objeto ni la historia. El llamador acepta con `committed = response.trial_state`; descartar una prueba equivale a rollback. |
-| Repetición | Mismas entradas producen la misma respuesta; repetir una deformación aceptada reproduce su tensión. |
-| Origen | `initial_tangent()` coincide con `respond(0, initial_state).tangent`. |
-| Identidad | `ContractId::new("uniaxial", 1, 0)` y kind propio estable; versión semántica del método independiente del contrato. |
-| Errores | `ENG-E-0008`: NaN, infinitos o desbordamiento; `ENG-E-0010`: parámetros, tamaños o rangos inválidos. Mensajes con magnitud y unidades. |
+| Input | Dimensionless **total** strain; positive stress in tension. If representing a spring: relative displacement in m and force in N, declared by the kind. |
+| Output | `UniaxialResponse { stress, tangent, trial_state }`; tangent dσ/dε in Pa (or N/m), all finite. |
+| State | Exact `state_len()`; flat, finite initial and trial histories. Document component order/units. |
+| Ownership | `respond(&self, strain, committed)` does not mutate the object or history. The caller accepts with `committed = response.trial_state`; discarding a trial is equivalent to rollback. |
+| Repetition | Identical inputs produce the same response; repeating an accepted strain reproduces its stress. |
+| Origin | `initial_tangent()` matches `respond(0, initial_state).tangent`. |
+| Identity | `ContractId::new("uniaxial", 1, 0)` and a stable kind of its own; method semantic version independent of the contract. |
+| Errors | `ENG-E-0008`: NaN, infinities or overflow; `ENG-E-0010`: invalid parameters, sizes or ranges. Messages with quantity and units. |
 
-Un método de sección usa `SectionLaw` y `check_section_law`; un elemento,
-`Element`/`ElementFactory` y `check_element`/`check_element_factory`; un análisis,
-`AnalysisMethod`, `SystemView` y sus comprobadores. Sus tamaños, unidades y
-convenciones se toman del trait específico, no de la tabla uniaxial.
+A section method uses `SectionLaw` and `check_section_law`; an element uses
+`Element`/`ElementFactory` and `check_element`/`check_element_factory`; an analysis uses
+`AnalysisMethod`, `SystemView` and their checkers. Their sizes, units and
+conventions come from the specific trait, rather than the uniaxial table.
 
-## 3. Crear el módulo y exponerlo como los existentes
+## 3. Create the module and expose it like existing ones
 
-La opción habitual para otra ley es un módulo de `engine-laws`; no necesita
-otro crate ni modificar manifests. Copia
-[modulo_uniaxial.rs.tpl](plantillas/modulo_uniaxial.rs.tpl) a
-`crates/engine-laws/src/uniaxial/mi_metodo.rs`, sustituye nombres, parámetros
-y la respuesta pendiente por las ecuaciones de la ficha. La plantilla se
-detiene con `ENG-E-0013`: no es una ley validada ni debe publicarse sin completar.
+The usual choice for another law is an `engine-laws` module; it does not need
+another crate or manifest changes. Copy
+[modulo_uniaxial.rs.tpl](plantillas/modulo_uniaxial.rs.tpl) to
+`crates/engine-laws/src/uniaxial/mi_metodo.rs`, replace names, parameters
+and the pending response with the method sheet equations. The template
+stops with `ENG-E-0013`: it is not a validated law and must not be published incomplete.
 
-Mantén parámetros privados validados, constructor falible, `Params`, fábrica
-tipada `UniaxialFactory` y constante `LawDescriptor`. Reutiliza los validadores
-privados `finite`, `positive` y `vector` de `engine-laws`. Valida longitud antes
-de indexar y todas las salidas/intermedios susceptibles de desbordamiento.
-Documenta la API pública en español; la biblioteca exige `missing_docs`.
-No añadas `unsafe`, `unwrap`, `expect`, `panic!`, estado global, E/S ni hilos.
-Las funciones escalares se invocan mediante `engine_core::math`; conserva el
-orden de operaciones/reducciones de los métodos existentes.
+Keep validated private parameters, a fallible constructor, `Params`, a typed
+`UniaxialFactory` factory and a `LawDescriptor` constant. Reuse the private
+`finite`, `positive` and `vector` validators from `engine-laws`. Validate length before
+indexing and all outputs/intermediates susceptible to overflow.
+Document the public API in Spanish; the library requires `missing_docs`.
+Do not add `unsafe`, `unwrap`, `expect`, `panic!`, global state, I/O or threads.
+Invoke scalar functions through `engine_core::math`; preserve the
+operation/reduction order of existing methods.
 
-Expón `mod mi_metodo; pub use mi_metodo::{...};` desde `uniaxial.rs` y actualiza
-la documentación de `lib.rs`. Este es el registro de leyes actual: descriptor,
-fábrica y exportaciones públicas, sin registro global. No implica soporte JSON
-en engine-api ni convertir el análisis lineal en no lineal. Una extensión de
-la API requiere su propio contrato y validación explícitos.
+Expose `mod mi_metodo; pub use mi_metodo::{...};` from `uniaxial.rs` and update
+the `lib.rs` documentation. This is the current law registration mechanism: descriptor,
+factory and public exports, without a global registry. It does not imply JSON support
+in engine-api or turn linear analysis into nonlinear analysis. An API
+extension requires its own explicit contract and validation.
 
-Si un contrato exige otro crate, justifica primero esa separación; usa edición,
-licencia y versión mínima del workspace, dependencias internas ya existentes y
-`#![forbid(unsafe_code)]` en la raíz. Solo entonces adapta los manifests y lock.
+If a contract requires another crate, first justify that separation; use the workspace
+edition, license and minimum version, existing internal dependencies and
+`#![forbid(unsafe_code)]` at the root. Only then adapt manifests and lock.
 
-## 4. Conformidad y benchmark analítico
+## 4. Conformance and analytical benchmark
 
-Copia [conformidad.rs.tpl](plantillas/conformidad.rs.tpl) y
-[fixture_uniaxial.rs.tpl](plantillas/fixture_uniaxial.rs.tpl) a `engine-laws/tests/`.
-Los nombres de importación/constructor y los casos se completan desde la ficha.
-La tabla vacía de la plantilla falla intencionadamente: evita validación vacua.
+Copy [conformidad.rs.tpl](plantillas/conformidad.rs.tpl) and
+[fixture_uniaxial.rs.tpl](plantillas/fixture_uniaxial.rs.tpl) to `engine-laws/tests/`.
+Complete import/constructor names and cases from the method sheet.
+The template's empty table intentionally fails: it prevents vacuous validation.
 
-Ejecuta `check_uniaxial_law(&law, &samples, h)` y exige cero diagnósticos.
-El kit acepta explícitamente historia entre muestras y compara tangente con
-diferencia central a historia aceptada fija, con error relativo < 1e-6.
-Escoge `h` dentro de los límites publicados en `conformance.rs`, con escala
-adecuada y muestras cuyo intervalo ε ± h sea suave. En vértices o fluencia,
-prueba por separado la convención unilateral, sin FD central cruzando ramas.
-No relajes el kit para que pase una implementación.
+Run `check_uniaxial_law(&law, &samples, h)` and require zero diagnostics.
+The kit explicitly commits history between samples and compares the tangent with
+a central difference at fixed committed history, with relative error < 1e-6.
+Choose `h` within the limits published in `conformance.rs`, with an appropriate
+scale and samples whose ε ± h interval is smooth. At corners or yielding,
+test the one-sided convention separately, without central FD crossing branches.
+Do not relax the kit to make an implementation pass.
 
-Añade negativos para cada parámetro/rango, NaN/±∞ en entradas e historia,
-longitudes incorrectas y desbordamiento, verificando códigos del catálogo.
-Comprueba fábrica/descriptor/objeto, `Send + Sync`, pureza y propiedad del estado.
-El kit verifica contrato y consistencia; un error compartido por tensión y
-tangente puede pasar. Por eso el benchmark usa esperados analíticos independientes.
+Add negatives for each parameter/range, NaN/±∞ in inputs and history,
+incorrect lengths and overflow, checking catalog codes.
+Check factory/descriptor/object, `Send + Sync`, purity and state ownership.
+The kit checks contract and consistency; an error shared by stress and
+tangent can pass. Therefore, the benchmark uses independent analytical expected values.
 
-El fixture uniaxial tipado contiene `source`, cita, parámetros SI, entradas,
-esperados y tolerancia justificada; se ejecuta como prueba nativa de la ley.
-No es `fixture/1`: ENG-CORE-009 exige `engine-input/1 → results/1` mediante
-`Target`, y la API actual no publica estas leyes no lineales. No fabriques un
-JSON que el runner no pueda ejecutar ni añadas otro caso al inventario cerrado
-de cinco JSON existente. Cuando el método sea accesible por API, usa
-[fixture_api.json.tpl](plantillas/fixture_api.json.tpl), completa la entrada
-real y los JSON Pointers y ejecútalo con el runner nativo de ENG-CORE-009.
-Ese formato exige `source.kind` y cita, y compara con
-`|actual−esperado| ≤ max(absolute, relative·|esperado|)`; un override requiere
-justificación. No cambies tolerancias a partir de salidas de otros motores.
+The typed uniaxial fixture contains `source`, citation, SI parameters, inputs,
+expected values and justified tolerance; it runs as a native test of the law.
+It is not `fixture/1`: ENG-CORE-009 requires `engine-input/1 → results/1` through
+`Target`, and the current API does not expose these nonlinear laws. Do not fabricate
+JSON that the runner cannot execute or add another case to the existing closed
+inventory of five JSON files. When the method is accessible through the API, use
+[fixture_api.json.tpl](plantillas/fixture_api.json.tpl), complete the actual
+input and JSON Pointers and run it with the native ENG-CORE-009 runner.
+That format requires `source.kind` and a citation, and compares with
+`|actual−esperado| ≤ max(absolute, relative·|esperado|)`; an override requires
+justification. Do not change tolerances based on outputs from other engines.
 
-## 5. Piloto reproducible: elasticidad cúbica
+<a id="5-piloto-reproducible-elasticidad-cúbica"></a>
 
-Ficha propia: Codex gpt-6.1-sol high, *Elasticidad cúbica conservativa*,
-2026-10-20, esta sección, ecuaciones (1)–(3) y tabla siguiente.
-No se consultaron fuentes externas. Antes del piloto existían `Elastic`,
-`MultilinearElastic` y `SteelBilinearKinematic`; la multilineal ya representa
-curvas bilineales, y la cinemática permite plasticidad perfecta con b = 0.
-Ninguna representa exactamente una curva cúbica suave con C > 0.
+## 5. Reproducible pilot: cubic elasticity
 
-Se propone una densidad de energía propia (Pa = J/m³), sin historia:
+Original method sheet: Codex gpt-6.1-sol high, *Conservative cubic elasticity*,
+2026-10-20, this section, equations (1)–(3) and the following table.
+No external sources were consulted. Before the pilot, `Elastic`,
+`MultilinearElastic` and `SteelBilinearKinematic` existed; the multilinear law already represents
+bilinear curves, and the kinematic law allows perfect plasticity with b = 0.
+None represents exactly a smooth cubic curve with C > 0.
+
+An original energy density (Pa = J/m³), without history, is proposed:
 
 ```text
 (1) W(ε) = E ε²/2 + C ε⁴/4,       E > 0, C ≥ 0, ambos en Pa.
@@ -146,62 +148,62 @@ Se propone una densidad de energía propia (Pa = J/m³), sin historia:
 (3) K(ε) = dσ/dε = E + 3Cε² > 0,  K(0) = E.
 ```
 
-W es par, no negativa y estrictamente convexa; σ es impar. La descarga sigue
-la misma curva y el trabajo en un ciclo cerrado es cero. Se trata de una
-idealización elástica local 1D, sin plasticidad, daño ni validez física universal
-para grandes deformaciones. Historia inicial/aceptada/de prueba: longitud cero.
-C = 0 recupera la ley lineal como límite, sin sustituir su implementación.
+W is even, nonnegative and strictly convex; σ is odd. Unloading follows
+the same curve and work over a closed cycle is zero. This is a
+local 1D elastic idealization, without plasticity, damage or universal physical validity
+at large strains. Initial/committed/trial history: zero length.
+C = 0 recovers the linear law as a limit, without replacing its implementation.
 
-Implementación fijada por la ficha: `q = (C·ε)·ε`, `σ = (E+q)·ε`,
-`K = E+3q`. Cada producto/suma se exige finito; un desbordamiento devuelve
-`ENG-E-0008`. Se evita formar ε² antes de multiplicar por C para que C = 0
-admita deformaciones grandes cuando la respuesta siga siendo representable.
-Se admite el redondeo/subdesbordamiento habitual de f64; no se certifica
-exactitud relativa de términos por debajo de la resolución del número.
+Implementation determined by the method sheet: `q = (C·ε)·ε`, `σ = (E+q)·ε`,
+`K = E+3q`. Every product/sum must be finite; overflow returns
+`ENG-E-0008`. Forming ε² before multiplying by C is avoided so that C = 0
+allows large strains when the response remains representable.
+Ordinary f64 rounding/underflow is accepted; relative accuracy of terms
+below the number's resolution is not certified.
 
-Benchmark analítico propio con E = 8 Pa, C = 16 Pa. Sustituyendo fracciones
-binarias en (2)–(3) se obtiene, antes de correr la implementación:
+Original analytical benchmark with E = 8 Pa, C = 16 Pa. Substituting binary
+fractions into (2)–(3) gives, before running the implementation:
 
-| ε total | σ (Pa) | K (Pa) |
+| Total ε | σ (Pa) | K (Pa) |
 | --- | --- | --- |
 | 0 | 0 | 8 |
 | 1/4 | 9/4 | 11 |
 | 1/2 | 6 | 20 |
 | 1 | 24 | 56 |
-| 1/2 (descarga) | 6 | 20 |
-| 0 (descarga) | 0 | 8 |
+| 1/2 (unloading) | 6 | 20 |
+| 0 (unloading) | 0 | 8 |
 | −1/4 | −9/4 | 11 |
 | −1/2 | −6 | 20 |
 | −1 | −24 | 56 |
-| 0 (cierre) | 0 | 8 |
+| 0 (closure) | 0 | 8 |
 
-Se usa piso absoluto 1e-12 Pa y relativo 1e-12: holgura sobre el redondeo f64
-de pocas operaciones; no proviene de calibración externa. Para FD, h = 1e-6:
-el error de truncamiento central es exactamente C h² = 1,6e-11 Pa.
+An absolute floor of 1e-12 Pa and a relative tolerance of 1e-12 are used: allowance for f64 rounding
+of a few operations; they do not come from external calibration. For FD, h = 1e-6:
+the central truncation error is exactly C h² = 1,6e-11 Pa.
 
-Aplicación de los pasos 1–4: ficha anterior escrita primero; módulo
+Application of steps 1–4: the method sheet above written first; module
 [`cubic_elastic.rs`](../crates/engine-laws/src/uniaxial/cubic_elastic.rs),
-kind `elastic.cubic`, versión 0.1.0, contrato `uniaxial/1`, `CubicElasticParams`,
-`CubicElasticFactory`, descriptor `CUBIC_ELASTIC` y exportaciones públicas.
-La prueba [`cubic_elastic.rs`](../crates/engine-laws/tests/cubic_elastic.rs)
-instancia el kit y ejecuta la tabla nativa con source/cita, además de negativos,
-pureza, simetría y límite lineal. No requiere solver, API ni dependencias nuevas.
+kind `elastic.cubic`, version 0.1.0, contract `uniaxial/1`, `CubicElasticParams`,
+`CubicElasticFactory`, descriptor `CUBIC_ELASTIC` and public exports.
+The test [`cubic_elastic.rs`](../crates/engine-laws/tests/cubic_elastic.rs)
+instantiates the kit and runs the native table with source/citation, plus negatives,
+purity, symmetry and the linear limit. It requires no solver, API or new dependencies.
 
 ```sh
 cargo test --offline -p engine-laws --test cubic_elastic
 ```
 
-La evidencia completa y el estado de revisión están en
-[ENG-CORE-011](../provenance/ENG-CORE-011.md). El piloto verifica esta guía en
-la misma sesión autora; la revisión independiente sigue pendiente de J4.
+Full evidence and review status are in
+[ENG-CORE-011](../provenance/ENG-CORE-011.md). The pilot verifies this guide in
+the same authoring session; independent J4 review remains pending.
 
-## 6. Cerrar y revisar
+## 6. Close and review
 
-Completa [PROVENANCE.md](plantillas/PROVENANCE.md), añade CHANGELOG y aplica la
-[lista de revisión](plantillas/REVISION.md). Para una IA, parte del
-[prompt restringido](plantillas/PROMPT_IA.md). Mantén los cambios sin commit.
+Complete [PROVENANCE.md](plantillas/PROVENANCE.md), add CHANGELOG and apply the
+[review checklist](plantillas/REVISION.md). For an AI, start with the
+[restricted prompt](plantillas/PROMPT_IA.md). Keep changes uncommitted.
 
-Ejecuta todas las comprobaciones desde la raíz:
+Run all checks from the root:
 
 ```sh
 cargo fmt --all -- --check
@@ -212,127 +214,127 @@ cargo check --workspace --offline --target wasm32-unknown-unknown
 bash clean-room/check.sh origin/main
 ```
 
-El comprobador clean-room solo incluye archivos conocidos por Git: para cubrir
-los nuevos sin alterar el índice real, usa un índice temporal bajo
-`$CARGO_TARGET_DIR`, inicializado con `git read-tree HEAD`, añade allí las rutas
-del entregable y repite el comando con `GIT_INDEX_FILE` apuntando a ese índice.
-Si los objetos de `.git` son de solo lectura, configura además
-`GIT_OBJECT_DIRECTORY` bajo `$CARGO_TARGET_DIR` y
-`GIT_ALTERNATE_OBJECT_DIRECTORIES` con la salida de
-`git rev-parse --path-format=absolute --git-path objects` obtenida antes de
-exportar esa configuración. Así los objetos nuevos también son temporales.
-Conserva los logs y no cambies listas ni workflows para eludir una comprobación.
+The clean-room checker includes only files known to Git: to cover
+new files without altering the real index, use a temporary index under
+`$CARGO_TARGET_DIR`, initialized with `git read-tree HEAD`, add the deliverable
+paths there and repeat the command with `GIT_INDEX_FILE` pointing to that index.
+If `.git` objects are read-only, also configure
+`GIT_OBJECT_DIRECTORY` under `$CARGO_TARGET_DIR` and
+`GIT_ALTERNATE_OBJECT_DIRECTORIES` with the output of
+`git rev-parse --path-format=absolute --git-path objects` obtained before
+exporting that configuration. New objects are then temporary too.
+Retain logs and do not change lists or workflows to evade a check.
 
-Verifica además los 16 hashes contra la tabla de DETERMINISMO.md, con
-`MAMUT_ENGINE_GIT_COMMIT` sin definir, los ejemplos `determinism_native` y
-`determinism_wasm`, y `scripts/check-determinism.mjs`; ejecuta nativo/wasm y
-debug/release como indica ese documento. Guarda las salidas en
-`$CARGO_TARGET_DIR`; la tabla de hashes no se regenera para aceptar diferencias.
-`cargo check` wasm solo comprueba compilación; no acredita ejecución wasm del
-piloto. Reporta por separado ejecución nativa, cruce de hashes y pendientes.
+Also verify all 16 hashes against the DETERMINISMO.md table, with
+`MAMUT_ENGINE_GIT_COMMIT` unset, the `determinism_native` and
+`determinism_wasm` examples, and `scripts/check-determinism.mjs`; run native/wasm and
+debug/release as described in that document. Save outputs under
+`$CARGO_TARGET_DIR`; the hash table is not regenerated to accept differences.
+`cargo check` wasm only checks compilation; it does not establish wasm execution of the
+pilot. Report native execution, comparison across targets and pending work separately.
 
-## 7. Fronteras CLI, Python y WASM: MAM-835 / ENG-SFC-010
+## 7. CLI, Python and WASM boundaries: MAM-835 / ENG-SFC-010
 
-Las capacidades siguientes se ejecutan con `engine-input/1` mediante la misma
-función `engine_api::run`. CLI conserva su sobre de workflow y coloca el
-resultado en `engineResults[0]`; Python `run(...).to_json()` y WASM `run(...)`
-entregan el documento canónico `results/1`. Los campos añadidos son opcionales:
-las entradas anteriores conservan sus bytes y los 16 hashes publicados en
-[DETERMINISMO.md](DETERMINISMO.md). La procedencia `target` sigue identificando
-el destino de compilación: la igualdad del documento completo entre superficies
-se verifica compilándolas para el mismo destino, incluida la función WASM en
-nativo. No se elimina `target` de los resultados para simular igualdad entre
-binarios de destinos diferentes.
+The following capabilities execute with `engine-input/1` through the same
+`engine_api::run` function. CLI retains its workflow envelope and places the
+result in `engineResults[0]`; Python `run(...).to_json()` and WASM `run(...)`
+return the canonical `results/1` document. Added fields are optional:
+previous inputs retain their bytes and the 16 hashes published in
+[DETERMINISMO.md](DETERMINISMO.md). The `target` provenance still identifies
+the compilation target: complete document equality across surfaces
+is verified by compiling them for the same target, including the WASM function on
+native. `target` is not removed from results to simulate equality between
+binaries for different targets.
 
-Los métodos `nonlinearStatic`, `soilProfile` y `consolidation1d` figuran como
-`Experimental` en `capabilities` y en los descriptores del registro hasta que
-ENG-VAL-006 cubra su validación (decisión de Jonathan vía J0 2026-10-20).
-Para ejecutarlos, añada `"options": {"allow_experimental": true}` en la raíz
-del documento `engine-input/1`, junto a `analyses`; no dentro de las opciones
-del análisis. Sin esa habilitación explícita, `run` devuelve `invalid`
-(`API-E-INPUT`, salida 2). Los fixtures SFC-010 de estos métodos ya la incluyen.
-Las fuentes, soluciones analíticas y tolerancias de los fixtures
-están en [ENG-SFC-010](../provenance/ENG-SFC-010.md). No se modifica el núcleo
-numérico ni se añade plasticidad de sección.
+The `nonlinearStatic`, `soilProfile` and `consolidation1d` methods are listed as
+`Experimental` in `capabilities` and registry descriptors until
+ENG-VAL-006 covers their validation (Jonathan's decision via J0 2026-10-20).
+To execute them, add `"options": {"allow_experimental": true}` at the root
+of the `engine-input/1` document, alongside `analyses`; not inside the analysis
+options. Without this explicit opt-in, `run` returns `invalid`
+(`API-E-INPUT`, exit 2). SFC-010 fixtures for these methods already include it.
+Fixture sources, analytical solutions and tolerances
+are in [ENG-SFC-010](../provenance/ENG-SFC-010.md). The numerical core is unchanged
+and no section plasticity is added.
 
-### 7.1. Winkler y liberaciones de extremo
+### 7.1. Winkler and end releases
 
-En `model.members[]`, seleccione `element: "frame2d.winkler"` y añada
-`"winkler": {"k": 10}`. Para `frame3d.winkler`, use
-`"winkler": {"ky": 10, "kz": 20}` y la orientación 3D habitual. Las rigideces
-son N/m² por longitud de viga, en las direcciones transversales locales.
-El lecho es bilateral, lineal, sin masa adicional. Se conservan las propiedades
-Euler de sección/material y los requisitos previos de `rho` y orientación.
-Las fábricas existentes también aceptan estas rigideces entre los parámetros
-escalares de sección/ley; no duplique una propiedad dentro y fuera de `winkler`.
+In `model.members[]`, select `element: "frame2d.winkler"` and add
+`"winkler": {"k": 10}`. For `frame3d.winkler`, use
+`"winkler": {"ky": 10, "kz": 20}` and the usual 3D orientation. Stiffnesses
+are N/m² per beam length, in local transverse directions.
+The foundation is bilateral, linear, without additional mass. Euler
+section/material properties and existing `rho` and orientation requirements are retained.
+Existing factories also accept these stiffnesses among the scalar
+section/law parameters; do not duplicate a property inside and outside `winkler`.
 
-Las vigas `frame2d.euler_elastic` aceptan `release_i` y `release_j` booleanos
-que liberan el momento z local de cada extremo. En 3D los campos son arrays de
-tres booleanos `[T, My, Mz]`, siempre locales. No liberan traslaciones.
-Los giros nodales liberados quedan desconectados: restrínjalos o conéctelos con
-otros elementos para evitar un mecanismo. Las cargas uniformes y los giros
-internos recuperados usan la condensación existente. Winkler no admite estas
-liberaciones: se devuelve `API-E-SFC-OPTIONS`, sin sustituir el elemento.
+`frame2d.euler_elastic` beams accept boolean `release_i` and `release_j`
+that release each end's local z moment. In 3D, the fields are arrays of
+three booleans `[T, My, Mz]`, always local. They do not release translations.
+Released nodal rotations become disconnected: restrain them or connect them to
+other elements to avoid a mechanism. Uniform loads and recovered internal
+rotations use the existing condensation. Winkler does not support these
+releases: `API-E-SFC-OPTIONS` is returned, without substituting the element.
 
-Ejemplos completos:
+Complete examples:
 [Winkler 2D](../crates/engine-api/fixtures/input/valid/sfc010-winkler2d.json),
 [Winkler 3D](../crates/engine-api/fixtures/input/valid/sfc010-winkler3d.json),
-[liberaciones 2D](../crates/engine-api/fixtures/input/valid/sfc010-release2d.json),
-[liberaciones 3D](../crates/engine-api/fixtures/input/valid/sfc010-release3d.json).
-La solución constante `v=q/k` satisface exactamente la ecuación de
-Winkler–Hetényi `EI v''''+kv=q` y pertenece al espacio Hermite del elemento.
+[2D releases](../crates/engine-api/fixtures/input/valid/sfc010-release2d.json),
+[3D releases](../crates/engine-api/fixtures/input/valid/sfc010-release3d.json).
+The constant solution `v=q/k` exactly satisfies the
+Winkler–Hetényi equation `EI v''''+kv=q` and belongs to the element's Hermite space.
 
-### 7.2. Resortes y leyes uniaxiales
+### 7.2. Springs and uniaxial laws
 
-La colección opcional `model.springs` no exige sección. Cada resorte declara
-`id`, `nodes`, `kind` y un `dof` local. Un nodo conecta a tierra; dos nodos
-distintos conectan entre sí y pueden tener coordenadas coincidentes. Los IDs
-comparten espacio con `model.members`. Cada resorte representa un único GDL;
-resortes independientes requieren objetos separados.
+The optional `model.springs` collection does not require a section. Each spring declares
+`id`, `nodes`, `kind` and a local `dof`. One node connects to ground; two distinct
+nodes connect to each other and may have coincident coordinates. IDs
+share a namespace with `model.members`. Each spring represents a single DOF;
+independent springs require separate objects.
 
 ```json
 {"id": 21, "nodes": [1, 2], "kind": "spring.linear", "dof": "Ux", "k": 200}
 ```
 
-`spring.linear` exige `k` ≥ 0 y no admite `law`; `spring.nonlinear` exige la
-referencia `law` y no admite `k`. Los ejes son globales si se omiten ambos campos
-de orientación. `direction: [x,y,z]` selecciona el eje de Ux local; `rotation`
-es una matriz 3×3 cuyas filas son ejes locales ortonormales. Son excluyentes.
-El constructor existente comprueba dimensión, ejes y GDL globales necesarios.
-No se deduce una dirección de las coordenadas.
+`spring.linear` requires `k` ≥ 0 and does not accept `law`; `spring.nonlinear` requires a
+`law` reference and does not accept `k`. Axes are global if both orientation
+fields are omitted. `direction: [x,y,z]` selects the local Ux axis; `rotation`
+is a 3×3 matrix whose rows are orthonormal local axes. They are mutually exclusive.
+The existing constructor checks dimension, axes and required global DOFs.
+No direction is inferred from coordinates.
 
-Las leyes se declaran en `model.laws` con `name` y `parameters` habituales, más
-un `kind` opcional:
+Laws are declared in `model.laws` with the usual `name` and `parameters`, plus
+an optional `kind`:
 
-| Kind | Parámetros | Respuesta |
+| Kind | Parameters | Response |
 | --- | --- | --- |
 | `elastic` | `E` | `F=Eδ` |
-| `steel.bilinear_kinematic` | `E`, `fy`, `b` | Pendiente posfluencia `bE`, `0≤b<1`; historia `[δp,α]` y descarga cinemática |
-| `multilinear_elastic` | `parameters: []`; `points: [[δ,F],...]`; `mode` opcional | Tabla creciente que contiene `[0,0]`, pendientes no negativas, extrapolación con el tramo extremo |
+| `steel.bilinear_kinematic` | `E`, `fy`, `b` | Post-yield slope `bE`, `0≤b<1`; history `[δp,α]` and kinematic unloading |
+| `multilinear_elastic` | `parameters: []`; `points: [[δ,F],...]`; optional `mode` | Increasing table containing `[0,0]`, nonnegative slopes, extrapolation with the end segment |
 | `elastic.cubic` | `E`, `C` | `F=Eδ+Cδ³`, `E>0`, `C≥0` |
 
-Los valores de `mode` son `both` (por defecto), `compression_only` y
-`tension_only`. No se reflejan puntos ni se supone simetría. En resortes la ley
-se interpreta directamente como fuerza–desplazamiento: δ en m, F en N y E como
-rigidez N/m. Para giros se interpreta momento–giro en N·m/rad. No se convierten
-automáticamente curvas tensión–deformación ni se multiplican por área/longitud.
-Las leyes no lineales solo se conectan a `spring.nonlinear`; una viga elástica
-con esa referencia devuelve `ENG-E-0013`.
+`mode` values are `both` (default), `compression_only` and
+`tension_only`. Points are not mirrored and symmetry is not assumed. In springs the law
+is interpreted directly as force–displacement: δ in m, F in N and E as
+stiffness in N/m. For rotations it is interpreted as moment–rotation in N·m/rad. Stress–strain
+curves are not automatically converted or multiplied by area/length.
+Nonlinear laws connect only to `spring.nonlinear`; an elastic beam
+with that reference returns `ENG-E-0013`.
 
-Resortes lineales se admiten en `linearStatic` (incluidas combinaciones) y
-`nonlinearStatic`. Los no lineales requieren `nonlinearStatic`. Otros análisis
-con resortes devuelven `ENG-E-0013`. Las identidades de salida aparecen en
-`members`: `section` vacío, referencia de ley si existe y `end_dofs` con las
-etiquetas de recuperación. A tierra el extremo móvil se llama `j`. Las tablas
-Python agrupan resortes por kind y etiquetas para conservar sus anchos y unidades.
+Linear springs are supported in `linearStatic` (including combinations) and
+`nonlinearStatic`. Nonlinear springs require `nonlinearStatic`. Other analyses
+with springs return `ENG-E-0013`. Output identities appear in
+`members`: empty `section`, law reference if present and `end_dofs` with the
+recovery labels. For a grounded spring the moving end is called `j`. Python tables
+group springs by kind and labels to preserve their widths and units.
 
-Ejemplos: [serie lineal](../crates/engine-api/fixtures/input/valid/sfc010-spring-series.json),
-[resortes 3D](../crates/engine-api/fixtures/input/valid/sfc010-spring3d.json),
-[multilineal](../crates/engine-api/fixtures/input/valid/sfc010-multilinear.json),
-[cúbico](../crates/engine-api/fixtures/input/valid/sfc010-cubic.json) y
-[acero con descarga/reversión](../crates/engine-api/fixtures/input/valid/sfc010-steel.json).
+Examples: [linear series](../crates/engine-api/fixtures/input/valid/sfc010-spring-series.json),
+[3D springs](../crates/engine-api/fixtures/input/valid/sfc010-spring3d.json),
+[multilinear](../crates/engine-api/fixtures/input/valid/sfc010-multilinear.json),
+[cubic](../crates/engine-api/fixtures/input/valid/sfc010-cubic.json) and
+[steel with unloading/reversal](../crates/engine-api/fixtures/input/valid/sfc010-steel.json).
 
-### 7.3. Newton completo con control de carga
+### 7.3. Full Newton with load control
 
 ```json
 {"method": "nonlinearStatic", "options": {
@@ -341,118 +343,118 @@ Ejemplos: [serie lineal](../crates/engine-api/fixtures/input/valid/sfc010-spring
 }}
 ```
 
-`load_factors` contiene factores **absolutos**, no incrementos acumulativos.
-Se permiten cero, negativos, repeticiones y descarga. De uno a 16384 pasos y
-correcciones máximas por paso. `tolerance` controla `‖R_libre‖∞/force_scale`.
-Las escalas SI positivas son responsabilidad del usuario, especialmente si
-conviven fuerzas y momentos. Opcionalmente se pueden añadir
-`displacement_tolerance` con `displacement_scale`, y `energy_tolerance` con
-`energy_scale`. Cada criterio adicional exige su escala; deben cumplirse todos
-los activos. Las escalas de criterios inactivos se serializan como 1 si se omiten.
+`load_factors` contains **absolute** factors rather than cumulative increments.
+Zero, negative values, repetitions and unloading are allowed. From one to 16384 steps and
+maximum corrections per step. `tolerance` controls `‖R_libre‖∞/force_scale`.
+Positive SI scales are the user's responsibility, especially when
+forces and moments coexist. Optionally,
+`displacement_tolerance` with `displacement_scale`, and `energy_tolerance` with
+`energy_scale` may be added. Each additional criterion requires its scale; all active
+criteria must be satisfied. Scales of inactive criteria serialize as 1 if omitted.
 
-Se conserva un único `NewtonSystem` con su historia aceptada durante todos los
-pasos. Los resortes variables se excluyen de la matriz lineal para evitar contar
-su rigidez dos veces. Los desplazamientos prescritos son constantes, sin factor
-de carga. Este método no admite diafragmas ni combinaciones (`ENG-E-0013`).
-No hay búsqueda de línea, subdivisión automática ni reintentos.
+A single `NewtonSystem` with its committed history is retained throughout all
+steps. Variable springs are excluded from the linear matrix to avoid counting
+their stiffness twice. Prescribed displacements are constant, without a load
+factor. This method does not support diaphragms or combinations (`ENG-E-0013`).
+There is no line search, automatic subdivision or retry.
 
-`convergence.steps[]` conserva el factor, iteraciones, normas absolutas y
-relativas, `converged`, y para cada paso aceptado `results` con nodos/miembros
-e `element_states` en el orden de los resortes no lineales del input. Las
-reacciones incluyen las fuerzas de los resortes variables. Los extremos de
-miembro se muestrean en las cinco estaciones del dominio; no se prometen
-extremos interiores exactos en este análisis. `cases[0]` contiene el último paso
-si toda la ejecución termina.
+`convergence.steps[]` retains the factor, iterations, absolute and relative
+norms, `converged`, and for each accepted step `results` with nodes/members
+and `element_states` in the order of nonlinear springs in the input. Reactions
+include variable spring forces. Member extrema
+are sampled at the domain's five stations; exact interior extrema are not promised
+in this analysis. `cases[0]` contains the last step
+if the entire run completes.
 
-Si no converge, `results` y `element_states` del intento fallido son null:
-`status: "notConverged"`, diagnóstico `ENG-E-0007`, salida 4 y sin pasos
-posteriores. Si la tangente es singular, se devuelve `unstable`/`ENG-E-0006`
-y `convergence.failed_factor`. Se conservan los resultados aceptados dentro de
-`convergence`, junto a `accepted_factor`; `cases`, `nodes` y `members` de nivel
-superior se vacían según la política de error existente. Cancelación entre pasos
-(`newtonStep`) elimina también convergence. `API-E-SFC-OPTIONS` explica opciones
-incompatibles o fuera de rango; está disponible mediante `explain`.
+On nonconvergence, `results` and `element_states` of the failed attempt are null:
+`status: "notConverged"`, diagnostic `ENG-E-0007`, exit 4 and no subsequent
+steps. If the tangent is singular, `unstable`/`ENG-E-0006`
+and `convergence.failed_factor` are returned. Accepted results are retained within
+`convergence`, alongside `accepted_factor`; top-level `cases`, `nodes` and `members`
+are emptied according to the existing error policy. Cancellation between steps
+(`newtonStep`) also removes convergence. `API-E-SFC-OPTIONS` explains incompatible
+or out-of-range options; it is available through `explain`.
 
-### 7.4. Perfil estratificado y consolidación
+### 7.4. Layered profile and consolidation
 
-Los métodos `soilProfile` y `consolidation1d` usan `analyses[0].options` y requieren
-modelo estructural y colecciones de casos/combinaciones vacíos. No requieren
-nodos ni GDL artificiales. La salida añade exclusivamente `geotechnical` a
-`results/1`; las salidas estructurales históricas no reciben esa propiedad.
+The `soilProfile` and `consolidation1d` methods use `analyses[0].options` and require
+an empty structural model and empty case/combination collections. They do not require
+artificial nodes or DOFs. Output adds only `geotechnical` to
+`results/1`; historical structural outputs do not receive that property.
 
-Un dato geotécnico lleva siempre valor y procedencia:
-`{"value": 10, "provenance": "assumed"}` o `"measured"`. El motor conserva
-las rutas de todos los parámetros supuestos en `assumed_parameters`.
-Un dato físico ausente requerido por el dominio devuelve `ENG-E-0003`, sin
-sustituciones. Rangos incompatibles usan `ENG-E-0010`; datos/resultados no finitos
-usan `ENG-E-0008` (o rechazo léxico `API-E-INPUT` para números JSON no finitos).
+A geotechnical datum always includes value and provenance:
+`{"value": 10, "provenance": "assumed"}` or `"measured"`. The engine retains
+the paths of all assumed parameters in `assumed_parameters`.
+A missing physical datum required by the domain returns `ENG-E-0003`, without
+substitutions. Incompatible ranges use `ENG-E-0010`; nonfinite data/results
+use `ENG-E-0008` (or lexical rejection `API-E-INPUT` for nonfinite JSON numbers).
 
-`soilProfile` recibe `layers` ordenadas desde el terreno, `groundwater_depth_m`,
-`water_unit_weight_kn_m3` y `depths_m`. Cada capa declara `thickness_m`,
-`gamma_kn_m3` y, si queda parcialmente bajo el agua, `gamma_sat_kn_m3`.
-Los pesos unitarios y el nivel freático requieren procedencia; γw y zw son
-obligatorios incluso en seco. La profundidad es positiva hacia abajo, dentro
-del perfil, sin extrapolación. `states[]` devuelve `total_vertical_kpa`,
-`pore_pressure_kpa` y `effective_vertical_kpa`, compresión positiva, con
-`σ'v=σv−u` y presión hidrostática. No se recortan tensiones efectivas negativas.
-[Fixture hidrostático](../crates/engine-api/fixtures/input/valid/sfc010-soil.json).
+`soilProfile` receives `layers` ordered from ground level, `groundwater_depth_m`,
+`water_unit_weight_kn_m3` and `depths_m`. Each layer declares `thickness_m`,
+`gamma_kn_m3` and, if partly underwater, `gamma_sat_kn_m3`.
+Unit weights and groundwater level require provenance; γw and zw are
+mandatory even in dry conditions. Depth is positive downward, within
+the profile, without extrapolation. `states[]` returns `total_vertical_kpa`,
+`pore_pressure_kpa` and `effective_vertical_kpa`, compression positive, with
+`σ'v=σv−u` and hydrostatic pressure. Negative effective stresses are not clipped.
+[Hydrostatic fixture](../crates/engine-api/fixtures/input/valid/sfc010-soil.json).
 
-`consolidation1d` recibe capas con `thickness_m`, `cv_m2_s`, `mv_per_kpa`,
-`k_m_s` (todos con procedencia) y `elements`. Se exigen `water_unit_weight_kn_m3`
-y la relación `cv=k/(mv γw)`; no se calcula un dato ausente. `drainage` admite
-`top`, `bottom` o `double`. La historia `history` contiene puntos
-`time_s`/`delta_stress_kpa` con tiempo creciente desde cero; interpola linealmente.
-`output_times_s` es creciente, no negativo y queda dentro de la historia.
-`theta` en [0,1] y `max_step_s` positivo son explícitos. Las capas pueden tener
-propiedades distintas y comparten nodos en sus interfaces.
+`consolidation1d` receives layers with `thickness_m`, `cv_m2_s`, `mv_per_kpa`,
+`k_m_s` (all with provenance) and `elements`. `water_unit_weight_kn_m3`
+and the relation `cv=k/(mv γw)` are required; missing data are not computed. `drainage` accepts
+`top`, `bottom` or `double`. The `history` contains
+`time_s`/`delta_stress_kpa` points with increasing time from zero; interpolation is linear.
+`output_times_s` is increasing, nonnegative and within the history.
+`theta` in [0,1] and positive `max_step_s` are explicit. Layers may have
+different properties and share nodes at their interfaces.
 
-La salida contiene `depths_m` comunes y estados con presión excedente nodal
-`excess_pore_pressure_kpa`, `settlement_m` y `mean_degree`. El grado medio es
-null con incremento de tensión cero y puede salir de [0,1] al descargar.
-La discretización finita puede producir asiento inicial no nulo por el dren;
-no se modifica ni recorta. El dominio conserva sus límites de 2048 elementos,
-8000000 valores nodales de salida y 1000000 subpasos por intervalo. La frontera
-aplica además los siguientes topes públicos, antes de integrar:
+Output contains common `depths_m` and states with nodal excess pressure
+`excess_pore_pressure_kpa`, `settlement_m` and `mean_degree`. The mean degree is
+null with zero stress increment and may leave [0,1] during unloading.
+Finite discretization can produce nonzero initial settlement due to the drain;
+it is neither modified nor clipped. The domain retains its limits of 2048 elements,
+8000000 output nodal values and 1000000 substeps per interval. The boundary
+also applies the following public caps, before integration:
 
-| Constante de `engine_api` | Tope | Rechazo (`invalid`, salida 2) |
+| `engine_api` constant | Cap | Rejection (`invalid`, exit 2) |
 | --- | ---: | --- |
-| `MAX_CONSOLIDATION_WORK` (r2, conservada) | 50_000_000 subpasos × elementos | `API-E-CONSOLIDATION-WORK` |
+| `MAX_CONSOLIDATION_WORK` (r2, retained) | 50_000_000 substeps × elements | `API-E-CONSOLIDATION-WORK` |
 | `MAX_CONSOLIDATION_COST` (r3) | 500_000_000 | `API-E-CONSOLIDATION-COST` |
-| `MAX_CONSOLIDATION_SEGMENTS` (r3) | 256 intervalos de historia/salida | `API-E-CONSOLIDATION-COST` |
-| `MAX_CONSOLIDATION_SUBSTEPS` (r3) | 100_000 subpasos agregados | `API-E-CONSOLIDATION-COST` |
+| `MAX_CONSOLIDATION_SEGMENTS` (r3) | 256 history/output intervals | `API-E-CONSOLIDATION-COST` |
+| `MAX_CONSOLIDATION_SUBSTEPS` (r3) | 100_000 aggregate substeps | `API-E-CONSOLIDATION-COST` |
 
-El coste denso es `Σ_intervalos n³ + Σ_subpasos n²`, donde `n` es el número
-de nodos libres: elementos totales con drenaje simple, elementos menos uno con
-drenaje doble. Cada intervalo entre quiebres de carga y tiempos de salida aporta
-`max(1, ceil(intervalo/max_step_s))` subpasos. Se cuenta **toda** la historia,
-incluso después de la última salida solicitada, sin descontar reutilizaciones
-de factores. Sumas, potencias y productos usan `u128` saturante; el cociente no
-finito también satura. Se comprueba primero la cota r2. El tope de intervalos
-limita también la historia a 257 puntos; el coste implica como máximo 793
-elementos con drenaje simple o 794 con doble. No hace falta otro tope de malla.
-Los topes de intervalos y subpasos acotan el trabajo fijo de mallas pequeñas.
-Reduzca historia/malla/salidas o aumente `max_step_s` si se rechaza la entrada.
+The dense cost is `Σ_intervalos n³ + Σ_subpasos n²`, where `n` is the number
+of free nodes: total elements for single drainage, elements minus one for
+double drainage. Each interval between load breakpoints and output times contributes
+`max(1, ceil(intervalo/max_step_s))` substeps. The **entire** history is counted,
+even after the last requested output, without discounting factor
+reuse. Sums, powers and products use saturating `u128`; a nonfinite quotient
+also saturates. The r2 bound is checked first. The interval cap
+also limits history to 257 points; the cost implies at most 793
+elements with single drainage or 794 with double drainage. No other mesh cap is needed.
+Interval and substep caps bound the fixed work for small meshes.
+Reduce history/mesh/outputs or increase `max_step_s` if the input is rejected.
 
-Calibración release en esta máquina y casos extremos aceptados:
-[provenance r3](../provenance/ENG-SFC-010.md#r3--revisión-j4-h1).
-El objetivo es terminar en pocos segundos (≤ aproximadamente 5 s); no se
-promete un plazo en otras máquinas, destinos o perfiles debug. El backend
-sigue siendo denso: O(n³) por factorización y O(n²) por solve.
+Release calibration on this machine and accepted extreme cases:
+[r3 provenance](../provenance/ENG-SFC-010.md#r3--revisión-j4-h1).
+The goal is completion in a few seconds (≤ approximately 5 s); no deadline
+is promised on other machines, targets or debug profiles. The backend
+remains dense: O(n³) per factorization and O(n²) per solve.
 
-`ConsolidationProfile::solve_with_cancel` consulta el cierre antes de
-combine/factorize de cada intervalo, entre bloques de hasta 16 columnas de la
-factorización de referencia y antes de cada subpaso. La fachada conecta el
-`CancelToken` y devuelve `API-I-CANCELLED` (`cancelled`, salida 5), sin salidas
-parciales. El equilibrado y cada solve denso siguen siendo indivisibles.
-`solve` usa un cierre false. Solo el backend de referencia reutiliza el último
-factor si el `dt` consecutivo coincide por bits: M, K y theta son inmutables y
-la matriz y el factor son idénticos. Un dt distinto invalida la caché. Los
-backends aportados por el llamador conservan cada llamada de factorización.
-Se conservan el orden de operaciones, la partición temporal y los resultados;
-el progreso sigue informándose antes/después de la integración.
-[Fixture multicapa de Terzaghi](../crates/engine-api/fixtures/input/valid/sfc010-consolidation.json).
+`ConsolidationProfile::solve_with_cancel` queries the closure before
+combine/factorize of each interval, between blocks of up to 16 columns of the
+reference factorization and before each substep. The facade connects the
+`CancelToken` and returns `API-I-CANCELLED` (`cancelled`, exit 5), without partial
+outputs. Equilibration and each dense solve remain indivisible.
+`solve` uses a false-returning closure. Only the reference backend reuses the last
+factor if consecutive `dt` values match bitwise: M, K and theta are immutable and
+the matrix and factor are identical. A different dt invalidates the cache.
+Caller-supplied backends retain every factorization call.
+Operation order, time partitioning and results are preserved;
+progress is still reported before/after integration.
+[Multilayer Terzaghi fixture](../crates/engine-api/fixtures/input/valid/sfc010-consolidation.json).
 
-Las tres superficies descubren estos contratos con `schema("engine-input/1")`,
-`schema("results/1")`, `capabilities` y `explain`; Python publica también sus DTO
-con campos opcionales. Las pruebas de paridad comparan bytes canónicos de cada
-fixture, extrayendo el documento del sobre CLI cuando corresponde.
+All three surfaces discover these contracts with `schema("engine-input/1")`,
+`schema("results/1")`, `capabilities` and `explain`; Python also publishes its DTOs
+with optional fields. Parity tests compare canonical bytes of each
+fixture, extracting the document from the CLI envelope when appropriate.

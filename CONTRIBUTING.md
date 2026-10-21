@@ -1,39 +1,39 @@
-# Contribuir a MAMUT Engine (nombre provisional)
+# Contributing to MAMUT Engine (provisional name)
 
-Toda contribución debe seguir el [protocolo clean-room](docs/CLEAN_ROOM.md).
+Every contribution must follow the [clean-room protocol](docs/CLEAN_ROOM.md).
 
-Para implementar un método en Rust, sigue la [guía de métodos](docs/GUIA_METODOS.md):
-incluye plantillas, revisión y un piloto uniaxial reproducible.
+To implement a method in Rust, follow the [method guide](docs/GUIA_METODOS.md):
+it includes templates, review and a reproducible uniaxial pilot.
 
-Los contribuyentes externos deben firmar un **CLA obligatorio** antes de que se acepte su contribución. Este requisito responde a la licencia dual **AGPL-3.0 + licencia comercial**: el titular debe poder distribuir las contribuciones tanto bajo AGPL como bajo licencia comercial.
+External contributors must sign a **mandatory CLA** before their contribution is accepted. This requirement follows from the dual **AGPL-3.0 + commercial license**: the holder must be able to distribute contributions under both AGPL and a commercial license.
 
-El CLA se documentará en [docs/CLA.md](docs/CLA.md), que llegará con **ENG-GOV-007**. El texto del CLA es **PENDIENTE de revisión legal**.
+The CLA will be documented in [docs/CLA.md](docs/CLA.md), to be delivered with **ENG-GOV-007**. The CLA text is **PENDING legal review**.
 
-Las decisiones fundacionales se registran en el [ADR-001](docs/adr/ADR-001-fundacionales.md). El titular del copyright sigue **PENDIENTE**. El texto de licencia y el aviso legal viven solo en Notion, en **ENG-GOV-004**: **PENDIENTE (ver Notion)**.
+Foundational decisions are recorded in [ADR-001](docs/adr/ADR-001-fundacionales.md). The copyright holder remains **PENDING**. The license text and legal notice reside only in Notion, under **ENG-GOV-004**: **PENDING (see Notion)**.
 
 ## Changelog
 
-Cada PR añade un fragmento `changelog.d/MAM-ID.tipo.md` según el
-[formato de fragmentos](changelog.d/README.md), sin editar `CHANGELOG.md`.
-Los PR abiertos antes de este flujo conservan su entrada existente en
-`CHANGELOG.md`; no necesitan migrarla a un fragmento.
+Each PR adds a `changelog.d/MAM-ID.tipo.md` fragment following the
+[fragment format](changelog.d/README.md), without editing `CHANGELOG.md`.
+PRs opened before this workflow keep their existing `CHANGELOG.md` entry;
+they do not need to migrate it to a fragment.
 
-En CI, `bash scripts/changelog-check.sh BASE_REF` compara `BASE_REF...HEAD`:
-si cambia `crates/` o `bindings/`, exige un fragmento nuevo válido y rechaza
-cambios en `CHANGELOG.md`. CI define `CHANGELOG_RELEASE=1` cuando el PR tiene
-la etiqueta `release`, para eximir el PR de publicación.
+In CI, `bash scripts/changelog-check.sh BASE_REF` compares `BASE_REF...HEAD`:
+if `crates/` or `bindings/` changes, it requires a valid new fragment and rejects
+changes to `CHANGELOG.md`. CI sets `CHANGELOG_RELEASE=1` when the PR has
+the `release` label, exempting the release PR.
 
-El PR de release ejecuta `bash scripts/changelog-assemble.sh VERSION DATE`
-(vista previa con `--dry-run`), revisa el changelog y registra la eliminación
-de los fragmentos. `DATE` usa `AAAA-MM-DD`; puede omitirse si se define
-`SOURCE_DATE_EPOCH`. Las entradas antiguas de Unreleased pasan a «Otros
-(legado)». Se descartó `merge=union` porque puede duplicar y desordenar
-entradas, ocultando conflictos semánticos; los archivos por PR evitan
-compartir el mismo punto de edición.
+The release PR runs `bash scripts/changelog-assemble.sh VERSION DATE`
+(preview with `--dry-run`), reviews the changelog and records the removal
+of the fragments. `DATE` uses `AAAA-MM-DD`; it may be omitted if
+`SOURCE_DATE_EPOCH` is set. Old Unreleased entries move to “Otros
+(legado)”. `merge=union` was rejected because it can duplicate and reorder
+entries, hiding semantic conflicts; per-PR files avoid
+sharing the same edit location.
 
-## Pruebas
+## Tests
 
-El toolchain está fijado a Rust **1.99.0** en [rust-toolchain.toml](rust-toolchain.toml), con rustfmt, Clippy y el destino `wasm32-unknown-unknown`. Usa rustup desde la raíz para ejecutar las mismas comprobaciones que CI:
+The toolchain is pinned to Rust **1.99.0** in [rust-toolchain.toml](rust-toolchain.toml), with rustfmt, Clippy and the `wasm32-unknown-unknown` target. Use rustup from the root to run the same checks as CI:
 
 ```sh
 cargo fmt --all -- --check

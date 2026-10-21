@@ -1,27 +1,27 @@
-//! <Método y enlace relativo a su ficha con ecuaciones/citas>.
-//! Plantilla para engine-laws/src/uniaxial/mi_metodo.rs.
-//! Sustituir Metodo, Params, descriptor, parámetros y respuesta pendiente.
+//! <Method and relative link to its sheet with equations/citations>.
+//! Template for engine-laws/src/uniaxial/mi_metodo.rs.
+//! Replace Metodo, Params, descriptor, parameters and pending response.
 
 use super::UniaxialFactory;
 use crate::{finite, positive, vector, LawDescriptor};
 use engine_contracts::{UniaxialLaw, UniaxialResponse};
 use engine_core::{ContractId, EResult, EngineError, Real};
 
-/// Identidad propia y versión del método, independiente del contrato.
+/// Own method identity and version, independent of the contract.
 pub const METODO: LawDescriptor = LawDescriptor {
     kind: "metodo.pendiente",
     contract: ContractId::new("uniaxial", 1, 0),
     version: (0, 1, 0),
 };
 
-/// Sustituir por los parámetros SI de la ficha.
+/// Replace with SI parameters from the method sheet.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MetodoParams {
-    /// Ejemplo de módulo inicial, en Pa, finito y positivo.
+    /// Example initial modulus, in Pa, finite and positive.
     pub e: Real,
 }
 
-/// Fábrica tipada sin registro global.
+/// Typed factory without global registration.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct MetodoFactory;
 
@@ -37,17 +37,17 @@ impl UniaxialFactory for MetodoFactory {
     }
 }
 
-/// Completar hipótesis, ecuaciones, signos, unidades, dominio e historia.
+/// Complete assumptions, equations, signs, units, domain and history.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Metodo {
     params: MetodoParams,
 }
 
 impl Metodo {
-    /// Valida parámetros; completar rangos y diagnósticos de la ficha.
+    /// Validates parameters; complete ranges and diagnostics from the method sheet.
     ///
-    /// # Errores
-    /// ENG-E-0008 por no finitos; ENG-E-0010 por rango inválido.
+    /// # Errors
+    /// ENG-E-0008 for nonfinite values; ENG-E-0010 for invalid range.
     pub fn new(e: Real) -> EResult<Self> {
         Ok(Self {
             params: MetodoParams {
@@ -56,7 +56,7 @@ impl Metodo {
         })
     }
 
-    /// Parámetros originales validados, inmutables.
+    /// Original validated, immutable parameters.
     pub fn params(&self) -> &MetodoParams {
         &self.params
     }
@@ -72,7 +72,7 @@ impl UniaxialLaw for Metodo {
     }
 
     fn state_len(&self) -> usize {
-        0 // Sustituir si hay historia; documentar componentes y unidades.
+        0 // Replace if there is history; document components and units.
     }
 
     fn initial_state(&self) -> Vec<Real> {
@@ -80,14 +80,14 @@ impl UniaxialLaw for Metodo {
     }
 
     fn initial_tangent(&self) -> Real {
-        self.params.e // Derivar desde la ficha y comprobar en el origen.
+        self.params.e // Derive from the method sheet and check at the origin.
     }
 
     fn respond(&self, strain: Real, committed: &[Real]) -> EResult<UniaxialResponse> {
         vector(committed, self.state_len(), "Historia aceptada")?;
         finite(strain, "ε total")?;
-        // Reemplazar por las ecuaciones de la ficha, validando intermedios,
-        // tensión, tangente e historia. Nunca aceptar ni mutar committed.
+        // Replace with method sheet equations, validating intermediates,
+        // stress, tangent and history. Never accept or mutate committed.
         Err(EngineError::new(
             "ENG-E-0013",
             "Plantilla pendiente de implementar desde su ficha matemática.",

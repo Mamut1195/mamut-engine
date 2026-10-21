@@ -1,7 +1,7 @@
-# Prompt para implementar un método con fuentes restringidas
+# Prompt for implementing a method with restricted sources
 
-Sustituye los campos entre ángulos antes de iniciar una sesión limpia.
-No adjuntes código, datos ni informes de las fuentes prohibidas.
+Replace angle-bracketed fields before starting a clean session.
+Do not attach code, data or reports from prohibited sources.
 
 ```text
 Implementa <método> para <ticket> en Rust, dentro del worktree actual.

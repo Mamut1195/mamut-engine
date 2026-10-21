@@ -1,18 +1,18 @@
-# MAMUT Engine (nombre provisional)
+# MAMUT Engine (provisional name)
 
-Nombre y marca definitivos: **PENDIENTE**.
+Final name and brand: **PENDING**.
 
-Estado: decisiones fundacionales propuestas, pendientes de aprobación de Jonathan. El repositorio `Mamut1195/mamut-engine` es **PRIVADO por ahora**; mantenerlo privado es la decisión recomendada. Publicarlo desde el día 1 o al release queda **PENDIENTE** de Jonathan.
+Status: foundational decisions proposed, pending Jonathan's approval. The `Mamut1195/mamut-engine` repository is **PRIVATE for now**; keeping it private is the recommended decision. Publication from day 1 or at release remains **PENDING** Jonathan's decision.
 
-Licencia: **AGPL-3.0-only** (texto en [LICENSE](LICENSE)), con **licencia comercial disponible de MAMPRO SAS** para quien no pueda cumplir la AGPL. Recomendada el 2026-10-08 y confirmada por Jonathan el 2026-10-15 (el Engine no es propietario). Aviso en [NOTICE](NOTICE). Copyright © MAMPRO SAS. Texto de la licencia comercial: **PENDIENTE** (ENG-GOV-004). Contacto para licencia comercial: **[PENDIENTE: contacto de MAMPRO SAS]**.
+License: **AGPL-3.0-only** (text in [LICENSE](LICENSE)), with a **commercial license available from MAMPRO SAS** for those unable to comply with the AGPL. Recommended on 2026-10-08 and confirmed by Jonathan on 2026-10-15 (the Engine is not proprietary). Notice in [NOTICE](NOTICE). Copyright © MAMPRO SAS. Commercial license text: **PENDING** (ENG-GOV-004). Commercial licensing contact: **[PENDING: MAMPRO SAS contact]**.
 
-- [ADR-001: decisiones fundacionales](docs/adr/ADR-001-fundacionales.md)
-- [ADR-002: selección de librerías de álgebra lineal](docs/adr/ADR-002-algebra-lineal.md)
-- [ADR-003: Python nativo V1](docs/adr/ADR-003-python-v1.md) · [Conciliación ticket↔PR/issue](docs/TICKETS_PRS.md)
-- [Protocolo clean-room](docs/CLEAN_ROOM.md)
-- [Guía de contribución](CONTRIBUTING.md)
+- [ADR-001: foundational decisions](docs/adr/ADR-001-fundacionales.md)
+- [ADR-002: linear algebra library selection](docs/adr/ADR-002-algebra-lineal.md)
+- [ADR-003: native Python V1](docs/adr/ADR-003-python-v1.md) · [Ticket↔PR/issue reconciliation](docs/TICKETS_PRS.md)
+- [Clean-room protocol](docs/CLEAN_ROOM.md)
+- [Contribution guide](CONTRIBUTING.md)
 
-Fachada portable [engine-api](crates/engine-api/README.md): `run()` ejecuta
-linearStatic, pDelta, modal y responseSpectrum con salida canónica results/1,
-SHA-256 de entrada y cancelación cooperativa. Las limitaciones de los
-seguimientos #78, #84, #85 y #86 están documentadas en el README del crate.
+Portable facade [engine-api](crates/engine-api/README.md): `run()` executes
+linearStatic, pDelta, modal and responseSpectrum with canonical results/1 output,
+input SHA-256 and cooperative cancellation. The limitations tracked in
+#78, #84, #85 and #86 are documented in the crate README.

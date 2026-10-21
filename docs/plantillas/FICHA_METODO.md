@@ -1,52 +1,52 @@
-# Ficha de método · <nombre> · <ticket>
+# Method sheet · <name> · <ticket>
 
-Completar antes de implementar. No dejar campos pendientes en una ficha usada
-para validar el método. La guía contiene una ficha completa para el piloto.
+Complete before implementation. Do not leave pending fields in a sheet used
+to validate the method. The guide contains a complete sheet for the pilot.
 
-- Autor, modelo si es IA, fecha y rol:
-- Kind propio, contrato y versión del método:
-- Módulo/crate y consumidor previsto:
-- Métodos existentes revisados y por qué este es distinto:
+- Author, model if AI, date and role:
+- Own kind, contract and method version:
+- Module/crate and intended consumer:
+- Existing methods reviewed and why this one is distinct:
 
-## Fuentes permitidas
+## Permitted sources
 
-Por cada fuente: autor, título, edición/año, sección/página/ecuación y texto
-teórico disponible localmente. Para derivación propia: autor, fecha, título,
-ubicación y ecuaciones numeradas. No inventar localizadores; si falta teoría,
-declarar la duda antes de implementar. Sin listados de terceros ni tablas copiadas.
+For each source: author, title, edition/year, section/page/equation and theoretical
+text available locally. For an original derivation: author, date, title,
+location and numbered equations. Do not invent locators; if theory is missing,
+state the uncertainty before implementation. No third-party listings or copied tables.
 
-## Hipótesis, unidades y dominio
+## Assumptions, units and domain
 
-- Física y limitaciones:
-- Entradas totales, unidades SI y signos:
-- Parámetros, unidades, rangos y validación:
-- Estado: orden, longitud, unidades, valores iniciales y estados admisibles:
-- Salidas y unidades:
-- Dominio numérico, orden de operaciones, overflow/underflow:
-- Puntos no diferenciables y convención en cada frontera:
+- Physics and limitations:
+- Total inputs, SI units and signs:
+- Parameters, units, ranges and validation:
+- State: order, length, units, initial values and admissible states:
+- Outputs and units:
+- Numerical domain, operation order, overflow/underflow:
+- Nondifferentiable points and convention at each boundary:
 
-## Derivación propia
+## Original derivation
 
-1. Ecuaciones de partida y cita de cada una.
-2. Desarrollo del algoritmo, sin referenciar otros motores.
-3. Derivada consistente respecto a la entrada, a historia aceptada fija.
-4. Tangente inicial, invariantes, aceptación y descarte de estado.
-5. Límites analíticos y recuperación de casos simples.
+1. Starting equations and citation for each.
+2. Development of the procedure, without referencing other engines.
+3. Consistent derivative with respect to input, at fixed committed history.
+4. Initial tangent, invariants, state acceptance and discard.
+5. Analytical limits and recovery of simple cases.
 
-## Casos fijados antes de ejecutar
+## Cases established before execution
 
-| Caso / source / cita | Parámetros SI | Entrada e historia | Esperados analíticos | Tolerancia y justificación |
+| Case / source / citation | SI parameters | Input and history | Analytical expected values | Tolerance and justification |
 | --- | --- | --- | --- | --- |
-| <completar> | <completar> | <completar> | <evaluación propia con ecuación> | <completar> |
+| <complete> | <complete> | <complete> | <own evaluation with equation> | <complete> |
 
-Separar muestras suaves para FD, fronteras, ciclos y pruebas negativas.
-Justificar h con error de truncamiento/redondeo y verificar límites del kit.
+Separate smooth samples for FD, boundaries, cycles and negative tests.
+Justify h with truncation/rounding error and verify kit limits.
 
-## Integración y evidencia
+## Integration and evidence
 
-- Exportaciones, descriptor y fábrica:
-- Conformidad apropiada al trait:
-- Benchmark nativo y, si aplica, fixture/1 de ENG-CORE-009:
-- Comprobaciones, tests passed/failed y logs bajo `$CARGO_TARGET_DIR`:
-- Cruce de los 16 hashes sin modificar la referencia:
-- Bitácora, revisión clean-room y límites de validación:
+- Exports, descriptor and factory:
+- Conformance appropriate to the trait:
+- Native benchmark and, if applicable, ENG-CORE-009 fixture/1:
+- Checks, tests passed/failed and logs under `$CARGO_TARGET_DIR`:
+- Comparison of the 16 hashes across targets without modifying the reference:
+- Log, clean-room review and validation limits:

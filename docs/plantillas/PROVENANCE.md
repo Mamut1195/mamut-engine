@@ -1,28 +1,28 @@
-# Bitácora clean-room · <ticket>
+# Clean-room log · <ticket>
 
-Completar según [plantilla canónica](../../provenance/TEMPLATE.md).
+Complete according to the [canonical template](../../provenance/TEMPLATE.md).
 
-- Ticket / PR: <ticket y objetivo>.
-- Autor(es): <persona o agente, modelo, fecha y America/Guayaquil>.
-- Rol: especificador e implementador.
-- Contrato implementado: <nombre/versión, kind y versión del método>.
-- Fuentes permitidas usadas: <contratos y citas completas con localizadores>.
-- Derivaciones propias: <ruta relativa, título, autor, fecha y ecuaciones>.
-- Código de terceros copiado: ninguno.
-- Validación: <oráculo analítico propio o publicación citada; fixtures y tolerancias>.
-- Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
-  No se consultaron código, resultados ni informes de CalculiX, code_aster,
-  LAPACK o derivados. Sin red ni fuentes externas.
-- Revisor clean-room: **PENDIENTE (J4)**.
+- Ticket / PR: <ticket and objective>.
+- Author(s): <person or agent, model, date and America/Guayaquil>.
+- Role: specifier and implementer.
+- Implemented contract: <name/version, kind and method version>.
+- Permitted sources used: <contracts and full citations with locators>.
+- Original derivations: <relative path, title, author, date and equations>.
+- Third-party code copied: none.
+- Validation: <own analytical reference or cited publication; fixtures and tolerances>.
+- Reference comparison (sibling repository, informational): no.
+- Declaration: "I did not consult source code from OpenSees, Stabileo or their derivatives for this ticket."
+  No code, results or reports from CalculiX, code_aster,
+  LAPACK or derivatives were consulted. No network access or external sources.
+- Clean-room reviewer: **PENDING (J4)**.
 
-## Decisiones y evidencia
+## Decisions and evidence
 
-<Elección frente a leyes existentes, registro, parámetros, historia, errores,
-dominio numérico y límites. Resultados reales de cada comando, tests
-passed/failed, hashes y logs bajo $CARGO_TARGET_DIR. No incluir rutas locales
-absolutas ni presentar una compilación wasm como ejecución.>
+<Choice compared with existing laws, registration, parameters, history, errors,
+numerical domain and limits. Actual results of each command, tests
+passed/failed, hashes and logs under $CARGO_TARGET_DIR. Do not include absolute
+local paths or present wasm compilation as execution.>
 
-## Pendientes
+## Pending work
 
-<Revisión J4 y cualquier comprobación o validación no realizada, con motivo.>
+<J4 review and any check or validation not performed, with reason.>
