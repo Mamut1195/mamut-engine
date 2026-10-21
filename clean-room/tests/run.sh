@@ -268,5 +268,101 @@ done
 new_vendor vendor_forbidden_path
 printf 'vendor/mamut-workflows/payload.rs\n' > "$tmp/vendor_forbidden_path/rules/forbidden_paths.txt"
 vendor_expect vendor_forbidden_path 1
+# Salidas de oráculos (#173 N2). Cifras sintéticas; ningún mensaje imprime contenido.
+oracle_file() { # nombre ruta contenido esperado
+    new_repo "$1"; mkdir -p "$(dirname "$tmp/$1/$2")"; printf '%b' "$3" > "$tmp/$1/$2"; git -C "$tmp/$1" add -- "$2"
+    expect "$1" "$4" bash "$src/check.sh" HEAD "$tmp/$1/rules"
+}
+# Rutas
+for f in modelos/porticoA.tcl modelos/a.tcl.txt docs/validation-report/datos/c1/opensees.csv datos/OpenSees_E1.CSV \
+         datos/opensees-e1.csv.gz runs/opensees.txt runs/opensees.json runs/frame3dd/caso.out frame3dd-e1.out \
+         runs/F3DD.out modelos/e1.3dd results/E1/salida.json oracles/opensees/results/a.json; do
+    oracle_file "or_path_${f//[^a-zA-Z0-9]/_}" "$f" 'x\n' 1
+done
+new_repo or_engine_results; mkdir -p "$tmp/or_engine_results/crates/engine-api/fixtures/results" "$tmp/or_engine_results/provenance"
+echo x > "$tmp/or_engine_results/crates/engine-api/fixtures/results/fingerprints.json"; echo p > "$tmp/or_engine_results/provenance/ENG-1.md"
+git -C "$tmp/or_engine_results" add crates provenance
+expect or_engine_results 0 bash "$src/check.sh" HEAD "$tmp/or_engine_results/rules"
+oracle_file or_txt_ok docs/notas.txt 'x\n' 0
+# Archivo del incidente (43b5f45): el real si el historial está disponible, y una réplica sintética.
+if git -C "$src" cat-file -e 43b5f45:provenance/ENG-BENCH-001-SMOKE-VPS.md 2>/dev/null; then
+    new_repo or_incident_real; mkdir -p "$tmp/or_incident_real/provenance"
+    git -C "$src" show 43b5f45:provenance/ENG-BENCH-001-SMOKE-VPS.md > "$tmp/or_incident_real/provenance/ENG-BENCH-001-SMOKE-VPS.md"
+    git -C "$tmp/or_incident_real" add provenance
+    expect or_incident_real 1 bash "$src/check.sh" HEAD "$tmp/or_incident_real/rules"
+    # L26 aislada del archivo real, sin el valor esperado, con y sin punto final.
+    l26=$(git -C "$src" show 43b5f45:provenance/ENG-BENCH-001-SMOKE-VPS.md | sed -n 26p)
+    real_out=${l26##*obtenido }
+    oracle_file or_incident_l26 provenance/ENG-I.md "## (b) Humo de OpenSees\n- obtenido ${real_out}\n" 1
+    oracle_file or_incident_l26_nodot provenance/ENG-I.md "## (b) Humo de OpenSees\n- obtenido ${real_out%.}\n" 1
+    unset l26 real_out
+else
+    if [[ "${CI:-}" == true ]]; then
+        # En CI el historial completo es obligatorio (fetch-depth: 0): sin 43b5f45 es fallo duro.
+        n=$((n+1)); fails=$((fails+1))
+        printf 'FALLA or_incident_real: CI sin historial de 43b5f45 (¿clon superficial?)\n'
+    else
+        printf 'aviso: historial sin 43b5f45; solo se prueba la réplica sintética\n'
+    fi
+fi
+inc='## (b) Corrida manual de humo de OpenSees en el VPS\n\n- sha256:\n  - `bin/opensees-py`: `1111111111111111111111111111111111111111111111111111111111111111`\n- Entrada: barra elástica E = 100e9, A = 2e-4, L = 2, P = 500 (SI).\n- Salida esperada u = PL/(EA) = 5e-05; obtenido 1.2345678901234567e-05.\n'
+oracle_file or_incident_synth provenance/ENG-S.md "$inc" 1
+oracle_file or_l26_dot provenance/ENG-S.md '## (b) Humo de OpenSees\n- obtenido 1.2345678901234567e-05.\n' 1
+oracle_file or_l26_nodot provenance/ENG-S.md '## (b) Humo de OpenSees\n- obtenido 1.2345678901234567e-05\n' 1
+oracle_file or_l26_plain provenance/ENG-S.md '## Humo de OpenSees\n- obtenido 0.1234567.\n' 1
+oracle_file or_nested provenance/ENG-S.md '## Humo de OpenSees\n### Caso 1\n- obtenido 3.25\n' 1
+oracle_file or_codehash provenance/ENG-S.md '## Humo de OpenSees\n```\n# comentario\n```\n- obtenido 3.25\n' 1
+oracle_file or_codefake docs/c.md '## Engine\n```\n# OpenSees\n```\n- salida 3.25\n' 0
+oracle_file or_alias_os docs/a.md '## Corrida OS\n- salida 3.25\n' 1
+oracle_file or_alias_f3dd docs/a.md 'Salida de F3DD: 3.25 kN\n' 1
+oracle_file or_alias_open docs/a.md 'Resultado de Open Sees: 3.25\n' 1
+oracle_file or_table docs/t.md '## Comparación con OpenSees\n| caso | T1 |\n| --- | --- |\n| E1 | 0.731 |\n' 1
+oracle_file or_u_eq docs/u.md '## OpenSees\n- u = 0.25\n' 1
+oracle_file or_result_en docs/r.md 'OpenSees result: 0.25 m\n' 1
+oracle_file or_inputs docs/i.md '## Modelo de OpenSees\n- E = 200e9, L = 3\n' 1
+oracle_file or_stabileo docs/s.md 'Stabileo output T1 0.731 s\n' 1
+oracle_file or_comma docs/s.md 'Salida de OpenSees: 0,731 s\n' 1
+# Permitidos
+oracle_file or_hash provenance/ENG-Y.md '## Corrida de OpenSees 3.8.0\n- sha256 de la salida: `b1bfa97ceb8f0f5d3c3c49eb498ac4e9dc57f86971f0f54c03074968a0f830a3`\n- openseespy 3.8.0.0, salida en 2026-10-20 13:09\n- commit `43b5f45`, ruta python3.12\n' 0
+oracle_file or_redacted provenance/ENG-Z.md '## (b) Humo de OpenSees\n- Humo: ok. Entrada, salida y comando: [redactado: ver mamut-engine-oracles results/x.md].\n' 0
+oracle_file or_mention docs/d.md 'No consulté código fuente ni resultados de OpenSees, Stabileo ni Frame3DD.\n' 0
+oracle_file or_engine_only provenance/ENG-W.md '## Engine\n- Salida del Engine: 1.25e-03 m\n' 0
+oracle_file or_sibling provenance/ENG-W.md '## OpenSees\n- instalado\n## Engine\n- salida 3.25\n' 0
+oracle_file or_no_word docs/e.md 'OpenSees se compara con tolerancia relativa\n' 0
+oracle_file or_os_lower docs/e.md 'los resultados del motor dan 3.25\n' 0
+oracle_file or_url docs/g.md 'Hilo del foro de OpenSees (`viewtopic.php?p=122700`), entrada de licencia\n' 0
+oracle_file or_section docs/g.md 'Opción A: Q2 ejecuta los oráculos de §5.1 (OpenSees); entrada en §2.3\n' 0
+oracle_file or_tol docs/g.md '## Tolerancias\n| Comparación | Tolerancia relativa | Uso |\n|---|---:|---|\n| Engine vs OpenSees | 5e-3 | Criterio |\n' 0
+oracle_file or_tol_rtol docs/g.md '## Tolerancias\n- OpenSees: rtol = 5e-3, atol <= 1e-9\n' 0
+oracle_file or_tol_pct docs/g.md 'OpenSees frente al Engine: diferencia de formulación de 0.5–3.2 % por piso, no criterio\n' 0
+oracle_file or_tol_out docs/g.md '## OpenSees\n- obtenido 3.25 (dentro de tol)\n' 1
+oracle_file or_tol_out2 docs/g.md '## OpenSees\n- obtenido 3.25 (tol 1e-3)\n' 1
+oracle_file or_tol_head docs/g.md '## Criterio OpenSees\n- obtenido 3.25\n' 1
+oracle_file or_tol_head2 docs/g.md '## Tolerancias de OpenSees\n| caso | T1 |\n|---|---|\n| E1 | 0.731 |\n' 1
+oracle_file or_toledo docs/g.md '## Corrida de OpenSees en Toledo\n| caso | T1 |\n|---|---|\n| E1 | 0.731 |\n' 1
+oracle_file or_toledo2 docs/g.md 'OpenSees, Toledo: T1 0.731 s; u = 0.25\n' 1
+oracle_file or_tol_big docs/g.md 'OpenSees: tol = 0.25 y T1 0.731\n' 1
+oracle_file or_tol_rest docs/g.md 'OpenSees: rtol = 1e-3; T1 = 0.731 s; criterio\n' 1
+oracle_file or_tol_rest_tab docs/g.md '## OpenSees\n| caso | rtol | T1 |\n|---|---|---|\n| E1 | 1e-3 | 0.731 |\n' 1
+oracle_file or_tol_col_only docs/g.md '## OpenSees\n| caso | rtol |\n|---|---|\n| E1 | 1e-3 |\n' 0
+oracle_file or_concentrada docs/g.py 'fix("Engine vs OpenSees", 1e-5, "masa concentrada idéntica")\n' 0
+oracle_file or_r1_col docs/g.md '## OpenSees\n| caso | tolerancia |\n|---|---|\n| E1 | 731.25 |\n' 1
+oracle_file or_r1_col_rel docs/g.md '## OpenSees\n| caso | Tolerancia relativa |\n|---|---|\n| E1 | 731.25 |\n' 1
+oracle_file or_r1_col_rest docs/g.md '## OpenSees\n| caso | tolerancia |\n|---|---|\n| E1 | 1e-3 (T1 = 0.731) |\n' 1
+oracle_file or_r1_col_ok docs/g.md '## OpenSees\n| caso | tolerancia |\n|---|---|\n| E1 | 1e-3 |\n| E2 | 2 % |\n' 0
+oracle_file or_r2_under docs/g.md '## OpenSees\n- u_obtenido 3.25\n' 1
+oracle_file or_r3_tolval docs/g.md '## OpenSees\n- u ≤ 0.005 (criterio)\n' 1
+oracle_file or_r3_pct docs/g.md '## OpenSees\n- u: 3.2 % (tolerancia)\n' 1
+oracle_file or_r3_approx docs/g.md '## OpenSees\n- u ≈ 0.25\n' 1
+oracle_file or_r3_tilde docs/g.md '## OpenSees\n- T1 ~ 0.731 s\n' 1
+oracle_file or_r4_thead docs/g.md '| caso | OpenSees |\n|---|---|\n| E1 | 0.731 |\n' 1
+oracle_file or_r4_thead_engine docs/g.md '| caso | Engine |\n|---|---|\n| E1 | 0.731 |\n' 0
+# Modo --all: barre el árbol entero, aunque el diff no toque el archivo
+new_repo or_all; mkdir -p "$tmp/or_all/docs"; printf '## OpenSees\n- obtenido 3.25\n' > "$tmp/or_all/docs/x.md"
+git -C "$tmp/or_all" add docs; git -C "$tmp/or_all" commit -qm x
+expect or_all 0 bash "$src/check.sh" HEAD "$tmp/or_all/rules"
+cp -r "$tmp/or_all" "$tmp/or_all_tree"
+expect or_all_tree 1 bash "$src/check.sh" --all
+new_repo or_all_ok; expect or_all_ok 0 bash "$src/check.sh" --all
 printf '%d pruebas, %d fallos\n' "$n" "$fails"
 [[ $fails == 0 ]]

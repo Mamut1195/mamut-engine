@@ -5,8 +5,197 @@ export LC_ALL=C
 # J4 r31: ancla confiable de la base; no aceptar un manifiesto regenerado por el PR.
 EXPECTED_WORKFLOWS_MANIFEST_SHA256=214b71529137733aa14babaefa3eac67365f94bd986407ea7e7218bf68174c68
 
+# --- Salidas de oráculos (regla de CLEAN_ROOM.md §5.1; cierra #173 N2) -----------------
+# Ver clean-room/README.md. Los mensajes indican ruta y línea, nunca el contenido.
+oracle_failed=false
+
+# Rutas de salidas o entradas de oráculos. crates/**/fixtures/results/ (Engine) se permite.
+is_oracle_output_path() {
+    local p=${1,,} base
+    base=${p##*/}
+    [[ "$p" == *.tcl || "$p" == *.tcl.* || "$p" == *.3dd ]] && return 0
+    [[ "$base" == opensees*.csv || "$base" == opensees*.csv.* ]] && return 0
+    [[ "$base" == opensees*.txt || "$base" == opensees*.json || "$base" == opensees*.out ]] && return 0
+    [[ "$base" == frame3dd*.out || "$base" == frame3dd*.plt || "$base" == f3dd*.out || "$base" == f3dd*.plt ]] && return 0
+    [[ "$p" == *frame3dd*/*.out || "$p" == *frame3dd*/*.plt || "$p" == *f3dd*/*.out || "$p" == *f3dd*/*.plt ]] && return 0
+    [[ "$p" == results/* ]] && return 0
+    [[ "$p" =~ (^|/)[^/]*(opensees|frame3dd|f3dd|stabileo|oracle|oraculo)[^/]*/(.*/)?results/ ]] && return 0
+    [[ "$p" =~ (^|/)results/(.*/)?[^/]*(opensees|frame3dd|f3dd|stabileo)[^/]*$ ]] && return 0
+    return 1
+}
+
+# Nombres del oráculo en minúsculas; "OS" solo en mayúsculas y como palabra.
+oracle_name_re='(opensees|open[ _-]sees|frame3dd|frame[ _-]3dd|f3dd|stabileo)'
+names_oracle() {
+    local low=${1,,}
+    [[ "$low" =~ $oracle_name_re ]] && return 0
+    [[ "$1" =~ (^|[^A-Za-z0-9_])OS([^A-Za-z0-9_]|$) ]] && return 0
+    return 1
+}
+
+# Quita metadatos permitidos (sustituye por espacio): hashes (token hex de 32+ caracteres,
+# o de 7+ con alguna letra a-f, delimitado), versiones x.y.z, fechas y horas.
+strip_metadata() {
+    local s=${1,,} pre
+    local -a pats=(
+        '(^|[^0-9a-z_.+-])([0-9a-f]{32,})([^0-9a-z_.+-]|$)'
+        '(^|[^0-9a-z_.+-])([0-9]*[a-f][0-9a-f]*[0-9][0-9a-f]*|[0-9][0-9a-f]*[a-f][0-9a-f]*)([^0-9a-z_.+-]|$)'
+        '(^|[^0-9])([0-9]+(\.[0-9]+){2,})'
+        '(^|[^0-9])([0-9]{4}-[0-9]{2}-[0-9]{2})'
+        '(^|[^0-9])([0-9]{1,2}:[0-9]{2}(:[0-9]{2})?)'
+        '(^|[^0-9])(§[[:space:]]*[0-9]+(\.[0-9]+)*)'
+    )
+    local pat i
+    for i in "${!pats[@]}"; do
+        pat=${pats[$i]}
+        while [[ "$s" =~ $pat ]]; do
+            # El token hex con letra debe tener 7+ caracteres; si no, no es hash.
+            if [[ $i == 1 && ${#BASH_REMATCH[2]} -lt 7 ]]; then break; fi
+            pre=${s%%"${BASH_REMATCH[0]}"*}
+            s="${pre}${BASH_REMATCH[1]} ${BASH_REMATCH[3]:-}${s:$(( ${#pre} + ${#BASH_REMATCH[0]} ))}"
+        done
+    done
+    printf '%s' "$s"
+}
+
+# Cifra: decimal (punto o coma) o exponente; puede cerrar la oración con . , ; :
+float_re='(^|[^0-9a-z_.])[-+]?[0-9]+([.,][0-9]+(e[-+]?[0-9]+)?|e[-+]?[0-9]+)([.,;:]?([[:space:]]|$)|[^0-9a-z_.,;:])'
+# Asignación "u = X", "E = 200e9", "P = 1000" (entrada o salida del modelo).
+assign_re='(^|[[:space:](,;|])[a-z][a-z0-9_]{0,7}[[:space:]]*(:=|=|<=|>=|≤|≥|≈|~|:|<|>)[[:space:]]*[-+]?[0-9]'
+output_word_re='(^|[^a-z0-9])(obtenid|salida|output|resultad|result|entrada|input|devuelv|devolvi|da como)'
+# Exención de tolerancias: palabra completa en la misma línea o celda (nunca en encabezados).
+tol_word_re='(^|[^a-z0-9_])(tol|rtol|atol|toleranc[a-z]*|umbral|criterio)([^a-z0-9_]|$)'
+tol_col_re='^[[:space:]]*(tol|rtol|atol|toleranc[a-z]*|criterio)([^a-z0-9_]|$)'
+num_tok='[0-9]*[.,]?[0-9]+(e[-+]?[0-9]+)?'
+
+# ¿X es una tolerancia admisible? (X <= 1e-2, o X <= 5 si es porcentaje)
+tol_value_ok() {
+    local x=${1//,/.} pct=$2 lim=1e-2
+    [[ "$pct" == true ]] && lim=5
+    [[ "$x" == .* ]] && x="0$x"
+    [[ "$(printf '%s\n%s\n' "$x" "$lim" | sort -g | head -n 1)" == "$x" ]]
+}
+# Quita de la línea solo los tokens con forma de tolerancia admisible.
+strip_tolerances() {
+    local s=$1 pre tok val pct pat i
+    local -a pats=(
+        "(^|[^a-z0-9_])((rtol|atol|tol)[[:space:]]*(=|:|<=|≤)[[:space:]]*($num_tok))"
+    )
+    # Solo con identificador tol/rtol/atol (R3 de J4 r3); "≤ X" o "X %" sueltos no eximen.
+    for i in 0; do
+        pat=${pats[$i]}
+        local guard=0
+        while [[ "$s" =~ $pat ]] && (( guard++ < 50 )); do
+            tok=${BASH_REMATCH[2]}
+            case $i in
+                0) val=${BASH_REMATCH[5]}; pct=false ;;
+                1) val=${BASH_REMATCH[4]}; pct=false ;;
+                2) val=${BASH_REMATCH[7]:-${BASH_REMATCH[3]}}; pct=true ;;
+            esac
+            tol_value_ok "$val" "$pct" || break
+            pre=${s%%"$tok"*}
+            s="${pre} ${s:$(( ${#pre} + ${#tok} ))}"
+        done
+    done
+    printf '%s' "$s"
+}
+
+# Celda de una columna de tolerancia: se quita solo un valor admisible (<= 1e-2 o <= 5 %)
+# y el resto de la celda se sigue revisando.
+strip_tol_cell() {
+    local c=$1 t
+    t=${c#"${c%%[![:space:]]*}"}; t=${t%"${t##*[![:space:]]}"}
+    if [[ "$t" =~ ^($num_tok)[[:space:]]*(%)?$ ]]; then
+        if tol_value_ok "${BASH_REMATCH[1]}" "$([[ -n "${BASH_REMATCH[3]}" ]] && echo true || echo false)"; then
+            printf ' '; return
+        fi
+    elif [[ "$t" =~ ^($num_tok)[[:space:]]*(%)?[[:space:]]+(.*)$ ]]; then
+        local rest=${BASH_REMATCH[4]}
+        if tol_value_ok "${BASH_REMATCH[1]}" "$([[ -n "${BASH_REMATCH[3]}" ]] && echo true || echo false)"; then
+            printf ' %s' "$rest"; return
+        fi
+    fi
+    strip_tolerances "$c"
+}
+
+scan_oracle_output_file() {
+    local path=$1 line low clean ctx n=0 lvl k in_code=false is_row prev_row=false
+    local -a tcols=() cells=()
+    local thead=''
+    local -a heads=('' '' '' '' '' '' '')
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        n=$((n+1))
+        if [[ "$line" =~ ^[[:space:]]{0,3}(\`\`\`|~~~) ]]; then
+            [[ "$in_code" == true ]] && in_code=false || in_code=true
+            continue
+        fi
+        if [[ "$in_code" == false && "$line" =~ ^(#{1,6})[[:space:]] ]]; then
+            lvl=${#BASH_REMATCH[1]}
+            heads[$lvl]=$line
+            for ((k = lvl + 1; k <= 6; k++)); do heads[$k]=''; done
+            continue
+        fi
+        is_row=false
+        [[ "$line" =~ ^[[:space:]]*\| ]] && is_row=true
+        if [[ "$is_row" == true ]]; then
+            if [[ "$prev_row" == false ]]; then
+                IFS='|' read -r -a tcols <<< "${line,,}"   # encabezado de la tabla
+                thead=$line   # su texto da contexto a las filas (R4)
+                prev_row=true
+            fi
+        else
+            prev_row=false; tcols=(); thead=''
+        fi
+        ctx="${heads[*]} $thead $line"
+        names_oracle "$ctx" || continue
+        clean=$(strip_metadata "$line")
+        low=${clean,,}
+        if [[ "$is_row" == true && ${#tcols[@]} -gt 0 ]]; then
+            # Tablas: solo se eximen las columnas cuyo encabezado es tol/rtol/atol/criterio.
+            IFS='|' read -r -a cells <<< "$low"
+            for k in "${!cells[@]}"; do
+                [[ "${tcols[$k]:-}" =~ $tol_col_re ]] && cells[$k]=$(strip_tol_cell "${cells[$k]}")
+            done
+            low=$(IFS='|'; printf '%s' "${cells[*]}")
+        fi
+        # Exención por palabra en la misma línea, solo si no hay palabra de salida.
+        if [[ ! "$low" =~ $output_word_re && "$low" =~ $tol_word_re ]]; then
+            low=$(strip_tolerances "$low")
+        fi
+        if [[ "$low" =~ $assign_re ]] \
+            || [[ "$low" =~ $output_word_re && "$low" =~ $float_re ]] \
+            || [[ "$is_row" == true && "$low" =~ $float_re ]]; then
+            printf 'Posible salida o entrada de oráculo en %s:%d (contenido omitido)\n' "$path" "$n" >&2
+            oracle_failed=true
+        fi
+    done < "$path"
+}
+
+oracle_check_path() {
+    local path=$1
+    if is_oracle_output_path "$path"; then
+        printf 'Ruta de salida de oráculo prohibida: %s\n' "$path" >&2
+        oracle_failed=true
+    fi
+    case "$path" in
+        provenance/*|docs/*)
+            if [[ -f "$path" && ! -L "$path" ]]; then scan_oracle_output_file "$path"; fi ;;
+    esac
+}
+
+# Modo --all: barrido de todo el árbol rastreado (solo la regla de oráculos).
+if [[ "${1:-}" == --all ]]; then
+    cd "$(git rev-parse --show-toplevel)"
+    while IFS= read -r -d '' path; do
+        oracle_check_path "$path"
+    done < <(git ls-files -z)
+    if [[ "$oracle_failed" == true ]]; then exit 1; fi
+    printf 'Clean-room (--all, salidas de oráculos): OK\n'
+    exit 0
+fi
+
 if [[ $# -lt 1 || $# -gt 2 ]]; then
-    printf 'Uso: bash clean-room/check.sh <base-del-PR> [directorio-de-listas]\n' >&2
+    printf 'Uso: bash clean-room/check.sh <base-del-PR> [directorio-de-listas] | --all\n' >&2
     exit 2
 fi
 
@@ -194,6 +383,11 @@ while IFS= read -r -d '' path; do
         scan_identifier_line "$path" "$added"
     done <<< "$patch"
 done < <(git diff --no-ext-diff --no-renames --name-only -z --diff-filter=AMT "$base" --)
+
+while IFS= read -r -d '' path; do
+    oracle_check_path "$path"
+done < <(git diff --no-ext-diff --no-renames --name-only -z --diff-filter=AMT "$base" --)
+[[ "$oracle_failed" == true ]] && failed=true
 
 if [[ "$touches_crates" == true && "$has_provenance" == false ]]; then
     printf 'Cambios en crates/ requieren un provenance/ENG-*.md añadido o modificado (TEMPLATE.md no cuenta).\n' >&2
