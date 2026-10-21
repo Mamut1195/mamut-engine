@@ -14,6 +14,10 @@ use engine_cli::{Control, EngineCli, CATALOG};
 use mamut_workflow_cli::{Cancellation, ExitCodes};
 use serde_json::{json, Value};
 
+#[path = "support/validate_report.rs"]
+mod validate_report_schema;
+use validate_report_schema::assert_validate_report;
+
 const RUN: &str = include_str!("../run.workflow.json");
 const VALIDATE: &str = include_str!("../validate.workflow.json");
 const INPUT: &str = include_str!("../../engine-api/tests/fixtures/determinism/cantilever.json");
@@ -204,13 +208,17 @@ fn input_stdin_e1_preserves_existing_warning_and_results_contract() {
 }
 
 #[test]
-fn validate_input_executes_embedded_validation_and_preserves_explicit_workflow_validation() {
+fn validate_input_reports_directly_and_preserves_explicit_workflow_validation() {
     let files = Files::new();
     let stdin = with_input_stdin(&files, &["validate", "--input", "-"], INPUT.as_bytes());
     assert_code(&stdin, 0);
     let report = value(&stdin.stdout);
-    assert_eq!(report["engineResults"][0]["operation"], "validate");
-    assert_eq!(report["engineResults"][0]["diagnostics"], json!([]));
+    assert_eq!(report["schema"], "validate-report/1");
+    assert_eq!(report["operation"], "validate");
+    assert_eq!(report["status"], "ok");
+    assert_eq!(report["diagnostics"], json!([]));
+    assert!(stdin.stderr.is_empty());
+    assert_validate_report(&report);
     let path = files
         .command()
         .args(["validate", "--input"])
@@ -222,7 +230,9 @@ fn validate_input_executes_embedded_validation_and_preserves_explicit_workflow_v
 
     let invalid = with_input_stdin(&files, &["validate", "--input", "-"], b"{}");
     assert_code(&invalid, 2);
-    assert!(invalid.stdout.is_empty());
+    assert_eq!(value(&invalid.stdout)["status"], "invalid");
+    assert!(invalid.stderr.is_empty());
+    assert_validate_report(&value(&invalid.stdout));
     files.write("workflow.json", RUN);
     let explicit = files
         .command()
@@ -237,6 +247,134 @@ fn validate_input_executes_embedded_validation_and_preserves_explicit_workflow_v
     assert_code(&explicit, 0);
     assert_eq!(value(&explicit.stdout)["valid"], true);
     assert!(value(&explicit.stdout).get("engineResults").is_none());
+    let previous = files
+        .command()
+        .args(["validate", "--catalog"])
+        .arg(files.path("catalog.json"))
+        .arg("--workflow")
+        .arg(files.path("workflow.json"))
+        .output()
+        .unwrap();
+    assert_eq!(explicit.stdout, previous.stdout);
+    assert_eq!(explicit.stderr, previous.stderr);
+}
+
+#[test]
+fn validate_model_errors_have_deterministic_reports_and_eng_diagnostics() {
+    let files = Files::new();
+    let mut wrong_schema = value(INPUT.as_bytes());
+    wrong_schema["schema"] = json!("engine-input/2");
+    let mut wrong_field = value(INPUT.as_bytes());
+    wrong_field["units"] = json!("kN-mm");
+    let mut too_many_nodes = value(INPUT.as_bytes());
+    too_many_nodes["model"]["nodes"] = json!(vec![
+        too_many_nodes["model"]["nodes"][0].clone();
+        engine_api::MAX_NODES + 1
+    ]);
+    let mut bad_topology = value(INPUT.as_bytes());
+    bad_topology["model"]["members"][0]["nodes"][1] = json!(99);
+    for (input, expected, cause) in [
+        ("{}".into(), "ENG-E-0009", "schema"),
+        ("{".into(), "ENG-E-0009", ""),
+        (wrong_schema.to_string(), "ENG-E-0009", "engine-input/2"),
+        (wrong_field.to_string(), "ENG-E-0009", ""),
+        (too_many_nodes.to_string(), "ENG-E-0009", "MAX_NODES"),
+        (bad_topology.to_string(), "ENG-E-0003", ""),
+    ] {
+        let output = with_input_stdin(&files, &["validate", "--input", "-"], input.as_bytes());
+        assert_code(&output, 2);
+        assert!(output.stderr.is_empty());
+        let report = value(&output.stdout); // Rechaza documentos JSON adicionales.
+        assert_validate_report(&report);
+        assert_eq!(report["status"], "invalid");
+        let diagnostics = report["diagnostics"].as_array().unwrap();
+        assert!(diagnostics
+            .iter()
+            .all(|d| d["code"].as_str().unwrap().starts_with("ENG-")));
+        assert!(diagnostics
+            .iter()
+            .any(|d| d["code"] == expected && d["cause"].as_str().unwrap().contains(cause)));
+        files.write("invalid.json", &input);
+        let path = files
+            .command()
+            .args(["validate", "--input"])
+            .arg(files.path("invalid.json"))
+            .output()
+            .unwrap();
+        assert_code(&path, 2);
+        assert_eq!(output.stdout, path.stdout);
+        assert_eq!(output.stderr, path.stderr);
+    }
+}
+
+#[test]
+fn validate_does_not_solve_or_check_stability_and_rejects_workflow_flags() {
+    let files = Files::new();
+    let mut input = value(INPUT.as_bytes());
+    input["model"]["supports"] = json!([]);
+    let output = with_input_stdin(
+        &files,
+        &["validate", "--input", "-"],
+        input.to_string().as_bytes(),
+    );
+    assert_code(&output, 0);
+    assert_validate_report(&value(&output.stdout));
+    assert!(output.stderr.is_empty());
+    assert_eq!(value(&output.stdout)["diagnostics"], json!([]));
+    for suffix in [
+        vec!["--progress", "ndjson"],
+        vec!["--unknown"],
+        vec!["--help"],
+    ] {
+        let output = files
+            .command()
+            .args(["validate", "--input"])
+            .arg(files.path("input.json"))
+            .args(suffix)
+            .output()
+            .unwrap();
+        assert_code(&output, 2);
+        assert!(output.stdout.is_empty());
+    }
+}
+
+#[test]
+fn direct_validation_preserves_cooperative_cancellation() {
+    let files = Files::new();
+    files.write("cancel", "");
+    let output = files
+        .command()
+        .env("MAMUT_ENGINE_CANCEL_FILE", files.path("cancel"))
+        .args(["validate", "--input"])
+        .arg(files.path("input.json"))
+        .output()
+        .unwrap();
+    assert_code(&output, 5);
+    assert!(output.stdout.is_empty());
+    for boundary in 1..=3 {
+        let control = Control::default();
+        let cancel = control.clone();
+        let cli = EngineCli::new(None)
+            .with_control(control)
+            .with_engine_progress(move |p| {
+                if p.completed == boundary {
+                    cancel.cancel();
+                }
+            });
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        assert_eq!(
+            cli.run(
+                &["validate".into(), "--input".into(), "-".into()],
+                &mut INPUT.as_bytes(),
+                &mut stdout,
+                &mut stderr
+            ),
+            5
+        );
+        assert!(stdout.is_empty());
+        assert_eq!(value(&stderr)["exitCode"], 5);
+    }
 }
 
 #[test]
@@ -260,6 +398,10 @@ fn input_size_boundary_and_transport_errors_are_bounded_and_sanitized() {
             assert!(output.stdout.is_empty());
             let error = value(&output.stderr);
             assert!(error.get("engineResults").is_none());
+            if command == "validate" {
+                let previous = with_input_stdin(&files, &["run", "--input", "-"], bytes);
+                assert_eq!(output.stderr, previous.stderr);
+            }
         }
         for (name, bytes) in [
             ("too-big.json", input.as_slice()),
@@ -285,6 +427,15 @@ fn input_size_boundary_and_transport_errors_are_bounded_and_sanitized() {
         assert_code(&output, 2);
         assert!(output.stdout.is_empty());
         assert!(!String::from_utf8_lossy(&output.stderr).contains("missing-private-path"));
+        if command == "validate" {
+            let previous = files
+                .command()
+                .args(["run", "--input"])
+                .arg(files.path("missing-private-path.json"))
+                .output()
+                .unwrap();
+            assert_eq!(output.stderr, previous.stderr);
+        }
     }
 }
 

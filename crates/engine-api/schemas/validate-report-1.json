@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mamut:validate-report:1",
+  "title": "validate-report/1",
+  "description": "Validación de engine-input/1 sin resolver: contrato, límites y topología. No certifica estabilidad ni convergencia. Código de salida 0/1/2 para ok/warning/invalid.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "operation", "status", "diagnostics"],
+  "properties": {
+    "schema": {"const": "validate-report/1"},
+    "operation": {"const": "validate"},
+    "status": {"enum": ["ok", "warning", "invalid"]},
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "severity", "entities", "cause", "hint"],
+        "properties": {
+          "code": {"type": "string", "pattern": "^(ENG-E-[0-9]{4}|API-[EWI]-[A-Z-]+)$"},
+          "severity": {"enum": ["info", "warning", "error"]},
+          "entities": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "id"],
+              "properties": {
+                "kind": {"enum": ["node", "member", "dof", "case", "law"]},
+                "id": {"type": ["integer", "string"]}
+              }
+            }
+          },
+          "cause": {"type": "string"},
+          "hint": {"type": ["string", "null"]}
+        }
+      }
+    }
+  }
+}

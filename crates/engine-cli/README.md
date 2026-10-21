@@ -8,10 +8,11 @@ nuevas, red, telemetría ni procesos auxiliares.
 El bloqueo anterior queda resuelto por SDK-WF-012 / MAM-493. Se usan las
 bibliotecas vendorizadas `mamut-workflow-cli` y `mamut-workflow-execution` del
 commit `1eeb91a1ca9128ad4a02ead2ab66b6b25aa08f3d`. `EngineCli::run` llama al
-`parse_args` público y a un único `dispatch` de la base con `CliConfig`,
+`parse_args` público y a un único `dispatch` de la base para workflows con `CliConfig`,
 `MethodProvider`, `CliIdentity` y `ExitCodes::engine_v1()`. El adaptador hace un
 pre-parseo de `--input` y los documentos predeterminados; la compilación y la
-ejecución de workflows siguen en la base. No se modifica vendor.
+ejecución de workflows siguen en la base. `validate --input` sin documentos de
+workflow llama directamente a `engine_api::validate_with`. No se modifica vendor.
 
 ## Uso y entrada
 
@@ -37,8 +38,9 @@ linearStatic, pDelta, modal y responseSpectrum). El segundo llama a
 rechaza parámetros numéricos y métodos/versiones ajenos, sin usar IdentityProvider.
 
 Si se omiten tanto `--catalog` como `--workflow`, `run` usa `engine_cli::CATALOG`
-y `engine_cli::RUN_WORKFLOW`; `validate` usa el mismo catálogo y
-`engine_cli::VALIDATE_WORKFLOW`. Los tres documentos están embebidos con
+y `engine_cli::RUN_WORKFLOW`. `validate --input` valida directamente el modelo,
+sin workflow ni temporales. Por compatibilidad, `validate` sin `--input` sigue
+usando el catálogo y `engine_cli::VALIDATE_WORKFLOW`. Los documentos están embebidos con
 `include_str!`. El adaptador los materializa en un directorio temporal privado
 para el despacho de la base y lo elimina al terminar; sus rutas no aparecen en
 la salida. Con ambos argumentos explícitos se conserva el comportamiento
@@ -101,12 +103,41 @@ La base entrega un sobre cli-run/1 cuyo `data` es el manifiesto de ejecución.
 Este almacena **huellas**, no los valores calculados. El adaptador conserva ese
 manifiesto íntegro y añade `engineResults` al sobre terminal: array de documentos
 completos de engine-api, en orden de pasos. Así stdout de `run` contiene el
-results/1 real, incluidos desplazamientos, reacciones y diagnósticos. El comando
-abreviado `validate --input …` devuelve el mismo tipo de sobre cli-run/1 con el
-informe `{operation:"validate",status,diagnostics}` en `engineResults`. Los avisos
-conservan datos y manifiesto con `outcome: "warning"` y código 1.
+results/1 real, incluidos desplazamientos, reacciones y diagnósticos. Los avisos
+de run conservan datos y manifiesto con `outcome: "warning"` y código 1.
 
-Ante fallos de entrada, método o cancelación stdout queda vacío; stderr termina
+Desde MAM-863 / ENG-SFC-012, `validate --input <ruta|->` sin catálogo/workflow
+emite directamente un único JSON compacto, con claves ordenadas y newline final:
+
+```json
+{"diagnostics":[],"operation":"validate","schema":"validate-report/1","status":"ok"}
+```
+
+Esta decisión sustituye el sobre cli-run/1 de la abreviatura introducida en
+#197 (MAM-862). Su contrato publicado es
+[`validate-report/1`](../engine-api/schemas/validate-report-1.json), disponible
+también por `engine_api::schema("validate-report/1")` y registrado en capabilities.
+`status` es `ok` (0), `warning` (1) o `invalid` (2). Es un dry-run del **modelo**:
+comprueba parseo JSON estricto, DTO/esquema, convenciones, límites y topología
+mediante `validate_with`. No ensambla/resuelve el sistema ni certifica estabilidad,
+convergencia o resultados. No se añade el alias opcional `run --dry-run`.
+
+En los tres estados el informe va a stdout y stderr queda vacío. Errores de
+parseo, DTO, contrato o límites internos se normalizan a `ENG-E-0009`
+(contrato incompatible), con causa de la API y entidades vacías. Los diagnósticos
+del modelo se conservan íntegros y en su orden original; cualquier severidad
+`error` produce `invalid`/2. Los fallos de transporte (incluido exceso de 8 MiB),
+uso y cancelación conservan stdout vacío y error sanitizado en stderr como antes;
+la cancelación da 5 y un fallo de escritura da 70.
+
+Actualmente `validate_with` no genera avisos y no hay fixture de validación que
+dé 1. El mapeo warning/1 se prueba con diagnóstico sintético; no se inventan
+avisos para el binario. El aviso de recuperación de diafragmas de E1 se genera
+solo durante run, por lo que E1 da 0 al validar. `validate --catalog … --workflow …`
+mantiene exactamente su validación/compilación de workflow, incluso con `--input`.
+La forma directa rechaza flags de workflow como `--progress ndjson` con uso/2.
+
+En la ejecución de workflows, ante fallos de entrada, método o cancelación stdout queda vacío; stderr termina
 con el sobre de error. Un fallo de E/S puede dejar una escritura incompleta.
 Si engine-api produjo un documento fallido, `engineResults` contiene solo ese
 documento, sin resultados de pasos previos ni manifiesto parcial. Errores de
@@ -132,7 +163,8 @@ analizando mensajes. El callback de progreso y el manifiesto siguen siendo del S
 | Timeout | 6 | Reservado; no se instala temporizador |
 | InternalError, fallo sin clasificación o E/S de salida/progreso | 70 | Internal / Method |
 
-El status de `Outcome` determina el mapeo de run. En validate, errores de contrato
+El status de `Outcome` determina el mapeo de run. En el método engine.validate
+de un workflow, errores de contrato
 son Invalid; los diagnósticos de error del catálogo 0006/0007/0012/0013 se mapean
 como en engine-api, y los restantes son Invalid. Un diagnóstico warning sin errores
 da Warning. Un contrato de entrada desconocido es inválido (2), como en engine-api.
@@ -167,7 +199,7 @@ conserva el comportamiento del SO y no garantiza el código cooperativo 5.
 | capabilities | `describe` publica identidad, comandos y códigos engine_v1; `methods --catalog …` lista engine.run y engine.validate | No publica el documento completo capabilities (elementos, métodos de análisis, esquemas) |
 | schema | Los descriptores de methods referencian contratos y parámetros; no son los JSON Schema de engine-api | Sin comando estándar para `schema("engine-input/1")` / `schema("results/1")` |
 | explain | Los resultados conservan diagnósticos del motor | Sin comando estándar para `engine_api::explain(code)` |
-| validate | `validate --input …` ejecuta engine.validate con documentos embebidos; `validate --catalog … --workflow …` conserva la validación/compilación **del workflow** | Adopción del transporte en el SDK |
+| validate | `validate --input …` valida directamente el modelo y emite validate-report/1; `validate --catalog … --workflow …` conserva la validación/compilación **del workflow** | Adopción del transporte en el SDK |
 | run | `run --input …` ejecuta engine.run con documentos embebidos; admite catálogo/workflow explícitos | Aprobar transporte/extensión de salida anteriores |
 
 Los comandos/flags `capabilities`, `schema`, `explain`, `version` y `--version`
@@ -196,6 +228,25 @@ inestabilidad y P-Delta sin convergencia; el 70 del binario usa un pipe stdout
 cerrado antes de entregar el workflow por stdin, sin depender de una carrera.
 El 5 usa un marcador antes y después de lanzar el binario, mientras stdin
 retiene el workflow; no depende de sleeps ni de señales. El 6 queda reservado.
+
+MAM-863 añade pruebas del binario para informes válidos/invalid por esquema,
+límites internos y topología, determinismo stdin/ruta, cancelación y ausencia de
+resolución. Reutiliza el validador de esquemas de pruebas de engine-api, con
+mutaciones negativas en cada nivel, sin dependencias nuevas ni cambios en los
+otros esquemas. La rama de aviso se prueba en el clasificador del informe.
+
+Rendimiento reproducible (en proceso, mediana de 11 repeticiones alternadas tras
+calentar ambos caminos; solo `runs[0].engine_input` de E1):
+
+```sh
+CARGO_TARGET_DIR=/workspace/.cargo-target/sfc12 cargo test -p engine-api \
+  --test validate_performance --offline -- --nocapture
+```
+
+Medición debug con Rust 1.99.0 del 2026-10-21: validate **5,44 ms**, run
+**151,46 ms**, ratio **27,84×**. El test exige ≥10× y permanece activo en CI. La deserialización y la
+extracción del input quedan fuera de la medición; no se consultan valores de
+referencia del fixture. Véase [provenance ENG-SFC-012](../../provenance/ENG-SFC-012.md).
 
 La verificación offline y el recuento de pruebas del 2026-10-17 se registran en
 `provenance/ENG-SFC-002.md`, con Rust 1.99.0 y

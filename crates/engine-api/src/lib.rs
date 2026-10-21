@@ -160,7 +160,8 @@ pub fn capabilities() -> Value {
     let mut capabilities = json!({
         "run": true,
         "operations": ["version", "capabilities", "schema", "explain", "validate", "run"],
-        "schemas": {"engine-input/1": {"validate": true}, "results/1": {"emit": true}},
+        "schemas": {"engine-input/1": {"validate": true}, "results/1": {"emit": true},
+            "validate-report/1": {"emit": true}},
         "validation": "topology",
         "combinations": {"run": true},
         "elements": ["frame2d.euler_elastic", "frame3d.euler_elastic", "truss2d.linear", "truss3d.linear", "frame2d.winkler", "frame3d.winkler", "spring.linear", "spring.nonlinear"],
@@ -196,6 +197,10 @@ const SCHEMAS: &[(&str, &str)] = &[
         include_str!("../schemas/engine-input-1.json"),
     ),
     ("results/1", include_str!("../schemas/results-1.json")),
+    (
+        "validate-report/1",
+        include_str!("../schemas/validate-report-1.json"),
+    ),
     (
         "capabilities/1",
         include_str!("../schemas/capabilities-1.json"),

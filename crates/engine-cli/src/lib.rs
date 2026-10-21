@@ -142,6 +142,19 @@ impl EngineCli {
                 );
             }
         };
+        if prepared.direct_validation {
+            let input = match prepared.input.as_deref() {
+                Some("-") => read_engine_input(stdin),
+                Some(path) => read_engine_path(Some(Path::new(path))),
+                None => Err(FailureKind::Usage),
+            };
+            let input = match input {
+                Ok(input) => input,
+                // Conservar el sobre de transporte de la abreviatura de #197.
+                Err(kind) => return report_failure(kind, true, None, stderr),
+            };
+            return self.validate_input(&input, stdout, stderr);
+        }
         let command = match parse_args(&prepared.args) {
             Ok(command) => command,
             Err(error) => {
@@ -235,11 +248,55 @@ impl EngineCli {
         }
         code
     }
+
+    fn validate_input(&self, input: &str, stdout: &mut impl Write, stderr: &mut impl Write) -> u8 {
+        if self.control.sync() {
+            return report_failure(FailureKind::Cancelled, true, None, stderr);
+        }
+        let diagnostics = match engine_api::validate_with(input, &self.control.token, |event| {
+            (self.progress.borrow_mut())(event);
+            self.control.sync();
+        }) {
+            Ok(diagnostics) => diagnostics,
+            Err(error @ (ApiError::InvalidInput(_) | ApiError::UnsupportedSchema(_))) => {
+                vec![Diagnostic {
+                    // JSON, DTO y límites son rechazos del contrato de entrada.
+                    code: "ENG-E-0009",
+                    severity: "error",
+                    entities: Vec::new(),
+                    cause: error.to_string(),
+                    hint: None,
+                }]
+            }
+            Err(error) => return report_failure(api_failure(error), true, None, stderr),
+        };
+        let (code, report) = validation_report(&diagnostics);
+        if writeln!(stdout, "{report}").is_err() {
+            return report_failure(FailureKind::Internal, true, None, stderr);
+        }
+        code
+    }
+}
+
+fn validation_report(diagnostics: &[Diagnostic]) -> (u8, Value) {
+    let (code, status) = if diagnostics.iter().any(|d| d.severity == "error") {
+        (2, "invalid")
+    } else if diagnostics.iter().any(|d| d.severity == "warning") {
+        (1, "warning")
+    } else {
+        (0, "ok")
+    };
+    (
+        code,
+        json!({"schema":"validate-report/1", "operation":"validate",
+        "status":status, "diagnostics":diagnostics}),
+    )
 }
 
 struct PreparedArgs {
     args: Vec<String>,
     input: Option<String>,
+    direct_validation: bool,
     // La base solo admite archivos o stdin. Mantener los documentos hasta
     // terminar dispatch; sus rutas nunca forman parte del manifiesto.
     embedded: Option<EmbeddedDocuments>,
@@ -254,6 +311,7 @@ impl PreparedArgs {
             return Ok(Self {
                 args: args.to_vec(),
                 input: None,
+                direct_validation: false,
                 embedded: None,
             });
         }
@@ -297,6 +355,20 @@ impl PreparedArgs {
         if input.as_deref() == Some("-") && (catalog == Some("-") || workflow == Some("-")) {
             return Err(FailureKind::Usage);
         }
+        let direct_validation =
+            args[0] == "validate" && input.is_some() && catalog.is_none() && workflow.is_none();
+        if direct_validation {
+            // Esta forma no admite flags del workflow ni necesita temporales.
+            if forwarded.len() != 1 {
+                return Err(FailureKind::Usage);
+            }
+            return Ok(Self {
+                args: forwarded,
+                input,
+                direct_validation,
+                embedded: None,
+            });
+        }
         let embedded = if catalog.is_none() && workflow.is_none() {
             let workflow = if args[0] == "validate" {
                 VALIDATE_WORKFLOW
@@ -317,6 +389,7 @@ impl PreparedArgs {
         Ok(Self {
             args: forwarded,
             input,
+            direct_validation,
             embedded,
         })
     }
@@ -596,6 +669,27 @@ fn failure_kind(status: Status) -> Option<FailureKind> {
 mod tests {
     use super::*;
     use std::io;
+
+    #[test]
+    fn direct_validation_maps_warnings_and_all_model_errors() {
+        let mut diagnostics = vec![Diagnostic {
+            code: "API-W-TEST",
+            severity: "warning",
+            entities: Vec::new(),
+            cause: "Aviso sintético: validate_with no genera avisos actualmente".into(),
+            hint: None,
+        }];
+        let (code, report) = validation_report(&diagnostics);
+        assert_eq!(code, 1);
+        assert_eq!(report["status"], "warning");
+        for error in ["ENG-E-0003", "ENG-E-0006", "ENG-E-0012", "ENG-E-0013"] {
+            diagnostics[0].code = error;
+            diagnostics[0].severity = "error";
+            let (code, report) = validation_report(&diagnostics);
+            assert_eq!(code, 2);
+            assert_eq!(report["status"], "invalid");
+        }
+    }
 
     #[test]
     fn embedded_documents_retry_collisions_and_keep_names_unique() -> Result<(), FailureKind> {

@@ -263,6 +263,7 @@ fn static_schemas_are_versioned_and_capabilities_are_honest() {
     for (kind, id) in [
         ("engine-input/1", "urn:mamut:engine-input:1"),
         ("results/1", "urn:mamut:results:1"),
+        ("validate-report/1", "urn:mamut:validate-report:1"),
     ] {
         let doc = schema(kind).unwrap();
         let v: Value = serde_json::from_str(doc).unwrap();
@@ -276,6 +277,7 @@ fn static_schemas_are_versioned_and_capabilities_are_honest() {
         Err(ApiError::UnknownSchema("results/2".into()))
     );
     assert_eq!(capabilities()["schemas"]["results/1"]["emit"], true);
+    assert_eq!(capabilities()["schemas"]["validate-report/1"]["emit"], true);
 }
 
 #[test]

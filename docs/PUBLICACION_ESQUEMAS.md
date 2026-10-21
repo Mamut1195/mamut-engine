@@ -39,6 +39,7 @@ entrada del índice; por ejemplo:
 | --- | --- |
 | `urn:mamut:engine-input:1` | `https://schemas.mamut.systems/engine-input/1.json` |
 | `urn:mamut:results:1` | `https://schemas.mamut.systems/results/1.json` |
+| `urn:mamut:validate-report:1` | `https://schemas.mamut.systems/validate-report/1.json` |
 | `urn:mamut:capabilities:1` | `https://schemas.mamut.systems/capabilities/1.json` |
 | `urn:mamut:method-descriptor:1` | `https://schemas.mamut.systems/method-descriptor/1.json` |
 
@@ -84,7 +85,7 @@ esa opción vuelve al valor por defecto. Revisar cualquier cambio de base en el 
 
 Para añadir un esquema API, agregar su archivo fuente y **una entrada** al
 registro `SCHEMAS` de `crates/engine-api/src/lib.rs`; no hay otra lista de kinds
-API en el generador. Esto cubre el futuro `validate-report/1`. Para añadir uno de
+API en el generador. Así se publica también `validate-report/1`. Para añadir uno de
 CLI, agregar el archivo y una entrada a `scripts/schema-sources.json`:
 
 ```json

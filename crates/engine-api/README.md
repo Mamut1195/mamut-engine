@@ -25,7 +25,9 @@ API pública:
   El SDK compara dominio, nombre y versión mayor antes de crear el adaptador;
   las opciones mecánicas permanecen en el documento tipado consumido.
 - `schema(kind) -> Result<&'static str, ApiError>`: JSON Schema Draft 2020-12
-  local, kind exacto `engine-input/1`, `results/1`, `method-descriptor/1` o `capabilities/1`.
+  local, kind exacto `engine-input/1`, `results/1`, `validate-report/1`,
+  `method-descriptor/1` o `capabilities/1`. `validate-report/1` documenta el informe
+  directo del CLI; `validate`/`validate_with` conservan su retorno de diagnósticos.
 - `explain(code)`: catálogo de engine-core y códigos locales documentados abajo;
   código ausente produce `UnknownCode`.
 - `validate(input_json) -> Result<Vec<Diagnostic>, ApiError>` y `validate_with`
