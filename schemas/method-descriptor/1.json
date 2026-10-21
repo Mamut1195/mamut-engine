@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mamut:method-descriptor:1",
+  "title": "method-descriptor/1 — extensión del Engine",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "workflow",
+    "status",
+    "input_schema",
+    "output_schema",
+    "fixtures",
+    "citations",
+    "provenance"
+  ],
+  "properties": {
+    "schema": {
+      "const": "method-descriptor/1"
+    },
+    "workflow": {
+      "$ref": "#/$defs/workflow"
+    },
+    "status": {
+      "description": "pDelta es Stable por ENG-BENCH-002 (PR #132), provenance/ENG-BENCH-002.md. nonlinearStatic, soilProfile y consolidation1d son Experimental hasta ENG-VAL-006 (decisión de Jonathan vía J0 2026-10-20). Solo Experimental requiere options.allow_experimental=true; los estados delimitan la evidencia publicada, sin certificar modelos arbitrarios.",
+      "enum": [
+        "Experimental",
+        "Stable",
+        "Validated",
+        "Deprecated"
+      ]
+    },
+    "input_schema": {
+      "enum": [
+        "engine-input/1",
+        "results/1"
+      ]
+    },
+    "output_schema": {
+      "const": "results/1"
+    },
+    "fixtures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "citations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "provenance": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "quantity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "dimension",
+        "unit"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "dimension": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        }
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "required",
+        "dimension",
+        "unit"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "dimension": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        }
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method_id",
+        "method_version",
+        "capability_slot",
+        "dimensions",
+        "consumes",
+        "produces",
+        "parameters"
+      ],
+      "properties": {
+        "method_id": {
+          "type": "string"
+        },
+        "method_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "capability_slot": {
+          "type": "string"
+        },
+        "dimensions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "inputs",
+            "outputs"
+          ],
+          "properties": {
+            "inputs": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/quantity"
+              }
+            },
+            "outputs": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/quantity"
+              }
+            }
+          }
+        },
+        "consumes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "produces": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parameter"
+          }
+        },
+        "failure": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

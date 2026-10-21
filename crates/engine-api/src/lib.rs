@@ -189,16 +189,35 @@ pub fn capabilities() -> Value {
     capabilities
 }
 
+// Registro único: añadir aquí un esquema lo expone y lo incluye en la publicación.
+const SCHEMAS: &[(&str, &str)] = &[
+    (
+        "engine-input/1",
+        include_str!("../schemas/engine-input-1.json"),
+    ),
+    ("results/1", include_str!("../schemas/results-1.json")),
+    (
+        "capabilities/1",
+        include_str!("../schemas/capabilities-1.json"),
+    ),
+    (
+        "method-descriptor/1",
+        include_str!("../schemas/method-descriptor-1.json"),
+    ),
+];
+
+/// Enumera todos los kinds admitidos por `schema()`, en orden de registro.
+pub fn schema_kinds() -> impl ExactSizeIterator<Item = &'static str> {
+    SCHEMAS.iter().map(|(kind, _)| *kind)
+}
+
 /// Devuelve un documento JSON Schema estático (Draft 2020-12), sin E/S ni red.
-/// `kind` admite engine-input/1, results/1, method-descriptor/1 y capabilities/1.
+/// Los kinds admitidos se enumeran mediante `schema_kinds()`.
 pub fn schema(kind: &str) -> Result<&'static str, ApiError> {
-    match kind {
-        "engine-input/1" => Ok(include_str!("../schemas/engine-input-1.json")),
-        "results/1" => Ok(include_str!("../schemas/results-1.json")),
-        "capabilities/1" => Ok(include_str!("../schemas/capabilities-1.json")),
-        "method-descriptor/1" => Ok(include_str!("../schemas/method-descriptor-1.json")),
-        _ => Err(ApiError::UnknownSchema(kind.into())),
-    }
+    SCHEMAS
+        .iter()
+        .find_map(|(name, document)| (*name == kind).then_some(*document))
+        .ok_or_else(|| ApiError::UnknownSchema(kind.into()))
 }
 
 /// Explicación española del catálogo del dominio y de códigos locales API-*.
