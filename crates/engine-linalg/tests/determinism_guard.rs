@@ -1,4 +1,4 @@
-//! Guardias conservadoras de determinismo y política escalar para crates/*.
+//! Conservative determinism and scalar policy guards for crates/*.
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -7,9 +7,9 @@ use std::{
 fn forbidden(name: &str) -> bool {
     matches!(name, "HashMap" | "HashSet" | "thread" | "rayon") || name.starts_with("rayon_")
 }
-// Inspección conservadora de tokens de Rust. También detecta macros y `extern
-// crate`; elimina comentarios y conserva cada literal como un token opaco
-// para evitar falsos positivos de documentación. No es un parser completo.
+// Conservative inspection of Rust tokens. Also detects macros and `extern
+// crate`; removes comments and retains each literal as an opaque token
+// to avoid documentation false positives. It is not a complete parser.
 fn rust_tokens(input: &str) -> Vec<&str> {
     let mut tokens = Vec::new();
     let b = input.as_bytes();
@@ -51,7 +51,7 @@ fn rust_tokens(input: &str) -> Vec<&str> {
             && b.get(i + 2)
                 .is_some_and(|c| c.is_ascii_alphabetic() || *c == b'_')
         {
-            // r#sin es un identificador, no el comienzo de una cadena raw.
+            // r#sin is an identifier, not the start of a raw string.
             i += 2;
             let start = i;
             while i < b.len() && (b[i].is_ascii_alphanumeric() || b[i] == b'_') {
@@ -151,8 +151,8 @@ fn scalar_name(name: &str) -> bool {
     )
 }
 
-// Solo la importación sin alias del módulo central autoriza math::función.
-// El nombre queda reservado: no se admite otro import ni una redefinición.
+// Only an unaliased import of the central module authorizes math::función.
+// The name is reserved: no other import or redefinition is allowed.
 fn central_math_import(tokens: &[&str], path: &Path) -> Result<bool, ()> {
     let mut imported = false;
     for (i, &token) in tokens.iter().enumerate() {
@@ -169,7 +169,7 @@ fn central_math_import(tokens: &[&str], path: &Path) -> Result<bool, ()> {
             if import.contains(&"as") && (import.contains(&"f64") || import.contains(&"f32")) {
                 return Err(());
             }
-            // Las funciones se usan con la ruta del módulo, no imports sueltos.
+            // Functions are used through the module path, not standalone imports.
             if import.iter().any(|name| scalar_name(name)) {
                 return Err(());
             }
@@ -203,7 +203,7 @@ fn central_scalar_path(tokens: &[&str], i: usize, imported: bool) -> bool {
     prefix == ["engine_core", "::", "math", "::"] || (imported && prefix == ["math", "::"])
 }
 
-// Los literales se mantienen opacos; no se interpretan escapes en rutas.
+// Literals remain opaque; escapes in paths are not interpreted.
 fn literal_string(literal: &str) -> Result<&str, ()> {
     let first = literal.find('"').ok_or(())?;
     let last = literal.rfind('"').ok_or(())?;
@@ -227,8 +227,8 @@ fn literal_rust_path(literal: &str) -> Result<&str, ()> {
     Ok(file)
 }
 
-// Incluye atributos internos y atributos anidados en macros, pero nunca texto
-// de comentarios/cadenas. El índice permite distinguir atributos de raíz.
+// Includes inner attributes and attributes nested in macros, but never comment/string
+// text. The index allows distinguishing root attributes.
 fn rust_attributes<'a, 's>(tokens: &'a [&'s str]) -> Vec<(usize, &'a [&'s str])> {
     let mut attributes = Vec::new();
     for (i, &token) in tokens.iter().enumerate() {
@@ -274,8 +274,8 @@ fn comma_items<'a, 's>(tokens: &'a [&'s str]) -> Vec<&'a [&'s str]> {
     items
 }
 
-// cfg_attr puede contener varios atributos y otros cfg_attr. Su condición es
-// un predicado, no un atributo path/link_name, y no se visita como tal.
+// cfg_attr may contain several attributes and other cfg_attr. Its condition is
+// a predicate, not a path/link_name attribute, and is not visited as such.
 fn attribute_meta_items<'a, 's>(body: &'a [&'s str]) -> Vec<&'a [&'s str]> {
     if body.starts_with(&["cfg_attr", "("]) && body.last() == Some(&")") {
         comma_items(&body[2..body.len() - 1])
@@ -290,8 +290,8 @@ fn attribute_meta_items<'a, 's>(body: &'a [&'s str]) -> Vec<&'a [&'s str]> {
     }
 }
 
-// include! y #[path] introducen código: solo rutas literales .rs pueden
-// pertenecer al inventario inspeccionado. include_str!/include_bytes! son datos.
+// include! and #[path] introduce code: only literal .rs paths can
+// belong to the inspected inventory. include_str!/include_bytes! are data.
 fn included_rust_paths<'a>(tokens: &[&'a str]) -> Result<Vec<&'a str>, ()> {
     let mut paths = Vec::new();
     for (i, &token) in tokens.iter().enumerate() {
@@ -331,8 +331,8 @@ fn code_paths_violation(input: &str, path: &Path, inspected: &[PathBuf]) -> bool
         return true;
     };
     paths.into_iter().any(|included| {
-        // Una ruta de módulo puede resolverse de forma distinta en un módulo
-        // inline. Solo se acepta el destino comprobable relativo a la fuente.
+        // A module path may resolve differently within an inline
+        // module. Only the verifiable target relative to the source is accepted.
         !path
             .parent()
             .and_then(|p| p.join(included).canonicalize().ok())
@@ -354,9 +354,9 @@ enum Construction {
     OtherExtern,
 }
 
-// Se inspecciona también el transcriptor de macro_rules, sin expandirlo.
-// Un atributo con metavariables podría generar path, link_name, etc.; un
-// extern con tokens variables podría generar un bloque o cambiar su ABI.
+// The macro_rules transcriber is also inspected, without expansion.
+// An attribute with metavariables could generate path, link_name, etc.; an
+// extern with variable tokens could generate a block or change its ABI.
 fn restricted_constructions(input: &str) -> Vec<Construction> {
     let tokens = rust_tokens(input);
     let mut found = Vec::new();
@@ -394,7 +394,7 @@ fn restricted_constructions(input: &str) -> Vec<Construction> {
             && i > 0
             && tokens[i - 1] == "pub"
         {
-            // Solo funciones públicas, no bloques ni punteros a función.
+            // Only public functions, not blocks or function pointers.
             found.push(Construction::ExternCFunction);
         } else {
             found.push(Construction::OtherExtern);
@@ -409,8 +409,8 @@ struct SourcePolicyException {
     reason: &'static str,
 }
 
-// Rutas relativas a crates/, sin globs. Cada permiso debe seguir usándose;
-// ni los ejemplos wasm necesitan unsafe ni la instrumentación necesita FFI.
+// Paths relative to crates/, without globs. Each permission must remain in use;
+// neither wasm examples need unsafe nor instrumentation needs FFI.
 const SOURCE_POLICY_EXCEPTIONS: &[SourcePolicyException] = &[
     SourcePolicyException {
         path: "engine-validation/examples/axial_wasm.rs",
@@ -487,9 +487,9 @@ fn exception_inventory_violation(inspected: &[PathBuf]) -> bool {
     })
 }
 
-// Sin excepciones en crates/*: las 15 bibliotecas compilan sin unsafe.
-// bindings/python también compila con forbid pese a sus macros PyO3, y se
-// comprueba aparte. heap_peak.rs es un test de integración, no una biblioteca.
+// No exceptions in crates/*: the 15 libraries compile without unsafe.
+// bindings/python also compiles with forbid despite its PyO3 macros, and is
+// checked separately. heap_peak.rs is an integration test, not a library.
 const UNSAFE_LIBRARY_EXCEPTIONS: &[(&str, &str)] = &[];
 
 fn library_unsafe_policy_violation(input: &str, path: &Path) -> bool {
@@ -583,7 +583,7 @@ fn numerical_libraries_have_no_hash_collections_or_threads() -> std::io::Result<
     }
     paths.sort();
     assert!(!paths.is_empty(), "La guardia no encontró fuentes");
-    // Incluye engine-api: hoy no necesita una excepción de serialización.
+    // Includes engine-api: currently needs no serialization exception.
     for path in paths {
         assert!(
             !rust_violation(&fs::read_to_string(&path)?),
@@ -624,8 +624,8 @@ fn engine_crates_use_only_the_central_scalar_module() -> std::io::Result<()> {
     files(&crates, &mut paths)?;
     paths.sort();
     assert!(!paths.is_empty(), "La guardia no encontró fuentes");
-    // Un .rs incluido debe estar también dentro del inventario, incluso si
-    // usa ../ o un enlace simbólico. No se excluye math.rs de estas comprobaciones.
+    // An included .rs must also be within the inventory, even if it
+    // uses ../ or a symbolic link. math.rs is not excluded from these checks.
     let inspected = paths
         .iter()
         .map(|p| p.canonicalize())
@@ -745,7 +745,7 @@ fn scalar_guard_rejects_raw_identifiers() {
     assert!(!scalar_violation(include_str!(
         "fixtures/determinism_guard/raw-identifiers-positive.txt"
     )));
-    // El identificador crudo no debe consumir ni ocultar los tokens siguientes.
+    // The raw identifier must not consume or hide subsequent tokens.
     assert!(scalar_violation("let r#value = 1; x.sin()"));
     assert!(rust_violation("use std::collections::r#HashMap;"));
 }
@@ -821,7 +821,7 @@ fn scalar_guard_allows_fma_only_in_the_existing_sturm_source() {
     ] {
         assert!(scalar_violation(source), "{source}");
     }
-    // La excepción de FMA no permite trascendentes std en modes.rs.
+    // The FMA exception does not allow std transcendental functions in modes.rs.
     assert!(scalar_source_violation(
         "x.sin()",
         Path::new("engine-linalg/src/modes.rs")
@@ -848,7 +848,7 @@ fn scalar_guard_rejects_includes_of_uninspected_code() {
     }
     let tokens = rust_tokens("include!(r###\"relative/source.rs\"###,)");
     assert_eq!(included_rust_paths(&tokens), Ok(vec!["relative/source.rs"]));
-    // La excepción central tampoco admite include! de código no inspeccionado.
+    // The central exception also does not allow include! of uninspected code.
     assert!(scalar_source_violation(
         "include!(\"hidden.inc\")",
         Path::new("engine-core/src/math.rs")
@@ -885,7 +885,7 @@ fn guard_rejects_module_paths_outside_the_inventory() -> std::io::Result<()> {
         .map(|p| p.canonicalize())
         .collect::<std::io::Result<Vec<_>>>()?;
     let path = crates.join("engine-linalg/src/lib.rs");
-    // Archivo real .rs fuera de crates/**; no depende de un destino inexistente.
+    // Actual .rs file outside crates/**; does not depend on a nonexistent target.
     for source in [
         "#[path = \"../../../bindings/python/src/lib.rs\"] mod m;",
         "#[cfg_attr(unix, path = r###\"../../../bindings/python/src/lib.rs\"###)] mod m;",
@@ -995,22 +995,22 @@ fn guard_allows_comments_strings_and_non_ffi_extern_items() {
             "{source}"
         );
     }
-    // La lista de excepciones tampoco relaja la política de código incluido.
+    // The exception list also does not relax the included-code policy.
     assert!(scalar_source_violation(
         "#[path = \"hidden.txt\"] mod m;",
         Path::new("engine-api/examples/ffi.rs")
     ));
     assert!(rust_violation("extern crate rayon;"));
-    // Un módulo de biblioteca llamado examples no es el directorio de ejemplos.
+    // A library module named examples is not the examples directory.
     assert!(ffi_violation(
         "extern {}",
         Path::new("engine-core/src/examples/ffi.rs")
     ));
 }
 
-// Cada caso se comprueba en src/, tests/ y examples/, tanto directamente como
-// dentro de una macro con cada delimitador. Los textos son datos, no código
-// generado fuera del inventario.
+// Each case is checked in src/, tests/, and examples/, both directly and
+// inside a macro with each delimiter. The texts are data, not code
+// generated outside the inventory.
 fn assert_scope_policy(source: &str, library_violation: bool) {
     for source in [
         source.to_owned(),
@@ -1264,7 +1264,7 @@ fn guard_limits_exceptions_to_the_constructions_actually_used() {
                 exception.path
             );
         }
-        // Nombres idénticos en otro crate o subdirectorio no heredan permisos.
+        // Identical names in another crate or subdirectory do not inherit permissions.
         let filename = path.file_name().unwrap();
         for dir in [
             "engine-new/tests",

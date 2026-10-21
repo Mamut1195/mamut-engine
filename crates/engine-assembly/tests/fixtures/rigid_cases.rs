@@ -1,5 +1,5 @@
-//! Derivación propia: dos apoyos elásticos y un diafragma XY excéntrico.
-//! Fuente: provenance/ENG-ASM-002.md, integración con main (2026-10-13).
+//! Independent derivation: two elastic supports and an eccentric XY diaphragm.
+//! Source: provenance/ENG-ASM-002.md, integration with main (2026-10-13).
 use engine_assembly::{DofMap, ElementContribution, LinearSystem, PrescribedDof, RigidDiaphragm};
 use engine_contracts::CaseRef;
 use engine_core::{Dim, Dof, EResult, NodeId};
@@ -20,8 +20,8 @@ pub fn system<B: LinAlgBackend>(backend: B, settlement: Option<f64>) -> EResult<
     let mut model = Model::new();
     for (i, [x, y]) in POINTS.into_iter().enumerate() {
         let id = i as u32 + 1;
-        // Resortes horizontales coplanares: cada anclaje coincide con su
-        // esclavo para conservar también el equilibrio de momentos 3D.
+        // Coplanar horizontal springs: each anchor coincides with its
+        // slave to also preserve 3D moment equilibrium.
         for (node, z, dofs) in [(id, 3.0, &XY[..2]), (id + 10, 3.0, &XY[..])] {
             let mut n = Node::new(NodeId(node), Dim::D3, [x, y, z]);
             n.dofs = dofs.to_vec();
@@ -105,7 +105,7 @@ pub fn verify_solution<B: LinAlgBackend>(
     settlement: Option<f64>,
 ) -> EResult<()> {
     // K_ind = [[200,0,-200],[0,200,400],[-200,400,1200]].
-    // Las cargas transportadas al maestro son (Fx,Fy,Mz).
+    // Loads transferred to the master are (Fx,Fy,Mz).
     let [fx, fy, mz] = match case.0.as_str() {
         "A" => [10.0, 20.0, 15.0],
         "B" => [-20.0, 10.0, 45.0],
@@ -129,7 +129,7 @@ pub fn verify_solution<B: LinAlgBackend>(
     }
     for (i, [x, y]) in POINTS.into_iter().enumerate() {
         let id = i as u32 + 11;
-        // Solución analítica y compatibilidad rígida con el maestro recuperado.
+        // Analytical solution and rigid compatibility with the recovered master.
         close(value(id, Dof::Ux)?, ux - y * theta);
         close(value(id, Dof::Uy)?, uy + x * theta);
         close(value(id, Dof::Rz)?, theta);
@@ -150,8 +150,8 @@ pub fn verify_solution<B: LinAlgBackend>(
     for reaction in reactions {
         let expected = if reaction.node == NodeId(20) {
             assert_eq!(reaction.dof, Dof::Ux);
-            // El maestro no tiene rigidez física: esta reacción procede de
-            // los esclavos, no de una fila propia de K.
+            // The master has no physical stiffness: this reaction comes from
+            // the slaves, not from its own K row.
             200.0 * ux - 200.0 * theta - factor * fx
         } else {
             -100.0 * value(reaction.node.0 + 10, reaction.dof)?

@@ -1,35 +1,35 @@
 #![forbid(unsafe_code)]
-//! Ensamblaje lineal determinista, apoyos y desplazamientos impuestos en SI.
+//! Deterministic linear assembly, supports, and imposed displacements in SI.
 //!
-//! Los aportes se reciben en ejes globales: no se implementan elementos finitos
-//! ni transformaciones locales. D2 sigue X-Y con Ux, Uy, Rz; D3 sigue la terna
-//! diestra con Z hacia arriba. Traslaciones en m, giros en rad, fuerzas en N y
-//! momentos en N·m. K y Kg relacionan esas fuerzas con esos desplazamientos;
-//! M tiene entradas kg, kg·m o kg·m² según las componentes acopladas.
+//! Contributions are received in global axes: this crate implements neither finite elements
+//! nor local transformations. D2 follows X-Y with Ux, Uy, Rz; D3 follows the
+//! right-handed triad with Z upward. Translations in m, rotations in rad, forces in N, and
+//! moments in N·m. K and Kg relate those forces to those displacements;
+//! M has entries in kg, kg·m, or kg·m² according to the coupled components.
 //!
-//! [`DofMap`] numera los GDL declarados por nodo ascendente y componente de
-//! [`engine_core::Dim`]; [`Constraints`] asigna los índices reducidos conservando
-//! ese orden. Se permiten subconjuntos de GDL para problemas axiales.
-//! [`RigidDiaphragm`] transforma Ux/Uy/Rz de esclavos en planta XY D3
-//! mediante un maestro; Uz/Rx/Ry siguen independientes. Normal +Z y giros
-//! infinitesimales; D2 y otros planos no se admiten. Se declara con
-//! [`LinearSystem::from_model_with_diaphragms`], sin alterar el dominio Model.
-//! [`Constraints::transformation`] expone T, incluidos independientes prescritos;
-//! la expansión es u = T_f q_f + u_0 y la proyección de fuerzas es T_fᵀ.
-//! K, M y Kg se reducen por congruencia T_fᵀ A T_f. Reacciones de apoyo y
-//! acciones maestro/esclavos se recuperan del residuo global Ku − factor F.
+//! [`DofMap`] numbers declared DOFs by ascending node and component of
+//! [`engine_core::Dim`]; [`Constraints`] assigns reduced indices preserving
+//! that order. DOF subsets are allowed for axial problems.
+//! [`RigidDiaphragm`] transforms slave Ux/Uy/Rz in the D3 XY floor plane
+//! through a master; Uz/Rx/Ry remain independent. Normal +Z and infinitesimal
+//! rotations; D2 and other planes are unsupported. Declared with
+//! [`LinearSystem::from_model_with_diaphragms`], without altering the Model domain.
+//! [`Constraints::transformation`] exposes T, including prescribed independent DOFs;
+//! expansion is u = T_f q_f + u_0 and force projection is T_fᵀ.
+//! K, M, and Kg are reduced by congruence T_fᵀ A T_f. Support reactions and
+//! master/slave actions are recovered from the global residual Ku − factor F.
 //!
-//! [`LinearSystem`] implementa [`engine_contracts::SystemView`]: fuerza interna
-//! física `T_fᵀ K u`, externa `factor T_fᵀ F` y tangente `T_fᵀ K T_f`.
-//! Para un solve directo, [`LinearSystem::reduced_rhs`] devuelve
-//! `T_fᵀ(factor F − K u_0)`. Sin diafragmas equivale a
-//! `factor F_f − K_fp u_p`. No se resta nuevamente en SystemView.
+//! [`LinearSystem`] implements [`engine_contracts::SystemView`]: physical internal
+//! force `T_fᵀ K u`, external `factor T_fᵀ F`, and tangent `T_fᵀ K T_f`.
+//! For a direct solve, [`LinearSystem::reduced_rhs`] returns
+//! `T_fᵀ(factor F − K u_0)`. Without diaphragms this equals
+//! `factor F_f − K_fp u_p`. It is not subtracted again in SystemView.
 //!
-//! Las matrices globales son CSR; las reducidas son densas por el contrato
-//! actual SymMatrix de engine-linalg. El solve se delega al backend, sin
-//! regularización ni hilos. No se promete escalabilidad del solver de referencia.
+//! Global matrices are CSR; reduced matrices are dense under the current
+//! engine-linalg SymMatrix contract. Solving is delegated to the backend, without
+//! regularization or threads. Scalability of the reference solver is not promised.
 //!
-//! Ejemplo de frontera: dos GDL axiales, K suministrada por el llamador.
+//! Boundary example: two axial DOFs, K supplied by the caller.
 //! ```
 //! use engine_assembly::{ElementContribution, LinearSystem};
 //! use engine_contracts::CaseRef;

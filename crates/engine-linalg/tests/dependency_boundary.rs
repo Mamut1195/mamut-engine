@@ -1,4 +1,4 @@
-//! Barrera arquitectónica sin dependencias de análisis de código.
+//! Architectural boundary without code analysis dependencies.
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -34,15 +34,15 @@ fn manifest_violation(input: &str) -> bool {
                 return true;
             }
         } else if dependencies && words(line.split('#').next().unwrap()).any(provider) {
-            // Incluye alias `numeric={package="faer"}` y dependencias por tabla.
+            // Includes alias `numeric={package="faer"}` and table dependencies.
             return true;
         }
     }
     false
 }
-// Inspección conservadora de tokens de Rust. También detecta macros y `extern
-// crate`; elimina comentarios, cadenas y caracteres para evitar falsos positivos
-// de documentación. No pretende ser un parser completo del lenguaje.
+// Conservative inspection of Rust tokens. Also detects macros and `extern
+// crate`; removes comments, strings, and characters to avoid documentation
+// false positives. Does not attempt to be a complete language parser.
 fn rust_violation(input: &str) -> bool {
     let b = input.as_bytes();
     let mut i = 0;
@@ -138,8 +138,8 @@ fn only_linalg_can_import_numeric_providers() {
             files(&path, &mut paths);
         }
     }
-    // Se recorren todos los crates bajo crates/, incluso miembros nuevos que aún
-    // no figuren en el manifest; el layout del workspace vive en ese directorio.
+    // All crates under crates/ are traversed, including new members not yet
+    // in the manifest; the workspace layout resides in that directory.
     for path in paths {
         let content = fs::read_to_string(&path).unwrap();
         let violation = if path.extension().is_some_and(|s| s == "rs") {

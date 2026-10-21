@@ -1,124 +1,124 @@
-//! Fronteras v1; todos los errores reutilizan EngineError del núcleo.
+//! V1 boundaries; all errors reuse EngineError from the core.
 use crate::*;
 
-/// Ley uniaxial pura, thread-safe, contrato uniaxial/1.
+/// Pure, thread-safe uniaxial law, uniaxial/1 contract.
 ///
-/// # Entradas y unidades
-/// Deformación total adimensional para material, o desplazamiento relativo m
-/// para resorte; historia aceptada finita y con longitud state_len.
-/// # Salidas e invariantes
-/// Tensión Pa o fuerza N y su derivada consistente (error relativo FD < 1e-6).
-/// Toda historia es plana, finita y propiedad del llamador. Repetir la entrada
-/// aceptada reproduce la tensión aceptada. No modifica self ni committed;
-/// cada kind declara su rango de validez y puntos no diferenciables.
-/// # Errores
-/// ENG-E-0008 por no finitos/desbordamiento; ENG-E-0010 por historia o rango
-/// inválidos. Otros errores físicos deben declarar código y contexto del núcleo.
+/// # Inputs and units
+/// Dimensionless total strain for material, or relative displacement in m
+/// for a spring; finite committed history of length state_len.
+/// # Outputs and invariants
+/// Stress in Pa or force in N and its consistent derivative (relative FD error < 1e-6).
+/// All history is flat, finite, and owned by the caller. Repeating the committed
+/// input reproduces the committed stress. Does not modify self or committed;
+/// each kind declares its validity range and nondifferentiable points.
+/// # Errors
+/// ENG-E-0008 for nonfinite values/overflow; ENG-E-0010 for invalid history or
+/// range. Other physical errors must declare a core code and context.
 pub trait UniaxialLaw: Send + Sync {
-    /// Nombre propio estable; sin unidades ni efectos laterales.
+    /// Stable custom name; without units or side effects.
     fn kind(&self) -> &'static str;
-    /// Identidad uniaxial/1; versión menor compatible.
+    /// uniaxial/1 identity; compatible minor version.
     fn contract(&self) -> ContractId {
         ContractId::new("uniaxial", 1, 0)
     }
-    /// Longitud exacta de la historia aceptada y de prueba.
+    /// Exact length of committed and trial history.
     fn state_len(&self) -> usize;
-    /// Historia inicial finita en las unidades documentadas por kind.
+    /// Finite initial history in the units documented by kind.
     fn initial_state(&self) -> Vec<Real>;
-    /// Tangente inicial finita, Pa o N/m; consistente con el origen inicial.
+    /// Finite initial tangent, Pa or N/m; consistent with the initial origin.
     fn initial_tangent(&self) -> Real;
-    /// Evalúa deformación TOTAL y estado ACEPTADO; devuelve respuesta de prueba.
-    /// No acepta historia implícitamente; errores y unidades según este trait.
+    /// Evaluates TOTAL strain and COMMITTED state; returns a trial response.
+    /// Does not implicitly commit history; errors and units as specified by this trait.
     fn respond(&self, strain: Real, committed: &[Real]) -> EResult<UniaxialResponse>;
 }
 
-/// Ley de sección pura y thread-safe, contrato section/1.
+/// Pure, thread-safe section law, section/1 contract.
 ///
-/// # Entradas y unidades
-/// D2 e=[ε0, κz]; D3 e=[ε0, κy, κz, θ′]; ε0 adimensional y resto m⁻¹.
-/// Estado aceptado plano finito de longitud state_len.
-/// # Salidas e invariantes
-/// D2 s=[N, Mz]; D3 s=[N, My, Mz, T], N y N·m. Tangente simétrica v1,
-/// derivada consistente de s respecto a e con error FD relativo < 1e-6.
-/// No modifica self ni committed; al repetir e aceptado reproduce s aceptado.
-/// Toda salida es finita y trial_state tiene longitud state_len.
-/// # Errores
-/// ENG-E-0010 por tamaños o rango inválidos; ENG-E-0008 por no finitos.
+/// # Inputs and units
+/// D2 e=[ε0, κz]; D3 e=[ε0, κy, κz, θ′]; ε0 dimensionless and the rest m⁻¹.
+/// Finite flat committed state of length state_len.
+/// # Outputs and invariants
+/// D2 s=[N, Mz]; D3 s=[N, My, Mz, T], N and N·m. Symmetric tangent v1,
+/// consistent derivative of s with respect to e with relative FD error < 1e-6.
+/// Does not modify self or committed; repeating committed e reproduces committed s.
+/// All output is finite and trial_state has length state_len.
+/// # Errors
+/// ENG-E-0010 for invalid sizes or range; ENG-E-0008 for nonfinite values.
 pub trait SectionLaw: Send + Sync {
-    /// Nombre propio de la sección y su rango físico documentado.
+    /// Custom section name and its documented physical range.
     fn kind(&self) -> &'static str;
-    /// Identidad section/1.
+    /// section/1 identity.
     fn contract(&self) -> ContractId;
-    /// Dimensión que determina dos o cuatro deformaciones generalizadas.
+    /// Dimension determining two or four generalized strains.
     fn dim(&self) -> Dim;
-    /// Longitud exacta del estado plano.
+    /// Exact length of the flat state.
     fn state_len(&self) -> usize;
-    /// Historia inicial finita; unidades definidas por kind.
+    /// Finite initial history; units defined by kind.
     fn initial_state(&self) -> Vec<Real>;
-    /// Responde a deformaciones TOTALES usando historia ACEPTADA sin mutarla.
-    /// Devuelve resultantes, tangente y estado de prueba; errores según el trait.
+    /// Responds to TOTAL strains using COMMITTED history without mutating it.
+    /// Returns resultants, tangent, and trial state; errors as specified by the trait.
     fn respond(&self, e: &[Real], committed: &[Real]) -> EResult<SectionResponse>;
 }
 
-/// Elemento puro y thread-safe, contrato element/1.
+/// Pure, thread-safe element, element/1 contract.
 ///
-/// # Entradas y unidades
-/// Contexto con n_nodes coordenadas m y parámetros SI resueltos. u_e TOTAL
-/// global, nodo y después dofs_per_node: traslaciones m y giros rad.
-/// Estado ACEPTADO de longitud state_len. D2 exige X-Y y Z=0.
-/// # Salidas e invariantes
-/// Fuerzas N y momentos N·m globales; longitud n_nodes × dofs_per_node.len().
-/// Tangente y masa cuadradas simétricas v1; tangente consistente FD < 1e-6.
-/// Tres modos rígidos D2 y seis D3 sin fuerza interna para historia inicial sin
-/// pretensión en elementos sin conexión externa. Un lecho Winkler fijo al terreno
-/// resiste movimientos rígidos transversales por definición de su kind. Covarianza de fuerzas, tangente y masa al rotar
-/// el sistema global.
-/// Respuesta finita y determinista; repetir el desplazamiento aceptado reproduce
-/// fuerzas aceptadas. Nunca muta self, contexto ni historia.
-/// # Errores
-/// ENG-E-0010 por dimensión, tamaños, parámetros, cargas o estaciones no admitidos;
-/// ENG-E-0005 por longitud nula; ENG-E-0008 por no finitos/desbordamiento.
-/// Ausencia de masa o rigidez geométrica se indica con None, no con error.
+/// # Inputs and units
+/// Context with n_nodes coordinates in m and resolved SI parameters. TOTAL
+/// global u_e, node then dofs_per_node: translations in m and rotations in rad.
+/// COMMITTED state of length state_len. D2 requires X-Y and Z=0.
+/// # Outputs and invariants
+/// Global forces in N and moments in N·m; length n_nodes × dofs_per_node.len().
+/// Square symmetric tangent and mass v1; FD-consistent tangent < 1e-6.
+/// Three D2 and six D3 rigid modes without internal force for initial history without
+/// prestress in elements without external connection. A Winkler bed attached to the ground
+/// resists transverse rigid motions by definition of its kind. Covariance of forces, tangent, and mass under rotation of
+/// the global system.
+/// Finite and deterministic response; repeating the committed displacement reproduces
+/// committed forces. Never mutates self, context, or history.
+/// # Errors
+/// ENG-E-0010 for unsupported dimension, sizes, parameters, loads, or stations;
+/// ENG-E-0005 for zero length; ENG-E-0008 for nonfinite values/overflow.
+/// Absence of mass or geometric stiffness is indicated by None, not an error.
 pub trait Element: Send + Sync {
-    /// Kind propio; documenta hipótesis, rango físico y cargas admitidas.
+    /// Custom kind; documents assumptions, physical range, and supported loads.
     fn kind(&self) -> &'static str;
-    /// Identidad element/1.
+    /// element/1 identity.
     fn contract(&self) -> ContractId;
-    /// Número de nodos en el contexto y en los vectores.
+    /// Number of nodes in the context and vectors.
     fn n_nodes(&self) -> usize;
-    /// Componentes activas por nodo, distintas y en el orden de los vectores.
+    /// Active components per node, distinct and in vector order.
     fn dofs_per_node(&self) -> &'static [Dof];
-    /// Longitud exacta de historia; por defecto sin historia.
+    /// Exact history length; no history by default.
     fn state_len(&self) -> usize {
         0
     }
-    /// Historia inicial finita; por defecto vacía.
+    /// Finite initial history; empty by default.
     fn initial_state(&self) -> Vec<Real> {
         Vec::new()
     }
-    /// Evalúa u_e TOTAL y estado ACEPTADO; devuelve fuerza, tangente y prueba.
+    /// Evaluates TOTAL u_e and COMMITTED state; returns force, tangent, and trial.
     fn respond(
         &self,
         ctx: &ElementCtx<'_>,
         u_e: &[Real],
         committed: &[Real],
     ) -> EResult<ElementResponse>;
-    /// Devuelve masa (kg, kg·m y kg·m² según GDL) o None si no existe;
-    /// valida contexto y devuelve errores definidos arriba.
+    /// Returns mass (kg, kg·m, and kg·m² according to DOF) or None if absent;
+    /// validates context and returns the errors defined above.
     fn mass(&self, ctx: &ElementCtx<'_>, kind: MassKind) -> EResult<Option<DMat>>;
-    /// Devuelve Kg global calculada con axial propio de u_e, o None si no soporta.
-    /// Mismas unidades/tamaños que tangente; no acepta historia.
+    /// Returns global Kg computed with the axial force from u_e, or None if unsupported.
+    /// Same units/sizes as tangent; does not commit history.
     fn geometric_stiffness(
         &self,
         ctx: &ElementCtx<'_>,
         u_e: &[Real],
         committed: &[Real],
     ) -> EResult<Option<DMat>>;
-    /// Convierte una carga de tramo a fuerzas/momentos nodales globales;
-    /// longitud del vector igual a respond; rechaza componentes no soportadas.
+    /// Converts a span load to global nodal forces/moments;
+    /// vector length equal to respond; rejects unsupported components.
     fn load_vector(&self, ctx: &ElementCtx<'_>, load: &MemberLoad) -> EResult<Vec<Real>>;
-    /// Recupera acciones locales en caras de extremo y estaciones x/L en `[0,1]`,
-    /// en el orden solicitado, incluyendo cargas de tramo. No modifica historia.
+    /// Recovers local actions at end faces and stations x/L in `[0,1]`,
+    /// in the requested order, including span loads. Does not modify history.
     fn recover(
         &self,
         ctx: &ElementCtx<'_>,
@@ -129,93 +129,93 @@ pub trait Element: Send + Sync {
     ) -> EResult<ElementOutput>;
 }
 
-/// Fábrica thread-safe de elementos, sin ensamblaje ni acceso al backend.
+/// Thread-safe element factory, without assembly or backend access.
 ///
-/// # Entradas, salidas y unidades
-/// JSON mínimo en memoria, con propiedades SI según el esquema y ModelView
-/// prestado de referencias únicas y coordenadas m. Devuelve elemento independiente
-/// de la vida de la vista; no modifica el modelo.
-/// # Invariantes y errores
-/// Valida campos requeridos, tipos, rango, referencias y dimensión contra el
-/// esquema declarado. Kind del elemento igual al de la fábrica, element/1.
-/// ENG-E-0010 por esquema/dimensión, ENG-E-0003 por referencias ausentes,
-/// ENG-E-0008 por no finitos. No realiza parsing JSON ni usa serde.
+/// # Inputs, outputs, and units
+/// Minimal in-memory JSON, with SI properties according to the schema and a borrowed
+/// ModelView with unique references and coordinates in m. Returns an element independent
+/// of the view's lifetime; does not modify the model.
+/// # Invariants and errors
+/// Validates required fields, types, range, references, and dimension against the
+/// declared schema. Element kind equal to the factory kind, element/1.
+/// ENG-E-0010 for schema/dimension, ENG-E-0003 for missing references,
+/// ENG-E-0008 for nonfinite values. Does not parse JSON or use serde.
 pub trait ElementFactory: Send + Sync {
-    /// Nombre propio igual al del elemento construido.
+    /// Custom name equal to that of the constructed element.
     fn kind(&self) -> &'static str;
-    /// JSON Schema como texto JSON válido; sin unidades implícitas.
+    /// JSON Schema as valid JSON text; without implicit units.
     fn params_schema(&self) -> String;
-    /// Valida parámetros SI y modelo prestado, y construye un elemento propietario.
+    /// Validates SI parameters and borrowed model, and constructs an owned element.
     fn build(&self, params: &JsonValue, model: &ModelView<'_>) -> EResult<Box<dyn Element>>;
 }
 
-/// Frontera interna entre método de análisis y sistema ensamblado.
+/// Internal boundary between analysis method and assembled system.
 ///
-/// # Entradas, salidas y unidades
-/// Vectores reducidos de n_free_dofs, desplazamientos m/giros rad, fuerzas N/
-/// momentos N·m. Matrices cuadradas del mismo orden; masas kg/inercias kg·m².
-/// Fuerzas externas por CaseRef y factor adimensional. El productor declara
-/// el escalado necesario para normas relativas con componentes mixtas.
-/// # Invariantes
-/// Cada operación sobrescribe completamente out, nunca acumula. Tangente y masa
-/// simétricas. Las evaluaciones usan el último estado aceptado y no lo aceptan
-/// implícitamente. accept(u) reevaluará/aceptará exactamente u, de forma atómica;
-/// rollback descarta toda prueba y conserva el último aceptado, sin fallar.
-/// # Errores
-/// ENG-E-0010 por tamaños/contexto; ENG-E-0008 por no finitos;
-/// ENG-E-0003 por caso ausente; ENG-E-0012 por estado interno incoherente.
-/// Un índice para dof_label debe ser válido; fuera de rango puede causar panic.
+/// # Inputs, outputs, and units
+/// Reduced vectors of n_free_dofs, displacements in m/rotations in rad, forces in N/
+/// moments in N·m. Square matrices of the same order; masses in kg/inertias in kg·m².
+/// External forces by CaseRef and dimensionless factor. The producer declares
+/// the scaling needed for relative norms with mixed components.
+/// # Invariants
+/// Each operation completely overwrites out, never accumulates. Symmetric tangent and
+/// mass. Evaluations use the last committed state and do not commit it
+/// implicitly. accept(u) will reevaluate/commit exactly u, atomically;
+/// rollback discards every trial and preserves the last committed state, without failing.
+/// # Errors
+/// ENG-E-0010 for sizes/context; ENG-E-0008 for nonfinite values;
+/// ENG-E-0003 for a missing case; ENG-E-0012 for inconsistent internal state.
+/// An index for dof_label must be valid; out of range may cause a panic.
 pub trait SystemView {
-    /// Número de ecuaciones libres en el orden reducido.
+    /// Number of free equations in reduced order.
     fn n_free_dofs(&self) -> usize;
-    /// Patrón simétrico de ese orden; sin análisis numérico.
+    /// Symmetric pattern of that order; without numerical analysis.
     fn pattern(&self) -> &SparsityPattern;
-    /// Sobrescribe out con dF_int/du en u TOTAL, sin aceptar estado.
+    /// Overwrites out with dF_int/du at TOTAL u, without committing state.
     fn tangent(&mut self, u: &[Real], out: &mut SymMatrix) -> EResult<()>;
-    /// Sobrescribe out con fuerzas internas globales reducidas para u TOTAL.
+    /// Overwrites out with reduced global internal forces for TOTAL u.
     fn internal_force(&mut self, u: &[Real], out: &mut [Real]) -> EResult<()>;
-    /// Sobrescribe out con masa del tipo solicitado; cero si no hay masa.
+    /// Overwrites out with mass of the requested type; zero if there is no mass.
     fn mass(&mut self, kind: MassKind, out: &mut SymMatrix) -> EResult<()>;
-    /// Sobrescribe out con rigidez geométrica usando axial propio de u.
+    /// Overwrites out with geometric stiffness using the axial force from u.
     fn geometric(&mut self, u: &[Real], out: &mut SymMatrix) -> EResult<()>;
-    /// Sobrescribe fuerzas del caso escaladas por factor; no modifica el sistema.
+    /// Overwrites case forces scaled by factor; does not modify the system.
     fn external_force(&self, case: &CaseRef, factor: Real, out: &mut [Real]) -> EResult<()>;
-    /// Acepta exactamente u y su historia reevaluada; si falla conserva aceptado.
+    /// Commits exactly u and its reevaluated history; preserves committed state on failure.
     fn accept(&mut self, u: &[Real]) -> EResult<()>;
-    /// Descarta prueba y recupera historia aceptada; infalible e idempotente.
+    /// Discards trial and restores committed history; infallible and idempotent.
     fn rollback(&mut self);
-    /// Etiqueta nodo/GDL para índice global reducido válido; precondición d < n.
+    /// Node/DOF label for a valid reduced global index; precondition d < n.
     fn dof_label(&self, d: DofIndex) -> (NodeId, Dof);
 }
 
-/// Método thread-safe, contrato analysis/1, sin acceso directo a nodos/elementos.
+/// Thread-safe method, analysis/1 contract, without direct access to nodes/elements.
 ///
-/// # Entradas y unidades
-/// Sistema reducido, ajustes JSON mínimo con unidades SI y estrategias explícitas,
-/// destino de resultados SI y control cooperativo. requires declara capacidades.
-/// # Salidas e invariantes
-/// Siempre reporta normas relativas y tolerancias usadas. NotConverged conserva
-/// último estado aceptado, sin reintentos ocultos. Unstable indica pérdida de
-/// estabilidad; Cancelled conserva último aceptado. Completed exige convergencia.
-/// Mecanismos se diagnostican ENG-E-0006 con nodo/GDL. No publica pruebas como
-/// estados aceptados. La procedencia results/1 completa se añade en la fachada.
-/// # Errores
-/// ENG-E-0010 por ajustes/capacidades inválidos; ENG-E-0008 por no finitos;
-/// propaga errores de sistema y destino. En error o cancelación descarta pruebas.
-/// La no convergencia se devuelve como outcome, no como error de infraestructura.
+/// # Inputs and units
+/// Reduced system, minimal JSON settings with SI units and explicit strategies,
+/// SI result sink and cooperative control. requires declares capabilities.
+/// # Outputs and invariants
+/// Always reports relative norms and tolerances used. NotConverged preserves the
+/// last committed state, without hidden retries. Unstable indicates loss of
+/// stability; Cancelled preserves the last committed state. Completed requires convergence.
+/// Mechanisms are diagnosed as ENG-E-0006 with node/DOF. Does not publish trials as
+/// committed states. Full results/1 provenance is added in the facade.
+/// # Errors
+/// ENG-E-0010 for invalid settings/capabilities; ENG-E-0008 for nonfinite values;
+/// propagates system and sink errors. Discards trials on error or cancellation.
+/// Nonconvergence is returned as an outcome, not an infrastructure error.
 pub trait AnalysisMethod: Send + Sync {
-    /// Identificador estable propio del método.
+    /// Stable custom method identifier.
     fn id(&self) -> &'static str;
-    /// Versión semántica mayor, menor y parche.
+    /// Semantic major, minor, and patch version.
     fn version(&self) -> (u16, u16, u16);
-    /// Identidad analysis/1.
+    /// analysis/1 identity.
     fn contract(&self) -> ContractId;
-    /// JSON Schema textual de ajustes y estrategias explícitas.
+    /// Textual JSON Schema for settings and explicit strategies.
     fn settings_schema(&self) -> String;
-    /// Capacidades requeridas antes de ejecutar.
+    /// Capabilities required before execution.
     fn requires(&self) -> Requirements;
-    /// Ejecuta y emite resultados aceptados, normas, tolerancias y diagnósticos.
-    /// Errores según este trait; respeta cancelled antes de aceptar cada paso.
+    /// Executes and emits committed results, norms, tolerances, and diagnostics.
+    /// Errors as specified by this trait; respects cancelled before committing each step.
     fn run(
         &self,
         sys: &mut dyn SystemView,
@@ -225,28 +225,28 @@ pub trait AnalysisMethod: Send + Sync {
     ) -> EResult<AnalysisOutcome>;
 }
 
-/// Control cooperativo sin modificar el sistema.
+/// Cooperative control without modifying the system.
 ///
-/// Entrada: progreso adimensional finito en `[0,1]` y nota en español.
-/// Salida: observación de cancelación; sin errores de infraestructura ni panic
-/// para entradas válidas. El progreso debe ser monótono dentro de una ejecución.
-/// El método consulta cancelled entre pasos y antes de aceptar; la observación
-/// puede cambiar por intervención externa. No obliga a un modelo de hilos.
+/// Input: finite dimensionless progress in `[0,1]` and note in Spanish.
+/// Output: cancellation observation; no infrastructure errors or panic
+/// for valid inputs. Progress must be monotonic within a run.
+/// The method queries cancelled between steps and before committing; the observation
+/// may change through external intervention. Does not require a threading model.
 pub trait RunControl {
-    /// Publica fracción finita `[0,1]` y nota; no altera estado de cálculo.
+    /// Publishes finite fraction `[0,1]` and note; does not alter computation state.
     fn progress(&self, fraction: Real, note: &str);
-    /// Devuelve true si se solicitó detener; no acepta ni revierte el sistema.
+    /// Returns true if stopping was requested; neither commits nor rolls back the system.
     fn cancelled(&self) -> bool;
 }
 
-/// Destino de valores results/1, sin ejecutar cálculos.
+/// Sink for results/1 values, without executing computations.
 ///
-/// Entrada: clave con bloque/campo propios no vacíos y valor finito SI; salida:
-/// confirmación de escritura o error. Cada put es atómico; la política de claves
-/// repetidas se documenta por implementación. Conserva orden de vectores y signos.
-/// ENG-E-0010 por clave/valor inválido, ENG-E-0008 por no finitos; fallos E/S
-/// se expresan mediante EngineError con contexto. No acepta historia del sistema.
+/// Input: key with nonempty custom block/field and finite SI value; output:
+/// write confirmation or error. Each put is atomic; the policy for repeated keys
+/// is documented per implementation. Preserves vector order and signs.
+/// ENG-E-0010 for invalid key/value, ENG-E-0008 for nonfinite values; I/O failures
+/// are expressed through EngineError with context. Does not commit system history.
 pub trait ResultSink {
-    /// Escribe un valor SI en su clave; propaga errores y no deja escritura parcial.
+    /// Writes an SI value at its key; propagates errors and leaves no partial write.
     fn put(&mut self, key: ResultKey, value: ResultValue) -> EResult<()>;
 }

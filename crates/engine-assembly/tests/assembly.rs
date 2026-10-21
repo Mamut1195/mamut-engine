@@ -1,4 +1,4 @@
-//! Aceptación analítica y conformidad; solo datos en memoria, también en wasm.
+//! Analytical acceptance and conformance; only in-memory data, also on wasm.
 mod fixtures;
 
 use engine_assembly::{
@@ -141,7 +141,7 @@ fn settlement_and_load_on_support_are_not_scaled_twice() {
     close(&f, &[-6.0]);
     s.external_force(&case(), 2.0, &mut f).unwrap();
     close(&f, &[0.0]);
-    // Con P_2=12 N y P_3=4 N, u_2=(12+6)/300=0.06 m.
+    // With P_2=12 N and P_3=4 N, u_2=(12+6)/300=0.06 m.
     // R_1=−100*0.06=−6; R_3=200*(0.03−0.06)−4=−10 N.
     m.cases[0].loads = vec![
         NodalLoad {
@@ -252,8 +252,8 @@ fn mass_geometric_forces_pattern_and_overwrite() {
         }],
     });
     let mut e = elements(&[100.0, 200.0]);
-    // Datos arbitrarios de interfaz: M_l=diag(2,2), M_c=[[2,1],[1,2]],
-    // Kg=[[3,−3],[−3,3]], sumados en conectividad (1,2) y (2,3).
+    // Arbitrary interface data: M_l=diag(2,2), M_c=[[2,1],[1,2]],
+    // Kg=[[3,−3],[−3,3]], summed on connectivity (1,2) and (2,3).
     for el in &mut e {
         el.mass_lumped = Some(DMat::new(2, 2, vec![2.0, 0.0, 0.0, 2.0]).unwrap());
         el.mass_consistent = Some(DMat::new(2, 2, vec![2.0, 1.0, 1.0, 2.0]).unwrap());
@@ -284,13 +284,13 @@ fn mass_geometric_forces_pattern_and_overwrite() {
         .unwrap();
     close(&force, &[6.0, 4.0]);
     assert!(check_system_view(&mut s, &[vec![0.0, 0.0]], &case(), 1e-5).is_empty());
-    // Con Kg precalculado el kit solo puede muestrear el estado de referencia;
-    // otro u se rechaza (ver j4_followup.rs). Muestras fuera de él: sistema sin Kg.
+    // With precomputed Kg the kit can only sample the reference state;
+    // another u is rejected (see j4_followup.rs). Samples outside it: system without Kg.
     let mut no_kg = system(&model(3), &elements(&[100.0, 200.0]), &[]);
     assert!(
         check_system_view(&mut no_kg, &[vec![0.0, 0.0], vec![0.1, 0.2]], &case(), 1e-5).is_empty()
     );
-    // None sobrescribe una salida no nula con cero, sin fabricar masa ni Kg.
+    // None overwrites a nonzero output with zero, without fabricating mass or Kg.
     let mut zero = system(&model(3), &elements(&[100.0, 200.0]), &[]);
     zero.mass(MassKind::Consistent, &mut out).unwrap();
     assert_eq!(out.dense().values(), &[0.0; 4]);
@@ -484,7 +484,7 @@ fn singular_mechanism_is_translated_to_global_node_and_dof() {
     assert!(err.entities.iter().any(|e| matches!(e, EntityRef::Node(_))));
     let mut m = model(3);
     m.supports[0].restrained = vec![Dof::Ux];
-    // Solo se conecta 1–2; 3 queda libre sin rigidez. Índice reducido 1 → global 2.
+    // Only 1–2 is connected; 3 remains free without stiffness. Reduced index 1 → global 2.
     let mut s = system(&m, &elements(&[100.0]), &[]);
     let err = s.solve(&case(), 1.0).unwrap_err();
     assert_eq!(err.code, "ENG-E-0006");
@@ -498,7 +498,7 @@ fn singular_mechanism_is_translated_to_global_node_and_dof() {
         .any(|e| matches!(e, EntityRef::Dof(DofIndex(2)))));
 }
 
-// Backend de prueba: incumple únicamente el contrato de índice del diagnóstico.
+// Test backend: violates only the diagnostic index contract.
 struct InvalidDiagnosticBackend(Vec<EntityRef>);
 impl LinAlgBackend for InvalidDiagnosticBackend {
     fn name(&self) -> &'static str {
@@ -561,10 +561,10 @@ fn repeatability_of_assembly_and_solve() {
 
 #[test]
 fn arbitrary_location_order_and_middle_constraint_preserve_coupling() {
-    // source: analítico, sustitución directa de índices en energía cuadrática.
-    // citation: provenance/ENG-ASM-001.md, Derivaciones propias; bibliografía PENDIENTE.
-    // A en [2,0] aporta K_22=30, K_00=10, K_02=K_20=4;
-    // B en [1,2] aporta K_11=20, K_22+=6, K_12=K_21=5.
+    // source: analytical, direct substitution of indices in quadratic energy.
+    // citation: provenance/ENG-ASM-001.md, independent derivations; bibliography PENDING.
+    // A on [2,0] contributes K_22=30, K_00=10, K_02=K_20=4;
+    // B on [1,2] contributes K_11=20, K_22+=6, K_12=K_21=5.
     let mut m = model(3);
     m.supports[0].node = NodeId(2);
     let mut a = contribution(0, 1.0);

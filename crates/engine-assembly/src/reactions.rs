@@ -1,17 +1,17 @@
-//! Recuperación física de reacciones sobre los nodos, positivas en ejes globales.
+//! Physical recovery of reactions on nodes, positive in global axes.
 use crate::{assemble::multiply, finite, size, Constraints, DofMap};
 use engine_core::{Dof, EResult, NodeId, Real};
 use engine_linalg::SparseMatrix;
 
-/// Reacción sobre un GDL prescrito (apoyo o desplazamiento impuesto); signo
-/// positivo según el GDL global.
+/// Reaction on a prescribed DOF (support or imposed displacement); sign
+/// positive according to the global DOF.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Reaction {
-    /// Nodo con GDL prescrito.
+    /// Node with a prescribed DOF.
     pub node: NodeId,
-    /// Componente prescrita (restringida o con valor impuesto).
+    /// Prescribed component (constrained or with an imposed value).
     pub dof: Dof,
-    /// Fuerza en N o momento en N·m: `(Tᵀ(K u - F))_p`.
+    /// Force in N or moment in N·m: `(Tᵀ(K u - F))_p`.
     pub value: Real,
 }
 

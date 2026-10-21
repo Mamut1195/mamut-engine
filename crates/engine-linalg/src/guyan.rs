@@ -1,39 +1,39 @@
-//! ENG-LA-009: eliminación estática exacta de filas/columnas de masa nulas.
+//! ENG-LA-009: exact static elimination of zero-mass rows/columns.
 use crate::{finite, singular, size, DMat, LinAlgBackend, SymMatrix};
 use engine_core::{DofIndex, EResult, EngineError, EntityRef};
 
-/// Complemento de Schur y transformación de recuperación de Guyan.
-/// Los índices conservan el orden original; no se elimina masa pequeña no nula.
+/// Schur complement and Guyan recovery transformation.
+/// Indices preserve original order; small nonzero mass is not eliminated.
 #[derive(Clone, Debug, PartialEq)]
 pub struct GuyanReduction {
-    /// Kmm − Kms Kss⁻¹ Ksm, exactamente simétrica por construcción.
+    /// Kmm − Kms Kss⁻¹ Ksm, exactly symmetric by construction.
     pub stiffness: SymMatrix,
-    /// Mmm, sin aproximar ni diagonalizar.
+    /// Mmm, without approximation or diagonalization.
     pub mass: SymMatrix,
-    /// Índices originales de las filas con masa.
+    /// Original indices of rows with mass.
     massive: Vec<usize>,
-    /// Índices originales de las filas/columnas de masa exactamente nulas.
+    /// Original indices of exactly zero-mass rows/columns.
     massless: Vec<usize>,
-    /// R = −Kss⁻¹ Ksm; φs = R φm. Se resuelve con un único factor LDLᵀ.
+    /// R = −Kss⁻¹ Ksm; φs = R φm. Solved with a single LDLᵀ factor.
     recovery: DMat,
 }
 
 impl GuyanReduction {
-    /// Índices de GDL con masa en el orden original.
+    /// Indices of DOFs with mass in original order.
     pub fn massive(&self) -> &[usize] {
         &self.massive
     }
-    /// Índices de GDL sin masa en el orden original.
+    /// Indices of massless DOFs in original order.
     pub fn massless(&self) -> &[usize] {
         &self.massless
     }
-    /// Transformación R = −Kss⁻¹ Ksm.
+    /// Transformation R = −Kss⁻¹ Ksm.
     pub fn recovery(&self) -> &DMat {
         &self.recovery
     }
 
-    /// Recupera columnas modales en el espacio original, sin cambiar su norma
-    /// de masa (φᵀMφ = φmᵀMmmφm). ENG-E-0010 por forma incompatible.
+    /// Recovers modal columns in the original space, without changing their mass
+    /// norm (φᵀMφ = φmᵀMmmφm). ENG-E-0010 for incompatible shape.
     pub fn recover(&self, modes: &DMat) -> EResult<DMat> {
         size(modes.rows(), self.massive.len())?;
         let count = modes.cols();
@@ -58,14 +58,14 @@ impl GuyanReduction {
     }
 }
 
-/// Particiona después de apoyos/MPC y condensa únicamente masa idénticamente
-/// nula. `None` conserva el camino original del llamador sin copiar matrices.
+/// Partitions after supports/MPC and condenses only identically zero
+/// mass. `None` preserves the caller's original path without copying matrices.
 ///
-/// Factoriza Kss una vez con el backend propio; exige inercia (s,0,0).
-/// ENG-E-0014: Kss singular/no positiva, con GDL del bloque sin masa;
-/// ENG-E-0006: diagonal de masa negativa o ausencia de GDL con masa;
-/// ENG-E-0010: órdenes incompatibles; ENG-E-0008: resultado no finito;
-/// ENG-E-0013: backend sin inercia. No regulariza K ni M. Memoria O(n²).
+/// Factorizes Kss once with the internal backend; requires inertia (s,0,0).
+/// ENG-E-0014: singular/nonpositive Kss, with DOFs of the massless block;
+/// ENG-E-0006: negative mass diagonal or absence of DOFs with mass;
+/// ENG-E-0010: incompatible orders; ENG-E-0008: nonfinite result;
+/// ENG-E-0013: backend without inertia. Does not regularize K or M. Memory O(n²).
 pub fn guyan_condense<B: LinAlgBackend + ?Sized>(
     backend: &mut B,
     k: &SymMatrix,

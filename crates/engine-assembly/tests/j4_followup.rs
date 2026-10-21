@@ -1,4 +1,4 @@
-//! Seguimiento de la revisión clean-room de J4 sobre ENG-ASM-001.
+//! Follow-up to J4's clean-room review of ENG-ASM-001.
 use engine_assembly::{
     assemble::{assemble_matrix, assemble_matrix_with_tolerance, EXACT_SYMMETRY},
     ElementContribution, LinearSystem,
@@ -45,7 +45,7 @@ fn geometric_rejects_states_other_than_reference() {
     e.geometric = Some(DMat::new(2, 2, vec![3.0, -3.0, -3.0, 3.0]).unwrap());
     let mut s = LinearSystem::from_model(ReferenceBackend, &model(), &[e], &[]).unwrap();
     let mut out = SymMatrix::zeros(1).unwrap();
-    // Referencia por defecto: u = 0, sin llamar a set_geometric_reference.
+    // Default reference: u = 0, without calling set_geometric_reference.
     s.geometric(&[0.0], &mut out).unwrap();
     assert_eq!(out.dense().values(), &[3.0]);
     out = SymMatrix::zeros(1).unwrap();
@@ -141,12 +141,12 @@ fn symmetry_tolerance_is_explicit_and_relative() {
 
 #[test]
 fn symmetry_check_and_mean_do_not_overflow() {
-    // J4 (#23): assemble.rs:113/124. Valores finitos cuya suma o diferencia
-    // desborda f64 no deben cambiar el veredicto ni producir ∞.
+    // J4 (#23): assemble.rs:113/124. Finite values whose sum or difference
+    // overflows f64 must not change the verdict or produce ∞.
     let loc = [DofIndex(0), DofIndex(1)];
     let big = 1.7e308;
     let same = DMat::new(2, 2, vec![1.0, big, big, 1.0]).unwrap();
-    // a == b: la media (a+b)/2 desbordaba a ∞ con tolerancia > 0.
+    // a == b: the mean (a+b)/2 overflowed to ∞ with tolerance > 0.
     let k = assemble_matrix_with_tolerance(&mut ReferenceBackend, 2, &[(&loc, &same)], 1e-6)
         .unwrap()
         .to_dense()
@@ -154,16 +154,16 @@ fn symmetry_check_and_mean_do_not_overflow() {
     assert_eq!(k.get(0, 1), Some(big));
     assert_eq!(k.get(1, 0), Some(big));
     let opposite = DMat::new(2, 2, vec![1.0, big, -big, 1.0]).unwrap();
-    // |a−b| = 2·big desborda: nunca se acepta por ∞ ≤ ∞, y con tolerancias
-    // insuficientes se rechaza.
+    // |a−b| = 2·big overflows: never accepted through ∞ ≤ ∞, and rejected with
+    // insufficient tolerances.
     for tol in [0.0, 1e-6, 1.0, 1.9] {
         code(
             assemble_matrix_with_tolerance(&mut ReferenceBackend, 2, &[(&loc, &opposite)], tol),
             "ENG-E-0010",
         );
     }
-    // Con tol = 2 (|a−b| = 2·máx) es matemáticamente simétrico dentro de la
-    // tolerancia: se acepta y la media es 0.
+    // With tol = 2 (|a−b| = 2·máx) it is mathematically symmetric within the
+    // tolerance: accepted, and the mean is 0.
     let k = assemble_matrix_with_tolerance(&mut ReferenceBackend, 2, &[(&loc, &opposite)], 2.0)
         .unwrap()
         .to_dense()
@@ -174,7 +174,7 @@ fn symmetry_check_and_mean_do_not_overflow() {
 
 #[test]
 fn zero_reference_geometric_still_rejects_other_states() {
-    // T1 (J4): Kg(ref)=0 con aportes geométricos no debe devolver Kg=0 para u≠ref.
+    // T1 (J4): Kg(ref)=0 with geometric contributions must not return Kg=0 for u≠ref.
     let mut e = element(10.0);
     e.geometric = Some(DMat::new(2, 2, vec![0.0; 4]).unwrap());
     let mut s = LinearSystem::from_model(ReferenceBackend, &model(), &[e], &[]).unwrap();
@@ -189,8 +189,8 @@ fn zero_reference_geometric_still_rejects_other_states() {
 
 #[test]
 fn subnormal_asymmetry_and_means_are_exact() {
-    // J4 (#35): 5e-324 frente a 0 no puede aceptarse con tol=0; dos 5e-324
-    // iguales no pierden su valor con tol>0.
+    // J4 (#35): 5e-324 versus 0 cannot be accepted with tol=0; two equal 5e-324
+    // values do not lose their value with tol>0.
     let loc = [DofIndex(0), DofIndex(1)];
     let tiny = 5e-324;
     let skew = DMat::new(2, 2, vec![1.0, tiny, 0.0, 1.0]).unwrap();
@@ -207,7 +207,7 @@ fn subnormal_asymmetry_and_means_are_exact() {
         assert_eq!(k.get(0, 1), Some(tiny), "tol {tol}");
         assert_eq!(k.get(1, 0), Some(tiny), "tol {tol}");
     }
-    // Con tolerancia suficiente la media de valores distintos es la exacta.
+    // With sufficient tolerance the mean of different values is exact.
     let k = assemble_matrix_with_tolerance(&mut ReferenceBackend, 2, &[(&loc, &skew)], 1e-6)
         .unwrap()
         .to_dense()

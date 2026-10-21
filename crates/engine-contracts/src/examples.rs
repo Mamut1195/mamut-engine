@@ -1,9 +1,9 @@
-//! Plantillas comentadas de los ocho traits; no son métodos productivos validados.
+//! Annotated templates for the eight traits; these are not validated production methods.
 //!
 //! Derivación propia: `σ=Eε`, `[N,Mz]=[EAε0,EIκz]`, barra k=EA/L y
 //! F=k b(bᵀu), b=[-nx,-ny,0,nx,ny,0]. Véase provenance/ENG-CORE-007.md.
-//! Cada instrucción comenta su función; el álgebra cerrada de estos ejemplos
-//! no constituye un backend ni un solver.
+//! Each statement comments on its function; the closed-form algebra of these examples
+//! does not constitute a backend or solver.
 //!
 //! ```
 //! use engine_contracts::*;
@@ -14,106 +14,106 @@
 //! assert!((r.resultants[1] - 0.6).abs() < 1e-12);
 //! # Ok::<(), EngineError>(())
 //! ```
-use crate::*; // Reutiliza tipos de contrato y núcleo.
+use crate::*; // Reuses contract and core types.
 use engine_core::math;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Mutex,
-}; // Control observable sin runtime externo.
+}; // Observable control without an external runtime.
 
 fn positive(value: Real) -> EResult<Real> {
-    finite(&[value])?; // Rechaza NaN e infinitos antes de comparar.
+    finite(&[value])?; // Rejects NaN and infinities before comparing.
     if value <= 0.0 {
         return Err(invalid("Se requiere un parámetro positivo."));
-    } // Exige rigidez física.
-    Ok(value) // Conserva la magnitud SI validada.
+    } // Requires physical stiffness.
+    Ok(value) // Preserves the validated SI magnitude.
 }
 fn vector(values: &[Real], len: usize) -> EResult<()> {
-    size(values.len(), len)?; // Verifica longitud exacta del contrato.
-    finite(values) // Verifica todas las componentes.
+    size(values.len(), len)?; // Checks exact contract length.
+    finite(values) // Checks all components.
 }
 
-/// Material lineal sin historia, σ=Eε, rango de deformación finita cuyo producto
-/// sea finito; E positivo en Pa. No representa plasticidad ni precarga.
+/// Linear material without history, σ=Eε, finite strain range whose product
+/// is finite; positive E in Pa. Does not represent plasticity or preload.
 pub struct LinearElastic {
     modulus: Real,
 }
 impl LinearElastic {
-    /// Valida E > 0 Pa; ENG-E-0010 por rango y ENG-E-0008 por no finito.
+    /// Validates E > 0 Pa; ENG-E-0010 for range and ENG-E-0008 for nonfinite values.
     pub fn new(modulus: Real) -> EResult<Self> {
         Ok(Self {
             modulus: positive(modulus)?,
-        }) // Guarda solo E validado.
+        }) // Stores only validated E.
     }
 }
 impl UniaxialLaw for LinearElastic {
     fn kind(&self) -> &'static str {
         "example.linear_elastic"
-    } // Nombre propio de plantilla.
+    } // Custom template name.
     fn state_len(&self) -> usize {
         0
-    } // La elasticidad no tiene memoria.
+    } // Elasticity has no memory.
     fn initial_state(&self) -> Vec<Real> {
         vec![]
-    } // Historia vacía del origen.
+    } // Empty history at the origin.
     fn initial_tangent(&self) -> Real {
         self.modulus
-    } // dσ/dε=E constante.
+    } // Constant dσ/dε=E.
     fn respond(&self, strain: Real, committed: &[Real]) -> EResult<UniaxialResponse> {
-        vector(committed, 0)?; // Impide historia incompatible.
-        finite(&[strain])?; // Valida deformación total.
-        let stress = self.modulus * strain; // Aplica la solución cerrada de Hooke.
-        finite(&[stress])?; // Informa desbordamiento como error.
+        vector(committed, 0)?; // Prevents incompatible history.
+        finite(&[strain])?; // Validates total strain.
+        let stress = self.modulus * strain; // Applies Hooke's closed-form solution.
+        finite(&[stress])?; // Reports overflow as an error.
         Ok(UniaxialResponse {
             stress,
             tangent: self.modulus,
             trial_state: vec![],
-        }) // No acepta estado.
+        }) // Does not commit state.
     }
 }
 
-/// Sección elástica D2: N=EA ε0 y Mz=EI κz, sin acoplamiento ni historia.
-/// Rigideces positivas EA en N, EI en N·m²; rango de productos finitos.
+/// Elastic D2 section: N=EA ε0 and Mz=EI κz, without coupling or history.
+/// Positive stiffnesses EA in N, EI in N·m²; finite product range.
 pub struct ElasticSection2D {
     axial: Real,
     bending: Real,
 }
 impl ElasticSection2D {
-    /// Valida EA y EI positivos; errores de rango/no finitos como LinearElastic.
+    /// Validates positive EA and EI; range/nonfinite errors as in LinearElastic.
     pub fn new(axial: Real, bending: Real) -> EResult<Self> {
         Ok(Self {
             axial: positive(axial)?,
             bending: positive(bending)?,
-        }) // Almacena las dos rigideces SI.
+        }) // Stores both SI stiffnesses.
     }
 }
 impl SectionLaw for ElasticSection2D {
     fn kind(&self) -> &'static str {
         "example.elastic_section2d"
-    } // Nombre de la sección de muestra.
+    } // Sample section name.
     fn contract(&self) -> ContractId {
         ContractId::new("section", 1, 0)
-    } // Declara compatibilidad v1.
+    } // Declares v1 compatibility.
     fn dim(&self) -> Dim {
         Dim::D2
-    } // Dos deformaciones generalizadas.
+    } // Two generalized strains.
     fn state_len(&self) -> usize {
         0
-    } // Sin memoria material.
+    } // No material memory.
     fn initial_state(&self) -> Vec<Real> {
         vec![]
-    } // Origen sin historia.
+    } // Origin without history.
     fn respond(&self, e: &[Real], committed: &[Real]) -> EResult<SectionResponse> {
-        vector(e, 2)?; // Espera ε0 y κz.
-        vector(committed, 0)?; // Rechaza historia sobrante.
-        let resultants = vec![self.axial * e[0], self.bending * e[1]]; // Calcula N y Mz.
-        finite(&resultants)?; // Evita publicar desbordamientos.
-        let tangent = DMat::new(2, 2, vec![self.axial, 0.0, 0.0, self.bending])?; // Derivada diagonal consistente.
+        vector(e, 2)?; // Expects ε0 and κz.
+        vector(committed, 0)?; // Rejects excess history.
+        let resultants = vec![self.axial * e[0], self.bending * e[1]]; // Computes N and Mz.
+        finite(&resultants)?; // Avoids publishing overflows.
+        let tangent = DMat::new(2, 2, vec![self.axial, 0.0, 0.0, self.bending])?; // Consistent diagonal derivative.
         Ok(SectionResponse {
             resultants,
             tangent,
             trial_state: vec![],
-        }) // Devuelve prueba pura.
+        }) // Returns a pure trial.
     }
 }
 
@@ -346,112 +346,112 @@ impl ElementFactory for BarFactory {
     }
 }
 
-/// Sistema mock de un único GDL Ux del nodo 1: F=k u, masa=1 kg, Kg=0.
-/// Caso admitido "example.case", fuerza unitaria; aceptado observable en m.
+/// Mock system with a single Ux DOF at node 1: F=k u, mass=1 kg, Kg=0.
+/// Supported case "example.case", unit force; observable committed state in m.
 pub struct SpringSystem {
     stiffness: Real,
     accepted: Real,
     pattern: SparsityPattern,
 }
 impl SpringSystem {
-    /// Construye con k positivo N/m; errores de rango/no finitos.
+    /// Constructs with positive k in N/m; range/nonfinite errors.
     pub fn new(stiffness: Real) -> EResult<Self> {
         Ok(Self {
             stiffness: positive(stiffness)?,
             accepted: 0.0,
             pattern: SparsityPattern::new(1, vec![true])?,
-        }) // Crea ecuación escalar sin resolverla.
+        }) // Creates a scalar equation without solving it.
     }
-    /// Último desplazamiento aceptado m, para observar el mock.
+    /// Last committed displacement in m, for observing the mock.
     pub fn accepted(&self) -> Real {
         self.accepted
-    } // Expone aceptación explícita.
+    } // Exposes explicit acceptance.
 }
 impl SystemView for SpringSystem {
     fn n_free_dofs(&self) -> usize {
         1
-    } // Una ecuación libre.
+    } // One free equation.
     fn pattern(&self) -> &SparsityPattern {
         &self.pattern
-    } // Presta patrón fijo.
+    } // Borrows a fixed pattern.
     fn tangent(&mut self, u: &[Real], out: &mut SymMatrix) -> EResult<()> {
-        vector(u, 1)?; // Valida estado total.
-        size(out.order(), 1)?; // Evita sustituir tamaño incompatible.
-        *out = SymMatrix::new(DMat::new(1, 1, vec![self.stiffness])?)?; // Sobrescribe con k.
-        Ok(()) // Sin aceptación implícita.
+        vector(u, 1)?; // Validates total state.
+        size(out.order(), 1)?; // Avoids replacing an incompatible size.
+        *out = SymMatrix::new(DMat::new(1, 1, vec![self.stiffness])?)?; // Overwrites with k.
+        Ok(()) // No implicit acceptance.
     }
     fn internal_force(&mut self, u: &[Real], out: &mut [Real]) -> EResult<()> {
-        vector(u, 1)?; // Valida entrada.
-        size(out.len(), 1)?; // Valida salida antes de escribir.
-        let f = self.stiffness * u[0]; // Fuerza de resorte analítica.
-        finite(&[f])?; // Impide escritura parcial por desbordamiento.
-        out[0] = f; // Sobrescribe la única fuerza.
-        Ok(()) // Estado aceptado intacto.
+        vector(u, 1)?; // Validates input.
+        size(out.len(), 1)?; // Validates output before writing.
+        let f = self.stiffness * u[0]; // Analytical spring force.
+        finite(&[f])?; // Prevents partial writes on overflow.
+        out[0] = f; // Overwrites the single force.
+        Ok(()) // Committed state intact.
     }
     fn mass(&mut self, _: MassKind, out: &mut SymMatrix) -> EResult<()> {
-        size(out.order(), 1)?; // Valida orden.
-        *out = SymMatrix::new(DMat::new(1, 1, vec![1.0])?)?; // Masa unitaria kg.
-        Ok(()) // Misma masa en ambas distribuciones.
+        size(out.order(), 1)?; // Validates order.
+        *out = SymMatrix::new(DMat::new(1, 1, vec![1.0])?)?; // Unit mass in kg.
+        Ok(()) // Same mass in both distributions.
     }
     fn geometric(&mut self, u: &[Real], out: &mut SymMatrix) -> EResult<()> {
-        vector(u, 1)?; // Valida desplazamiento.
-        size(out.order(), 1)?; // Valida orden.
-        *out = SymMatrix::zeros(1)?; // Rigidez geométrica nula.
-        Ok(()) // No ofrece segundo orden.
+        vector(u, 1)?; // Validates displacement.
+        size(out.order(), 1)?; // Validates order.
+        *out = SymMatrix::zeros(1)?; // Zero geometric stiffness.
+        Ok(()) // Does not offer second order.
     }
     fn external_force(&self, case: &CaseRef, factor: Real, out: &mut [Real]) -> EResult<()> {
-        size(out.len(), 1)?; // Verifica salida.
-        finite(&[factor])?; // Verifica factor adimensional.
+        size(out.len(), 1)?; // Checks output.
+        finite(&[factor])?; // Checks dimensionless factor.
         if case.0 != "example.case" {
             return Err(EngineError::new("ENG-E-0003", "Caso ausente."));
-        } // Rechaza caso desconocido.
-        out[0] = factor; // Fuerza base 1 N por factor.
-        Ok(()) // Sin efecto sobre historia.
+        } // Rejects unknown case.
+        out[0] = factor; // Base force of 1 N times factor.
+        Ok(()) // No effect on history.
     }
     fn accept(&mut self, u: &[Real]) -> EResult<()> {
-        let mut force = [0.0]; // Prepara reevaluación atómica.
-        self.internal_force(u, &mut force)?; // Valida exactamente u y su respuesta.
-        self.accepted = u[0]; // Acepta solo después del éxito.
-        Ok(()) // Nuevo punto aceptado explícito.
+        let mut force = [0.0]; // Prepares atomic reevaluation.
+        self.internal_force(u, &mut force)?; // Validates exactly u and its response.
+        self.accepted = u[0]; // Commits only after success.
+        Ok(()) // New explicitly committed point.
     }
-    fn rollback(&mut self) {} // No guarda pruebas: conservar accepted basta.
+    fn rollback(&mut self) {} // Does not store trials: preserving accepted suffices.
     fn dof_label(&self, d: DofIndex) -> (NodeId, Dof) {
-        assert_eq!(d.0, 0, "Índice fuera del sistema de ejemplo"); // Aplica precondición documentada.
-        (NodeId(1), Dof::Ux) // Traduce ecuación a nodo/componente.
+        assert_eq!(d.0, 0, "Índice fuera del sistema de ejemplo"); // Applies documented precondition.
+        (NodeId(1), Dof::Ux) // Maps equation to node/component.
     }
 }
 
-/// Destino mock en memoria, conserva escrituras repetidas en orden de llegada.
+/// In-memory mock sink, preserves repeated writes in arrival order.
 #[derive(Default)]
 pub struct MemorySink {
-    /// Entradas emitidas, sin deduplicación ni serialización.
+    /// Emitted entries, without deduplication or serialization.
     pub entries: Vec<(ResultKey, ResultValue)>,
 }
 impl ResultSink for MemorySink {
     fn put(&mut self, key: ResultKey, value: ResultValue) -> EResult<()> {
-        conformance::validate_result(&key, &value)?; // Valida toda la entrada antes de mutar.
-        self.entries.push((key, value)); // Escritura atómica en memoria y ordenada.
-        Ok(()) // Confirma recepción.
+        conformance::validate_result(&key, &value)?; // Validates the entire input before mutating.
+        self.entries.push((key, value)); // Atomic and ordered in-memory write.
+        Ok(()) // Confirms receipt.
     }
 }
 
-/// Control mock observable: cancelación atómica y progreso protegido por mutex.
+/// Observable mock control: atomic cancellation and mutex-protected progress.
 #[derive(Default)]
 pub struct RecordingControl {
     cancelled: AtomicBool,
     events: Mutex<Vec<(Real, String)>>,
 }
 impl RecordingControl {
-    /// Solicita cancelación cooperativa de forma persistente.
+    /// Persistently requests cooperative cancellation.
     pub fn cancel(&self) {
         self.cancelled.store(true, Ordering::Relaxed);
-    } // Solo escribe señal.
-    /// Copia eventos de progreso; recupera contenido si un observador envenenó mutex.
+    } // Only writes the signal.
+    /// Copies progress events; recovers contents if an observer poisoned the mutex.
     pub fn events(&self) -> Vec<(Real, String)> {
         self.events
             .lock()
             .unwrap_or_else(|e| e.into_inner())
-            .clone() // Lee sin alterar cálculo.
+            .clone() // Reads without altering computation.
     }
 }
 impl RunControl for RecordingControl {
@@ -459,33 +459,33 @@ impl RunControl for RecordingControl {
         self.events
             .lock()
             .unwrap_or_else(|e| e.into_inner())
-            .push((fraction, note.into())); // Guarda evento válido enviado por método.
+            .push((fraction, note.into())); // Stores a valid event sent by the method.
     }
     fn cancelled(&self) -> bool {
         self.cancelled.load(Ordering::Relaxed)
-    } // Observa solicitud sin consumirla.
+    } // Observes request without consuming it.
 }
 
-/// Mock de aceptación de desplazamientos prescritos; NO resuelve equilibrio.
-/// Ajustes: array SI de n_free_dofs desplazamientos/giros. Un paso sin iteraciones;
-/// normas cero indican que no se ejecutó corrección iterativa. Tolerancias 1e-8.
+/// Mock for committing prescribed displacements; does NOT solve equilibrium.
+/// Settings: SI array of n_free_dofs displacements/rotations. One step without iterations;
+/// zero norms indicate no iterative correction was performed. Tolerances 1e-8.
 pub struct PrescribedStep;
 impl AnalysisMethod for PrescribedStep {
     fn id(&self) -> &'static str {
         "example.prescribed_step"
-    } // Identificador de plantilla.
+    } // Template identifier.
     fn version(&self) -> (u16, u16, u16) {
         (1, 0, 0)
-    } // Semver explícita.
+    } // Explicit semver.
     fn contract(&self) -> ContractId {
         ContractId::new("analysis", 1, 0)
-    } // Contrato v1.
+    } // V1 contract.
     fn settings_schema(&self) -> String {
         r#"{"type":"array","items":{"type":"number"}}"#.into()
-    } // Longitud depende del sistema.
+    } // Length depends on the system.
     fn requires(&self) -> Requirements {
         Requirements::default()
-    } // No requiere masa ni Kg.
+    } // Requires neither mass nor Kg.
     fn run(
         &self,
         sys: &mut dyn SystemView,
@@ -497,27 +497,27 @@ impl AnalysisMethod for PrescribedStep {
             |sys: &mut dyn SystemView, sink: &mut dyn ResultSink| -> EResult<AnalysisOutcome> {
                 if ctl.cancelled() {
                     return Ok(cancelled());
-                } // Atiende cancelación antes de evaluar.
+                } // Handles cancellation before evaluating.
                 let JsonValue::Array(values) = settings else {
                     return Err(invalid("Se esperaba array de desplazamientos."));
-                }; // Valida tipo.
+                }; // Validates type.
                 let u: EResult<Vec<_>> = values
                     .iter()
                     .map(|v| match v {
                         JsonValue::Number(x) => Ok(*x),
                         _ => Err(invalid("Desplazamiento no numérico.")),
                     })
-                    .collect(); // Extrae números SI.
-                let u = u?; // Propaga campos inválidos.
-                vector(&u, sys.n_free_dofs())?; // Verifica longitud y finitud.
-                ctl.progress(0.0, "Evaluando desplazamientos prescritos"); // Progreso inicial.
-                let mut force = vec![0.0; u.len()]; // Prepara salida de fuerza.
-                sys.internal_force(&u, &mut force)?; // Evalúa una prueba sin aceptarla.
-                finite(&force)?; // Rechaza salida defectuosa del sistema.
+                    .collect(); // Extracts SI numbers.
+                let u = u?; // Propagates invalid fields.
+                vector(&u, sys.n_free_dofs())?; // Checks length and finiteness.
+                ctl.progress(0.0, "Evaluando desplazamientos prescritos"); // Initial progress.
+                let mut force = vec![0.0; u.len()]; // Prepares force output.
+                sys.internal_force(&u, &mut force)?; // Evaluates a trial without committing it.
+                finite(&force)?; // Rejects faulty system output.
                 if ctl.cancelled() {
                     return Ok(cancelled());
-                } // Evita aceptar tras cancelación.
-                sys.accept(&u)?; // Fija exactamente el desplazamiento prescrito antes de publicarlo.
+                } // Avoids committing after cancellation.
+                sys.accept(&u)?; // Sets exactly the prescribed displacement before publishing it.
                 sink.put(
                     ResultKey {
                         block: "cases".into(),
@@ -525,7 +525,7 @@ impl AnalysisMethod for PrescribedStep {
                         field: "displacements".into(),
                     },
                     ResultValue::Vector(u.clone()),
-                )?; // Emite desplazamientos ya aceptados.
+                )?; // Emits already committed displacements.
                 let report = ConvergenceReport {
                     steps: vec![StepReport {
                         step: 1,
@@ -541,23 +541,23 @@ impl AnalysisMethod for PrescribedStep {
                             energy_rel: 1e-8,
                         },
                     }],
-                }; // Declara normas y criterios del mock.
-                ctl.progress(1.0, "Paso prescrito aceptado"); // Finaliza progreso monótono.
+                }; // Declares mock norms and criteria.
+                ctl.progress(1.0, "Paso prescrito aceptado"); // Completes monotonic progress.
                 Ok(AnalysisOutcome {
                     status: Status::Completed,
                     report,
                     diagnostics: vec![],
-                }) // Resultado terminal explícito.
+                }) // Explicit terminal result.
             };
-        let outcome = execute(sys, sink); // Ejecuta una sola estrategia declarada.
+        let outcome = execute(sys, sink); // Executes a single declared strategy.
         if outcome.as_ref().is_err()
             || outcome
                 .as_ref()
                 .is_ok_and(|o| o.status == Status::Cancelled)
         {
             sys.rollback();
-        } // Descarta pruebas al fallar o cancelar.
-        outcome // Propaga outcome o error sin reintentos.
+        } // Discards trials on failure or cancellation.
+        outcome // Propagates outcome or error without retries.
     }
 }
 fn cancelled() -> AnalysisOutcome {
@@ -565,5 +565,5 @@ fn cancelled() -> AnalysisOutcome {
         status: Status::Cancelled,
         report: ConvergenceReport::default(),
         diagnostics: vec![],
-    } // No publica un paso no aceptado.
+    } // Does not publish an uncommitted step.
 }

@@ -1,4 +1,4 @@
-//! Soluciones cerradas propias: cadena de resortes y matrices de espectro conocido.
+//! Independently derived closed-form solutions: spring chain and matrices with known spectrum.
 use engine_core::math;
 use engine_core::EResult;
 use engine_linalg::{
@@ -117,7 +117,7 @@ fn strict_sturm_at_roots_and_two_by_two_pivot() {
             expected
         );
     }
-    // Diagonales nulas obligan al bloque 2×2: λ=±2, det<0, tr=0.
+    // Zero diagonals require the 2×2 block: λ=±2, det<0, tr=0.
     let k = symmetric(2, vec![0.0, 2.0, 2.0, 0.0]);
     let m = diagonal(&[1.0, 1.0]);
     assert_eq!(ReferenceBackend.symmetric_inertia(&k).unwrap(), (1, 1, 0));
@@ -127,7 +127,7 @@ fn strict_sturm_at_roots_and_two_by_two_pivot() {
             expected
         );
     }
-    // Inercia definida negativa y positiva (signos de traza con det>0).
+    // Negative and positive definite inertia (trace signs with det>0).
     for (diag, inertia) in [(-3.0, (0, 2, 0)), (3.0, (2, 0, 0))] {
         let k = symmetric(2, vec![diag, 2.0, 2.0, diag]);
         assert_eq!(ReferenceBackend.symmetric_inertia(&k).unwrap(), inertia);
@@ -136,8 +136,8 @@ fn strict_sturm_at_roots_and_two_by_two_pivot() {
 
 #[test]
 fn mixed_block_inertia_preserves_null_modes_and_factor_contract() {
-    // Bloque 2×2 indefinido de traza no nula, un negativo y un modo nulo.
-    // Las permutaciones obligan a compartir el conteo entre pivotes 1×1/2×2.
+    // Indefinite 2×2 block with nonzero trace, one negative and one zero mode.
+    // Permutations require sharing the count between 1×1/2×2 pivots.
     let entries = [
         0.5, 2.0, 0.0, 0.0, 2.0, -0.25, 0.0, 0.0, 0.0, 0.0, -3.0, 0.0, 0.0, 0.0, 0.0, 0.0,
     ];
@@ -159,7 +159,7 @@ fn mixed_block_inertia_preserves_null_modes_and_factor_contract() {
             assert_eq!(backend.factorize(&k).err().unwrap().code, "ENG-E-0006");
         }
     }
-    // Sin el modo nulo, FactorInfo y la consulta de Sturm coinciden.
+    // Without the zero mode, FactorInfo and the Sturm query agree.
     let k = symmetric(3, vec![0.5, 2.0, 0.0, 2.0, -0.25, 0.0, 0.0, 0.0, -3.0]);
     let factor = ReferenceBackend.factorize(&k).unwrap();
     assert_eq!(factor.info().inertia, Some((1, 2, 0)));
@@ -195,7 +195,7 @@ fn rigid_modes_are_returned_and_negative_stiffness_is_diagnosed() {
         .unwrap_err();
     assert_eq!(error.code, "ENG-E-0010");
     assert!(error.message.contains("negativo"));
-    // Una inercia singular se puede consultar, pero no resolver como factor.
+    // Singular inertia can be queried, but not solved as a factor.
     assert_eq!(ReferenceBackend.symmetric_inertia(&k).unwrap(), (1, 0, 1));
     assert_eq!(
         ReferenceBackend.factorize(&k).err().unwrap().code,
@@ -239,8 +239,8 @@ fn mass_scaling_preserves_shapes_and_scales_eigenvalues() {
     }
 }
 
-// El método por defecto sigue siendo compatible con un backend que solo
-// implementa los métodos originales. Se simula omisión y tamaño incompleto.
+// The default method remains compatible with a backend that only
+// implements the original methods. Omission and incomplete size are simulated.
 struct FaultyBackend {
     truncate: bool,
 }

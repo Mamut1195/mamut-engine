@@ -1,11 +1,11 @@
-//! Unidades explícitas y conversiones en la frontera de entrada y salida.
+//! Explicit units and conversions at the input and output boundary.
 //!
-//! El cálculo interno utiliza SI: metros, newtons, newtons metro, pascales y
-//! radianes. Las unidades se convierten al recibir datos o presentar resultados;
-//! no deben acompañar ni alterar las operaciones internas del motor.
+//! Internal computation uses SI: meters, newtons, newton meters, pascals, and
+//! radians. Units are converted when receiving data or presenting results;
+//! they must not accompany or alter the engine's internal operations.
 //!
-//! [`convert`] valida magnitudes y valores. [`to_si`] y [`from_si`] son las
-//! operaciones aritméticas para fronteras cuyos valores ya fueron validados.
+//! [`convert`] validates quantities and values. [`to_si`] and [`from_si`] are the
+//! arithmetic operations for boundaries whose values have already been validated.
 //!
 //! ```
 //! use engine_core::units::{convert, Unit};
@@ -20,7 +20,7 @@ use std::collections::BTreeMap;
 
 use crate::{EResult, EngineError, Real};
 
-// Factores decimales explícitos, sin cálculos de potencias en ejecución.
+// Explicit decimal factors, without runtime power calculations.
 const CENTI: Real = 1e-2;
 const MILLI: Real = 1e-3;
 const KILO: Real = 1e3;
@@ -28,50 +28,50 @@ const MEGA: Real = 1e6;
 const GIGA: Real = 1e9;
 const DEGREE_TO_RADIAN: Real = std::f64::consts::PI / 180.0;
 
-/// Magnitud física de una unidad; presión y tensión comparten dimensión.
+/// Physical quantity of a unit; pressure and stress share a dimension.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Quantity {
-    /// Longitud.
+    /// Length.
     Length,
-    /// Fuerza.
+    /// Force.
     Force,
-    /// Momento de una fuerza.
+    /// Moment of a force.
     Moment,
-    /// Presión o tensión mecánica.
+    /// Pressure or mechanical stress.
     Pressure,
-    /// Ángulo, distinguido de las magnitudes adimensionales.
+    /// Angle, distinguished from dimensionless quantities.
     Angle,
-    /// Magnitud sin dimensión física.
+    /// Quantity without a physical dimension.
     Dimensionless,
 }
 
-/// Nombre alternativo para la magnitud física de una unidad.
+/// Alternative name for the physical quantity of a unit.
 pub type UnitKind = Quantity;
 
-/// Lista cerrada de unidades admitidas en las fronteras del motor.
+/// Closed list of units accepted at the engine boundaries.
 ///
-/// No existe una unidad implícita ni una variante para texto desconocido.
+/// There is no implicit unit or variant for unknown text.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Unit {
-    /// Metro (m), unidad SI de longitud.
+    /// Meter (m), SI unit of length.
     Meter,
-    /// Centímetro (cm).
+    /// Centimeter (cm).
     Centimeter,
-    /// Milímetro (mm).
+    /// Millimeter (mm).
     Millimeter,
-    /// Newton (N), unidad SI de fuerza.
+    /// Newton (N), SI unit of force.
     Newton,
     /// Kilonewton (kN).
     Kilonewton,
     /// Meganewton (MN).
     Meganewton,
-    /// Newton metro (N·m), unidad SI de momento.
+    /// Newton meter (N·m), SI unit of moment.
     NewtonMeter,
-    /// Kilonewton metro (kN·m).
+    /// Kilonewton meter (kN·m).
     KilonewtonMeter,
-    /// Meganewton metro (MN·m).
+    /// Meganewton meter (MN·m).
     MeganewtonMeter,
-    /// Pascal (Pa), unidad SI de presión y tensión.
+    /// Pascal (Pa), SI unit of pressure and stress.
     Pascal,
     /// Kilopascal (kPa).
     Kilopascal,
@@ -79,25 +79,25 @@ pub enum Unit {
     Megapascal,
     /// Gigapascal (GPa).
     Gigapascal,
-    /// Radián (rad), unidad SI de ángulo.
+    /// Radian (rad), SI unit of angle.
     Radian,
-    /// Grado (deg).
+    /// Degree (deg).
     Degree,
-    /// Unidad adimensional, representada explícitamente por «1».
+    /// Dimensionless unit, explicitly represented by "1".
     Dimensionless,
 }
 
 impl Unit {
-    /// Reconoce un símbolo exacto, distinguiendo mayúsculas y minúsculas.
+    /// Recognizes an exact symbol, with case sensitivity.
     ///
-    /// Admite los símbolos de [`Self::symbol`] y los alias ASCII `N.m`, `N*m`,
-    /// `Nm`, `kN.m`, `kN*m`, `kNm`, `MN*m` y `MNm`. No elimina espacios ni
-    /// acepta texto vacío.
+    /// Accepts the symbols from [`Self::symbol`] and the ASCII aliases `N.m`, `N*m`,
+    /// `Nm`, `kN.m`, `kN*m`, `kNm`, `MN*m`, and `MNm`. Does not trim spaces or
+    /// accept empty text.
     ///
-    /// # Errores
+    /// # Errors
     ///
-    /// Devuelve `ENG-E-0001` si el texto no está reconocido. El mensaje incluye
-    /// la cadena recibida, incluso si está vacía.
+    /// Returns `ENG-E-0001` if the text is not recognized. The message includes
+    /// the received string, even if it is empty.
     ///
     /// ```
     /// use engine_core::units::Unit;
@@ -133,7 +133,7 @@ impl Unit {
         }
     }
 
-    /// Devuelve el símbolo canónico; la unidad adimensional utiliza «1».
+    /// Returns the canonical symbol; the dimensionless unit uses "1".
     pub const fn symbol(self) -> &'static str {
         match self {
             Self::Meter => "m",
@@ -155,7 +155,7 @@ impl Unit {
         }
     }
 
-    /// Devuelve la magnitud física para comprobar compatibilidad dimensional.
+    /// Returns the physical quantity to check dimensional compatibility.
     pub const fn kind(self) -> Quantity {
         match self {
             Self::Meter | Self::Centimeter | Self::Millimeter => Quantity::Length,
@@ -169,7 +169,7 @@ impl Unit {
         }
     }
 
-    /// Devuelve la unidad SI elegida por el motor para esta magnitud.
+    /// Returns the SI unit chosen by the engine for this quantity.
     pub const fn si_unit(self) -> Self {
         match self.kind() {
             Quantity::Length => Self::Meter,
@@ -194,12 +194,12 @@ impl Unit {
     }
 }
 
-/// Multiplica un valor en la unidad indicada por su factor SI.
+/// Multiplies a value in the specified unit by its SI factor.
 ///
-/// Operación aritmética de frontera: el llamador debe validar que el valor y el
-/// resultado sean finitos. La firma devuelve un número y conserva la aritmética
-/// IEEE 754; para rechazar NaN, infinitos y desbordamientos mediante un error
-/// `ENG-E-0008`, utilice [`convert`] con destino [`Unit::si_unit`].
+/// Boundary arithmetic operation: the caller must validate that the value and
+/// result are finite. The signature returns a number and preserves IEEE 754
+/// arithmetic; to reject NaN, infinities, and overflows with an
+/// `ENG-E-0008` error, use [`convert`] with [`Unit::si_unit`] as the target.
 ///
 /// ```
 /// use engine_core::units::{to_si, Unit};
@@ -209,11 +209,11 @@ pub fn to_si(value: Real, unit: Unit) -> Real {
     value * unit.si_factor()
 }
 
-/// Divide un valor SI por el factor de la unidad de salida.
+/// Divides an SI value by the output unit factor.
 ///
-/// El llamador debe validar que el valor y el resultado sean finitos. Para una
-/// frontera validada que devuelva `ENG-E-0008` por NaN, infinito o desbordamiento,
-/// utilice [`convert`] con origen [`Unit::si_unit`].
+/// The caller must validate that the value and result are finite. For a
+/// validated boundary returning `ENG-E-0008` for NaN, infinity, or overflow,
+/// use [`convert`] with [`Unit::si_unit`] as the source.
 ///
 /// ```
 /// use engine_core::units::{from_si, Unit};
@@ -223,17 +223,17 @@ pub fn from_si(value: Real, unit: Unit) -> Real {
     value / unit.si_factor()
 }
 
-/// Convierte entre unidades de la misma magnitud en una frontera validada.
+/// Converts between units of the same quantity at a validated boundary.
 ///
-/// Usa el cociente de factores para evitar un desbordamiento SI intermedio.
-/// Una conversión a la misma unidad conserva exactamente el valor recibido.
-/// Los redondeos y subdesbordamientos siguen la aritmética de `f64`.
+/// Uses the ratio of factors to avoid intermediate SI overflow.
+/// A conversion to the same unit preserves the received value exactly.
+/// Rounding and underflow follow `f64` arithmetic.
 ///
-/// # Errores
+/// # Errors
 ///
-/// Devuelve `ENG-E-0008` por una entrada NaN o infinita, o si el resultado
-/// desborda. Devuelve `ENG-E-0010` si las dimensiones físicas son incompatibles;
-/// ángulos y magnitudes adimensionales se consideran diferentes.
+/// Returns `ENG-E-0008` for a NaN or infinite input, or if the result
+/// overflows. Returns `ENG-E-0010` if physical dimensions are incompatible;
+/// angles and dimensionless quantities are considered different.
 ///
 /// ```
 /// use engine_core::units::{convert, Unit};
@@ -273,11 +273,11 @@ pub fn convert(value: Real, from: Unit, to: Unit) -> EResult<Real> {
     Ok(result)
 }
 
-/// Declaración ordenada de unidades SI de los campos de un resultado.
+/// Ordered declaration of SI units for result fields.
 ///
-/// Cada campo se registra con su unidad SI, aunque se aporte una unidad de
-/// entrada equivalente. Esta estructura declara metadatos; no convierte los
-/// valores del resultado. El llamador debe entregar dichos valores en SI.
+/// Each field is registered with its SI unit, even if an equivalent input
+/// unit is supplied. This structure declares metadata; it does not convert
+/// result values. The caller must supply those values in SI.
 ///
 /// ```
 /// use engine_core::units::{Unit, UnitsOut};
@@ -295,26 +295,26 @@ pub struct UnitsOut {
 }
 
 impl UnitsOut {
-    /// Crea una declaración vacía de unidades de salida.
+    /// Creates an empty declaration of output units.
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Declara la unidad SI de un campo, tomando la magnitud de `unit`.
+    /// Declares a field's SI unit, taking the quantity from `unit`.
     ///
-    /// Si el campo ya existía, reemplaza su declaración y devuelve la unidad
-    /// SI anterior. Por ejemplo, aportar MPa registra Pa; el valor asociado
-    /// debe haberse convertido a Pa antes de emitir el resultado.
+    /// If the field already existed, replaces its declaration and returns the
+    /// previous SI unit. For example, supplying MPa registers Pa; the associated value
+    /// must have been converted to Pa before emitting the result.
     pub fn insert(&mut self, field: impl Into<String>, unit: Unit) -> Option<Unit> {
         self.fields.insert(field.into(), unit.si_unit())
     }
 
-    /// Consulta la unidad SI de un campo declarado.
+    /// Looks up the SI unit of a declared field.
     pub fn get(&self, field: &str) -> Option<Unit> {
         self.fields.get(field).copied()
     }
 
-    /// Devuelve las declaraciones SI ordenadas por nombre de campo.
+    /// Returns SI declarations ordered by field name.
     pub fn fields(&self) -> &BTreeMap<String, Unit> {
         &self.fields
     }

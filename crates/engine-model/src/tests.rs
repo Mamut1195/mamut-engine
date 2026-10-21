@@ -152,7 +152,7 @@ fn broken_references_report_the_owner_and_exact_target() {
     for (diagnostic, (entity, context)) in broken.iter().zip(expected) {
         check(diagnostic, "ENG-E-0003", entity, context);
     }
-    // Se acumulan también los huérfanos y no se evalúan GDL sin nodo conocido.
+    // Orphans are also accumulated, and DOFs without a known node are not evaluated.
     assert_eq!(diagnostics.len(), 10);
     assert!(!diagnostics
         .iter()
@@ -192,7 +192,7 @@ fn length_tolerance_has_an_inclusive_absolute_boundary() {
     let mut model = valid_model(Dim::D2);
     model.members[0].nodes[1] = NodeId(1);
     let diagnostics = validate(&model);
-    assert_eq!(diagnostics.len(), 2); // Nodo 2 huérfano y miembro de extremos idénticos.
+    assert_eq!(diagnostics.len(), 2); // Orphan node 2 and member with identical endpoints.
     check(&diagnostics[1], "ENG-E-0005", "miembro:10", "Miembro 10");
 }
 

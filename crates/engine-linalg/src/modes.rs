@@ -1,37 +1,37 @@
-//! Modos densos y comprobación de completitud por inercia, sin regularización.
+//! Dense modes and completeness checking by inertia, without regularization.
 use crate::{finite, invalid, size, DMat, LinAlgBackend, SymMatrix};
 use engine_core::{EResult, EngineError, Real};
 
-/// Modos inferiores de `Kφ=λMφ`, con masa definida positiva.
+/// Lowest modes of `Kφ=λMφ`, with positive definite mass.
 #[derive(Clone, Debug, PartialEq)]
 pub struct LowestModes {
-    /// Autovalores ascendentes; los numéricamente nulos se representan como cero.
+    /// Ascending eigenvalues; numerically zero values are represented as zero.
     pub eigenvalues: Vec<Real>,
-    /// Autovectores columna, `φᵢᵀMφⱼ=δᵢⱼ`, signo dominante positivo.
+    /// Column eigenvectors, `φᵢᵀMφⱼ=δᵢⱼ`, positive dominant sign.
     pub vectors: DMat,
-    /// Número de modos devueltos con rigidez numéricamente nula.
+    /// Number of returned modes with numerically zero stiffness.
     ///
-    /// Son movimientos rígidos o posibles mecanismos (ENG-E-0006 en un análisis
-    /// estático). K y M solas no permiten distinguirlos: el llamador debe revisar
-    /// apoyos, conectividad y liberaciones. Se admiten explícitamente para K
-    /// semidefinida; no se regularizan ni se ocultan eliminando columnas.
+    /// These are rigid motions or possible mechanisms (ENG-E-0006 in a static
+    /// analysis). K and M alone cannot distinguish them: the caller must review
+    /// supports, connectivity, and releases. They are explicitly allowed for
+    /// semidefinite K; they are neither regularized nor hidden by removing columns.
     pub rigid_mode_count: usize,
 }
 
-/// Cuenta autovalores estrictamente menores que `sigma` por LDLᵀ de `K−sigma M`.
+/// Counts eigenvalues strictly below `sigma` by LDLᵀ of `K−sigma M`.
 ///
-/// M se valida definida positiva mediante el Cholesky propio. Por congruencia
-/// `K−σM` tiene tantos signos negativos como `L⁻¹KL⁻ᵀ−σI`. Los pivotes escalares
-/// negativos cuentan uno; para bloques `[[d,e],[e,g]]`, `det=dg−e²<0` cuenta uno,
-/// `det>0` y `tr=d+g<0` cuenta dos; `det>0` y `tr>0` cuenta cero. Un bloque nulo
-/// cuenta cero negativos (si det=0, el único signo no nulo es el de la traza).
+/// M is validated as positive definite through the internal Cholesky. By congruence,
+/// `K−σM` has as many negative signs as `L⁻¹KL⁻ᵀ−σI`. Negative scalar pivots
+/// count one; for blocks `[[d,e],[e,g]]`, `det=dg−e²<0` counts one,
+/// `det>0` and `tr=d+g<0` counts two; `det>0` and `tr>0` counts zero. A zero block
+/// counts zero negatives (if det=0, the only nonzero sign is that of the trace).
 ///
-/// Usa [`LinAlgBackend::symmetric_inertia`]; la referencia excluye pivotes nulos
-/// según su tolerancia numérica. La igualdad estricta en el espectro se entiende
-/// con esa resolución; cerca de una raíz no se garantiza clasificación exacta
-/// en coma flotante. No se desplaza sigma para esconder singularidades.
-/// ENG-E-0010 por órdenes/masa indefinida, ENG-E-0006 por masa singular,
-/// ENG-E-0008 por sigma/resultado no finito y ENG-E-0013 si no hay inercia.
+/// Uses [`LinAlgBackend::symmetric_inertia`]; the reference excludes zero pivots
+/// according to its numerical tolerance. Strict equality in the spectrum is understood
+/// at that resolution; near a root, exact floating-point classification is not
+/// guaranteed. sigma is not shifted to hide singularities.
+/// ENG-E-0010 for orders/indefinite mass, ENG-E-0006 for singular mass,
+/// ENG-E-0008 for nonfinite sigma/result and ENG-E-0013 if inertia is unavailable.
 pub fn sturm_count<B: LinAlgBackend + ?Sized>(
     backend: &mut B,
     k: &SymMatrix,
@@ -58,9 +58,9 @@ fn count_with_valid_mass<B: LinAlgBackend + ?Sized>(
         .zip(k.dense().values())
         .zip(m.dense().values())
     {
-        // FMA explícito: un único redondeo reduce cancelación cerca de un
-        // autovalor. Se exige la semántica mul_add tanto por hardware como
-        // por software; excepción documentada en docs/DETERMINISMO.md.
+        // Explicit FMA: a single rounding reduces cancellation near an
+        // eigenvalue. mul_add semantics are required whether implemented in hardware or
+        // software; exception documented in docs/DETERMINISMO.md.
         *entry = (-sigma).mul_add(mi, ki);
     }
     finite(&shifted.values)?;
@@ -81,27 +81,27 @@ fn incomplete(message: &str) -> EngineError {
     EngineError::new("ENG-E-0007", message)
 }
 
-/// Devuelve exactamente `count` modos inferiores, normalizados a masa.
+/// Returns exactly `count` lowest modes, mass-normalized.
 ///
-/// Camino denso para modelos pequeños: calcula el espectro con
-/// [`LinAlgBackend::generalized_eigen`] (Cholesky/Jacobi en la referencia),
-/// selecciona columnas y comprueba inercia con el mismo backend. Memoria O(n²),
-/// sin solver disperso ni conexión a MemoryBudget.
+/// Dense path for small models: computes the spectrum with
+/// [`LinAlgBackend::generalized_eigen`] (Cholesky/Jacobi in the reference),
+/// selects columns, and checks inertia with the same backend. O(n²) memory,
+/// without a sparse solver or connection to MemoryBudget.
 ///
-/// El control exige `Sturm(σ)==count`, con `σ=λ_count(1+1e−7)`. Para valores
-/// nulos o muy pequeños se impone además `σ≥λ_count+16·tol_cero`, donde
-/// `tol_cero=128 ε max(n,1) max|λ|`. Si todo K es nulo, σ=1e−7.
-/// El piso evita evaluar exactamente una raíz rígida; no modifica K ni M.
+/// The check requires `Sturm(σ)==count`, with `σ=λ_count(1+1e−7)`. For zero
+/// or very small values, `σ≥λ_count+16·tol_cero` is also imposed, where
+/// `tol_cero=128 ε max(n,1) max|λ|`. If all of K is zero, σ=1e−7.
+/// The floor avoids evaluating exactly at a rigid root; it does not modify K or M.
 ///
-/// ENG-E-0007 indica modos faltantes/excedentes, espectro incompleto o un corte
-/// dentro de una multiplicidad (incluye agrupaciones dentro de la tolerancia).
-/// Se debe solicitar el grupo completo; nunca se devuelve silenciosamente menos.
-/// Valores λ<−tol_cero dan ENG-E-0010 con diagnóstico de rigidez indefinida o
-/// inestabilidad; |λ|≤tol_cero se identifican como modos de rigidez nula.
-/// No es una tolerancia física: espectros muy mal condicionados pueden requerir
-/// otro backend. Masa singular: ENG-E-0006; masa indefinida: ENG-E-0010.
-/// `count>n` u órdenes distintos: ENG-E-0010. `count=0` devuelve n×0 y no
-/// factoriza ni exige positividad de M, aunque valida órdenes compatibles.
+/// ENG-E-0007 indicates missing/excess modes, an incomplete spectrum, or a cut
+/// within a multiplicity (includes clusters within tolerance).
+/// The entire group must be requested; fewer are never returned silently.
+/// Values λ<−tol_cero yield ENG-E-0010 with a diagnostic of indefinite stiffness or
+/// instability; |λ|≤tol_cero are identified as zero-stiffness modes.
+/// This is not a physical tolerance: very ill-conditioned spectra may require
+/// another backend. Singular mass: ENG-E-0006; indefinite mass: ENG-E-0010.
+/// `count>n` or different orders: ENG-E-0010. `count=0` returns n×0 and neither
+/// factorizes nor requires positive M, although it validates compatible orders.
 pub fn lowest_modes<B: LinAlgBackend + ?Sized>(
     backend: &mut B,
     k: &SymMatrix,
@@ -155,7 +155,7 @@ pub fn lowest_modes<B: LinAlgBackend + ?Sized>(
             "MODOS FALTANTES / corte de multiplicidad: Sturm(σ={sigma})={found}, modos solicitados/devueltos={count}. Solicite el grupo completo o revise la convergencia del backend."
         )));
     }
-    // Reaplica el contrato de normalización del backend antes de seleccionar.
+    // Reapplies the backend normalization contract before selecting.
     let all = crate::reference::normalize_modes(all.eigenvalues, all.vectors, m)?;
     let mut eigenvalues = crate::alloc_vec(count, 0.0)?;
     let mut vectors = DMat::zeros(n, count)?;

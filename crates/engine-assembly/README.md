@@ -1,76 +1,76 @@
 # engine-assembly · ENG-ASM-001
 
-Ensamblador lineal de matrices elementales globales en SI. Solo depende de
-crates internos. La teoría y los fixtures analíticos están documentados en
-[la bitácora](../../provenance/ENG-ASM-001.md).
+Linear assembler of global element matrices in SI. Depends only on
+internal crates. Theory and analytical fixtures are documented in
+[the work log](../../provenance/ENG-ASM-001.md).
 
-`DofMap::new(&model.nodes)` numera nodos por id creciente y componentes por
-`Dim::dofs()`: Ux, Uy, Rz en D2 y seis componentes en D3. Admite subconjuntos
-de GDL declarados, por ejemplo Ux para una cadena axial. Los índices globales
-no cambian al eliminar apoyos; `LinearSystem::reduced_index` devuelve el índice
-reducido o `None` para un GDL prescrito o dependiente. `coordinates()` consulta
-las posiciones originales del mismo mapa de geometría usado por los diafragmas.
+`DofMap::new(&model.nodes)` numbers nodes by increasing id and components by
+`Dim::dofs()`: Ux, Uy, Rz in D2 and six components in D3. Supports subsets
+of declared DOFs, for example Ux for an axial chain. Global indices
+do not change when supports are eliminated; `LinearSystem::reduced_index` returns the
+reduced index or `None` for a prescribed or dependent DOF. `coordinates()` queries
+original positions from the same geometry map used by diaphragms.
 
-`ElementContribution` recibe `location`, K, dos clases de M opcionales, Kg
-opcional y vectores de carga por caso. Las matrices y vectores ya están en ejes
-globales y su orden sigue `location`. No se interpreta conectividad geométrica,
-no se crea ningún elemento y no se transforma ninguna matriz local. Un futuro
-adaptador puede obtener estos datos de `engine_contracts::Element`.
+`ElementContribution` takes `location`, K, two optional types of M, optional
+Kg, and load vectors per case. Matrices and vectors are already in global
+axes and their order follows `location`. Geometric connectivity is not interpreted,
+no element is created, and no local matrix is transformed. A future
+adapter may obtain these data from `engine_contracts::Element`.
 
-`LinearSystem::from_model(backend, model, elements, prescribed)` suma los aportes
-elementales y después cargas y masas nodales. Solo usa nodos, apoyos, casos y
-masas del dominio; la validación topológica completa corresponde a la capa
-anterior. No interpreta combinaciones. Cada caso debe declararse incluso si
-solo contiene fuerzas equivalentes de elementos. `None` en M/Kg aporta cero;
-las masas nodales se añaden a ambas clases de masa sin convertir una matriz
-consistente en concentrada.
+`LinearSystem::from_model(backend, model, elements, prescribed)` sums element
+contributions, then nodal loads and masses. Only uses domain nodes, supports, cases, and
+masses; complete topological validation belongs to the preceding
+layer. Does not interpret combinations. Each case must be declared even if
+it only contains equivalent element forces. `None` in M/Kg contributes zero;
+nodal masses are added to both mass types without converting a consistent
+matrix to a lumped one.
 
-Las restricciones de apoyos valen cero. Un `PrescribedDof` puede sustituir ese
-cero o restringir otro GDL; no admite duplicados dentro de ninguna lista. Los
-valores impuestos son constantes y no dependen del factor del caso. El sistema
-rechaza un modelo sin GDL libres con ENG-E-0010.
+Support constraints are zero. A `PrescribedDof` may replace that
+zero or constrain another DOF; duplicates within either list are not allowed. Imposed
+values are constant and do not depend on the case factor. The system
+rejects a model without free DOFs with ENG-E-0010.
 
-`from_model_with_diaphragms` añade restricciones maestro-esclavo XY en D3:
-`u = T_f q_f + u_0`. Los esclavos cumplen `Ux_s = Ux_m − ry Rz_m`,
-`Uy_s = Uy_m + rx Rz_m` y `Rz_s = Rz_m`; Uz/Rx/Ry siguen independientes.
-La reducción de K/M/Kg usa `T_fᵀ A T_f`.
+`from_model_with_diaphragms` adds XY master-slave constraints in D3:
+`u = T_f q_f + u_0`. Slaves satisfy `Ux_s = Ux_m − ry Rz_m`,
+`Uy_s = Uy_m + rx Rz_m` and `Rz_s = Rz_m`; Uz/Rx/Ry remain independent.
+K/M/Kg reduction uses `T_fᵀ A T_f`.
 
-El contrato `SystemView` devuelve fuerza interna física `T_fᵀ K u`, que incluye
-los prescritos, y fuerza externa física `factor T_fᵀ F`. Para resolver
-directamente `K_red q_f = T_fᵀ(factor F − K u_0)`, use `reduced_rhs` o `solve`.
-`solve_cases` conserva el orden del lote y reutiliza una sola factorización;
-devuelve los mismos independientes libres que `solve` caso a caso.
-`Constraints::expand` recupera dependientes y prescritos sin escalar estos últimos.
-La recuperación `reactions` devuelve `R_p = (Tᵀ(Ku − factor F))_p`, incluida
-la fuerza transferida por esclavos a un maestro prescrito. Sin diafragmas se
-obtienen `K_ff u_f = factor F_f − K_fp u_p` y
-`R_p = K_pf u_f + K_pp u_p − factor F_p`. Incluye las fuerzas sobre apoyos.
+The `SystemView` contract returns physical internal force `T_fᵀ K u`, including
+prescribed values, and physical external force `factor T_fᵀ F`. To solve
+`K_red q_f = T_fᵀ(factor F − K u_0)` directly, use `reduced_rhs` or `solve`.
+`solve_cases` preserves batch order and reuses a single factorization;
+it returns the same free independent DOFs as `solve` case by case.
+`Constraints::expand` recovers dependent and prescribed DOFs without scaling the latter.
+The `reactions` recovery returns `R_p = (Tᵀ(Ku − factor F))_p`, including
+force transferred by slaves to a prescribed master. Without diaphragms,
+it yields `K_ff u_f = factor F_f − K_fp u_p` and
+`R_p = K_pf u_f + K_pp u_p − factor F_p`. Includes forces on supports.
 
-K y M son constantes. Sin productores registrados, Kg es una instantánea del
-estado declarado con `set_geometric_reference` (por defecto u reducido nulo).
-Si existe cualquier aporte Kg estático, incluso cero, `geometric(u)` rechaza
-otro estado con ENG-E-0013. Sin aportes, devuelve cero para cualquier u finito.
+K and M are constant. Without registered producers, Kg is a snapshot of the
+state declared with `set_geometric_reference` (zero reduced u by default).
+If any static Kg contribution exists, even zero, `geometric(u)` rejects
+another state with ENG-E-0013. Without contributions, it returns zero for any finite u.
 
-`GeometricProducer { location, eval }` permite evaluar Kg tipo P-Delta con los
-esfuerzos N del estado u. `set_geometric_producers` sustituye el registro entero:
-cada productor sustituye la Kg estática del único `ElementContribution` cuya
-`location` coincide exactamente, incluido su orden, y si no coincide añade un
-bloque independiente. Ubicaciones repetidas entre productores o coincidencias
-con varios aportes dan ENG-E-0002 por ambigüedad. Un aporte Kg estático que no
-tiene productor sigue sujeto a su referencia; vaciar el registro restaura las
-instantáneas originales. `global_geometric()` conserva la instantánea original;
-la matriz vigente reducida se obtiene con `geometric(u, out)`.
+`GeometricProducer { location, eval }` allows evaluating P-Delta-type Kg with
+axial forces N from state u. `set_geometric_producers` replaces the entire registry:
+each producer replaces the static Kg of the single `ElementContribution` whose
+`location` matches exactly, including order, and if it does not match adds an
+independent block. Repeated locations among producers or matches
+with several contributions yield ENG-E-0002 for ambiguity. A static Kg contribution without
+a producer remains subject to its reference; emptying the registry restores the
+original snapshots. `global_geometric()` preserves the original snapshot;
+the current reduced matrix is obtained with `geometric(u, out)`.
 
-El registro valida ubicaciones y evalúa en la referencia expandida. Cada consulta
-expande u reducido con `Constraints::expand`, incluidos desplazamientos
-prescritos, extrae u_e en el orden elemental, evalúa, ensambla por
-`assemble_matrix` con simetría exacta y reduce a libres. Sobrescribe `out`.
-Propaga los errores del productor; ENG-E-0010 por tamaño/asimetría/índices y
-ENG-E-0008 por datos o sumas no finitos. El patrón incluye todos los pares
-libres de las ubicaciones registradas, incluso si Kg es cero en la referencia.
-Las clausuras son deterministas y no requieren Send/Sync. El ensamblaje sigue
-el orden de los aportes originales, después el de productores independientes;
-las evaluaciones siguen el orden del registro.
+The registry validates locations and evaluates at the expanded reference. Each query
+expands reduced u with `Constraints::expand`, including prescribed
+displacements, extracts u_e in element order, evaluates, assembles through
+`assemble_matrix` with exact symmetry, and reduces to free DOFs. Overwrites `out`.
+Propagates producer errors; ENG-E-0010 for size/asymmetry/indices and
+ENG-E-0008 for nonfinite data or sums. The pattern includes all free
+pairs of registered locations, even if Kg is zero at the reference.
+Closures are deterministic and do not require Send/Sync. Assembly follows
+the order of original contributions, then that of independent producers;
+evaluations follow registry order.
 
 El adaptador `engine_elements_truss::geometric_producer` captura elemento y
 contexto para calcular N=(EA/L)d·Δu y Kg=(N/L)(I−ddᵀ), con geometría fija.
@@ -84,21 +84,21 @@ exitosa de desplazamiento actualiza la prueba; `accept(u)` reevalúa exactamente
 u y lo acepta, y `rollback` recupera el último aceptado. Los errores no dejan
 salidas ni estados parcialmente modificados.
 
-Las matrices globales usan CSR y las reducidas `SymMatrix` denso, por la API de
-ENG-LA-007. `solve` delega factorización y solución al backend suministrado y
-traduce pivotes singulares a nodo/GDL; no implementa un solver propio. El patrón
-reducido une K, ambas M y Kg y conserva ceros estructurales. La contracción
-CSR con u recorre filas y columnas ordenadas, sin expandir la matriz global.
-Sumas en orden de aportes, `BTreeMap`/vectores, sin hilos; reproducibilidad entre
-arquitecturas bit a bit PENDIENTE de ENG-CORE-010.
+Global matrices use CSR and reduced matrices use dense `SymMatrix`, under the
+ENG-LA-007 API. `solve` delegates factorization and solution to the supplied backend and
+maps singular pivots to node/DOF; it does not implement its own solver. The reduced
+pattern joins K, both M types, and Kg, and preserves structural zeros. CSR contraction
+with u traverses sorted rows and columns, without expanding the global matrix.
+Sums in contribution order, `BTreeMap`/vectors, without threads; bitwise reproducibility
+across architectures PENDING ENG-CORE-010.
 
-Traslaciones: m; giros: rad; fuerzas: N; momentos: N·m. K y Kg: N/m, N o
-N·m según componentes; M: kg, kg·m o kg·m². D2 usa el plano X-Y horizontal
-según `docs/CONVENCION_EJES.md`; no se interpreta Y como vertical. Las normas
-con fuerzas/momentos o traslaciones/giros requieren escalas del método de análisis.
+Translations: m; rotations: rad; forces: N; moments: N·m. K and Kg: N/m, N, or
+N·m according to components; M: kg, kg·m, or kg·m². D2 uses the horizontal X-Y plane
+according to `docs/CONVENCION_EJES.md`; Y is not interpreted as vertical. Norms
+with forces/moments or translations/rotations require scales from the analysis method.
 
-Los fixtures se compilan desde `tests/fixtures/mod.rs` y contienen `source`,
-cita y valores calculados a mano. Las pruebas no usan archivos, reloj ni hilos
-y compilan también para wasm. La ejecución en un runtime wasm queda PENDIENTE.
-ENG-ASM-002 conserva restricciones maestro-esclavo; ENG-ELM-* conserva la física,
-transformación, evaluación e historia de los elementos.
+Fixtures are compiled from `tests/fixtures/mod.rs` and contain `source`,
+citation, and hand-calculated values. Tests use no files, clock, or threads
+and also compile for wasm. Execution in a wasm runtime remains PENDING.
+ENG-ASM-002 retains master-slave constraints; ENG-ELM-* retains element physics,
+transformation, evaluation, and history.

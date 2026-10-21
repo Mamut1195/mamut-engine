@@ -1,4 +1,4 @@
-//! Transformación maestro-esclavo y eliminación de prescritos constantes en SI.
+//! Master-slave transformation and elimination of constant prescribed values in SI.
 use crate::{
     diaphragm::{relations, Relations},
     error, finite, size, DofMap, RigidDiaphragm,
@@ -8,23 +8,23 @@ use engine_linalg::DMat;
 use engine_model::Support;
 use std::collections::BTreeSet;
 
-/// Desplazamiento o giro impuesto sobre un GDL global nodal.
+/// Displacement or rotation imposed on a global nodal DOF.
 #[derive(Clone, Copy, Debug)]
 pub struct PrescribedDof {
-    /// Nodo receptor.
+    /// Receiving node.
     pub node: NodeId,
-    /// Componente en ejes globales.
+    /// Component in global axes.
     pub dof: Dof,
-    /// Traslación en m o giro en rad, constante e independiente del factor de carga.
+    /// Translation in m or rotation in rad, constant and independent of the load factor.
     pub value: Real,
 }
 
-/// Transformación inmutable y partición de GDL independientes libres/prescritos.
+/// Immutable transformation and partition of free/prescribed independent DOFs.
 ///
-/// Los apoyos del dominio fijan cero. Una declaración PrescribedDof puede
-/// sustituir ese cero o restringir un GDL previamente libre. Repetir un GDL
-/// entre apoyos, o entre declaraciones prescritas, es un error aunque coincida
-/// el valor. La intersección apoyo/prescrito sí está permitida deliberadamente.
+/// Domain supports constrain to zero. A PrescribedDof declaration may
+/// replace that zero or constrain a previously free DOF. Repeating a DOF
+/// among supports, or among prescribed declarations, is an error even if the
+/// value matches. The support/prescribed intersection is deliberately allowed.
 #[derive(Clone, Debug)]
 pub struct Constraints {
     values: Vec<Option<Real>>,
@@ -37,23 +37,23 @@ pub struct Constraints {
 }
 
 impl Constraints {
-    /// Construye la partición sobre map; todos los GDL restringidos es ENG-E-0010.
+    /// Constructs the partition on map; all DOFs constrained yields ENG-E-0010.
     ///
-    /// Propaga referencias/índices inválidos del mapa; ENG-E-0002 por apoyo o
-    /// GDL duplicado; ENG-E-0008 por valor no finito. Equivale a with_diaphragms sin diafragmas.
+    /// Propagates invalid map references/indices; ENG-E-0002 for duplicate support or
+    /// DOF; ENG-E-0008 for a nonfinite value. Equivalent to with_diaphragms without diaphragms.
     pub fn new(map: &DofMap, supports: &[Support], prescribed: &[PrescribedDof]) -> EResult<Self> {
         Self::with_diaphragms(map, supports, prescribed, &[])
     }
 
-    /// Construye u = T_f q_f + u_0 con diafragmas XY en D3.
+    /// Constructs u = T_f q_f + u_0 with XY diaphragms in D3.
     ///
-    /// Se transforman primero todos los GDL independientes (incluidos los
-    /// prescritos), y luego se eliminan los prescritos. Un maestro puede tener
-    /// apoyo o valor impuesto. Cualquier GDL prescrito o apoyado de un esclavo
-    /// se rechaza con ENG-E-0013, también fuera de plano, para evitar ambigüedad.
-    /// Uz/Rx/Ry siguen siendo independientes y no reciben restricciones nuevas.
-    /// Propaga los diagnósticos de new y de RigidDiaphragm; todos los
-    /// independientes prescritos se rechazan con ENG-E-0010.
+    /// All independent DOFs are transformed first (including prescribed
+    /// ones), then prescribed ones are eliminated. A master may have a
+    /// support or imposed value. Any prescribed or supported slave DOF
+    /// is rejected with ENG-E-0013, including out of plane, to avoid ambiguity.
+    /// Uz/Rx/Ry remain independent and receive no new constraints.
+    /// Propagates diagnostics from new and RigidDiaphragm; all independent
+    /// DOFs prescribed is rejected with ENG-E-0010.
     pub fn with_diaphragms(
         map: &DofMap,
         supports: &[Support],
@@ -68,7 +68,7 @@ impl Constraints {
         let mut values = vec![None; map.len()];
         let mut ids = BTreeSet::new();
         for support in supports {
-            // Incluso un apoyo vacío debe apuntar a un nodo existente.
+            // Even an empty support must point to an existing node.
             if !map.contains_node(support.node) {
                 let mut e = error(
                     "ENG-E-0003",
@@ -153,19 +153,19 @@ impl Constraints {
         })
     }
 
-    /// Índices globales independientes libres; su posición es el índice reducido.
+    /// Free independent global indices; their position is the reduced index.
     pub fn free_dofs(&self) -> &[DofIndex] {
         &self.free
     }
 
-    /// Valores prescritos en orden global; None incluye libres y dependientes.
+    /// Prescribed values in global order; None includes free and dependent DOFs.
     pub fn prescribed_values(&self) -> &[Option<Real>] {
         &self.values
     }
 
-    /// Índice reducido de un independiente; None si es prescrito o esclavo.
-    /// Para un esclavo use free_transformation_row: puede depender de varios GDL.
-    /// ENG-E-0010 si el índice global está fuera de rango.
+    /// Reduced index of an independent DOF; None if prescribed or slave.
+    /// For a slave use free_transformation_row: it may depend on several DOFs.
+    /// ENG-E-0010 if the global index is out of range.
     pub fn reduced_index(&self, global: DofIndex) -> EResult<Option<DofIndex>> {
         self.reduced.get(global.0 as usize).copied().ok_or_else(|| {
             error(
@@ -175,8 +175,8 @@ impl Constraints {
         })
     }
 
-    /// Reconstruye u global con u_f (m/rad) y los valores u_p constantes.
-    /// ENG-E-0010 por tamaño, ENG-E-0008 por desplazamientos no finitos.
+    /// Reconstructs global u with u_f (m/rad) and constant u_p values.
+    /// ENG-E-0010 for size, ENG-E-0008 for nonfinite displacements.
     pub fn expand(&self, free: &[Real]) -> EResult<Vec<Real>> {
         size(free.len(), self.free.len())?;
         finite(free)?;
@@ -200,15 +200,15 @@ impl Constraints {
         Ok(expanded)
     }
 
-    /// GDL globales independientes, incluidos los prescritos, en orden estable.
+    /// Global independent DOFs, including prescribed ones, in stable order.
     pub fn independent_dofs(&self) -> &[DofIndex] {
         &self.independent
     }
 
-    /// Matriz T: independientes completos → GDL globales completos.
-    /// Las columnas siguen independent_dofs; incluye los maestros prescritos.
-    /// Las filas son adimensionales salvo los brazos que acoplan m con rad.
-    /// ENG-E-0010 por tamaño/reserva no representable según DMat.
+    /// Matrix T: full independent DOFs → full global DOFs.
+    /// Columns follow independent_dofs; includes prescribed masters.
+    /// Rows are dimensionless except for arms coupling m with rad.
+    /// ENG-E-0010 for size/allocation unrepresentable according to DMat.
     pub fn transformation(&self) -> EResult<DMat> {
         let mut matrix = DMat::zeros(self.relations.len(), self.independent.len())?
             .values()
@@ -225,9 +225,9 @@ impl Constraints {
         DMat::new(self.relations.len(), self.independent.len(), matrix)
     }
 
-    /// Fila dispersa de T_f: pares (índice reducido libre, coeficiente).
-    /// Una fila prescrita puede ser vacía; u_0 se obtiene con expand(q_f=0).
-    /// ENG-E-0010 por índice global inválido.
+    /// Sparse row of T_f: (free reduced index, coefficient) pairs.
+    /// A prescribed row may be empty; u_0 is obtained with expand(q_f=0).
+    /// ENG-E-0010 for an invalid global index.
     pub fn free_transformation_row(&self, global: DofIndex) -> EResult<&[(DofIndex, Real)]> {
         self.rows
             .get(global.0 as usize)
@@ -235,13 +235,13 @@ impl Constraints {
             .ok_or_else(|| error("ENG-E-0010", "Fila de transformación fuera de rango."))
     }
 
-    /// Diafragmas validados en el orden de declaración.
+    /// Validated diaphragms in declaration order.
     pub fn diaphragms(&self) -> &[RigidDiaphragm] {
         &self.diaphragms
     }
 
-    /// Proyecta fuerzas globales mediante T_fᵀ, en N/N·m.
-    /// ENG-E-0010 por tamaño; ENG-E-0008 por datos o acumulaciones no finitos.
+    /// Projects global forces through T_fᵀ, in N/N·m.
+    /// ENG-E-0010 for size; ENG-E-0008 for nonfinite data or accumulations.
     pub fn project_force(&self, force: &[Real]) -> EResult<Vec<Real>> {
         let projected = self.project_independent(force)?;
         Ok(self.free.iter().map(|i| projected[i.0 as usize]).collect())

@@ -1,4 +1,4 @@
-//! Catálogo ordenado de códigos estables y explicaciones en español.
+//! Ordered catalog of stable codes and explanations in Spanish.
 //!
 //! ```
 //! use engine_core::catalog::{explain, lookup};
@@ -9,25 +9,25 @@
 
 use crate::Severity;
 
-/// Información pública de una situación reconocida por el motor.
+/// Public information about a situation recognized by the engine.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CodeInfo {
-    /// Identificador estable con formato ENG-E-NNNN.
+    /// Stable identifier in ENG-E-NNNN format.
     pub code: &'static str,
-    /// Gravedad predeterminada del diagnóstico.
+    /// Default diagnostic severity.
     pub severity: Severity,
-    /// Título breve en español.
+    /// Short title in Spanish.
     pub title: &'static str,
-    /// Mensaje predeterminado en español.
+    /// Default message in Spanish.
     pub message: &'static str,
-    /// Explicación en español de la causa y las posibles acciones de revisión.
+    /// Explanation in Spanish of the cause and possible review actions.
     pub explanation: &'static str,
 }
 
-/// Lista estática ordenada por código, sin entradas duplicadas.
+/// Static list ordered by code, with no duplicate entries.
 ///
-/// Los identificadores existentes conservan su significado; se añaden entradas
-/// nuevas sin reutilizar códigos. Todas las situaciones iniciales son errores.
+/// Existing identifiers retain their meaning; new entries are added
+/// without reusing codes. All initial situations are errors.
 pub static CODES: &[CodeInfo] = &[
     CodeInfo {
         code: "ENG-E-0001",
@@ -129,9 +129,9 @@ pub static CODES: &[CodeInfo] = &[
     },
 ];
 
-/// Busca un código exacto y devuelve su información estática, o `None`.
+/// Looks up an exact code and returns its static information, or `None`.
 ///
-/// La búsqueda distingue mayúsculas y minúsculas y no modifica la entrada.
+/// The lookup is case-sensitive and does not modify the input.
 pub fn lookup(code: &str) -> Option<&'static CodeInfo> {
     CODES
         .binary_search_by_key(&code, |info| info.code)
@@ -139,7 +139,7 @@ pub fn lookup(code: &str) -> Option<&'static CodeInfo> {
         .map(|index| &CODES[index])
 }
 
-/// Devuelve la explicación en español de un código conocido, o `None`.
+/// Returns the explanation in Spanish for a known code, or `None`.
 ///
 /// ```
 /// use engine_core::catalog::explain;
@@ -154,10 +154,10 @@ pub fn explain(code: &str) -> Option<&'static str> {
 mod tests {
     use super::*;
 
-    /// Comprueba el formato, el orden estricto y la ausencia de códigos repetidos.
+    /// Checks the format, strict ordering, and absence of repeated codes.
     #[test]
     fn unique_ordered_codes_with_valid_format() {
-        // Mínimo histórico; añadir códigos nuevos no debe romper la prueba.
+        // Historical minimum; adding new codes must not break the test.
         assert!(CODES.len() >= 13);
         for info in CODES {
             let number = info.code.strip_prefix("ENG-E-").unwrap();
@@ -167,18 +167,18 @@ mod tests {
         assert!(CODES.windows(2).all(|pair| pair[0].code < pair[1].code));
     }
 
-    /// Fija el significado estable de ENG-E-0013 (no reutilizar ni renumerar).
+    /// Pins the stable meaning of ENG-E-0013 (do not reuse or renumber).
     #[test]
     fn unsupported_capability_code_is_stable() {
         let info = lookup("ENG-E-0013").unwrap();
         assert_eq!(info.title, "Capacidad no soportada");
         assert_eq!(info.severity, Severity::Error);
-        // Orden y unicidad se exigen en `codes_are_unique_and_sorted`; no se fija
-        // «último»: añadir ENG-E-0014 no debe romper esta prueba.
+        // Ordering and uniqueness are required by `unique_ordered_codes_with_valid_format`; the
+        // "last" code is not pinned: adding ENG-E-0014 must not break this test.
         assert!(CODES.iter().any(|c| c.code == "ENG-E-0013"));
     }
 
-    /// Comprueba textos no vacíos y que la búsqueda conserve los datos registrados.
+    /// Checks that texts are nonempty and lookup preserves the registered data.
     #[test]
     fn complete_catalog_text_and_lookup() {
         for info in CODES {
@@ -190,7 +190,7 @@ mod tests {
         }
     }
 
-    /// Comprueba que códigos ausentes o mal escritos no tengan una explicación.
+    /// Checks that missing or misspelled codes have no explanation.
     #[test]
     fn unknown_code_has_no_explanation() {
         for code in ["ENG-E-0000", "ENG-E-9999", "eng-e-0001", "", "ENG-E-0001 "] {

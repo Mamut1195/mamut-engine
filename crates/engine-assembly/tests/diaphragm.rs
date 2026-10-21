@@ -1,5 +1,5 @@
-//! source: derivaciones analíticas propias, sin fuentes externas ni oráculos.
-//! citation: provenance/ENG-ASM-002.md (energía, torsión y modelo de dos pisos).
+//! source: independent analytical derivations, without external sources or reference programs.
+//! citation: provenance/ENG-ASM-002.md (energy, torsion, and two-story model).
 use engine_assembly::{
     Constraints, DofMap, ElementContribution, GeometricProducer, LinearSystem, PrescribedDof,
     RigidDiaphragm,
@@ -115,7 +115,7 @@ fn value(s: &LinearSystem<ReferenceBackend>, u: &[f64], id: u32, dof: Dof) -> f6
 #[test]
 fn eccentric_three_columns_closed_solution_and_force_balance() {
     // Σr=0, ΣR²=14 m², k=100 N/m: U=(Fx,Fy)/(3k), θ=Mz/(k ΣR²).
-    // F=(30,60) N en (2,-1) m: Mz=150 N·m, θ=3/28 rad.
+    // F=(30,60) N at (2,-1) m: Mz=150 N·m, θ=3/28 rad.
     let (m, e, d) = three_columns(0.0);
     let mut s = system(&m, &e, &[], &[d]);
     let q = s.solve(&case(), 1.0).unwrap();
@@ -157,7 +157,7 @@ fn eccentric_three_columns_closed_solution_and_force_balance() {
         resultant[0] += fx;
         resultant[1] += fy;
         resultant[2] += mz + rx * fy - ry * fx;
-        // Acción necesaria en el esclavo = fuerza del resorte menos carga externa.
+        // Required action on the slave = spring force minus external load.
         let external = if slave.node == NodeId(12) {
             [30.0, 60.0]
         } else {
@@ -237,7 +237,7 @@ fn prescribed_master_transfers_forces_and_does_not_scale_settlement() {
         close(value(&s, &u, 20, Dof::Uy), 0.2 * factor, 1e-12);
         let r = s.reactions(&q, &case(), factor).unwrap();
         let master = r.iter().find(|r| r.node == NodeId(20)).unwrap();
-        // 3 k u_m - factor Fx, aunque no existe K ni F nodal en el maestro.
+        // 3 k u_m - factor Fx, although there is no nodal K or F at the master.
         close(master.value, 7.5 - 30.0 * factor, 1e-11);
         close(
             r.iter()
@@ -424,8 +424,8 @@ fn transformation_preserves_out_of_plane_and_rejects_invalid_graphs() {
 }
 
 fn two_floors() -> (Model, Vec<ElementContribution>, Vec<RigidDiaphragm>) {
-    // Modelo de cortante de dos pisos: cada columna aporta un resorte XY
-    // entre niveles, sin atribuir flexión 3D a frame2d.
+    // Two-story shear model: each column contributes an XY spring
+    // between levels, without attributing 3D bending to frame2d.
     let mut m = Model::new();
     for floor in 0..=2 {
         for (i, [x, y]) in POINTS.into_iter().enumerate() {
@@ -494,8 +494,8 @@ fn slab_beams(m: &Model, stiffness: f64) -> Vec<ElementContribution> {
     let mut result = Vec::new();
     for floor in [1, 2] {
         for (i, j) in [(0, 1), (1, 2), (2, 0)] {
-            // Una viga de planta D2 se evalúa en XY local al piso (Z=0), y
-            // sus mismos Ux,Uy,Rz globales se ubican en los nodos D3 a cota h.
+            // A D2 floor beam is evaluated in the floor-local XY plane (Z=0), and
+            // its same global Ux,Uy,Rz are placed at D3 nodes at elevation h.
             let coords = [
                 [POINTS[i][0], POINTS[i][1], 0.0],
                 [POINTS[j][0], POINTS[j][1], 0.0],
@@ -527,7 +527,7 @@ fn two_floors_stiff_slabs_converge_to_rigid_diaphragms() {
     let q = rigid.solve(&case(), 1.0).unwrap();
     let ur = rigid.constraints().expand(&q).unwrap();
     let rr = rigid.reactions(&q, &case(), 1.0).unwrap();
-    // Solución cerrada en centroide: ΔU_j=ΣF_sobre_j/(3k_j),
+    // Closed-form solution at the centroid: ΔU_j=ΣF_sobre_j/(3k_j),
     // Δθ_j=ΣM_sobre_j/(14k_j). M1=15, M2=-60 N·m.
     for (floor, center, theta) in [
         (1, [0.15, 1.0 / 30.0], -45.0 / 1400.0),
@@ -563,8 +563,8 @@ fn two_floors_stiff_slabs_converge_to_rigid_diaphragms() {
             .fold(0.0_f64, f64::max);
         errors.push(error);
         if stiffness == 1e8 {
-            // Tolerancias relativas con piso de escala 1: 2e-6 m/rad y
-            // 2e-5 N. E_losa/k_columna=1e6 (A=I=1 en unidades SI).
+            // Relative tolerances with scale floor 1: 2e-6 m/rad and
+            // 2e-5 N. E_losa/k_columna=1e6 (A=I=1 in SI units).
             for (a, b) in ue.iter().zip(&ur) {
                 close(*a, *b, 2e-6);
             }
@@ -591,8 +591,8 @@ fn two_floors_stiff_slabs_converge_to_rigid_diaphragms() {
 #[test]
 fn all_matrices_and_system_view_use_the_transformation() {
     let (m, mut e, d) = three_columns(0.0);
-    // Bloque algebraico acoplado que comprueba términos cruzados y que
-    // T no se reduce a seleccionar índices. No es un modelo constitutivo.
+    // Coupled algebraic block checking cross terms and that
+    // T is not reduced to selecting indices. It is not a constitutive model.
     let map = DofMap::new(&m.nodes).unwrap();
     let location = vec![
         map.global_index(NodeId(11), Dof::Ux).unwrap(),
@@ -608,8 +608,8 @@ fn all_matrices_and_system_view_use_the_transformation() {
     e.push(extra);
     let mut s = system(&m, &e, &[], &[d]);
     let t = s.constraints().transformation().unwrap();
-    // T completa incluye las bases prescritas: seleccionar columnas libres
-    // independientemente de la rutina de reducción de la librería.
+    // Full T includes prescribed bases: select free columns
+    // independently of the library's reduction routine.
     let cols: Vec<_> = s
         .constraints()
         .free_dofs()
@@ -669,7 +669,7 @@ fn all_matrices_and_system_view_use_the_transformation() {
     }])
     .unwrap();
     s.geometric(&q, &mut out).unwrap();
-    // Esclavo11 Ux=q_x+q_θ=.06; esclavo13 Uy=q_y (r_x=0).
+    // Slave11 Ux=q_x+q_θ=.06; slave13 Uy=q_y (r_x=0).
     close(out.dense().get(0, 0).unwrap(), 1.06, 1e-12);
     close(out.dense().get(1, 1).unwrap(), 0.97, 1e-12);
     close(out.dense().get(0, 2).unwrap(), 1.06, 1e-12);

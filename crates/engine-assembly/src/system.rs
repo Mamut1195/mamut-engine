@@ -1,4 +1,4 @@
-//! Sistema lineal poseído; ensamblaje global, reducción y estado atómico.
+//! Owned linear system; global assembly, reduction, and atomic state.
 use crate::{
     assemble::{
         assemble_matrix, assemble_model, location, missing_case, multiply, triplets, GlobalAssembly,
@@ -14,21 +14,21 @@ use engine_linalg::{
 use engine_model::Model;
 use std::collections::{BTreeMap, BTreeSet};
 
-/// Evaluador determinista de Kg elemental global a partir de u_e global (m/rad).
-/// No requiere Send/Sync; los errores se propagan sin modificar salida ni prueba.
+/// Deterministic global element Kg evaluator from global u_e (m/rad).
+/// Does not require Send/Sync; errors propagate without modifying output or trial.
 pub type GeometricEval = dyn Fn(&[Real]) -> EResult<DMat>;
 
-/// Productor de rigidez geométrica dependiente del estado, para pandeo/P-Delta.
+/// State-dependent geometric stiffness producer, for buckling/P-Delta.
 ///
-/// u_e contiene desplazamientos totales globales, incluidos los prescritos, en
-/// el orden de location. El productor calcula el esfuerzo N de u_e y devuelve
-/// Kg global cuadrada, finita y exactamente simétrica en ese mismo orden.
-/// Unidades: N/m, N o N·m según traslaciones/giros de fila y columna.
-/// La clausura debe ser determinista y no modificar historia del elemento.
+/// u_e contains total global displacements, including prescribed ones, in
+/// location order. The producer computes axial force N from u_e and returns
+/// square, finite, exactly symmetric global Kg in that same order.
+/// Units: N/m, N, or N·m according to row and column translations/rotations.
+/// The closure must be deterministic and not modify element history.
 pub struct GeometricProducer {
-    /// Índices globales distintos, en el orden elemental (no índices reducidos).
+    /// Distinct global indices, in element order (not reduced indices).
     pub location: Vec<DofIndex>,
-    /// Evaluación elemental global, sin requisitos Send/Sync.
+    /// Global element evaluation, without Send/Sync requirements.
     pub eval: Box<GeometricEval>,
 }
 
@@ -64,14 +64,14 @@ fn produced_geometric<B: LinAlgBackend>(
     assemble_matrix(backend, order, &blocks)
 }
 
-/// Sistema de K/M constantes, Kg opcionalmente producida y apoyos constantes.
+/// System with constant K/M, optionally produced Kg, and constant supports.
 ///
-/// Solo evalúa los productores Kg registrados; no convierte unidades. Sus
-/// operaciones SystemView usan vectores reducidos totales en m/rad, escriben out completamente y nunca
-/// aceptan implícitamente. Un fallo conserva salidas y estados. El factor de
-/// carga escala solo F, no u_p. El estado inicial aceptado tiene u_f=0 y u_p
-/// prescrito; no implica equilibrio. Para escalados de normas mixtas, el método
-/// de análisis debe escoger escalas SI de longitud/fuerza explícitas.
+/// Only evaluates registered Kg producers; does not convert units. Its
+/// SystemView operations use total reduced vectors in m/rad, completely write out, and never
+/// commit implicitly. A failure preserves outputs and states. The load
+/// factor scales only F, not u_p. The initial committed state has u_f=0 and prescribed
+/// u_p; this does not imply equilibrium. For scaling mixed norms, the analysis
+/// method must choose explicit SI length/force scales.
 pub struct LinearSystem<B> {
     backend: B,
     map: DofMap,
@@ -90,7 +90,7 @@ pub struct LinearSystem<B> {
     accepted: Vec<Real>,
     trial: Vec<Real>,
     kg_reference: Vec<Real>,
-    /// ¿Queda Kg estática sin productor? Independiente de que Kg(ref) sea 0.
+    /// Is static Kg left without a producer? Independent of whether Kg(ref) is 0.
     has_geometric: bool,
     geometric_elements: Vec<GeometricBlock>,
     geometric_producers: Vec<GeometricProducer>,
@@ -105,8 +105,8 @@ fn reduced<B: LinAlgBackend>(
     for t in triplets(matrix) {
         for &(r, a) in constraints.free_transformation_row(DofIndex(t.row as u32))? {
             for &(c, b) in constraints.free_transformation_row(DofIndex(t.col as u32))? {
-                // Acumular una sola mitad y reflejar el resultado evita que el
-                // orden de sumas produzca asimetría de redondeo en Tᵀ K T.
+                // Accumulating a single half and mirroring the result prevents the
+                // summation order from producing rounding asymmetry in Tᵀ K T.
                 if r >= c {
                     let value = a * t.value * b;
                     finite(&[value])?;
@@ -131,17 +131,17 @@ fn reduced<B: LinAlgBackend>(
 }
 
 impl<B: LinAlgBackend> LinearSystem<B> {
-    /// Ensambla nodos, apoyos, casos y masas del modelo más aportes elementales.
+    /// Assembles model nodes, supports, cases, and masses plus element contributions.
     ///
-    /// Los índices de location se obtienen con DofMap::new(&model.nodes).
-    /// Se suman elementos en orden de entrada y después acciones/masas nodales
-    /// en orden del modelo. Las masas nodales se añaden a ambos MassKind.
-    /// Los casos vacíos existen y producen cero; una carga elemental debe citar
-    /// un caso declarado. Se valida toda la frontera usada aquí; miembros,
-    /// secciones, leyes y combinaciones requieren engine-model::validate en la
-    /// capa anterior y no son interpretados en esta interfaz.
-    /// Propaga ENG-E-0002/0003/0008/0010/0011; ENG-E-0012 si el backend entrega
-    /// un patrón incoherente con las matrices reducidas.
+    /// location indices are obtained with DofMap::new(&model.nodes).
+    /// Elements are summed in input order, then nodal actions/masses
+    /// in model order. Nodal masses are added to both MassKind variants.
+    /// Empty cases exist and produce zero; an element load must reference
+    /// a declared case. The entire boundary used here is validated; members,
+    /// sections, laws, and combinations require engine-model::validate in the
+    /// preceding layer and are not interpreted in this interface.
+    /// Propagates ENG-E-0002/0003/0008/0010/0011; ENG-E-0012 if the backend provides
+    /// a pattern inconsistent with the reduced matrices.
     pub fn from_model(
         backend: B,
         model: &Model,
@@ -151,12 +151,12 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         Self::from_model_with_diaphragms(backend, model, elements, prescribed, &[])
     }
 
-    /// Ensambla y reduce por diafragmas XY D3, sin modificar Model.
+    /// Assembles and reduces through D3 XY diaphragms, without modifying Model.
     ///
-    /// Conserva from_model cuando la lista está vacía. Usa u = T_f q_f + u_0,
-    /// K_red = T_fᵀ K T_f y F_red = T_fᵀ F; el RHS resta T_fᵀ K u_0.
-    /// M y Kg, incluidos productores, reciben la misma transformación.
-    /// Propaga diagnósticos de from_model y Constraints::with_diaphragms.
+    /// Preserves from_model when the list is empty. Uses u = T_f q_f + u_0,
+    /// K_red = T_fᵀ K T_f and F_red = T_fᵀ F; the RHS subtracts T_fᵀ K u_0.
+    /// M and Kg, including producers, receive the same transformation.
+    /// Propagates diagnostics from from_model and Constraints::with_diaphragms.
     pub fn from_model_with_diaphragms(
         mut backend: B,
         model: &Model,
@@ -179,7 +179,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         let lumped_free = reduced(&mut backend, &lumped, &constraints)?;
         let consistent_free = reduced(&mut backend, &consistent, &constraints)?;
         let kg_free = reduced(&mut backend, &kg, &constraints)?;
-        // Unión estructural de K, M y Kg, incluidos sus ceros explícitos.
+        // Structural union of K, M, and Kg, including their explicit zeros.
         let mut coordinates = Vec::new();
         for matrix in [&k, &lumped, &consistent, &kg] {
             for t in triplets(matrix) {
@@ -198,7 +198,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
                 "Patrón incompatible con matriz reducida.",
             ));
         }
-        // Valida también la fuerza interna del estado inicial con u_p impuesto.
+        // Also validates the initial state's internal force with imposed u_p.
         multiply(&k, &constraints.expand(&vec![0.0; nf])?)?;
         Ok(Self {
             backend,
@@ -227,26 +227,26 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         })
     }
 
-    /// Mapa global; combine global_index con constraints().reduced_index.
+    /// Global map; combine global_index with constraints().reduced_index.
     pub fn dof_map(&self) -> &DofMap {
         &self.map
     }
-    /// Transformación y partición independiente libre/prescrita constantes.
+    /// Constant transformation and free/prescribed independent partition.
     pub fn constraints(&self) -> &Constraints {
         &self.constraints
     }
-    /// Busca nodo/GDL → índice reducido; None significa prescrito o dependiente.
-    /// Para esclavos consulte constraints().free_transformation_row().
-    /// ENG-E-0003 por nodo inexistente, ENG-E-0011 por componente no declarada.
+    /// Looks up node/DOF → reduced index; None means prescribed or dependent.
+    /// For slaves consult constraints().free_transformation_row().
+    /// ENG-E-0003 for a nonexistent node, ENG-E-0011 for an undeclared component.
     pub fn reduced_index(&self, node: NodeId, dof: Dof) -> EResult<Option<DofIndex>> {
         self.constraints
             .reduced_index(self.map.global_index(node, dof)?)
     }
-    /// Rigidez global CSR en SI, sin eliminar GDL apoyados.
+    /// Global CSR stiffness in SI, without eliminating supported DOFs.
     pub fn stiffness(&self) -> &SparseMatrix {
         &self.k
     }
-    /// Masa global CSR (kg, kg·m, kg·m²); incluye masas nodales.
+    /// Global CSR mass (kg, kg·m, kg·m²); includes nodal masses.
     pub fn global_mass(&self, kind: MassKind) -> &SparseMatrix {
         match kind {
             MassKind::Lumped => &self.lumped,
@@ -254,8 +254,8 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         }
     }
 
-    /// Indica si M_ff contiene filas/columnas exactamente nulas tras apoyos y MPC.
-    /// No emplea tolerancias ni clasifica como nula una masa pequeña positiva.
+    /// Indicates whether M_ff contains exactly zero rows/columns after supports and MPC.
+    /// Uses no tolerances and does not classify a small positive mass as zero.
     pub fn has_massless_dofs(&self, kind: MassKind) -> bool {
         let mass = match kind {
             MassKind::Lumped => &self.lumped_free,
@@ -267,13 +267,13 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             .any(|row| row.iter().all(|&v| v == 0.0))
     }
 
-    /// Modos inferiores de K_ff y M_ff, con el backend propio del sistema.
-    /// Ambas matrices proceden del ensamblaje global y la partición de GDL
-    /// libres. Condensa filas de masa nulas con Guyan y recupera los modos completos.
-    /// No modifica estados; sin GDL sin masa conserva el solver original.
-    /// Propaga los diagnósticos de `engine_linalg::lowest_modes`, traduciendo
-    /// índices reducidos de ENG-E-0006/0014 a nodo/GDL global cuando se proporcionan.
-    /// Un índice diagnóstico inexistente devuelve ENG-E-0012.
+    /// Lowest modes of K_ff and M_ff, with the system's own backend.
+    /// Both matrices come from global assembly and the partition of free
+    /// DOFs. Condenses zero-mass rows with Guyan and recovers complete modes.
+    /// Does not modify states; without massless DOFs preserves the original solver.
+    /// Propagates diagnostics from `engine_linalg::lowest_modes`, mapping
+    /// reduced ENG-E-0006/0014 indices to global node/DOF when provided.
+    /// A nonexistent diagnostic index returns ENG-E-0012.
     pub fn lowest_modes(
         &mut self,
         kind: MassKind,
@@ -315,17 +315,17 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             }
         })
     }
-    /// Instantánea global CSR estática recibida en from_model.
-    /// No incluye sustituciones ni evaluaciones de productores registrados;
-    /// consulte [`SystemView::geometric`] para Kg(u) reducida vigente.
+    /// Static global CSR snapshot received in from_model.
+    /// Does not include replacements or evaluations of registered producers;
+    /// consult [`SystemView::geometric`] for the current reduced Kg(u).
     pub fn global_geometric(&self) -> &SparseMatrix {
         &self.kg
     }
 
-    /// Evalúa Kg global vigente en u reducido total, sin alterar ningún estado.
-    /// Incluye productores y prescritos; aplica la misma regla de referencia y
-    /// validación que [`SystemView::geometric`]. Permite formar Kg_fp u_p y
-    /// reacciones de segundo orden sin perder los bloques restringidos.
+    /// Evaluates current global Kg at total reduced u, without altering any state.
+    /// Includes producers and prescribed values; applies the same reference and
+    /// validation rule as [`SystemView::geometric`]. Allows forming Kg_fp u_p and
+    /// second-order reactions without losing constrained blocks.
     pub fn geometric_at(&mut self, u: &[Real]) -> EResult<SparseMatrix> {
         let global = self.constraints.expand(u)?;
         if self.has_geometric && u != self.kg_reference.as_slice() {
@@ -347,27 +347,27 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         }
     }
 
-    /// K_ff constante; no evalúa ni modifica estados de prueba.
+    /// Constant K_ff; neither evaluates nor modifies trial states.
     pub fn reduced_stiffness(&self) -> &SymMatrix {
         &self.k_free
     }
 
-    /// Factoriza una rigidez reducida del mismo orden mediante el backend propio.
-    /// Traduce mecanismos a nodo/GDL como [`Self::solve`]; ENG-E-0010 por orden
-    /// incorrecto. No regulariza ni acepta estados; conserva la inercia del factor.
+    /// Factorizes a reduced stiffness of the same order through the internal backend.
+    /// Maps mechanisms to node/DOF as [`Self::solve`]; ENG-E-0010 for incorrect
+    /// order. Does not regularize or commit states; preserves factor inertia.
     pub fn factorize_reduced(&mut self, matrix: &SymMatrix) -> EResult<Box<dyn SymFactorization>> {
         size(matrix.order(), self.n_free_dofs())?;
         self.backend
             .factorize(matrix)
             .map_err(|e| self.translate_solver_error(e))
     }
-    /// Declara el estado reducido u (m/rad) en el que se evaluó la Kg estática.
+    /// Declares the reduced state u (m/rad) at which static Kg was evaluated.
     ///
-    /// Por defecto es u = 0. Si queda algún aporte Kg sin productor,
-    /// [`SystemView::geometric`] solo acepta esa referencia exacta, aunque
-    /// Kg(ref) sea cero; otro u da ENG-E-0013. Los productores no dependen de
-    /// esta restricción. Sin ningún aporte, Kg=0 para cualquier u válido.
-    /// ENG-E-0010 por tamaño; ENG-E-0008 por valores no finitos.
+    /// Default is u = 0. If any Kg contribution remains without a producer,
+    /// [`SystemView::geometric`] only accepts that exact reference, even if
+    /// Kg(ref) is zero; another u yields ENG-E-0013. Producers do not depend on
+    /// this restriction. Without any contribution, Kg=0 for any valid u.
+    /// ENG-E-0010 for size; ENG-E-0008 for nonfinite values.
     pub fn set_geometric_reference(&mut self, u: &[Real]) -> EResult<()> {
         size(u.len(), self.n_free_dofs())?;
         finite(u)?;
@@ -375,21 +375,21 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         Ok(())
     }
 
-    /// Sustituye el registro completo de productores Kg(u), de forma atómica.
+    /// Atomically replaces the entire Kg(u) producer registry.
     ///
-    /// La identidad es location con igualdad exacta, incluido su orden. Un
-    /// productor sustituye la Kg estática del único aporte con esa location,
-    /// incluso si era None. Sin coincidencia añade un bloque independiente.
-    /// Dos productores con la misma location o una coincidencia con varios
-    /// aportes son ambiguos y dan ENG-E-0002. No se emparejan permutaciones.
-    /// Un registro vacío restaura todos los aportes estáticos originales.
+    /// Identity is location with exact equality, including its order. A
+    /// producer replaces the static Kg of the single contribution with that location,
+    /// even if it was None. Without a match it adds an independent block.
+    /// Two producers with the same location or a match with several
+    /// contributions are ambiguous and yield ENG-E-0002. Permutations are not matched.
+    /// An empty registry restores all original static contributions.
     ///
-    /// Valida ubicaciones y evalúa en la referencia expandida con u_p para
-    /// validar tamaños, finitud y simetría exacta por assemble_matrix. Revalida
-    /// las matrices en cada geometric(u). Propaga errores del evaluador;
-    /// ENG-E-0010 por ubicación/tamaño/asimetría, ENG-E-0008 por no finitos.
-    /// Amplía el patrón con todos los pares de GDL libres de cada productor,
-    /// incluidos ceros. Conserva salida, registro y prueba ante cualquier error.
+    /// Validates locations and evaluates at the expanded reference with u_p to
+    /// validate sizes, finiteness, and exact symmetry through assemble_matrix. Revalidates
+    /// matrices at each geometric(u). Propagates evaluator errors;
+    /// ENG-E-0010 for location/size/asymmetry, ENG-E-0008 for nonfinite values.
+    /// Extends the pattern with all pairs of free DOFs of each producer,
+    /// including zeros. Preserves output, registry, and trial on any error.
     pub fn set_geometric_producers(&mut self, producers: Vec<GeometricProducer>) -> EResult<()> {
         let mut seen = BTreeSet::new();
         for p in &producers {
@@ -441,7 +441,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         self.pattern = pattern;
         Ok(())
     }
-    /// Etiqueta nodo/GDL de un índice reducido, sin pánico: ENG-E-0010 si d ≥ n.
+    /// Node/DOF label for a reduced index, without panic: ENG-E-0010 if d ≥ n.
     pub fn try_dof_label(&self, d: DofIndex) -> EResult<(NodeId, Dof)> {
         match self.constraints.free_dofs().get(d.0 as usize) {
             Some(&global) => self.map.label(global),
@@ -452,26 +452,26 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             }
         }
     }
-    /// Último desplazamiento reducido aceptado, en m/rad.
+    /// Last committed reduced displacement, in m/rad.
     pub fn accepted_displacement(&self) -> &[Real] {
         &self.accepted
     }
-    /// Último desplazamiento reducido evaluado con éxito, en m/rad.
+    /// Last successfully evaluated reduced displacement, in m/rad.
     pub fn trial_displacement(&self) -> &[Real] {
         &self.trial
     }
 
-    /// Fuerza interna lineal global K u, incluidos los prescritos constantes.
-    /// No modifica desplazamientos aceptados ni de prueba.
+    /// Global linear internal force K u, including constant prescribed values.
+    /// Does not modify committed or trial displacements.
     pub fn global_internal_force(&self, free: &[Real]) -> EResult<Vec<Real>> {
         multiply(&self.k, &self.constraints.expand(free)?)
     }
 
-    /// Suma tangentes elementales variables a K y extrae la partición ff.
-    /// Los bloques son aportes adicionales: no deben duplicarse en from_model.
-    /// Valida ubicación, tamaño, finitud y simetría como assemble_matrix.
-    /// Los prescritos se incorporan a la fuerza interna evaluando u TOTAL;
-    /// su corrección es cero y no se añade ningún término K_fp Δu_p al RHS.
+    /// Adds variable element tangents to K and extracts the ff partition.
+    /// Blocks are additional contributions: they must not be duplicated in from_model.
+    /// Validates location, size, finiteness, and symmetry as assemble_matrix does.
+    /// Prescribed values enter internal force by evaluating TOTAL u;
+    /// their correction is zero and no K_fp Δu_p term is added to the RHS.
     pub fn tangent_with_blocks(&mut self, blocks: &[(&[DofIndex], &DMat)]) -> EResult<SymMatrix> {
         let extra = assemble_matrix(&mut self.backend, self.map.len(), blocks)?;
         let mut entries = triplets(&self.k);
@@ -482,9 +482,9 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         reduced(&mut self.backend, &global, &self.constraints)
     }
 
-    /// Resuelve una corrección reducida con UNA factorización de la tangente.
-    /// Sin regularización, aceptación ni modificación de pruebas. Traduce
-    /// ENG-E-0006 a nodo/GDL igual que solve; rechaza no finitos y tamaños.
+    /// Solves a reduced correction with ONE tangent factorization.
+    /// Without regularization, acceptance, or trial modification. Maps
+    /// ENG-E-0006 to node/DOF as solve does; rejects nonfinite values and sizes.
     pub fn solve_correction(
         &mut self,
         tangent: &SymMatrix,
@@ -507,8 +507,8 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         Ok(solution.values().to_vec())
     }
 
-    /// Fuerzas globales físicas factor F del caso (N/N·m), incluidos apoyos.
-    /// ENG-E-0003 por caso ausente; ENG-E-0008 por factor/resultado no finito.
+    /// Physical global case forces factor F (N/N·m), including supports.
+    /// ENG-E-0003 for a missing case; ENG-E-0008 for a nonfinite factor/result.
     pub fn global_force(&self, case: &CaseRef, factor: Real) -> EResult<Vec<Real>> {
         finite(&[factor])?;
         let force = self.forces.get(&case.0).ok_or_else(|| missing_case(case))?;
@@ -517,10 +517,10 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         Ok(result)
     }
 
-    /// Cargas nodales explícitas del modelo, sin cargas equivalentes de tramo.
-    /// Mismo orden global y unidades N/N·m que [`Self::global_force`]. Se
-    /// conservan al ensamblar para verificar el equilibrio del postproceso.
-    /// ENG-E-0003 por caso ausente; ENG-E-0008 por factor/resultado no finito.
+    /// Explicit nodal loads from the model, without equivalent span loads.
+    /// Same global order and N/N·m units as [`Self::global_force`]. They are
+    /// preserved during assembly to check postprocessing equilibrium.
+    /// ENG-E-0003 for a missing case; ENG-E-0008 for a nonfinite factor/result.
     pub fn global_nodal_force(&self, case: &CaseRef, factor: Real) -> EResult<Vec<Real>> {
         finite(&[factor])?;
         let force = self
@@ -532,8 +532,8 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         Ok(result)
     }
 
-    /// RHS directo: T_fᵀ(factor F − K u_0) (N/N·m).
-    /// u_p no se escala por factor; los errores conservan el sistema.
+    /// Direct RHS: T_fᵀ(factor F − K u_0) (N/N·m).
+    /// u_p is not scaled by factor; errors preserve the system.
     pub fn reduced_rhs(&self, case: &CaseRef, factor: Real) -> EResult<Vec<Real>> {
         let force = self.global_force(case, factor)?;
         let shift = multiply(
@@ -544,12 +544,12 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         self.constraints.project_force(&residual)
     }
 
-    /// Resuelve (T_fᵀ K T_f) q_f = RHS mediante el backend, sin aceptar el resultado.
+    /// Solves (T_fᵀ K T_f) q_f = RHS through the backend, without committing the result.
     ///
-    /// Conveniencia para problemas lineales; no es un método analysis/1.
-    /// Traduce los índices reducidos de ENG-E-0006 a índice global, entidad nodo
-    /// y etiqueta GDL en message. El pivote identifica parte del mecanismo,
-    /// no todos sus movimientos. ENG-E-0012 si el backend informa índice inválido.
+    /// Convenience for linear problems; this is not an analysis/1 method.
+    /// Maps reduced ENG-E-0006 indices to a global index, node entity,
+    /// and DOF label in message. The pivot identifies part of the mechanism,
+    /// not all its motions. ENG-E-0012 if the backend reports an invalid index.
     pub fn solve(&mut self, case: &CaseRef, factor: Real) -> EResult<Vec<Real>> {
         let rhs = DMat::new(self.n_free_dofs(), 1, self.reduced_rhs(case, factor)?)?;
         let factorization = self
@@ -565,17 +565,17 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         Ok(solution.values().to_vec())
     }
 
-    /// Resuelve varios casos con UNA factorización de K_red = T_fᵀ K T_f.
+    /// Solves several cases with ONE factorization of K_red = T_fᵀ K T_f.
     ///
-    /// Conserva el orden de entrada y no acepta ni modifica pruebas. Cada RHS
-    /// es `T_fᵀ(factor F − K u_0)`: los prescritos no se escalan. Valida todos
-    /// los casos antes de factorizar. ENG-E-0010 por lista vacía o nombres
-    /// duplicados; ENG-E-0003 por caso ausente; ENG-E-0008 por no finitos.
-    /// Traduce errores del backend igual que [`Self::solve`], incluidos
-    /// mecanismos ENG-E-0006 con nodo/GDL y diagnósticos inválidos ENG-E-0012.
-    /// Devuelve desplazamientos independientes libres, igual que [`Self::solve`].
-    /// [`Constraints::expand`] recupera los dependientes y prescritos mediante
-    /// `u = T_f q_f + u_0`. Sin diafragmas equivale a `factor F_f − K_fp u_p`.
+    /// Preserves input order and neither commits nor modifies trials. Each RHS
+    /// is `T_fᵀ(factor F − K u_0)`: prescribed values are not scaled. Validates all
+    /// cases before factorization. ENG-E-0010 for an empty list or duplicate
+    /// names; ENG-E-0003 for a missing case; ENG-E-0008 for nonfinite values.
+    /// Maps backend errors as [`Self::solve`] does, including
+    /// ENG-E-0006 mechanisms with node/DOF and ENG-E-0012 invalid diagnostics.
+    /// Returns free independent displacements, as [`Self::solve`] does.
+    /// [`Constraints::expand`] recovers dependent and prescribed DOFs through
+    /// `u = T_f q_f + u_0`. Without diaphragms this equals `factor F_f − K_fp u_p`.
     pub fn solve_cases(&mut self, cases: &[(CaseRef, Real)]) -> EResult<Vec<Vec<Real>>> {
         if cases.is_empty() {
             return Err(error("ENG-E-0010", "Lista de casos vacía."));
@@ -609,13 +609,13 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             .collect()
     }
 
-    /// Recupera R = (Tᵀ(Ku − factor F))_p sobre todo independiente prescrito:
-    /// los restringidos por apoyos y los de desplazamiento impuesto (asentamiento).
-    /// Incluye la fuerza transferida por esclavos a un maestro prescrito.
-    /// Sin diafragmas equivale a K_pf u_f + K_pp u_p − factor F_p.
-    /// No existe reacción de apoyo en un GDL libre o dependiente. Orden global estable; unidades
-    /// N/N·m. No acepta ni modifica pruebas. Incluye las cargas aplicadas
-    /// directamente sobre GDL prescritos.
+    /// Recovers R = (Tᵀ(Ku − factor F))_p at every prescribed independent DOF:
+    /// those constrained by supports and those with imposed displacement (settlement).
+    /// Includes force transferred by slaves to a prescribed master.
+    /// Without diaphragms this equals K_pf u_f + K_pp u_p − factor F_p.
+    /// There is no support reaction at a free or dependent DOF. Stable global order; units
+    /// N/N·m. Neither commits nor modifies trials. Includes loads applied
+    /// directly to prescribed DOFs.
     pub fn reactions(
         &self,
         u_free: &[Real],
@@ -631,9 +631,9 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         )
     }
 
-    /// Recupera las acciones de cada diafragma sobre esclavos y maestro.
-    /// Signos y transporte de momentos documentados en DiaphragmForces.
-    /// Propaga errores de expansión, fuerzas y productos (0003/0008/0010).
+    /// Recovers actions of each diaphragm on slaves and master.
+    /// Signs and moment transfer documented in DiaphragmForces.
+    /// Propagates expansion, force, and product errors (0003/0008/0010).
     pub fn diaphragm_forces(
         &self,
         u_free: &[Real],
@@ -772,14 +772,14 @@ impl<B: LinAlgBackend> SystemView for LinearSystem<B> {
     fn rollback(&mut self) {
         self.trial.clone_from(&self.accepted);
     }
-    /// Precondición del contrato: d < n. El trait no puede devolver error; use
-    /// [`LinearSystem::try_dof_label`] para entradas no confiables. Si se viola
-    /// la precondición devuelve el centinela (NodeId(0), Ux), sin pánico.
+    /// Contract precondition: d < n. The trait cannot return an error; use
+    /// [`LinearSystem::try_dof_label`] for untrusted inputs. If the
+    /// precondition is violated, returns the sentinel (NodeId(0), Ux), without panic.
     fn dof_label(&self, d: DofIndex) -> (NodeId, Dof) {
         match self.try_dof_label(d) {
             Ok(label) => label,
-            // El trait no tiene canal de error. Centinela para una llamada
-            // fuera de contrato; try_dof_label devuelve ENG-E-0010.
+            // The trait has no error channel. Sentinel for a call
+            // outside the contract; try_dof_label returns ENG-E-0010.
             Err(_) => (NodeId(0), Dof::Ux),
         }
     }

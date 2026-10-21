@@ -1,11 +1,11 @@
-//! Tipos definitivos del motor, independientes de cualquier librería numérica.
+//! Definitive engine types, independent of any numerical library.
 use crate::*;
 
-/// Matriz densa fila-mayor para bloques de elemento y varias RHS.
+/// Row-major dense matrix for element blocks and multiple RHS.
 ///
-/// El constructor exige longitud
-/// rows × cols y datos finitos. Las unidades dependen de cada fila/columna
-/// (p. ej. fuerza/desplazamiento para una tangente).
+/// The constructor requires length
+/// rows × cols and finite data. Units depend on each row/column
+/// (e.g. force/displacement for a tangent).
 #[derive(Clone, Debug, PartialEq)]
 pub struct DMat {
     rows: usize,
@@ -13,8 +13,8 @@ pub struct DMat {
     pub(crate) values: Vec<Real>,
 }
 impl DMat {
-    /// Construye desde valores fila-mayor; ENG-E-0010 por tamaño/desbordamiento
-    /// y ENG-E-0008 por datos no finitos. No impone simetría.
+    /// Constructs from row-major values; ENG-E-0010 for size/overflow
+    /// and ENG-E-0008 for nonfinite data. Does not impose symmetry.
     pub fn new(rows: usize, cols: usize, values: Vec<Real>) -> EResult<Self> {
         let len = rows
             .checked_mul(cols)
@@ -23,27 +23,27 @@ impl DMat {
         finite(&values)?;
         Ok(Self { rows, cols, values })
     }
-    /// Crea almacenamiento nulo; ENG-E-0010 si el tamaño desborda o excede el
-    /// límite de reserva (8 GiB), sin pánico.
+    /// Creates zero storage; ENG-E-0010 if size overflows or exceeds the
+    /// allocation limit (8 GiB), without panicking.
     pub fn zeros(rows: usize, cols: usize) -> EResult<Self> {
         let len = rows
             .checked_mul(cols)
             .ok_or_else(|| invalid("Tamaño matricial desbordado."))?;
         Self::new(rows, cols, alloc_vec(len, 0.0)?)
     }
-    /// Número de filas.
+    /// Number of rows.
     pub fn rows(&self) -> usize {
         self.rows
     }
-    /// Número de columnas.
+    /// Number of columns.
     pub fn cols(&self) -> usize {
         self.cols
     }
-    /// Datos inmutables en orden fila-mayor.
+    /// Immutable data in row-major order.
     pub fn values(&self) -> &[Real] {
         &self.values
     }
-    /// Entrada (fila, columna), o None si está fuera de rango.
+    /// Entry (row, column), or None if out of range.
     pub fn get(&self, row: usize, col: usize) -> Option<Real> {
         if row < self.rows && col < self.cols {
             Some(self.values[row * self.cols + col])
@@ -53,14 +53,14 @@ impl DMat {
     }
 }
 
-/// Matriz simétrica densa fila-mayor para problemas pequeños.
+/// Row-major dense symmetric matrix for small problems.
 ///
-/// Almacena ambas mitades;
-/// exige simetría exacta para no introducir una tolerancia física implícita.
+/// Stores both halves;
+/// requires exact symmetry to avoid introducing an implicit physical tolerance.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SymMatrix(DMat);
 impl SymMatrix {
-    /// Valida cuadratura y simetría exacta; ENG-E-0010 si incumple.
+    /// Validates squareness and exact symmetry; ENG-E-0010 on violation.
     pub fn new(matrix: DMat) -> EResult<Self> {
         size(matrix.rows(), matrix.cols())?;
         for i in 0..matrix.rows() {
@@ -72,24 +72,24 @@ impl SymMatrix {
         }
         Ok(Self(matrix))
     }
-    /// Construye una matriz nula n × n; ENG-E-0010 si desborda.
+    /// Constructs an n × n zero matrix; ENG-E-0010 on overflow.
     pub fn zeros(n: usize) -> EResult<Self> {
         Self::new(DMat::zeros(n, n)?)
     }
-    /// Orden de la matriz.
+    /// Matrix order.
     pub fn order(&self) -> usize {
         self.0.rows()
     }
-    /// Vista inmutable del almacenamiento denso.
+    /// Immutable view of dense storage.
     pub fn dense(&self) -> &DMat {
         &self.0
     }
 }
 
-/// Patrón simétrico con coordenadas ordenadas y únicas.
+/// Symmetric pattern with sorted, unique coordinates.
 ///
-/// El constructor compatible recibe una máscara: true declara una entrada
-/// potencialmente no nula. No realiza ordenamiento ni análisis numérico.
+/// The compatible constructor takes a mask: true declares a
+/// potentially nonzero entry. Performs no ordering or numerical analysis.
 #[derive(Clone, Debug)]
 pub struct SparsityPattern {
     order: usize,
@@ -97,7 +97,7 @@ pub struct SparsityPattern {
     mask: std::sync::OnceLock<Vec<bool>>,
 }
 impl SparsityPattern {
-    /// Construye patrón simétrico n × n; ENG-E-0010 por tamaño o asimetría.
+    /// Constructs an n × n symmetric pattern; ENG-E-0010 for size or asymmetry.
     pub fn new(order: usize, entries: Vec<bool>) -> EResult<Self> {
         size(
             entries.len(),
@@ -122,8 +122,8 @@ impl SparsityPattern {
             mask: std::sync::OnceLock::from(entries),
         })
     }
-    /// Construye desde coordenadas; las ordena y deduplica sin una máscara densa.
-    /// ENG-E-0010 por desbordamiento, índices inválidos o asimetría estructural.
+    /// Constructs from coordinates; sorts and deduplicates them without a dense mask.
+    /// ENG-E-0010 for overflow, invalid indices, or structural asymmetry.
     pub fn from_coordinates(order: usize, mut coordinates: Vec<(usize, usize)>) -> EResult<Self> {
         order
             .checked_mul(order)
@@ -141,23 +141,23 @@ impl SparsityPattern {
             mask: std::sync::OnceLock::new(),
         })
     }
-    /// Entradas estructurales ordenadas por fila y columna, sin unidades.
+    /// Structural entries sorted by row and column, without units.
     pub fn coordinates(&self) -> &[(usize, usize)] {
         &self.coordinates
     }
-    /// Orden global del patrón.
+    /// Global pattern order.
     pub fn order(&self) -> usize {
         self.order
     }
-    /// ¿Contiene la entrada estructural (i, j)? O(log nnz), sin memoria extra.
-    /// Índices fuera de rango devuelven `false`.
+    /// Does it contain structural entry (i, j)? O(log nnz), without extra memory.
+    /// Out-of-range indices return `false`.
     pub fn contains(&self, row: usize, col: usize) -> bool {
         self.coordinates.binary_search(&(row, col)).is_ok()
     }
-    /// Máscara fila-mayor perezosa: `order²` valores `bool` en orden de fila y
-    /// columna, generados bajo demanda en memoria O(1) (sin materializar nada).
-    /// El número de elementos es `order²`, que puede ser enorme: no la recoja
-    /// con `collect` sin acotar el tamaño; use `try_entries` para eso.
+    /// Lazy row-major mask: `order²` `bool` values in row and
+    /// column order, generated on demand in O(1) memory (without materializing anything).
+    /// The number of elements is `order²`, which may be enormous: do not gather it
+    /// with `collect` without bounding the size; use `try_entries` for that.
     pub fn mask_iter(&self) -> impl Iterator<Item = bool> + '_ {
         let order = self.order;
         let mut next = self.coordinates.iter().peekable();
@@ -172,13 +172,13 @@ impl SparsityPattern {
                 }
             })
     }
-    /// Máscara inmutable fila-mayor compatible con los contratos anteriores.
-    /// Se materializa bajo demanda con memoria O(orden²) y **falla** en vez de
-    /// provocar pánico o aborto: ENG-E-0013 (capacidad no soportada) si
-    /// `orden²` desborda o supera el límite de reserva por destino
-    /// (`MAX_ALLOC_BYTES`: 8 GiB en 64 bits, 1 GiB en 32 bits), y ENG-E-0010 si
-    /// la reserva falla. Para patrones grandes use `coordinates`, `contains` o
-    /// `mask_iter`, que no materializan la máscara.
+    /// Immutable row-major mask compatible with previous contracts.
+    /// Materialized on demand with O(order²) memory and **fails** rather than
+    /// panicking or aborting: ENG-E-0013 (unsupported capability) if
+    /// `order²` overflows or exceeds the target's per-allocation limit
+    /// (`MAX_ALLOC_BYTES`: 8 GiB on 64-bit, 1 GiB on 32-bit), and ENG-E-0010 if
+    /// allocation fails. For large patterns use `coordinates`, `contains`, or
+    /// `mask_iter`, which do not materialize the mask.
     pub fn try_entries(&self) -> EResult<&[bool]> {
         if let Some(mask) = self.mask.get() {
             return Ok(mask);

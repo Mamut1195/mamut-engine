@@ -1,4 +1,4 @@
-//! Frontera dinámica de Kg: reducción, sustitución y errores atómicos.
+//! Dynamic Kg boundary: reduction, replacement, and atomic errors.
 use engine_assembly::{ElementContribution, GeometricProducer, LinearSystem, PrescribedDof};
 use engine_contracts::{conformance::check_system_view, CaseRef, SystemView};
 use engine_core::{Dim, Dof, DofIndex, EResult, EngineError, EntityRef, NodeId};
@@ -41,7 +41,7 @@ fn element(indices: [u32; 2], kg: Option<f64>) -> ElementContribution {
 }
 
 fn producer(indices: [u32; 2], scale: f64) -> GeometricProducer {
-    // Rc prueba que la API no impone Send/Sync. El resultado es determinista.
+    // Rc proves the API does not impose Send/Sync. The result is deterministic.
     let scale = Rc::new(scale);
     GeometricProducer {
         location: indices.map(DofIndex).to_vec(),
@@ -77,7 +77,7 @@ fn expands_prescribed_replaces_static_and_overwrites_in_element_order() {
     )
     .unwrap();
     let original = s.global_geometric().clone();
-    // Registro inverso al orden elemental: el ensamblaje mantiene este último.
+    // Registration reverses element order: assembly preserves the latter.
     s.set_geometric_producers(vec![producer([1, 2], 20.0), producer([0, 1], 10.0)])
         .unwrap();
     let mut out = sentinel();
@@ -238,7 +238,7 @@ fn standalone_and_ordered_locations_extend_pattern_and_sum_shared_dofs() {
     let mut out = sentinel();
     s.geometric(&[0.5, 0.25], &mut out).unwrap();
     assert_eq!(out.dense().values(), &[10.0, -5.0, -5.0, 5.0]);
-    // Un u finito no se rechaza por overflow de K*u, irrelevante para Kg.
+    // A finite u is not rejected for overflow of K*u, irrelevant to Kg.
     s.set_geometric_producers(vec![producer([0, 1], 0.0)])
         .unwrap();
     s.geometric(&[f64::MAX, f64::MAX], &mut out).unwrap();
@@ -304,7 +304,7 @@ fn partial_evaluations_and_overflowing_sums_leave_output_and_state_intact() {
         producer([1, 2], 0.75 * f64::MAX),
     ])
     .unwrap();
-    // Cada matriz es finita; la suma diagonal compartida desborda.
+    // Each matrix is finite; the shared diagonal sum overflows.
     code(s.geometric(&[1.0, 2.0], &mut out), "ENG-E-0008");
     assert_eq!(out, before);
     assert_eq!(s.trial_displacement(), &[0.1, 0.2]);
@@ -348,6 +348,6 @@ fn floating_point_accumulation_follows_original_element_order() {
     .unwrap();
     let mut out = sentinel();
     s.geometric(&[0.1, 0.2], &mut out).unwrap();
-    // (1e16−1e16)+1 = 1, mientras que (1−1e16)+1e16 = 0.
+    // (1e16−1e16)+1 = 1, whereas (1−1e16)+1e16 = 0.
     assert_eq!(out.dense().get(0, 0), Some(1.0));
 }

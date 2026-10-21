@@ -1,4 +1,4 @@
-//! Robustez ante dimensiones y magnitudes extremas (hallazgos J4 de ENG-LA-007).
+//! Robustness under extreme dimensions and magnitudes (J4 findings for ENG-LA-007).
 use engine_linalg::{DMat, LinAlgBackend, ReferenceBackend, SparseMatrix, SymMatrix, Triplet};
 
 fn dmat(rows: usize, cols: usize, v: &[f64]) -> DMat {
@@ -22,10 +22,10 @@ fn dense_extreme_dimensions_return_eng_e_0010_without_panic() {
     assert!(DMat::zeros(3, 4).is_ok());
 }
 
-/// Filas que superan el límite de reserva por destino (`1 << 40` no compila en wasm32).
+/// Rows exceeding the target allocation limit (`1 << 40` does not compile on wasm32).
 #[cfg(target_pointer_width = "64")]
 const HUGE_ROWS: usize = 1usize << 40;
-/// 2^29 filas × 4 B = 2 GiB > límite de 1 GiB en 32 bits.
+/// 2^29 rows × 4 B = 2 GiB > 1 GiB limit on 32-bit.
 #[cfg(not(target_pointer_width = "64"))]
 const HUGE_ROWS: usize = 1usize << 29;
 
@@ -41,7 +41,7 @@ fn sparse_extreme_dimensions_return_eng_e_0010_without_panic() {
         value: 1.0,
     }];
     assert!(SparseMatrix::from_triplets(2, usize::MAX, &t).is_ok());
-    // Densificar una matriz con columnas enormes también falla con error.
+    // Densifying a matrix with huge columns also fails with an error.
     let s = SparseMatrix::from_triplets(2, usize::MAX / 8, &t).unwrap();
     assert_eq!(s.to_dense().unwrap_err().code, "ENG-E-0010");
 }
@@ -93,7 +93,7 @@ fn ldlt_block_2x2_keeps_subnormal_rhs() {
     assert_eq!(x[0], 0.0);
     assert_eq!(x[1], 0.0);
     assert!(
-        (x[2] / 1e-310 - 1.0).abs() < 1e-3, /* 1e-320 es subnormal: ~0,05 % de resolución */
+        (x[2] / 1e-310 - 1.0).abs() < 1e-3, /* 1e-320 is subnormal: ~0.05 % resolution */
         "{}",
         x[2]
     );
@@ -134,15 +134,15 @@ fn mass_error(diag: &[f64]) -> (String, String) {
 
 #[test]
 fn singular_mass_error_is_independent_of_dof_order() {
-    // Singular con diagonal negativa: mismo código en cualquier permutación,
-    // y el GDL culpable es el nulo (índice original).
+    // Singular with negative diagonal: same code under any permutation,
+    // and the offending DOF is the zero one (original index).
     let (c1, m1) = mass_error(&[-1.0, 0.0]);
     let (c2, m2) = mass_error(&[0.0, -1.0]);
     assert_eq!(c1, "ENG-E-0006");
     assert_eq!(c1, c2);
     assert!(m1.contains("GDL 1"), "{m1}");
     assert!(m2.contains("GDL 0"), "{m2}");
-    // Todas las permutaciones de {1, 0, -1}: siempre singular, GDL nulo.
+    // All permutations of {1, 0, -1}: always singular, zero DOF.
     let base = [1.0, 0.0, -1.0];
     for p in [
         [0, 1, 2],
@@ -158,14 +158,14 @@ fn singular_mass_error_is_independent_of_dof_order() {
         assert_eq!(c, "ENG-E-0006", "{d:?}");
         assert!(m.contains(&format!("GDL {zero}")), "{d:?}: {m}");
     }
-    // Varios GDL nulos: se informa el de menor índice, sea cual sea el orden.
+    // Several zero DOFs: the smallest index is reported, regardless of order.
     for d in [[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]] {
         let first = d.iter().position(|&x| x == 0.0).unwrap();
         let (c, m) = mass_error(&d);
         assert_eq!(c, "ENG-E-0006");
         assert!(m.contains(&format!("GDL {first}")), "{d:?}: {m}");
     }
-    // Indefinida pero regular: ENG-E-0010 en cualquier orden.
+    // Indefinite but nonsingular: ENG-E-0010 in any order.
     assert_eq!(mass_error(&[-1.0, 1.0]).0, "ENG-E-0010");
     assert_eq!(mass_error(&[1.0, -1.0]).0, "ENG-E-0010");
 }
@@ -176,8 +176,8 @@ fn sym(n: usize, v: &[f64]) -> SymMatrix {
 
 #[test]
 fn pivot_threshold_is_invariant_to_diagonal_scaling() {
-    // T5 (J4): matrices definidas positivas con GDL de escalas muy distintas
-    // no son singulares; el veredicto no depende de D·A·D.
+    // T5 (J4): positive definite matrices with very differently scaled DOFs
+    // are not singular; the verdict does not depend on D·A·D.
     for (d0, d1) in [
         (1e6, 1e-9),
         (1e8, 1e-6),
@@ -196,7 +196,7 @@ fn pivot_threshold_is_invariant_to_diagonal_scaling() {
         let e = ReferenceBackend.generalized_eigen(&k, &m).unwrap();
         assert!((e.eigenvalues[0] - 2.0).abs() < 1e-12 && (e.eigenvalues[1] - 3.0).abs() < 1e-12);
     }
-    // Acoplada: D A D de una A bien condicionada se factoriza y resuelve igual.
+    // Coupled: D A D of a well-conditioned A factorizes and solves the same way.
     let base = [4.0, 1.0, 1.0, 3.0];
     let x_ref = [1.0, 2.0];
     for (s0, s1) in [(1e4, 1e-5), (1e-6, 1e6), (1.0, 1.0)] {
@@ -207,7 +207,7 @@ fn pivot_threshold_is_invariant_to_diagonal_scaling() {
             base[3] * s1 * s1,
         ];
         let f = ReferenceBackend.factorize(&sym(2, &a)).unwrap();
-        // A_s x_s = b_s con x_s = x_ref/s: b = A_s x_s.
+        // A_s x_s = b_s with x_s = x_ref/s: b = A_s x_s.
         let xs = [x_ref[0] / s0, x_ref[1] / s1];
         let mut b = dmat(
             2,
@@ -222,8 +222,8 @@ fn pivot_threshold_is_invariant_to_diagonal_scaling() {
 
 #[test]
 fn scaling_does_not_hide_true_singularity() {
-    // Singular de verdad (filas proporcionales) sigue dando ENG-E-0006 a
-    // cualquier escala diagonal; nula también.
+    // Truly singular (proportional rows) still gives ENG-E-0006 at
+    // any diagonal scale; a zero matrix too.
     for (s0, s1) in [(1.0, 1.0), (1e6, 1e-6), (1e-6, 1e6)] {
         let a = [s0 * s0, s0 * s1, s0 * s1, s1 * s1];
         let e = ReferenceBackend.factorize(&sym(2, &a)).err().unwrap();
@@ -252,9 +252,9 @@ fn scaling_does_not_hide_true_singularity() {
 
 #[test]
 fn equilibrated_ldlt_underflow_case_is_accurate_or_rejected() {
-    // J4 r3 (a): A=[[1e-200,1e-200],[1e-200,1]], b=[0,7.41e-224]. x1 ≈ 7.41e-224 y
-    // x0 = −x1 (de la fila 0). Antes (equilibrado sin cuidado) x0 salía −9.88e-224
-    // (33 % de error) y en main daba ENG-E-0006.
+    // J4 r3 (a): A=[[1e-200,1e-200],[1e-200,1]], b=[0,7.41e-224]. x1 ≈ 7.41e-224 and
+    // x0 = −x1 (from row 0). Previously (careless balancing) x0 was −9.88e-224
+    // (33 % error) and on main gave ENG-E-0006.
     let a = sym(2, &[1e-200, 1e-200, 1e-200, 1.0]);
     for b1 in [7.41e-224, 1e-224, 3.0e-100] {
         let b = dmat(2, 1, &[0.0, b1]);
@@ -266,7 +266,7 @@ fn equilibrated_ldlt_underflow_case_is_accurate_or_rejected() {
                     Err(e) => assert!(["ENG-E-0006", "ENG-E-0008"].contains(&e.code), "{e}"),
                     Ok(()) => {
                         let (x0, x1) = (x.values()[0], x.values()[1]);
-                        // Fila 0: x0 = −x1; fila 1: x1(1−1e-200) = b1 ⇒ x1 ≈ b1.
+                        // Row 0: x0 = −x1; row 1: x1(1−1e-200) = b1 ⇒ x1 ≈ b1.
                         let want1 = b1 / (1.0 - 1e-200);
                         assert!((x1 / want1 - 1.0).abs() < 1e-10, "{b1}: x1 {x1} vs {want1}");
                         assert!(
@@ -283,8 +283,8 @@ fn equilibrated_ldlt_underflow_case_is_accurate_or_rejected() {
 
 #[test]
 fn equilibrated_ldlt_rhs_near_f64_max_keeps_working() {
-    // J4 r3 (b): A=[[.5,.5],[.5,-.5]], b=[1.3e308, 0] devolvía ENG-E-0008
-    // (b·s desbordaba antes de normalizar); la solución es [1.3e308, 1.3e308].
+    // J4 r3 (b): A=[[.5,.5],[.5,-.5]], b=[1.3e308, 0] returned ENG-E-0008
+    // (b·s overflowed before normalization); the solution is [1.3e308, 1.3e308].
     let a = sym(2, &[0.5, 0.5, 0.5, -0.5]);
     let f = ReferenceBackend.factorize(&a).unwrap();
     let mut x = dmat(2, 1, &[1.3e308, 0.0]);
@@ -296,8 +296,8 @@ fn equilibrated_ldlt_rhs_near_f64_max_keeps_working() {
 
 #[test]
 fn equilibration_improves_coupled_scaling_without_promising_invariance() {
-    // J4 r3 (c): A acoplada y D·A·D. Se acepta en un rango amplio de D (Ruiz
-    // iterativo), sin prometer invariancia exacta fuera de él.
+    // J4 r3 (c): coupled A and D·A·D. Accepted over a wide range of D (iterative
+    // Ruiz), without promising exact invariance outside it.
     let base = [2.0, 1.9, 0.0, 1.9, 2.0, 1.0, 0.0, 1.0, 1.001];
     for e in [1.0, 1e2, 1e4, 1e6, 1e8] {
         let d = [e, 1.0 / e, 1.0];
@@ -325,21 +325,21 @@ fn generalized_eigen_with_extreme_mass_scaling() {
 
 #[test]
 fn empty_factorization_solve_with_huge_rhs_columns_terminates() {
-    // Preexistente (J4): factorize(0×0) + solve_in_place(B 0×usize::MAX) no terminaba.
+    // Preexisting (J4): factorize(0×0) + solve_in_place(B 0×usize::MAX) did not terminate.
     let a = SymMatrix::new(DMat::zeros(0, 0).unwrap()).unwrap();
     let f = ReferenceBackend.factorize(&a).unwrap();
     let mut b = DMat::zeros(0, usize::MAX).unwrap();
     f.solve_in_place(&mut b).unwrap();
     assert_eq!((b.rows(), b.cols()), (0, usize::MAX));
-    // Filas incompatibles siguen siendo error.
+    // Incompatible rows remain an error.
     let mut bad = DMat::zeros(1, 3).unwrap();
     assert!(f.solve_in_place(&mut bad).is_err());
 }
 
 #[test]
 fn rhs_spanning_more_than_1e300_loses_the_small_component_documented_limit() {
-    // Documenta el límite de #36: b=[1e300, 1e-30] → el componente pequeño se pierde
-    // (ver doc de LinAlgBackend). La solución grande sigue siendo correcta.
+    // Documents the limit of #36: b=[1e300, 1e-30] → the small component is lost
+    // (see LinAlgBackend docs). The large solution remains correct.
     let a = SymMatrix::new(dmat(2, 2, &[2.0, 0.0, 0.0, 2.0])).unwrap();
     let f = ReferenceBackend.factorize(&a).unwrap();
     let mut b = dmat(2, 1, &[1e300, 1e-30]);
@@ -371,7 +371,7 @@ fn factorization_control_interrupts_before_work_and_between_column_blocks() {
         .unwrap()
         .solve(&rhs)
         .unwrap();
-    assert_eq!(calls, 3); // Antes del equilibrado y tras 15 y 30 columnas.
+    assert_eq!(calls, 3); // Before balancing and after 15 and 30 columns.
     assert_eq!(
         actual
             .values()

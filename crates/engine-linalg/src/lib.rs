@@ -1,17 +1,17 @@
 #![forbid(unsafe_code)]
-//! Frontera numérica interna con tipos propios y errores del núcleo.
+//! Internal numerical boundary with custom types and core errors.
 //!
-//! `ReferenceBackend` es una implementación sencilla para pruebas y problemas
-//! pequeños: trabajo cúbico y memoria cuadrática, sin promesas de rendimiento.
-//! La feature `faer` reserva un stub: integración PENDIENTE de verificar los
-//! avisos de licencia del paquete 0.24.4; véase README.md de este crate.
-//! Las magnitudes conservan las unidades SI de sus filas y columnas; este crate
-//! no convierte unidades ni conoce el mapa entre índices globales y nodos.
-//! V1 usa la referencia secuencial, sin SIMD explícito ni FMA implícito.
-//! El orden de reducción y la excepción FMA explícita de Sturm se documentan
-//! en `docs/DETERMINISMO.md` (ENG-CORE-010). Las funciones escalares pasan por
-//! `engine_core::math`: libm 0.2.16 (MIT) salvo sqrt, correctamente redondeada
-//! IEEE-754 en std. El cruce nativo/wasm verifica resultados y bits escalares.
+//! `ReferenceBackend` is a simple implementation for tests and small
+//! problems: cubic work and quadratic memory, without performance promises.
+//! The `faer` feature reserves a stub: integration PENDING verification of the
+//! 0.24.4 package license notices; see this crate's README.md.
+//! Quantities retain the SI units of their rows and columns; this crate
+//! does not convert units or know the mapping between global indices and nodes.
+//! V1 uses the sequential reference, without explicit SIMD or implicit FMA.
+//! Reduction order and the explicit Sturm FMA exception are documented
+//! in `docs/DETERMINISMO.md` (ENG-CORE-010). Scalar functions go through
+//! `engine_core::math`: libm 0.2.16 (MIT) except sqrt, correctly rounded
+//! IEEE-754 in std. The native/wasm cross-check verifies results and scalar bits.
 //!
 //! ```
 //! use engine_linalg::{DMat, LinAlgBackend, ReferenceBackend};
@@ -41,38 +41,38 @@ mod faer_backend;
 #[cfg(feature = "faer")]
 pub use faer_backend::FaerBackend;
 
-/// Información numérica de una factorización simétrica sin regularización.
+/// Numerical information for a symmetric factorization without regularization.
 #[derive(Clone, Debug, PartialEq)]
 pub struct FactorInfo {
-    /// Conteos (positivos, negativos, nulos), si el backend los ofrece.
-    /// El control de Sturm usa el número de negativos de esta inercia.
+    /// Counts (positive, negative, zero), if the backend provides them.
+    /// The Sturm check uses the number of negatives in this inertia.
     pub inertia: Option<(usize, usize, usize)>,
-    /// Mínimo valor absoluto de pivote dividido por el máximo, si se conoce.
-    /// En bloques 2×2 se usan sus dos autovalores, no solo la diagonal.
-    /// Es un indicador adimensional, no una estimación del número de condición.
+    /// Minimum absolute pivot value divided by the maximum, if known.
+    /// For 2×2 blocks, their two eigenvalues are used, not just the diagonal.
+    /// It is a dimensionless indicator, not a condition number estimate.
     pub min_pivot_ratio: Option<Real>,
-    /// Índices globales de pivotes singulares detectados, contados desde cero.
-    /// Una factorización singular devuelve ENG-E-0006 con estas entidades;
-    /// el ensamblador futuro deberá traducirlas a nodo y componente física.
+    /// Global indices of detected singular pivots, counted from zero.
+    /// A singular factorization returns ENG-E-0006 with these entities;
+    /// the future assembler must map them to node and physical component.
     pub singular_dofs: Vec<DofIndex>,
 }
 
-/// Factor reutilizable; resolver no refactoriza ni modifica el factor.
+/// Reusable factor; solving neither refactorizes nor modifies the factor.
 pub trait SymFactorization {
-    /// Metadatos de la factorización numérica.
+    /// Numerical factorization metadata.
     fn info(&self) -> &FactorInfo;
-    /// Si la factorización usó bloques 2×2 para evaluar su inercia.
-    /// None indica que el backend no publica este dato.
+    /// Whether the factorization used 2×2 blocks to evaluate its inertia.
+    /// None indicates the backend does not publish this data.
     fn uses_2x2_pivots(&self) -> Option<bool> {
         None
     }
-    /// Resuelve todas las columnas de `b` y las reemplaza por `x` en `Ax=b`.
+    /// Solves all columns of `b` and replaces them with `x` in `Ax=b`.
     ///
-    /// `b.rows()` debe coincidir con el orden del factor. Cero columnas es válido.
-    /// ENG-E-0010 indica tamaño incompatible, ENG-E-0008 datos o resultado no
-    /// finitos. Ante un error `b` se conserva completo, sin escritura parcial.
+    /// `b.rows()` must match the factor order. Zero columns is valid.
+    /// ENG-E-0010 indicates incompatible size, ENG-E-0008 nonfinite data or
+    /// result. On error, all of `b` is preserved, without partial writes.
     fn solve_in_place(&self, b: &mut DMat) -> EResult<()>;
-    /// Devuelve una solución nueva, conservando la matriz de cargas original.
+    /// Returns a new solution, preserving the original load matrix.
     fn solve(&self, b: &DMat) -> EResult<DMat> {
         let mut x = b.clone();
         self.solve_in_place(&mut x)?;
@@ -80,64 +80,64 @@ pub trait SymFactorization {
     }
 }
 
-/// Todos los autovalores densos ordenados y sus autovectores como columnas.
+/// All ordered dense eigenvalues and their eigenvectors as columns.
 #[derive(Clone, Debug, PartialEq)]
 pub struct GeneralizedEigen {
-    /// Valores ascendentes de λ en `Kφ=λMφ`; unidades de K divididas por M.
+    /// Ascending values of λ in `Kφ=λMφ`; units of K divided by M.
     pub eigenvalues: Vec<Real>,
-    /// Columnas normalizadas: `φᵢᵀMφⱼ=δᵢⱼ` dentro de precisión numérica.
-    /// La componente de mayor módulo es positiva; multiplicidades pueden
-    /// producir bases distintas del mismo subespacio según el backend.
+    /// Normalized columns: `φᵢᵀMφⱼ=δᵢⱼ` within numerical precision.
+    /// The component of greatest magnitude is positive; multiplicities may
+    /// produce different bases of the same subspace depending on the backend.
     pub vectors: DMat,
 }
 
-/// Contrato independiente del proveedor de álgebra lineal.
+/// Contract independent of the linear algebra provider.
 ///
-/// Cada método conserva sus entradas y valida finitud/dimensiones. No modifica
-/// rigidez ni masa mediante desplazamientos o regularización ocultos. Los
-/// índices matriciales son la numeración de GDL que aporta el llamador.
-/// Factorizar/solve usa ENG-E-0006 para singularidad con entidad GDL;
-/// autovalores usa ENG-E-0007 si no converge. La masa debe ser definida positiva:
-/// una masa singular se rechaza con ENG-E-0006 sin producir NaN; una masa
-/// indefinida con ENG-E-0010. La reducción explícita de GDL sin masa está en [`guyan_condense`].
-/// En factorización simétrica y masa (Cholesky) la matriz se equilibra antes con
-/// `S A S` (equilibrado iterativo tipo Ruiz) para tolerar GDL de escalas muy
-/// distintas. Esto MITIGA, no garantiza, la invariancia al reescalado diagonal
-/// `D A D`: es exacta para matrices diagonales y fiable en acopladas de escalado
-/// moderado, pero no se promete para rangos extremos. Un pivote es
-/// numéricamente singular si su módulo es
-/// ≤ `64 ε max(n,1)` tras dividir la matriz (equilibrada) por su entrada de mayor módulo.
-/// LÍMITE de `solve_in_place`: cada columna de `b` se normaliza por su entrada de
-/// mayor módulo; si las entradas de una misma columna abarcan más de ~1e300 de
-/// rango (cociente < ~1e-300) el componente pequeño subdesborda y se pierde
-/// (aporta 0 a la solución). Es un límite de f64 y no se señala como error.
-/// Por ello no se garantiza resolver matrices muy mal condicionadas. La
-/// política es numérica, adimensional y explícita; no es una tolerancia física.
+/// Each method preserves its inputs and validates finiteness/dimensions. Does not modify
+/// stiffness or mass through hidden shifts or regularization. Matrix
+/// indices are the DOF numbering supplied by the caller.
+/// Factorization/solve uses ENG-E-0006 for singularity with a DOF entity;
+/// eigenvalues use ENG-E-0007 on nonconvergence. Mass must be positive definite:
+/// singular mass is rejected with ENG-E-0006 without producing NaN; indefinite
+/// mass with ENG-E-0010. Explicit massless DOF reduction is in [`guyan_condense`].
+/// For symmetric factorization and mass (Cholesky), the matrix is first balanced with
+/// `S A S` (Ruiz-type iterative balancing) to tolerate DOFs with very
+/// different scales. This MITIGATES, but does not guarantee, invariance under diagonal rescaling
+/// `D A D`: it is exact for diagonal matrices and reliable for coupled matrices with
+/// moderate scaling, but is not promised for extreme ranges. A pivot is
+/// numerically singular if its magnitude is
+/// ≤ `64 ε max(n,1)` after dividing the (balanced) matrix by its entry of greatest magnitude.
+/// LIMIT of `solve_in_place`: each column of `b` is normalized by its entry of
+/// greatest magnitude; if entries in the same column span a range greater than ~1e300
+/// (ratio < ~1e-300), the small component underflows and is lost
+/// (contributes 0 to the solution). This is an f64 limit and is not reported as an error.
+/// Therefore, solving very ill-conditioned matrices is not guaranteed. The
+/// policy is numerical, dimensionless, and explicit; it is not a physical tolerance.
 pub trait LinAlgBackend {
-    /// Nombre descriptivo propio del backend, sin dependencia del formato externo.
+    /// Custom descriptive backend name, independent of the external format.
     fn name(&self) -> &'static str;
-    /// Calcula `a b`; ENG-E-0010 si `a.cols()!=b.rows()`.
+    /// Computes `a b`; ENG-E-0010 if `a.cols()!=b.rows()`.
     fn matmul(&mut self, a: &DMat, b: &DMat) -> EResult<DMat>;
-    /// Transpone una matriz rectangular, conservando sus magnitudes.
+    /// Transposes a rectangular matrix, preserving its quantities.
     fn transpose(&mut self, a: &DMat) -> EResult<DMat>;
-    /// Resuelve un sistema denso cuadrado, posiblemente no simétrico, con varias RHS.
-    /// ENG-E-0010 por cuadratura/tamaños y ENG-E-0006 por singularidad.
+    /// Solves a square dense, possibly nonsymmetric system with multiple RHS.
+    /// ENG-E-0010 for squareness/sizes and ENG-E-0006 for singularity.
     fn solve_dense(&mut self, a: &DMat, b: &DMat) -> EResult<DMat>;
-    /// Ensambla tripletas generales en CSR, sumando duplicados en orden de entrada.
+    /// Assembles general triplets into CSR, summing duplicates in input order.
     ///
-    /// Cada tripleta representa una sola entrada, sin reflejo automático ni
-    /// división por dos. Para simetría se aportan ambas mitades. Los ceros
-    /// explícitos se retienen en el patrón. ENG-E-0010 por índices fuera de rango
-    /// y ENG-E-0008 por valores o sumas no finitos.
+    /// Each triplet represents a single entry, without automatic mirroring or
+    /// division by two. Both halves are supplied for symmetry. Explicit
+    /// zeros are retained in the pattern. ENG-E-0010 for out-of-range indices
+    /// and ENG-E-0008 for nonfinite values or sums.
     fn assemble(&mut self, rows: usize, cols: usize, entries: &[Triplet]) -> EResult<SparseMatrix> {
         SparseMatrix::from_triplets(rows, cols, entries)
     }
-    /// Factoriza una matriz simétrica densa una sola vez, sin regularización.
-    /// El factor posee sus datos y puede sobrevivir al backend y a la matriz.
+    /// Factorizes a dense symmetric matrix once, without regularization.
+    /// The factor owns its data and may outlive the backend and matrix.
     fn factorize(&mut self, a: &SymMatrix) -> EResult<Box<dyn SymFactorization>>;
-    /// Factoriza consultando un control que puede interrumpir con su propio error.
-    /// Por defecto consulta antes de factorizar; ReferenceBackend consulta además
-    /// entre bloques de hasta 16 columnas, sin alterar las operaciones numéricas.
+    /// Factorizes while querying a control that may interrupt with its own error.
+    /// By default queries before factorizing; ReferenceBackend also queries
+    /// between blocks of up to 16 columns, without altering numerical operations.
     fn factorize_with_check(
         &mut self,
         a: &SymMatrix,
@@ -146,24 +146,24 @@ pub trait LinAlgBackend {
         check()?;
         self.factorize(a)
     }
-    /// Inercia (positivos, negativos, nulos) por congruencia LDLᵀ.
+    /// Inertia (positive, negative, zero) by LDLᵀ congruence.
     ///
-    /// Por defecto consulta el factor; ENG-E-0013 si no ofrece inercia.
-    /// El backend de referencia admite matrices singulares para este conteo,
-    /// con la misma tolerancia numérica de pivotes que `factorize`, pero sin
-    /// entregar un factor singular para resolver. Otros backends pueden
-    /// devolver ENG-E-0006 si el desplazamiento coincide con un autovalor.
+    /// By default queries the factor; ENG-E-0013 if it does not provide inertia.
+    /// The reference backend allows singular matrices for this count,
+    /// with the same numerical pivot tolerance as `factorize`, but without
+    /// providing a singular factor for solving. Other backends may
+    /// return ENG-E-0006 if the shift coincides with an eigenvalue.
     fn symmetric_inertia(&mut self, a: &SymMatrix) -> EResult<(usize, usize, usize)> {
         self.factorize(a)?
             .info()
             .inertia
             .ok_or_else(|| unsupported("El backend no ofrece inercia para el control de Sturm."))
     }
-    /// Resuelve el problema generalizado denso con masa definida positiva.
-    /// ENG-E-0010 si los órdenes difieren; véase la política de masa del trait.
+    /// Solves the dense generalized problem with positive definite mass.
+    /// ENG-E-0010 if orders differ; see the trait's mass policy.
     fn generalized_eigen(&mut self, k: &SymMatrix, m: &SymMatrix) -> EResult<GeneralizedEigen>;
-    /// Modos más bajos normalizados a masa con control de completitud de Sturm.
-    /// Véanse [`lowest_modes`] y [`LowestModes`] para tolerancias y diagnósticos.
+    /// Lowest mass-normalized modes with a Sturm completeness check.
+    /// See [`lowest_modes`] and [`LowestModes`] for tolerances and diagnostics.
     fn lowest_modes(&mut self, k: &SymMatrix, m: &SymMatrix, count: usize) -> EResult<LowestModes> {
         lowest_modes(self, k, m, count)
     }
@@ -172,23 +172,23 @@ pub trait LinAlgBackend {
 pub(crate) fn invalid(message: &str) -> EngineError {
     EngineError::new("ENG-E-0010", message)
 }
-/// Límite de una reserva individual de almacenamiento numérico, por destino.
+/// Limit on an individual numerical storage allocation, per target.
 ///
-/// Evita pánicos de capacidad (`capacity overflow`) y abortos por falta de
-/// memoria ante dimensiones extremas; más allá de este tamaño el motor denso no
-/// es el camino correcto (solver disperso, ENG-LA-008).
-/// En destinos de 64 bits el tope es 8 GiB; en destinos de 32 bits (p. ej.
-/// wasm32) es 1 GiB, explícito, porque `isize::MAX` (≈2 GiB) no limitaría en la práctica.
+/// Avoids capacity panics (`capacity overflow`) and out-of-memory
+/// aborts for extreme dimensions; beyond this size the dense engine is
+/// not the appropriate path (sparse solver, ENG-LA-008).
+/// On 64-bit targets the cap is 8 GiB; on 32-bit targets (e.g.
+/// wasm32) it is explicitly 1 GiB, because `isize::MAX` (≈2 GiB) would not limit it in practice.
 #[cfg(target_pointer_width = "64")]
 pub(crate) const MAX_ALLOC_BYTES: usize = 1 << 33;
 
-// 8 GiB no cabe en usize de 32 bits: tope explícito de 1 GiB.
+// 8 GiB does not fit in 32-bit usize: explicit cap of 1 GiB.
 #[cfg(not(target_pointer_width = "64"))]
 pub(crate) const MAX_ALLOC_BYTES: usize = 1 << 30;
 
-/// Crea un `Vec` de `len` copias de `fill` con reserva fallible y acotada.
-/// ENG-E-0010 con diagnóstico (elementos, bytes, límite) si excede el límite o
-/// la reserva falla; nunca provoca pánico.
+/// Creates a `Vec` of `len` copies of `fill` with fallible, bounded allocation.
+/// ENG-E-0010 with a diagnostic (elements, bytes, limit) if it exceeds the limit or
+/// allocation fails; never panics.
 pub(crate) fn alloc_vec<T: Clone>(len: usize, fill: T) -> EResult<Vec<T>> {
     let bytes = len
         .checked_mul(std::mem::size_of::<T>())

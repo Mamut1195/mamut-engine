@@ -1,4 +1,4 @@
-//! Aportes en ejes globales, ensamblados sin transformación ni elemento finito.
+//! Contributions in global axes, assembled without transformation or finite element.
 use crate::DofMap;
 use crate::{error, finite, size};
 use engine_contracts::CaseRef;
@@ -8,39 +8,39 @@ use engine_linalg::{DMat, LinAlgBackend, SparseMatrix, Triplet};
 use engine_model::Model;
 use std::collections::{BTreeMap, BTreeSet};
 
-/// Fuerzas nodales equivalentes de un elemento para un caso declarado.
+/// Equivalent nodal forces of an element for a declared case.
 #[derive(Clone, Debug)]
 pub struct ElementLoad {
-    /// Caso exacto, sin normalización de nombre ni caso implícito.
+    /// Exact case, without name normalization or an implicit case.
     pub case: CaseRef,
-    /// Vector global en el orden de location: N para traslaciones, N·m para giros.
+    /// Global vector in location order: N for translations, N·m for rotations.
     pub values: Vec<Real>,
 }
 
-/// Interfaz de entrada de un aporte elemental lineal, sin evaluar Element.
+/// Input interface for a linear element contribution, without evaluating Element.
 ///
-/// Cada fila/columna sigue location. El llamador obtiene estas matrices desde
-/// Element u otro productor y realiza previamente las transformaciones globales.
-/// K/Kg: N/m, N, N·m según fila/columna; masas: kg, kg·m, kg·m².
-/// Las matrices deben ser cuadradas, simétricas exactamente y finitas.
-/// None en masa/Kg significa aporte nulo, sin inferir una masa de otra clase.
-/// Kg es una matriz ya evaluada por el productor en su estado de referencia
-/// (u=0 salvo `LinearSystem::set_geometric_reference`);
-/// permanece constante salvo sustitución por un GeometricProducer registrado
-/// con exactamente la misma location, incluido su orden.
+/// Each row/column follows location. The caller obtains these matrices from
+/// Element or another producer and performs global transformations beforehand.
+/// K/Kg: N/m, N, N·m according to row/column; masses: kg, kg·m, kg·m².
+/// Matrices must be square, exactly symmetric, and finite.
+/// None for mass/Kg means zero contribution, without inferring mass of another type.
+/// Kg is a matrix already evaluated by the producer at its reference state
+/// (u=0 unless `LinearSystem::set_geometric_reference` is used);
+/// it remains constant unless replaced by a registered GeometricProducer
+/// with exactly the same location, including its order.
 #[derive(Clone, Debug)]
 pub struct ElementContribution {
-    /// Índices globales distintos en el orden de los vectores y matrices.
+    /// Distinct global indices in vector and matrix order.
     pub location: Vec<DofIndex>,
-    /// Rigidez global elemental K.
+    /// Global element stiffness K.
     pub stiffness: DMat,
-    /// Masa concentrada global, si el productor la proporciona.
+    /// Global lumped mass, if the producer provides it.
     pub mass_lumped: Option<DMat>,
-    /// Masa consistente global, si el productor la proporciona.
+    /// Global consistent mass, if the producer provides it.
     pub mass_consistent: Option<DMat>,
-    /// Rigidez geométrica global en un estado de referencia explícito.
+    /// Global geometric stiffness at an explicit reference state.
     pub geometric: Option<DMat>,
-    /// Fuerzas equivalentes por caso; los aportes repetidos se suman en este orden.
+    /// Equivalent forces per case; repeated contributions are summed in this order.
     pub loads: Vec<ElementLoad>,
 }
 
@@ -60,13 +60,13 @@ pub(crate) fn location(order: usize, indices: &[DofIndex]) -> EResult<()> {
     Ok(())
 }
 
-/// Tolerancia de simetría de [`assemble_matrix`]: exacta (0), sin tolerancia
-/// física implícita. ASM-002 puede usar [`assemble_matrix_with_tolerance`].
+/// Symmetry tolerance of [`assemble_matrix`]: exact (0), without implicit physical
+/// tolerance. ASM-002 may use [`assemble_matrix_with_tolerance`].
 pub const EXACT_SYMMETRY: Real = 0.0;
 
-/// Ensambla bloques simétricos con simetría exacta ([`EXACT_SYMMETRY`]).
+/// Assembles symmetric blocks with exact symmetry ([`EXACT_SYMMETRY`]).
 ///
-/// Equivale a [`assemble_matrix_with_tolerance`] con tolerancia 0.
+/// Equivalent to [`assemble_matrix_with_tolerance`] with tolerance 0.
 pub fn assemble_matrix<B: LinAlgBackend>(
     backend: &mut B,
     order: usize,
@@ -75,19 +75,19 @@ pub fn assemble_matrix<B: LinAlgBackend>(
     assemble_matrix_with_tolerance(backend, order, blocks, EXACT_SYMMETRY)
 }
 
-/// Ensambla bloques simétricos mediante tripletas del backend.
+/// Assembles symmetric blocks through backend triplets.
 ///
-/// blocks contiene (ubicación global, matriz elemental). Se emiten ambas
-/// mitades y ceros explícitos, en orden de bloques, fila y columna. Las sumas
-/// coincidentes siguen ese orden determinista; no se itera HashMap.
-/// `symmetry_tolerance` es relativa y no negativa: cada bloque exige
-/// `|a_ij − a_ji| ≤ tol · máx|a|` del bloque. Con 0 la simetría es exacta. Con
-/// tol > 0 se emite la media `(a_ij + a_ji)/2` en ambas mitades, de modo que lo
-/// ensamblado es exactamente simétrico.
-/// ENG-E-0010 por tamaños/índices/asimetría o tolerancia negativa/no finita;
-/// ENG-E-0002 por ubicación duplicada; ENG-E-0008 por datos o acumulaciones no
-/// finitos. La salida conserva ceros estructurales para construir el patrón,
-/// incluso en cancelaciones numéricas.
+/// blocks contains (global location, element matrix). Both halves
+/// and explicit zeros are emitted, in block, row, and column order. Coincident
+/// sums follow that deterministic order; no HashMap is iterated.
+/// `symmetry_tolerance` is relative and nonnegative: each block requires
+/// `|a_ij − a_ji| ≤ tol · máx|a|` for the block. With 0, symmetry is exact. With
+/// tol > 0 the mean `(a_ij + a_ji)/2` is emitted in both halves, so the
+/// assembled matrix is exactly symmetric.
+/// ENG-E-0010 for sizes/indices/asymmetry or negative/nonfinite tolerance;
+/// ENG-E-0002 for duplicate location; ENG-E-0008 for nonfinite data or
+/// accumulations. Output preserves structural zeros to construct the pattern,
+/// even under numerical cancellation.
 pub fn assemble_matrix_with_tolerance<B: LinAlgBackend>(
     backend: &mut B,
     order: usize,
@@ -110,10 +110,10 @@ pub fn assemble_matrix_with_tolerance<B: LinAlgBackend>(
         for i in 0..indices.len() {
             for j in 0..i {
                 let (a, b) = (at(i, j), at(j, i));
-                // NaN o infinitos se rechazan SIEMPRE (también ∞ ≤ ∞) y la diferencia
-                // se compara sin desbordar: |a−b| ≤ |a|+|b| puede ser ∞ con a,b finitos.
-                // La diferencia se calcula directamente (exacta para subnormales: 5e-324
-                // frente a 0 es asimétrico con tol=0); solo si desborda se compara con mitades.
+                // NaN or infinities are ALWAYS rejected (including ∞ ≤ ∞) and the difference
+                // is compared without overflow: |a−b| ≤ |a|+|b| may be ∞ with finite a,b.
+                // The difference is computed directly (exact for subnormals: 5e-324
+                // versus 0 is asymmetric with tol=0); only on overflow are halves compared.
                 let diff = (a - b).abs();
                 let symmetric = a.is_finite()
                     && b.is_finite()
@@ -131,8 +131,8 @@ pub fn assemble_matrix_with_tolerance<B: LinAlgBackend>(
         for (i, row) in indices.iter().enumerate() {
             for (j, col) in indices.iter().enumerate() {
                 let (a, b) = (at(i, j), at(j, i));
-                // a == b se conserva exacto (también subnormales); la media usa la suma
-                // directa y solo recurre a mitades si la suma desborda.
+                // a == b is preserved exactly (including subnormals); the mean uses the direct
+                // sum and only falls back to halves if the sum overflows.
                 let value = if a == b || symmetry_tolerance == 0.0 {
                     a
                 } else if (a + b).is_finite() {
@@ -151,10 +151,10 @@ pub fn assemble_matrix_with_tolerance<B: LinAlgBackend>(
     backend.assemble(order, order, &entries)
 }
 
-/// Suma un vector elemental global a out en su ubicación (N/N·m).
+/// Adds a global element vector to out at its location (N/N·m).
 ///
-/// ENG-E-0010 por tamaño/índices, ENG-E-0002 por ubicación duplicada,
-/// ENG-E-0008 por entradas o sumas no finitas. Ante error out queda intacto.
+/// ENG-E-0010 for size/indices, ENG-E-0002 for duplicate location,
+/// ENG-E-0008 for nonfinite inputs or sums. On error out remains intact.
 pub fn assemble_vector(out: &mut [Real], indices: &[DofIndex], values: &[Real]) -> EResult<()> {
     location(out.len(), indices)?;
     size(values.len(), indices.len())?;
@@ -185,7 +185,7 @@ pub(crate) fn multiply(matrix: &SparseMatrix, u: &[Real]) -> EResult<Vec<Real>> 
     Ok(result)
 }
 
-/// Matrices y fuerzas globales antes de aplicar la partición libre/prescrita.
+/// Global matrices and forces before applying the free/prescribed partition.
 pub(crate) struct GlobalAssembly {
     pub k: SparseMatrix,
     pub lumped: SparseMatrix,
@@ -269,7 +269,7 @@ pub(crate) fn assemble_model<B: LinAlgBackend>(
             .get_mut(&case.name)
             .ok_or_else(|| missing_case(&CaseRef(case.name.clone())))?;
         for load in &case.loads {
-            // Verifica referencias incluso si la lista de componentes está vacía.
+            // Checks references even if the component list is empty.
             check_node(map, load.node)?;
             for value in &load.values {
                 assemble_vector(
@@ -321,7 +321,7 @@ pub(crate) fn assemble_model<B: LinAlgBackend>(
     })
 }
 
-/// K y M son semidefinidas positivas: una diagonal negativa lo contradice.
+/// K and M are positive semidefinite: a negative diagonal contradicts this.
 fn non_negative_diagonal(matrix: &DMat, message: &str) -> EResult<()> {
     for i in 0..matrix.rows().min(matrix.cols()) {
         if matrix.get(i, i).is_some_and(|v| v < 0.0) {

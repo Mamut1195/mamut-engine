@@ -1,4 +1,4 @@
-//! Valores esperados derivados de identidades y soluciones cerradas propias.
+//! Expected values derived from identities and independently derived closed-form solutions.
 use engine_core::math;
 use engine_core::{DofIndex, EngineError, EntityRef};
 use engine_linalg::*;
@@ -35,7 +35,7 @@ fn residual(a: &DMat, x: &DMat, b: &DMat, tol: f64) {
             numerator += math::powi(ax - b.get(i, col).unwrap(), 2);
             denominator += math::powi(b.get(i, col).unwrap(), 2);
         }
-        // RHS nula: norma absoluta; las cargas no nulas usan norma euclídea relativa.
+        // Zero RHS: absolute norm; nonzero loads use relative Euclidean norm.
         let error = if denominator == 0.0 {
             math::sqrt(numerator)
         } else {
@@ -72,7 +72,7 @@ fn check_error<T>(result: Result<T, EngineError>, code: &str) -> EngineError {
     }
 }
 
-/// Suite única, genérica: mismo contrato y tolerancias para cada backend.
+/// Single generic suite: same contract and tolerances for each backend.
 fn conformidad(backend: &mut impl LinAlgBackend) {
     let a = mat(3, 3, &[4.0, 1.0, -1.0, 2.0, 7.0, 1.0, 0.0, -2.0, 5.0]);
     let inverse = backend.solve_dense(&a, &identity(3)).unwrap();
@@ -176,12 +176,12 @@ fn conformidad(backend: &mut impl LinAlgBackend) {
             (2, 1, 0),
         ),
         (sym(2, &[0.0, 1.0, 1.0, 0.0]), (1, 1, 0)),
-        // Congruencia A=L D Lᵀ, L=[[1,0,0],[1,1,0],[2,-1,1]], D=diag(2,-3,4).
+        // Congruence A=L D Lᵀ, L=[[1,0,0],[1,1,0],[2,-1,1]], D=diag(2,-3,4).
         (
             sym(3, &[2.0, 2.0, 4.0, 2.0, -1.0, 7.0, 4.0, 7.0, 9.0]),
             (2, 1, 0),
         ),
-        // Permutación que coloca el bloque 2×2 fuera de las primeras posiciones.
+        // Permutation placing the 2×2 block outside the first positions.
         (
             sym(3, &[0.0, 0.0, 1.0, 0.0, 2.0, 0.0, 1.0, 0.0, 0.0]),
             (2, 1, 0),
@@ -213,8 +213,8 @@ fn conformidad(backend: &mut impl LinAlgBackend) {
         let modes = backend.generalized_eigen(&k, &mass).unwrap();
         let mscale = mass.dense().get(0, 0).unwrap();
         for col in 0..8 {
-            // Fórmula clásica de Toeplitz tridiagonal, derivación propia por seno
-            // en provenance/ENG-LA-007.md; cita bibliográfica precisa PENDIENTE.
+            // Classical tridiagonal Toeplitz formula, independently derived through sine
+            // in provenance/ENG-LA-007.md; precise bibliographic citation PENDING.
             let exact =
                 (2.0 - 2.0 * math::cos((col + 1) as f64 * std::f64::consts::PI / 9.0)) / mscale;
             close(modes.eigenvalues[col], exact, 2e-12);
@@ -243,7 +243,7 @@ fn conformidad(backend: &mut impl LinAlgBackend) {
             }
         }
     }
-    // Masa no diagonal: K=3M ⇒ λ=3 (multiplicidad), prueba por subespacio.
+    // Nondiagonal mass: K=3M ⇒ λ=3 (multiplicity), subspace test.
     let m = sym(2, &[2.0, 0.5, 0.5, 1.0]);
     let k = sym(2, &[6.0, 1.5, 1.5, 3.0]);
     let modes = backend.generalized_eigen(&k, &m).unwrap();
@@ -269,7 +269,7 @@ fn conformidad(backend: &mut impl LinAlgBackend) {
         }
     }
 
-    // det(K-λM)=12-10λ+(7/4)λ² ⇒ λ=12/7 y 4.
+    // det(K-λM)=12-10λ+(7/4)λ² ⇒ λ=12/7 and 4.
     let k_mixed = sym(2, &[4.0, 0.0, 0.0, 3.0]);
     let mixed = backend.generalized_eigen(&k_mixed, &m).unwrap();
     for (col, expected) in [12.0 / 7.0, 4.0].into_iter().enumerate() {
@@ -478,10 +478,10 @@ fn matrix_validation_and_sparse_storage() {
 #[test]
 fn pattern_dense_mask_is_fallible_for_extreme_orders() {
     let huge = SparsityPattern::from_coordinates(usize::MAX, vec![(0, 0)]);
-    // from_coordinates rechaza orden² desbordado (ENG-E-0010) y por tanto no hay patrón.
+    // from_coordinates rejects overflowing orden² (ENG-E-0010), so there is no pattern.
     check_error(huge, "ENG-E-0010");
-    // Orden grande sin desbordar pero con máscara densa sobre el límite.
-    // Orden² > límite por destino sin desbordar usize: 2^40 B (> 8 GiB) en 64 bits; 1,6e9 B (> 1 GiB) en 32 bits.
+    // Large order without overflow but with a dense mask over the limit.
+    // Orden² > target limit without overflowing usize: 2^40 B (> 8 GiB) on 64-bit; 1.6e9 B (> 1 GiB) on 32-bit.
     #[cfg(target_pointer_width = "64")]
     let order = 1usize << 20;
     #[cfg(not(target_pointer_width = "64"))]
@@ -489,7 +489,7 @@ fn pattern_dense_mask_is_fallible_for_extreme_orders() {
     let p = SparsityPattern::from_coordinates(order, vec![(0, 0), (order - 1, order - 1)]).unwrap();
     assert_eq!(p.coordinates().len(), 2);
     check_error(p.try_entries(), "ENG-E-0013");
-    // Las vías perezosas funcionan sin materializar.
+    // Lazy paths work without materializing.
     assert!(p.contains(order - 1, order - 1) && !p.contains(0, 1));
     assert_eq!(
         p.mask_iter().take(3).collect::<Vec<_>>(),

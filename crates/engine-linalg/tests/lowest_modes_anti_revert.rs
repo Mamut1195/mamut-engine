@@ -1,4 +1,4 @@
-//! ENG-LA-009-FU: cuatro regresiones aisladas con oráculos diagonales propios.
+//! ENG-LA-009-FU: four isolated regressions with independently derived diagonal reference values.
 use engine_core::EResult;
 use engine_linalg::{
     sturm_count, DMat, GeneralizedEigen, LinAlgBackend, ReferenceBackend, SymFactorization,
@@ -52,8 +52,8 @@ impl LinAlgBackend for ContractBackend {
         let mut result = ReferenceBackend.generalized_eigen(k, m)?;
         if self.swap_first_pair {
             result.eigenvalues.swap(0, 1);
-            // Se permutan también las columnas: los pares propios siguen siendo
-            // válidos; solo se viola el orden ascendente exigido al backend.
+            // Columns are also permuted: eigenpairs remain
+            // valid; only the ascending order required of the backend is violated.
             let n = k.order();
             let mut values = result.vectors.values().to_vec();
             for row in values.chunks_mut(n) {
@@ -67,7 +67,7 @@ impl LinAlgBackend for ContractBackend {
 
 #[test]
 fn anti_revert_rejects_unsorted_eigenpairs() {
-    // K=diag(1,2,4), M=I: raíces 1,2,4 y vectores canónicos.
+    // K=diag(1,2,4), M=I: roots 1,2,4 and canonical vectors.
     let k = diagonal(&[1.0, 2.0, 4.0]);
     let m = diagonal(&[1.0; 3]);
     assert_eq!(
@@ -81,8 +81,8 @@ fn anti_revert_rejects_unsorted_eigenpairs() {
         swap_first_pair: true,
         ..Default::default()
     };
-    // [2,1,4] conserva la raíz mayor al final: con count=n el control de Sturm
-    // pasaría, por lo que solo la guarda de orden puede rechazar el resultado.
+    // [2,1,4] keeps the largest root last: with count=n the Sturm check
+    // would pass, so only the ordering guard can reject the result.
     let error = backend.lowest_modes(&k, &m, 3).unwrap_err();
     assert_eq!(error.code, "ENG-E-0007");
     assert!(error.message.contains("sin ordenar"), "{error:?}");
@@ -92,9 +92,9 @@ fn anti_revert_rejects_unsorted_eigenpairs() {
 fn anti_revert_rejects_inertia_whose_sum_differs_from_order() {
     let k = diagonal(&[1.0, 2.0, 4.0]);
     let m = diagonal(&[1.0; 3]);
-    // En sigma=2, K-sigma*M=diag(-1,0,2): inercia (1,1,1).
+    // At sigma=2, K-sigma*M=diag(-1,0,2): inertia (1,1,1).
     assert_eq!(sturm_count(&mut ReferenceBackend, &k, &m, 2.0).unwrap(), 1);
-    // En lowest_modes(count=1), la inercia correcta es (2,1,0).
+    // In lowest_modes(count=1), the correct inertia is (2,1,0).
     assert_eq!(
         ReferenceBackend
             .lowest_modes(&k, &m, 1)
@@ -102,10 +102,10 @@ fn anti_revert_rejects_inertia_whose_sum_differs_from_order() {
             .eigenvalues,
         vec![1.0]
     );
-    // Los primeros cuatro casos conservan el conteo negativo 1; sin validar la
-    // suma, ambos caminos los aceptarían. Cubren déficit, exceso y desbordes.
-    // El último suma n con wrapping_add: solo la suma comprobada lo rechaza
-    // como inercia incompatible, antes de comprobar el conteo de modos.
+    // The first four cases preserve negative count 1; without validating the
+    // sum, both paths would accept them. They cover deficit, excess, and overflows.
+    // The last sums to n with wrapping_add: only checked addition rejects it
+    // as incompatible inertia, before checking the mode count.
     let n = k.order();
     for inertia in [
         (0, 1, 0),
@@ -131,8 +131,8 @@ fn anti_revert_rejects_inertia_whose_sum_differs_from_order() {
 
 #[test]
 fn anti_revert_relative_shift_includes_nearby_distinct_root() {
-    // Raíces s y s*(1+5e-8), distintas pero dentro del margen relativo 1e-7.
-    // El piso 16*tol_cero (~9.1e-13*s) por sí solo no alcanza la segunda raíz.
+    // Roots s and s*(1+5e-8), distinct but within the relative margin 1e-7.
+    // The floor 16*tol_cero (~9.1e-13*s) alone does not reach the second root.
     for scale in [1e-12, 1.0, 1e12] {
         let exact = [scale, scale * (1.0 + 5e-8)];
         let k = diagonal(&exact);
@@ -158,8 +158,8 @@ fn anti_revert_relative_shift_includes_nearby_distinct_root() {
 
 #[test]
 fn anti_revert_rigid_modes_are_exactly_zero_for_both_signs() {
-    // Raíces -1e-15, +1e-15, 1; tol_cero=128*eps*3 > 1e-15.
-    // Los ceros exactos como entrada no detectarían la falta de puesta a cero.
+    // Roots -1e-15, +1e-15, 1; tol_cero=128*eps*3 > 1e-15.
+    // Exact zeros as input would not detect missing zeroing.
     let exact = [-1e-15, 1e-15, 1.0];
     let k = diagonal(&exact);
     let m = diagonal(&[1.0; 3]);
@@ -173,7 +173,7 @@ fn anti_revert_rigid_modes_are_exactly_zero_for_both_signs() {
         if count == 3 {
             assert_eq!(modes.eigenvalues[2], 1.0);
         }
-        // Para matrices diagonales y M=I los vectores son los ejes canónicos.
+        // For diagonal matrices and M=I the vectors are the canonical axes.
         for row in 0..3 {
             for col in 0..count {
                 let expected = if row == col { 1.0 } else { 0.0 };

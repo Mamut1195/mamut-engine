@@ -1,14 +1,14 @@
 #![forbid(unsafe_code)]
-//! Contratos v1 del motor y plantillas independientes del backend numérico.
+//! Engine v1 contracts and templates independent of the numerical backend.
 //!
-//! Entradas y salidas en SI: m, N, Pa, N·m, kg y rad; deformación axial
-//! adimensional y curvatura en m⁻¹. Ejes diestros, Z vertical; D2 usa X-Y,
-//! Z = 0, con Ux, Uy, Rz. Orden de vectores: nodo y después GDL declarado.
-//! Las fuerzas de extremo son acciones sobre las caras del miembro: i negativa,
-//! j positiva; axial positivo en tracción. La elevación D2 sigue pendiente.
-//! Historia plana, finita y sin punteros; responder es puro, aceptar es explícito.
-//! Los tipos matriciales definitivos se reexportan desde `engine-linalg`;
-//! los contratos conservan una API independiente de la librería numérica.
+//! SI inputs and outputs: m, N, Pa, N·m, kg, and rad; dimensionless axial
+//! strain and curvature in m⁻¹. Right-handed axes, Z vertical; D2 uses X-Y,
+//! Z = 0, with Ux, Uy, Rz. Vector order: node, then declared DOF.
+//! End forces are actions on member faces: i negative,
+//! j positive; axial force positive in tension. D2 elevation is still pending.
+//! Flat, finite, pointer-free history; response is pure, acceptance is explicit.
+//! The definitive matrix types are re-exported from `engine-linalg`;
+//! the contracts retain an API independent of the numerical library.
 //!
 //! ```
 //! use engine_contracts::{examples::LinearElastic, conformance::check_uniaxial_law};

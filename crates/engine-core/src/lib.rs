@@ -1,8 +1,8 @@
 #![forbid(unsafe_code)]
-//! Tipos básicos y diagnósticos estables del núcleo de cálculo.
+//! Basic types and stable diagnostics for the computation core.
 //!
-//! Las funciones escalares se centralizan en [`math`] con libm fijada. Los
-//! mensajes están en español y pueden evolucionar; los códigos son estables.
+//! Scalar functions are centralized in [`math`] with pinned libm. The
+//! messages are in Spanish and may evolve; the codes are stable.
 //!
 //! ```
 //! use engine_core::{ContractId, Diagnostic, Dim, Dof, EngineError, EResult};
@@ -24,76 +24,76 @@ pub mod catalog;
 pub mod math;
 pub mod units;
 
-/// Versión del núcleo del motor, derivada del manifiesto de `engine-core`.
+/// Engine core version, derived from the `engine-core` manifest.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-/// Número real utilizado en las magnitudes del modelo y sus resultados.
+/// Real number used for model quantities and results.
 pub type Real = f64;
 
-/// Identificador de un nodo, sin imponer una numeración contigua.
+/// Node identifier, without requiring contiguous numbering.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NodeId(
-    /// Valor numérico del identificador.
+    /// Numeric value of the identifier.
     pub u32,
 );
 
 impl NodeId {
-    /// Construye un identificador de nodo a partir de su valor.
+    /// Constructs a node identifier from its value.
     pub const fn new(value: u32) -> Self {
         Self(value)
     }
 }
 
-/// Identificador de un miembro, sin imponer una numeración contigua.
+/// Member identifier, without requiring contiguous numbering.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MemberId(
-    /// Valor numérico del identificador.
+    /// Numeric value of the identifier.
     pub u32,
 );
 
 impl MemberId {
-    /// Construye un identificador de miembro a partir de su valor.
+    /// Constructs a member identifier from its value.
     pub const fn new(value: u32) -> Self {
         Self(value)
     }
 }
 
-/// Posición global de un grado de libertad en el sistema de ecuaciones.
+/// Global position of a degree of freedom in the system of equations.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DofIndex(
-    /// Posición numérica, contada desde cero.
+    /// Numeric position, counted from zero.
     pub u32,
 );
 
 impl DofIndex {
-    /// Construye una posición global de grado de libertad.
+    /// Constructs a global degree-of-freedom position.
     pub const fn new(value: u32) -> Self {
         Self(value)
     }
 }
 
-/// Componente de desplazamiento o giro de un nodo.
+/// Displacement or rotation component of a node.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Dof {
-    /// Desplazamiento en el eje X.
+    /// Displacement along the X axis.
     Ux,
-    /// Desplazamiento en el eje Y.
+    /// Displacement along the Y axis.
     Uy,
-    /// Desplazamiento en el eje Z.
+    /// Displacement along the Z axis.
     Uz,
-    /// Giro alrededor del eje X.
+    /// Rotation about the X axis.
     Rx,
-    /// Giro alrededor del eje Y.
+    /// Rotation about the Y axis.
     Ry,
-    /// Giro alrededor del eje Z.
+    /// Rotation about the Z axis.
     Rz,
 }
 
 impl Dof {
-    /// Devuelve el índice de la componente en el orden espacial, desde cero.
+    /// Returns the component index in spatial order, starting at zero.
     ///
-    /// Este índice es independiente de la dimensión: Rz siempre ocupa el índice
-    /// 5, aunque sea la tercera componente de un modelo plano.
+    /// This index is independent of dimension: Rz always occupies index
+    /// 5, even though it is the third component in a planar model.
     ///
     /// ```
     /// use engine_core::Dof;
@@ -111,7 +111,7 @@ impl Dof {
         }
     }
 
-    /// Devuelve la etiqueta estable de la componente.
+    /// Returns the stable component label.
     pub const fn label(self) -> &'static str {
         match self {
             Self::Ux => "Ux",
@@ -125,23 +125,23 @@ impl Dof {
 }
 
 impl fmt::Display for Dof {
-    /// Escribe la etiqueta estable de la componente.
+    /// Writes the stable component label.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.label())
     }
 }
 
-/// Dimensión geométrica del modelo y conjunto de componentes disponibles.
+/// Geometric dimension of the model and set of available components.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Dim {
-    /// Modelo plano con dos desplazamientos y un giro.
+    /// Planar model with two displacements and one rotation.
     D2,
-    /// Modelo espacial con tres desplazamientos y tres giros.
+    /// Spatial model with three displacements and three rotations.
     D3,
 }
 
 impl Dim {
-    /// Devuelve las componentes de la dimensión en su orden local.
+    /// Returns the dimension's components in their local order.
     ///
     /// ```
     /// use engine_core::{Dim, Dof};
@@ -156,26 +156,26 @@ impl Dim {
     }
 }
 
-/// Contrato identificado por un nombre y una versión mayor y menor.
+/// Contract identified by a name and a major and minor version.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ContractId {
-    /// Nombre estable del contrato.
+    /// Stable contract name.
     pub name: &'static str,
-    /// Versión mayor; un cambio indica incompatibilidad.
+    /// Major version; a change indicates incompatibility.
     pub major: u16,
-    /// Versión menor; sus cambios conservan la compatibilidad.
+    /// Minor version; changes preserve compatibility.
     pub minor: u16,
 }
 
 impl ContractId {
-    /// Construye un contrato con el nombre y las dos partes de su versión.
+    /// Constructs a contract with its name and both parts of its version.
     pub const fn new(name: &'static str, major: u16, minor: u16) -> Self {
         Self { name, major, minor }
     }
 
-    /// Comprueba que ambos contratos tengan el mismo nombre y versión mayor.
+    /// Checks that both contracts have the same name and major version.
     ///
-    /// La comprobación es simétrica y no depende de la versión menor.
+    /// The check is symmetric and does not depend on the minor version.
     ///
     /// ```
     /// use engine_core::ContractId;
@@ -190,73 +190,73 @@ impl ContractId {
 }
 
 impl fmt::Display for ContractId {
-    /// Escribe el nombre y la versión mayor separados por una barra.
+    /// Writes the name and major version separated by a slash.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}/{}", self.name, self.major)
     }
 }
 
-/// Referencia a una entidad implicada en un diagnóstico o error.
+/// Reference to an entity involved in a diagnostic or error.
 #[derive(Clone, Debug)]
 pub enum EntityRef {
-    /// Referencia a un nodo.
+    /// Reference to a node.
     Node(
-        /// Identificador del nodo.
+        /// Node identifier.
         NodeId,
     ),
-    /// Referencia a un miembro.
+    /// Reference to a member.
     Member(
-        /// Identificador del miembro.
+        /// Member identifier.
         MemberId,
     ),
-    /// Referencia a un grado de libertad global.
+    /// Reference to a global degree of freedom.
     Dof(
-        /// Posición global del grado de libertad.
+        /// Global degree-of-freedom position.
         DofIndex,
     ),
-    /// Referencia a un caso de cálculo.
+    /// Reference to an analysis case.
     Case(
-        /// Nombre del caso.
+        /// Case name.
         String,
     ),
-    /// Referencia a una ley constitutiva.
+    /// Reference to a constitutive law.
     Law(
-        /// Nombre de la ley.
+        /// Law name.
         String,
     ),
 }
 
-/// Nivel de gravedad de un diagnóstico.
+/// Diagnostic severity level.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Severity {
-    /// Información que no requiere una corrección.
+    /// Information that does not require correction.
     Info,
-    /// Advertencia que requiere revisión, sin impedir necesariamente el cálculo.
+    /// Warning requiring review, without necessarily preventing computation.
     Warning,
-    /// Error que impide completar la operación solicitada.
+    /// Error that prevents completion of the requested operation.
     Error,
 }
 
-/// Diagnóstico con código estable, mensaje en español y contexto opcional.
+/// Diagnostic with a stable code, message in Spanish, and optional context.
 #[derive(Clone, Debug)]
 pub struct Diagnostic {
-    /// Código estable de la situación, con formato ENG-E-NNNN en el catálogo.
+    /// Stable situation code, in ENG-E-NNNN format in the catalog.
     pub code: &'static str,
-    /// Gravedad de la situación descrita.
+    /// Severity of the described situation.
     pub severity: Severity,
-    /// Mensaje destinado a la persona que utiliza el motor.
+    /// Message intended for the person using the engine.
     pub message: String,
-    /// Entidades implicadas, en el orden aportado por quien produce el diagnóstico.
+    /// Entities involved, in the order supplied by the diagnostic producer.
     pub entities: Vec<EntityRef>,
-    /// Sugerencia opcional para resolver o investigar la situación.
+    /// Optional suggestion for resolving or investigating the situation.
     pub hint: Option<String>,
 }
 
 impl Diagnostic {
-    /// Construye un diagnóstico sin entidades ni sugerencia.
+    /// Constructs a diagnostic with no entities or hint.
     ///
-    /// Permite códigos propios; para códigos del catálogo se recomienda
-    /// [`Self::from_code`], que proporciona la gravedad y el mensaje registrados.
+    /// Allows custom codes; for catalog codes, the recommended method is
+    /// [`Self::from_code`], which provides the registered severity and message.
     pub fn new(code: &'static str, severity: Severity, message: impl Into<String>) -> Self {
         Self {
             code,
@@ -267,9 +267,9 @@ impl Diagnostic {
         }
     }
 
-    /// Construye un diagnóstico con los datos del catálogo, o devuelve `None`.
+    /// Constructs a diagnostic from catalog data, or returns `None`.
     ///
-    /// El diagnóstico comienza sin entidades ni sugerencia.
+    /// The diagnostic starts with no entities or hint.
     ///
     /// ```
     /// use engine_core::{Diagnostic, Severity};
@@ -282,21 +282,21 @@ impl Diagnostic {
     }
 }
 
-/// Error de una operación del motor, con código estable y entidades implicadas.
+/// Error from an engine operation, with a stable code and entities involved.
 #[derive(Clone, Debug)]
 pub struct EngineError {
-    /// Código estable de la situación.
+    /// Stable situation code.
     pub code: &'static str,
-    /// Mensaje en español que describe el fallo.
+    /// Message in Spanish describing the failure.
     pub message: String,
-    /// Entidades relacionadas con el fallo.
+    /// Entities related to the failure.
     pub entities: Vec<EntityRef>,
 }
 
 impl EngineError {
-    /// Construye un error con mensaje propio y sin entidades relacionadas.
+    /// Constructs an error with a custom message and no related entities.
     ///
-    /// Para obtener un mensaje registrado se recomienda [`Self::from_code`].
+    /// To obtain a registered message, [`Self::from_code`] is recommended.
     pub fn new(code: &'static str, message: impl Into<String>) -> Self {
         Self {
             code,
@@ -305,7 +305,7 @@ impl EngineError {
         }
     }
 
-    /// Construye un error con el código y mensaje del catálogo, o devuelve `None`.
+    /// Constructs an error with the catalog code and message, or returns `None`.
     ///
     /// ```
     /// use engine_core::EngineError;
@@ -319,7 +319,7 @@ impl EngineError {
 }
 
 impl fmt::Display for EngineError {
-    /// Escribe el código y el mensaje separados por dos puntos.
+    /// Writes the code and message separated by a colon.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}: {}", self.code, self.message)
     }
@@ -327,14 +327,14 @@ impl fmt::Display for EngineError {
 
 impl std::error::Error for EngineError {}
 
-/// Resultado de una operación del motor que puede producir un [`EngineError`].
+/// Result of an engine operation that may produce an [`EngineError`].
 pub type EResult<T> = Result<T, EngineError>;
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    /// Comprueba los índices y etiquetas de todas las componentes y su orden local.
+    /// Checks all component indices and labels and their local order.
     #[test]
     fn dimensions_and_components() {
         assert_eq!(Dim::D2.dofs(), &[Dof::Ux, Dof::Uy, Dof::Rz]);
@@ -351,7 +351,7 @@ mod tests {
         }
     }
 
-    /// Comprueba la representación de contratos y los límites de compatibilidad.
+    /// Checks contract representation and compatibility boundaries.
     #[test]
     fn contract_display_and_compatibility() {
         let contract = ContractId::new("modelo", 1, 2);
@@ -363,7 +363,7 @@ mod tests {
         assert!(!contract.is_compatible_with(&ContractId::new("otro", 1, 2)));
     }
 
-    /// Comprueba que los constructores conservan los valores y el contexto vacío.
+    /// Checks that constructors preserve values and empty context.
     #[test]
     fn constructors_and_error_display() {
         assert_eq!(NodeId::new(7), NodeId(7));
@@ -382,7 +382,7 @@ mod tests {
         assert!(standard_error.source().is_none());
     }
 
-    /// Comprueba que todos los constructores por código utilizan el catálogo.
+    /// Checks that all constructors by code use the catalog.
     #[test]
     fn catalog_constructors() {
         for info in catalog::CODES {

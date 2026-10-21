@@ -1,4 +1,4 @@
-//! Backend contador compartido por los ensayos de ensamblaje y análisis.
+//! Counting backend shared by assembly and analysis tests.
 use engine_core::EResult;
 use engine_linalg::{
     DMat, FactorInfo, GeneralizedEigen, LinAlgBackend, ReferenceBackend, SymFactorization,
@@ -34,8 +34,8 @@ impl SymFactorization for CountingFactor {
     fn solve_in_place(&self, b: &mut DMat) -> EResult<()> {
         self.solves.set(self.solves.get() + 1);
         self.inner.solve_in_place(b)?;
-        // 1 por defecto. Otro valor simula un solver inexacto para comprobar
-        // que los reportes detectan desequilibrio y residual libre.
+        // 1 by default. Another value simulates an inexact solver to check
+        // that reports detect imbalance and free residual.
         *b = DMat::new(
             b.rows(),
             b.cols(),

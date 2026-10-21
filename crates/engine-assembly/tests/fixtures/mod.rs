@@ -1,4 +1,4 @@
-//! Fixtures analíticos propios, embebidos: no se necesita E/S en wasm.
+//! Independently derived, embedded analytical fixtures: no I/O needed on wasm.
 pub struct Fixture {
     pub source: &'static str,
     pub citation: &'static str,
@@ -7,9 +7,9 @@ pub struct Fixture {
     pub expected_u: &'static [f64],
 }
 
-// Derivación: energía V = Σ k_i (u_{i+1}−u_i)²/2. Su Hessiano suma
-// [[k_i,−k_i],[−k_i,k_i]] en los dos índices conectados. Con u_1=0 y
-// fuerza terminal P=12 N, cada resorte lleva 12 N y Δu_i=12/k_i m.
+// Derivation: energy V = Σ k_i (u_{i+1}−u_i)²/2. Its Hessian adds
+// [[k_i,−k_i],[−k_i,k_i]] at the two connected indices. With u_1=0 and
+// end force P=12 N, each spring carries 12 N and Δu_i=12/k_i m.
 pub const TWO_SPRINGS: Fixture = Fixture {
     source: "analítico: derivación propia por energía y equilibrio",
     citation:

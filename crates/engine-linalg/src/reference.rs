@@ -1,16 +1,16 @@
-//! Algoritmos propios derivados de eliminación, congruencias y rotaciones.
+//! Internal procedures derived from elimination, congruences, and rotations.
 use crate::*;
 use engine_core::math;
 
-/// Segundo backend mínimo para demostrar intercambiabilidad y validar contratos.
+/// Second minimal backend to demonstrate interchangeability and validate contracts.
 ///
-/// Factorización LDLᵀ densa con pivotes simétricos 1×1/2×2; autovalores por
-/// Jacobi y reducción Cholesky de la masa. Memoria O(n²), trabajo O(n³) de
-/// eliminación y hasta O(n⁴) de búsqueda Jacobi. Se destina a referencia y
-/// pruebas, sin ordenamiento AMD ni solver productivo disperso.
-/// V1 es secuencial: productos `i,j,k`, reducciones por índice creciente y
-/// sustitución inversa por fila decreciente. Sin SIMD explícito ni selección
-/// por CPU; los desempates y el alcance portable figuran en docs/DETERMINISMO.md.
+/// Dense LDLᵀ factorization with symmetric 1×1/2×2 pivots; eigenvalues through
+/// Jacobi and Cholesky mass reduction. O(n²) memory, O(n³) elimination work,
+/// and up to O(n⁴) Jacobi search work. Intended for reference and
+/// tests, without AMD ordering or a production sparse solver.
+/// V1 is sequential: `i,j,k` products, reductions by increasing index, and
+/// back substitution by decreasing row. No explicit SIMD or CPU-based
+/// selection; tie-breaking and portable scope are in docs/DETERMINISMO.md.
 #[derive(Default, Debug)]
 pub struct ReferenceBackend;
 
@@ -46,16 +46,16 @@ impl LinAlgBackend for ReferenceBackend {
         size(b.rows(), a.rows())?;
         let n = a.rows();
         if n == 0 {
-            // Sin incógnitas: la solución es B (vacía) sea cual sea el número de
-            // columnas; evita reservar vectores por columna (pánico con cols enormes).
+            // No unknowns: the solution is B (empty) regardless of the number of
+            // columns; avoids allocating vectors per column (panic with huge cols).
             return Ok(b.clone());
         }
         let scale = magnitude(a.values());
         let mut u: Vec<_> = a.values().iter().map(|v| v / scale).collect();
         let mut x = b.clone();
         let cols = b.cols();
-        // Escala independiente por RHS: dividir por la escala de A puede desbordar
-        // aunque la solución sea finita (J4 ENG-LA-007, medio).
+        // Independent scaling per RHS: dividing by A's scale may overflow
+        // even if the solution is finite (J4 ENG-LA-007, medium).
         let rhs_scales: Vec<Real> = (0..cols)
             .map(|c| magnitude_iter((0..n).map(|i| b.values()[i * cols + c])))
             .collect();
@@ -126,7 +126,7 @@ impl LinAlgBackend for ReferenceBackend {
         let left = self.matmul(&inverse, k.dense())?;
         let inverse_t = self.transpose(&inverse)?;
         let mut reduced = self.matmul(&left, &inverse_t)?;
-        // Una sola mitad fija la congruencia simétrica pese al redondeo.
+        // A single half determines the symmetric congruence despite rounding.
         for i in 0..m.order() {
             for j in 0..i {
                 reduced.values[j * m.order() + i] = reduced.values[i * m.order() + j];
@@ -153,14 +153,14 @@ fn magnitude_iter(values: impl Iterator<Item = Real>) -> Real {
         scale
     }
 }
-/// Devuelve `v * num / den` evitando un desbordamiento intermedio evitable;
-/// si el resultado real no es representable queda infinito y `finite` lo
-/// reporta como ENG-E-0008.
+/// Returns `v * num / den`, avoiding avoidable intermediate overflow;
+/// if the real result is unrepresentable, it remains infinite and `finite`
+/// reports it as ENG-E-0008.
 fn rescale(v: Real, num: Real, den: Real) -> Real {
     let exact_zero = v == 0.0 || num == 0.0;
     let good = |x: Real| x.is_finite() && (exact_zero || x.abs() >= Real::MIN_POSITIVE);
-    // Tres órdenes de evaluación: cada uno evita un desbordamiento o un
-    // subdesbordamiento intermedio distinto; se elige el primero normal y finito.
+    // Three evaluation orders: each avoids a different intermediate overflow or
+    // underflow; the first normal and finite one is chosen.
     let candidates = [(v * num) / den, (v / den) * num, v * (num / den)];
     for c in candidates {
         if good(c) {
@@ -181,13 +181,13 @@ fn magnitude(values: &[Real]) -> Real {
         scale
     }
 }
-/// Equilibrado diagonal simétrico iterativo (tipo Ruiz) `B = S A S`: parte de
-/// `s_i = 1` y repite `s_i ← s_i / √(máx_j |s_i a_ij s_j|)` (filas nulas: 1) hasta
-/// que todas las filas de B tengan máximo ≈ 1 (±1 %) o 40 pasadas. Hace que
-/// matrices diagonales y casi diagonales con GDL de escalas muy distintas
-/// (diag(1e6, 1e-9) → identidad) y el reescalado `D A D` de matrices acopladas
-/// moderadamente escaladas se clasifiquen igual. NO garantiza invariancia exacta
-/// al reescalado diagonal en matrices acopladas con rangos extremos (T5, J4 r3).
+/// Iterative symmetric diagonal balancing (Ruiz-type) `B = S A S`: starts from
+/// `s_i = 1` and repeats `s_i ← s_i / √(máx_j |s_i a_ij s_j|)` (zero rows: 1) until
+/// all rows of B have maximum ≈ 1 (±1 %) or 40 passes. Makes
+/// diagonal and nearly diagonal matrices with very differently scaled DOFs
+/// (diag(1e6, 1e-9) → identity) and the `D A D` rescaling of moderately scaled
+/// coupled matrices receive the same classification. Does NOT guarantee exact invariance
+/// under diagonal rescaling in coupled matrices with extreme ranges (T5, J4 r3).
 fn equilibration(values: &[Real], n: usize) -> Vec<Real> {
     let mut s = vec![1.0; n];
     for _ in 0..40 {
@@ -212,8 +212,8 @@ fn equilibration(values: &[Real], n: usize) -> Vec<Real> {
     }
     s
 }
-/// Deshace equilibrado y normalizaciones: `x = s · (y · rs / scale)` evitando
-/// desbordes y subdesbordes intermedios (se prueban varios órdenes de evaluación).
+/// Undoes balancing and normalizations: `x = s · (y · rs / scale)` avoiding
+/// intermediate overflows and underflows (several evaluation orders are tried).
 fn scale_back(y: Real, equil: Real, rs: Real, scale: Real) -> Real {
     let exact_zero = y == 0.0;
     let good = |x: Real| x.is_finite() && (exact_zero || x.abs() >= Real::MIN_POSITIVE);
@@ -245,19 +245,19 @@ struct Ldlt {
     off: Vec<Real>,
     blocks: Vec<usize>,
     permutation: Vec<usize>,
-    /// Equilibrado diagonal `s` (B = S A S) previo a factorizar.
+    /// Diagonal balancing `s` (B = S A S) before factorization.
     equil: Vec<Real>,
     scale: Real,
     info: FactorInfo,
 }
-// El factor se devuelve en un Box: su cabecera también ocupa heap, incluso n=0.
+// The factor is returned in a Box: its header also occupies heap, even for n=0.
 pub(crate) const FACTOR_HEADER_BYTES: usize = std::mem::size_of::<Ldlt>();
 
 impl Ldlt {
     fn new(matrix: &SymMatrix) -> EResult<Self> {
         Self::build(matrix, false)
     }
-    // `allow_null` solo se usa para inercia; nunca para entregar un factor resoluble.
+    // `allow_null` is only used for inertia; never to provide a solvable factor.
     fn build(matrix: &SymMatrix, allow_null: bool) -> EResult<Self> {
         Self::build_with_check(matrix, allow_null, &mut || Ok(()))
     }
@@ -280,7 +280,7 @@ impl Ldlt {
             l: identity(n)?.values,
             d: vec![0.0; n],
             off: vec![0.0; n],
-            // Como máximo hay n pivotes 1×1; evitar crecimiento y capacidad sobrante.
+            // There are at most n 1×1 pivots; avoid growth and excess capacity.
             blocks: Vec::with_capacity(n),
             permutation: (0..n).collect(),
             scale,
@@ -293,8 +293,8 @@ impl Ldlt {
         let mut smallest = f64::INFINITY;
         let mut largest = 0.0_f64;
         let mut k = 0;
-        // Un pivote puede consumir dos columnas: umbral 15 para que nunca
-        // transcurran más de 16 columnas entre controles.
+        // A pivot may consume two columns: threshold 15 ensures that no more
+        // than 16 columns pass between checks.
         let mut next_check = 15;
         while k < n {
             if k >= next_check {
@@ -331,9 +331,9 @@ impl Ldlt {
                 f.swap(&mut a, k, diag, k);
                 let d = a[k * n + k];
                 if d.abs() <= cutoff(n) {
-                    // Todo el bloque restante es numéricamente nulo: el GDL culpable
-                    // es el de menor índice original, independiente del orden de
-                    // pivoteo (determinista bajo permutación de GDL).
+                    // The entire remaining block is numerically zero: the offending DOF
+                    // has the smallest original index, independent of pivoting
+                    // order (deterministic under DOF permutation).
                     let culprit = f.permutation[k..]
                         .iter()
                         .copied()
@@ -352,7 +352,7 @@ impl Ldlt {
                 let (d, e, g) = (a[k * n + k], a[(k + 1) * n + k], a[(k + 1) * n + k + 1]);
                 let det = d * g - e * e;
                 if det.abs() <= cutoff(n) * offmax {
-                    // Menor índice original del par, independiente del orden de pivoteo.
+                    // Smallest original index of the pair, independent of pivoting order.
                     let culprit = f.permutation[k].min(f.permutation[k + 1]);
                     return Err(singular("Referencia LDLᵀ bloque", culprit));
                 }
@@ -361,9 +361,9 @@ impl Ldlt {
                 f.off[k] = e;
                 let half = (d + g) * 0.5;
                 let radius = math::hypot((d - g) * 0.5, e);
-                // Producto de autovalores = det. Elegir primero el de mayor
-                // módulo evita cancelación en half ± radius para el pequeño.
-                // La congruencia de LDLᵀ conserva los conteos de signos de A.
+                // Product of eigenvalues = det. Choosing the one with greatest
+                // magnitude first avoids cancellation in half ± radius for the small one.
+                // LDLᵀ congruence preserves the sign counts of A.
                 let large = half + radius.copysign(half);
                 f.count(large, &mut smallest, &mut largest)?;
                 f.count(det / large, &mut smallest, &mut largest)?;
@@ -439,14 +439,14 @@ impl SymFactorization for Ldlt {
     fn solve_in_place(&self, b: &mut DMat) -> EResult<()> {
         size(b.rows(), self.n)?;
         if self.n == 0 {
-            // Sin incógnitas no hay nada que resolver: evita recorrer `cols`
-            // columnas (con B 0×usize::MAX el bucle no terminaba).
+            // Without unknowns there is nothing to solve: avoids traversing `cols`
+            // columns (with B 0×usize::MAX the loop did not terminate).
             return Ok(());
         }
         let mut x = b.clone();
         for rhs in 0..b.cols() {
-            // La escala de la RHS es la de b (sin equilibrar): b·s puede desbordar
-            // aunque la solución sea finita (J4 r3).
+            // The RHS scale is that of b (unbalanced): b·s may overflow
+            // even if the solution is finite (J4 r3).
             let rhs_scale = magnitude_iter((0..self.n).map(|i| b.values()[i * b.cols() + rhs]));
             let mut y: Vec<_> = self
                 .permutation
@@ -463,8 +463,8 @@ impl SymFactorization for Ldlt {
                 if block == 1 {
                     y[k] /= self.d[k];
                 } else {
-                    // Bloque normalizado por su mayor entrada: evita productos
-                    // diminutos que subdesbordan (J4 ENG-LA-007, medio).
+                    // Block normalized by its largest entry: avoids tiny
+                    // products that underflow (J4 ENG-LA-007, medium).
                     let m = self.d[k]
                         .abs()
                         .max(self.d[k + 1].abs())
@@ -510,8 +510,8 @@ pub(crate) fn cholesky(m: &SymMatrix) -> EResult<DMat> {
             }
             if i == j {
                 if value.abs() <= cutoff(n) || value < 0.0 {
-                    // Un pivote Cholesky nulo también puede pertenecer a una
-                    // masa invertible indefinida; LDLᵀ distingue ambos casos.
+                    // A zero Cholesky pivot may also belong to an
+                    // invertible indefinite mass; LDLᵀ distinguishes the two cases.
                     return match Ldlt::new(m) {
                         Err(error) => Err(error),
                         Ok(factor)
@@ -536,7 +536,7 @@ pub(crate) fn cholesky(m: &SymMatrix) -> EResult<DMat> {
             }
         }
     }
-    // M = S⁻¹ B S⁻¹ con B = L_B L_Bᵀ ⇒ L = S⁻¹ L_B (filas), más la escala global.
+    // M = S⁻¹ B S⁻¹ with B = L_B L_Bᵀ ⇒ L = S⁻¹ L_B (rows), plus the global scale.
     for (i, &e) in equil.iter().enumerate() {
         for j in 0..n {
             l.values[i * n + j] = l.values[i * n + j] * math::sqrt(scale) / e;
@@ -672,16 +672,16 @@ mod rescale_tests {
     use super::rescale;
     #[test]
     fn avoids_intermediate_underflow_and_overflow() {
-        // v·num = 1e-400 subdesborda aunque el resultado real (1e-100) es normal.
+        // v·num = 1e-400 underflows even though the real result (1e-100) is normal.
         let r = rescale(1e-200, 1e-200, 1e-300);
         assert!((r / 1e-100 - 1.0).abs() < 1e-12, "{r}");
-        // v·num = 1e400 desborda aunque el resultado real (1e100) es normal.
+        // v·num = 1e400 overflows even though the real result (1e100) is normal.
         let r = rescale(1e200, 1e200, 1e300);
         assert!((r / 1e100 - 1.0).abs() < 1e-12, "{r}");
-        // Caso ordinario y ceros exactos.
+        // Ordinary case and exact zeros.
         assert_eq!(rescale(3.0, 4.0, 2.0), 6.0);
         assert_eq!(rescale(0.0, 4.0, 2.0), 0.0);
-        // Resultado no representable: queda infinito (el llamador da ENG-E-0008).
+        // Unrepresentable result: remains infinite (the caller returns ENG-E-0008).
         assert!(!rescale(1e300, 1e300, 1e-300).is_finite());
     }
 }

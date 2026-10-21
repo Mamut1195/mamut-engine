@@ -1,220 +1,220 @@
-//! Datos de intercambio propios; sin parser JSON ni dependencia externa.
+//! Custom exchange data; without a JSON parser or external dependency.
 use crate::*;
 use std::{collections::BTreeMap, sync::Arc};
 
-/// Valor JSON mínimo construido en memoria, sin parser ni serializador.
+/// Minimal JSON value constructed in memory, without a parser or serializer.
 ///
-/// Números finitos exigidos al validar cada consumidor; objetos ordenados y
-/// sin claves duplicadas. Los esquemas se entregan como String JSON. La frontera
-/// de serialización y el esquema completo de resultados quedan en otros tickets.
+/// Finite numbers required when each consumer validates; ordered objects and
+/// no duplicate keys. Schemas are supplied as JSON String. The serialization
+/// boundary and complete results schema are left to other tickets.
 #[derive(Clone, Debug, PartialEq)]
 pub enum JsonValue {
-    /// Valor nulo.
+    /// Null value.
     Null,
-    /// Valor lógico.
+    /// Boolean value.
     Bool(bool),
-    /// Número real (su unidad la declara el campo).
+    /// Real number (its unit is declared by the field).
     Number(Real),
-    /// Texto Unicode.
+    /// Unicode text.
     String(String),
-    /// Secuencia ordenada.
+    /// Ordered sequence.
     Array(Vec<JsonValue>),
-    /// Objeto con claves únicas.
+    /// Object with unique keys.
     Object(BTreeMap<String, JsonValue>),
 }
 
-/// Respuesta uniaxial de prueba, conservando intacto el estado aceptado.
+/// Trial uniaxial response, preserving the committed state intact.
 #[derive(Clone, Debug, PartialEq)]
 pub struct UniaxialResponse {
-    /// Tensión en Pa, o fuerza en N para una ley de resorte.
+    /// Stress in Pa, or force in N for a spring law.
     pub stress: Real,
-    /// Derivada consistente: Pa, o N/m para un resorte.
+    /// Consistent derivative: Pa, or N/m for a spring.
     pub tangent: Real,
-    /// Historia de prueba finita de longitud state_len; unidades según la ley.
+    /// Finite trial history of length state_len; units according to the law.
     pub trial_state: Vec<Real>,
 }
-/// Respuesta de sección generalizada.
+/// Generalized section response.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SectionResponse {
-    /// D2: [N, Mz]; D3: [N, My, Mz, T], en N y N·m.
+    /// D2: [N, Mz]; D3: [N, My, Mz, T], in N and N·m.
     pub resultants: Vec<Real>,
-    /// Derivada de resultantes respecto a deformaciones; cuadrada y simétrica v1.
+    /// Derivative of resultants with respect to strains; square and symmetric v1.
     pub tangent: DMat,
-    /// Historia plana finita, longitud declarada por la sección.
+    /// Finite flat history, length declared by the section.
     pub trial_state: Vec<Real>,
 }
-/// Parámetros resueltos: propiedades SI y referencias constitutivas opcionales.
+/// Resolved parameters: SI properties and optional constitutive references.
 ///
-/// Cada kind documenta claves y requisitos; ninguna validación automática.
+/// Each kind documents keys and requirements; no automatic validation.
 #[derive(Clone, Default)]
 pub struct ElementParams {
-    /// Propiedades escalares SI con nombres propios (por ejemplo área en m²).
+    /// SI scalar properties with custom names (for example area in m²).
     pub scalars: BTreeMap<String, Real>,
-    /// Sección ya resuelta, si el elemento la necesita.
+    /// Already resolved section, if the element needs it.
     pub section: Option<Arc<dyn SectionLaw>>,
-    /// Ley ya resuelta, si el elemento la necesita.
+    /// Already resolved law, if the element needs it.
     pub law: Option<Arc<dyn UniaxialLaw>>,
 }
-/// Vista mínima prestada para fábricas; no ensambla ni modifica engine-model.
+/// Minimal borrowed view for factories; neither assembles nor modifies engine-model.
 pub struct ModelView<'a> {
-    /// Dimensión que debe admitir el elemento solicitado.
+    /// Dimension that the requested element must support.
     pub dim: Dim,
-    /// Identificadores y coordenadas SI disponibles; únicos y finitos.
+    /// Available identifiers and SI coordinates; unique and finite.
     pub nodes: &'a [(NodeId, [Real; 3])],
 }
-/// Contexto prestado de un elemento, independiente del estado de prueba.
+/// Borrowed element context, independent of trial state.
 pub struct ElementCtx<'a> {
-    /// Dimensión global; D2 en X-Y.
+    /// Global dimension; D2 in X-Y.
     pub dim: Dim,
-    /// Coordenadas m, por nodo; D2 requiere Z = 0.
+    /// Coordinates in m, per node; D2 requires Z = 0.
     pub coords: &'a [[Real; 3]],
-    /// Parámetros previamente resueltos; el consumidor verifica requisitos.
+    /// Previously resolved parameters; the consumer checks requirements.
     pub params: &'a ElementParams,
 }
-/// Respuesta global de un elemento.
+/// Global element response.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ElementResponse {
-    /// Fuerzas N y momentos N·m, nodo y después GDL.
+    /// Forces in N and moments in N·m, node then DOF.
     pub internal_force: Vec<Real>,
-    /// Derivada respecto a desplazamientos m y giros rad; simétrica v1.
+    /// Derivative with respect to displacements in m and rotations in rad; symmetric v1.
     pub tangent: DMat,
-    /// Historia finita de prueba, longitud state_len.
+    /// Finite trial history, length state_len.
     pub trial_state: Vec<Real>,
 }
-/// Distribución de masa; traslaciones en kg y giros en kg·m².
+/// Mass distribution; translations in kg and rotations in kg·m².
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MassKind {
-    /// Masa concentrada en nodos.
+    /// Mass lumped at nodes.
     Lumped,
-    /// Masa consistente con la interpolación del elemento.
+    /// Mass consistent with the element interpolation.
     Consistent,
 }
-/// Carga uniforme de tramo expresada en ejes globales.
+/// Uniform span load expressed in global axes.
 ///
-/// Tipo mínimo v1: fuerzas por longitud en N/m y momentos por longitud en N.
-/// Las implementaciones deben rechazar componentes no soportadas, nunca omitirlas.
+/// Minimal v1 type: forces per length in N/m and moments per length in N.
+/// Implementations must reject unsupported components, never omit them.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MemberLoad {
-    /// [qx, qy, qz] globales en N/m.
+    /// Global [qx, qy, qz] in N/m.
     pub force_per_length: [Real; 3],
-    /// [mx, my, mz] globales en N·m/m.
+    /// Global [mx, my, mz] in N·m/m.
     pub moment_per_length: [Real; 3],
 }
-/// Resultantes en una estación interior, cara positiva local.
+/// Resultants at an interior station, local positive face.
 #[derive(Clone, Debug, PartialEq)]
 pub struct StationResult {
-    /// Posición adimensional x/L en [0, 1].
+    /// Dimensionless position x/L in [0, 1].
     pub position: Real,
-    /// [N, Vy, Vz, T, My, Mz], fuerzas N y momentos N·m.
+    /// [N, Vy, Vz, T, My, Mz], forces in N and moments in N·m.
     pub forces_local: [Real; 6],
 }
-/// Recuperación de resultados locales, incluyendo cargas de tramo soportadas.
+/// Recovery of local results, including supported span loads.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ElementOutput {
-    /// Acciones de extremo: nodo y GDL local, cara negativa i y positiva j.
+    /// End actions: node and local DOF, negative face i and positive face j.
     pub end_forces_local: Vec<Real>,
-    /// Estaciones en el orden solicitado, con resultantes por cara positiva.
+    /// Stations in the requested order, with resultants per positive face.
     pub stations: Vec<StationResult>,
 }
-/// Referencia nominal de caso, sin normalización ni caso implícito.
+/// Nominal case reference, without normalization or an implicit case.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CaseRef(pub String);
-/// Estado terminal del análisis, independiente de errores de entrada o E/S.
+/// Terminal analysis state, independent of input or I/O errors.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Status {
-    /// Todos los pasos solicitados fueron aceptados.
+    /// All requested steps were committed.
     Completed,
-    /// Se conserva el último paso aceptado; sin reintentos ocultos.
+    /// The last committed step is preserved; without hidden retries.
     NotConverged,
-    /// Pérdida de estabilidad detectada y documentada.
+    /// Loss of stability detected and documented.
     Unstable,
-    /// Cancelado cooperativamente; se conserva el último estado aceptado.
+    /// Cooperatively cancelled; the last committed state is preserved.
     Cancelled,
 }
-/// Tolerancias relativas adimensionales, finitas y positivas.
+/// Dimensionless, finite, positive relative tolerances.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Tolerances {
-    /// Criterio de fuerza relativa.
+    /// Relative force criterion.
     pub force_rel: Real,
-    /// Criterio de desplazamiento relativo.
+    /// Relative displacement criterion.
     pub disp_rel: Real,
-    /// Criterio de energía relativa.
+    /// Relative energy criterion.
     pub energy_rel: Real,
 }
-/// Informe explícito de un paso; las normas son relativas adimensionales.
+/// Explicit step report; norms are relative and dimensionless.
 #[derive(Clone, Debug, PartialEq)]
 pub struct StepReport {
-    /// Índice del paso contado desde uno.
+    /// Step index counted from one.
     pub step: u32,
-    /// Factor de carga adimensional.
+    /// Dimensionless load factor.
     pub load_factor: Real,
-    /// Número de iteraciones ejecutadas.
+    /// Number of iterations executed.
     pub iterations: u32,
-    /// Norma relativa de desequilibrio de fuerzas.
+    /// Relative force imbalance norm.
     pub residual_norm: Real,
-    /// Norma relativa del incremento de desplazamiento.
+    /// Relative displacement increment norm.
     pub displacement_norm: Real,
-    /// Norma relativa del incremento de energía.
+    /// Relative energy increment norm.
     pub energy_norm: Real,
-    /// Si se cumplieron las tolerancias declaradas.
+    /// Whether the declared tolerances were met.
     pub converged: bool,
-    /// Tolerancias efectivamente usadas, sin valores implícitos.
+    /// Tolerances actually used, without implicit values.
     pub tolerances: Tolerances,
 }
-/// Historia de convergencia ordenada por paso, incluyendo el intento fallido.
+/// Convergence history ordered by step, including the failed attempt.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ConvergenceReport {
-    /// Informes de los intentos realizados; lista vacía si se cancela antes.
+    /// Reports of attempts made; empty list if cancelled beforehand.
     pub steps: Vec<StepReport>,
 }
-/// Resultado terminal; EResult se reserva para fallos de entrada, contrato o E/S.
+/// Terminal result; EResult is reserved for input, contract, or I/O failures.
 #[derive(Clone, Debug)]
 pub struct AnalysisOutcome {
-    /// Estado final, sin convertir falta de convergencia en éxito.
+    /// Final state, without turning lack of convergence into success.
     pub status: Status,
-    /// Normas y tolerancias de todos los intentos.
+    /// Norms and tolerances of all attempts.
     pub report: ConvergenceReport,
-    /// Diagnósticos del catálogo del núcleo, con contexto pertinente.
+    /// Diagnostics from the core catalog, with relevant context.
     pub diagnostics: Vec<Diagnostic>,
 }
-/// Capacidades que requiere un método antes de comenzar.
+/// Capabilities a method requires before starting.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Requirements {
-    /// Necesita masa ensamblada.
+    /// Requires assembled mass.
     pub mass: bool,
-    /// Necesita rigidez geométrica.
+    /// Requires geometric stiffness.
     pub geometric: bool,
-    /// Necesita respuesta constitutiva no lineal.
+    /// Requires nonlinear constitutive response.
     pub nonlinear: bool,
-    /// Casos requeridos por nombre; vacía permite selección mediante ajustes.
+    /// Required cases by name; empty allows selection through settings.
     pub cases: Vec<CaseRef>,
 }
-/// Dirección de un campo en un bloque results/1; sin serialización en este ticket.
+/// Address of a field in a results/1 block; no serialization in this ticket.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ResultKey {
-    /// Bloque: nodes, members, modes, cases, combinations, envelopes,
-    /// convergence, diagnostics o provenance.
+    /// Block: nodes, members, modes, cases, combinations, envelopes,
+    /// convergence, diagnostics, or provenance.
     pub block: String,
-    /// Identificador textual propio de entidad o caso; None para metadatos globales.
+    /// Custom text identifier for an entity or case; None for global metadata.
     pub entity: Option<String>,
-    /// Nombre del campo; sus unidades y semántica se declaran en el productor.
+    /// Field name; its units and semantics are declared by the producer.
     pub field: String,
 }
-/// Valor mínimo transportable por ResultSink; numéricos finitos en SI.
+/// Minimal value transportable by ResultSink; finite numerics in SI.
 ///
-/// La procedencia completa y los filtros de results/1 corresponden a ENG-CORE-005.
+/// Full provenance and results/1 filters belong to ENG-CORE-005.
 #[derive(Clone, Debug)]
 pub enum ResultValue {
-    /// Valor escalar SI.
+    /// SI scalar value.
     Scalar(Real),
-    /// Vector SI en el orden documentado por el campo.
+    /// SI vector in the order documented by the field.
     Vector(Vec<Real>),
-    /// Texto, también útil para metadatos de procedencia.
+    /// Text, also useful for provenance metadata.
     Text(String),
-    /// Resultado local de miembro.
+    /// Local member result.
     Element(ElementOutput),
-    /// Informe de convergencia.
+    /// Convergence report.
     Convergence(ConvergenceReport),
-    /// Diagnósticos con códigos del núcleo.
+    /// Diagnostics with core codes.
     Diagnostics(Vec<Diagnostic>),
 }

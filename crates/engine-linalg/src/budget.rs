@@ -1,14 +1,14 @@
-//! Presupuesto acumulado de memoria (ENG-LA-008).
+//! Cumulative memory budget (ENG-LA-008).
 //!
-//! `alloc_vec` limita cada reserva individual; muchas reservas permitidas pueden
-//! sumar más de lo disponible (p. ej. wasm32, 4 GiB de espacio de direcciones).
-//! `MemoryBudget` lleva la cuenta de los bytes cargados por un llamador y rechaza
-//! con ENG-E-0013 (capacidad no soportada) toda carga que supere el límite.
-//! Es contabilidad explícita y determinista: no consulta el sistema operativo,
-//! no usa hilos ni estado global; cada llamador posee su presupuesto.
+//! `alloc_vec` limits each individual allocation; many allowed allocations can
+//! add up to more than is available (e.g. wasm32, 4 GiB of address space).
+//! `MemoryBudget` tracks bytes charged by a caller and rejects
+//! any charge exceeding the limit with ENG-E-0013 (unsupported capability).
+//! This is explicit, deterministic accounting: it does not query the operating system,
+//! use threads or global state; each caller owns its budget.
 use crate::*;
 
-/// Presupuesto de memoria acumulado, en bytes.
+/// Cumulative memory budget, in bytes.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MemoryBudget {
     limit: usize,
@@ -18,10 +18,10 @@ pub struct MemoryBudget {
 
 const F64: usize = std::mem::size_of::<Real>();
 
-/// Cota superior del almacenamiento de heap que RETIENE una factorización del
-/// backend de referencia de orden `n`: L densa, D, diagonal secundaria, bloques
-/// (capacidad reservada n), permutación, escalas y cabecera del factor en su Box.
-/// No incluye la entrada ni metadatos internos del allocator. `None` si desborda.
+/// Upper bound on heap storage RETAINED by an order-`n` factorization of the
+/// reference backend: dense L, D, secondary diagonal, blocks
+/// (reserved capacity n), permutation, scales, and factor header in its Box.
+/// Excludes input and allocator internal metadata. `None` on overflow.
 pub fn factor_bytes(n: usize) -> Option<usize> {
     let vectors =
         n.checked_mul(3 * std::mem::size_of::<f64>() + 2 * std::mem::size_of::<usize>())?;
@@ -30,23 +30,23 @@ pub fn factor_bytes(n: usize) -> Option<usize> {
         .checked_add(crate::reference::FACTOR_HEADER_BYTES)
 }
 
-/// Cota del trabajo TRANSITORIO: balanced y la copia normalizada a siguen vivas
-/// junto con L en LDLᵀ. Las filas temporales del equilibrado (n valores) caben
-/// en estas dos matrices para n>0; para n=0 no reservan. `None` si desborda.
+/// Bound on TRANSIENT work: balanced and the normalized copy a remain live
+/// alongside L in LDLᵀ. Temporary balancing rows (n values) fit
+/// within these two matrices for n>0; for n=0 they do not allocate. `None` on overflow.
 fn factor_working_bytes(n: usize) -> Option<usize> {
     dense_bytes(n, n)?.checked_mul(2)
 }
 
-/// Cota superior del trabajo TRANSITORIO de `generalized_eigen` de orden `n`
-/// en el backend de referencia: nueve matrices densas n×n (Cholesky, inversa,
-/// productos, Jacobi y capacidad sobrante al recoger los modos), más vectores
-/// auxiliares y cabecera LDLᵀ para el diagnóstico de masa rechazada por Cholesky.
-/// Excluye las entradas y el resultado (n² de modos + n autovalores), que
-/// `MemoryBudget::generalized_eigen` carga aparte. No incluye metadatos internos
-/// del allocator. `None` si desborda.
+/// Upper bound on TRANSIENT work for order-`n` `generalized_eigen`
+/// in the reference backend: nine dense n×n matrices (Cholesky, inverse,
+/// products, Jacobi, and excess capacity when collecting modes), plus auxiliary
+/// vectors and the LDLᵀ header for diagnosing mass rejected by Cholesky.
+/// Excludes inputs and result (n² modes + n eigenvalues), which
+/// `MemoryBudget::generalized_eigen` charges separately. Excludes allocator internal
+/// metadata. `None` on overflow.
 pub fn eigen_working_bytes(n: usize) -> Option<usize> {
-    // Equilibrado, filas temporales, D y diagonal secundaria: cuatro vectores
-    // Real; bloques/permutación o índices/espacio del ordenamiento: dos usize.
+    // Balancing, temporary rows, D, and secondary diagonal: four Real
+    // vectors; blocks/permutation or indices/ordering workspace: two usize vectors.
     let auxiliary = n.checked_mul(4 * F64 + 2 * std::mem::size_of::<usize>())?;
     dense_bytes(n, n)?
         .checked_mul(9)?
@@ -58,13 +58,13 @@ fn eigen_result_bytes(n: usize) -> Option<usize> {
     dense_bytes(n, n)?.checked_add(n.checked_mul(std::mem::size_of::<f64>())?)
 }
 
-/// Bytes de una matriz densa `rows × cols` de `Real`; `None` si desborda.
+/// Bytes of a dense `rows × cols` matrix of `Real`; `None` on overflow.
 pub fn dense_bytes(rows: usize, cols: usize) -> Option<usize> {
     rows.checked_mul(cols)?.checked_mul(F64)
 }
 
-/// Bytes aproximados de una CSR con `rows` filas y `nnz` entradas
-/// (offsets + índices de columna + valores); `None` si desborda.
+/// Approximate bytes of a CSR with `rows` rows and `nnz` entries
+/// (offsets + column indices + values); `None` on overflow.
 pub fn sparse_bytes(rows: usize, nnz: usize) -> Option<usize> {
     let offsets = rows
         .checked_add(1)?
@@ -74,7 +74,7 @@ pub fn sparse_bytes(rows: usize, nnz: usize) -> Option<usize> {
 }
 
 impl MemoryBudget {
-    /// Presupuesto con `limit` bytes.
+    /// Budget with `limit` bytes.
     pub fn new(limit: usize) -> Self {
         Self {
             limit,
@@ -82,29 +82,29 @@ impl MemoryBudget {
             peak: 0,
         }
     }
-    /// Presupuesto igual al límite por reserva del destino (`MAX_ALLOC_BYTES`:
-    /// 8 GiB en 64 bits, 1 GiB en 32 bits).
+    /// Budget equal to the target's per-allocation limit (`MAX_ALLOC_BYTES`:
+    /// 8 GiB on 64-bit, 1 GiB on 32-bit).
     pub fn for_target() -> Self {
         Self::new(MAX_ALLOC_BYTES)
     }
-    /// Límite total en bytes.
+    /// Total limit in bytes.
     pub fn limit(&self) -> usize {
         self.limit
     }
-    /// Bytes cargados actualmente.
+    /// Currently charged bytes.
     pub fn used(&self) -> usize {
         self.used
     }
-    /// Máximo de bytes cargados simultáneamente desde la creación.
+    /// Maximum bytes charged simultaneously since creation.
     pub fn peak(&self) -> usize {
         self.peak
     }
-    /// Bytes aún disponibles.
+    /// Bytes still available.
     pub fn remaining(&self) -> usize {
         self.limit - self.used
     }
-    /// Carga `bytes`. ENG-E-0013 si excede el límite (o desborda); ante error
-    /// `used` queda intacto (`peak` no cambia porque la carga fue rechazada).
+    /// Charges `bytes`. ENG-E-0013 if it exceeds the limit (or overflows); on error
+    /// `used` remains intact (`peak` does not change because the charge was rejected).
     pub fn charge(&mut self, bytes: usize) -> EResult<()> {
         match self.used.checked_add(bytes) {
             Some(total) if total <= self.limit => {
@@ -118,24 +118,24 @@ impl MemoryBudget {
             ))),
         }
     }
-    /// Libera `bytes` (saturando en 0: liberar de más nunca da un uso negativo).
-    /// No hay identidad de cargas: una doble liberación del llamador resta de otras
-    /// cargas vivas (subcontabilidad); liberar solo lo cargado por el propio llamador.
+    /// Releases `bytes` (saturating at 0: excess release never yields negative usage).
+    /// Charges have no identity: a caller's double release subtracts from other
+    /// live charges (undercounting); release only what the caller itself charged.
     pub fn release(&mut self, bytes: usize) {
         self.used = self.used.saturating_sub(bytes);
     }
-    /// Libera el almacenamiento de una matriz densa cargada con este presupuesto.
+    /// Releases storage of a dense matrix charged to this budget.
     pub fn release_dense(&mut self, m: &DMat) {
         if let Some(b) = dense_bytes(m.rows(), m.cols()) {
             self.release(b);
         }
     }
-    /// Factoriza `a` cargando antes el presupuesto (retenido + trabajo). Éxito: queda
-    /// cargada solo la factorización retenida (`factor_bytes(n)`; libérala con
-    /// `release` al soltarla); error o pánico recuperado: `used` intacto.
-    /// Orden de errores: forma/desborde de tamaño → presupuesto (ENG-E-0013) → backend.
-    /// La cota cubre el almacenamiento numérico del backend de referencia;
-    /// otros backends y la construcción de mensajes de error no están acotados.
+    /// Factorizes `a` after charging the budget (retained + work). Success: only
+    /// the retained factorization remains charged (`factor_bytes(n)`; free it with
+    /// `release` when dropping it); error or caught panic: `used` intact.
+    /// Error order: shape/size overflow → budget (ENG-E-0013) → backend.
+    /// The bound covers numerical storage of the reference backend;
+    /// other backends and error message construction are not bounded.
     pub fn factorize<B: LinAlgBackend>(
         &mut self,
         backend: &mut B,
@@ -159,11 +159,11 @@ impl MemoryBudget {
         drop(guard);
         result
     }
-    /// Autovalores generalizados con presupuesto: carga el conjunto de trabajo
-    /// (`eigen_working_bytes(n)`) más el resultado; éxito: quedan cargados solo los
-    /// bytes del resultado (n² + n valores `f64`); error o pánico: `used` intacto.
-    /// La cota cubre el almacenamiento numérico del backend de referencia;
-    /// otros backends y la construcción de mensajes de error no están acotados.
+    /// Budgeted generalized eigenvalues: charges the working set
+    /// (`eigen_working_bytes(n)`) plus result; success: only result bytes remain
+    /// charged (n² + n `f64` values); error or panic: `used` intact.
+    /// The bound covers numerical storage of the reference backend;
+    /// other backends and error message construction are not bounded.
     pub fn generalized_eigen<B: LinAlgBackend>(
         &mut self,
         backend: &mut B,
@@ -190,30 +190,30 @@ impl MemoryBudget {
         drop(guard);
         result
     }
-    /// Crea una matriz nula cargándola; el llamador la libera con `release_dense`.
-    /// ENG-E-0013 si no cabe en el presupuesto; ENG-E-0010 por desborde/reserva.
+    /// Creates a zero matrix and charges it; the caller frees it with `release_dense`.
+    /// ENG-E-0013 if it does not fit the budget; ENG-E-0010 for overflow/allocation.
     pub fn zeros(&mut self, rows: usize, cols: usize) -> EResult<DMat> {
         let bytes =
             dense_bytes(rows, cols).ok_or_else(|| invalid("Tamaño matricial desbordado."))?;
         self.charge(bytes)?;
         DMat::zeros(rows, cols).inspect_err(|_| self.release(bytes))
     }
-    /// Resuelve `A X = B` con un backend cargando el conjunto de trabajo
-    /// (copia de A, B y X: `n² + 2·n·m` elementos). El trabajo transitorio se
-    /// libera al terminar; la solución X queda cargada hasta `release_dense`.
-    /// ENG-E-0013 si el conjunto de trabajo no cabe; errores del backend se
-    /// propagan y dejan `used` como estaba (`peak` conserva el máximo alcanzado
-    /// por el conjunto de trabajo, que sí llegó a cargarse); un pánico recuperado
-    /// tampoco deja `used` cargado.
+    /// Solves `A X = B` with a backend, charging the working set
+    /// (copy of A, B, and X: `n² + 2·n·m` elements). Transient work is
+    /// released on completion; solution X remains charged until `release_dense`.
+    /// ENG-E-0013 if the working set does not fit; backend errors are
+    /// propagated and leave `used` as it was (`peak` preserves the maximum reached
+    /// by the working set, which was actually charged); a caught panic
+    /// also leaves no charge in `used`.
     pub fn solve_dense<B: LinAlgBackend>(
         &mut self,
         backend: &mut B,
         a: &DMat,
         b: &DMat,
     ) -> EResult<DMat> {
-        // Orden de errores independiente del presupuesto: primero la forma de los
-        // operandos (la valida el backend sin reservar nada), después desborde de
-        // tamaños y por último el presupuesto (ENG-E-0013).
+        // Error order independent of budget: first operand shape
+        // (validated by the backend without allocating anything), then size
+        // overflow, and finally budget (ENG-E-0013).
         if a.rows() != a.cols() || b.rows() != a.rows() {
             return backend.solve_dense(a, b);
         }
@@ -223,16 +223,16 @@ impl MemoryBudget {
         let transient = a_bytes.checked_add(b_bytes).ok_or_else(overflow)?;
         let total = transient.checked_add(b_bytes).ok_or_else(overflow)?;
         self.charge(total)?;
-        // Guarda RAII: si el backend entra en pánico (y el llamador lo recupera
-        // con `catch_unwind`), la carga se libera al desenrollar; `used` no queda
-        // cargado.
+        // RAII guard: if the backend panics (and the caller catches it
+        // with `catch_unwind`), the charge is released during unwinding; `used` does not remain
+        // charged.
         let mut guard = ReleaseOnDrop {
             budget: self,
             bytes: total,
         };
         let result = backend.solve_dense(a, b);
         if result.is_ok() {
-            // Éxito: solo el trabajo transitorio se libera; X queda cargada.
+            // Success: only transient work is released; X remains charged.
             guard.bytes = transient;
         }
         drop(guard);
@@ -240,7 +240,7 @@ impl MemoryBudget {
     }
 }
 
-/// Libera `bytes` del presupuesto al destruirse (también al desenrollar un pánico).
+/// Releases `bytes` from the budget on destruction (also during panic unwinding).
 struct ReleaseOnDrop<'a> {
     budget: &'a mut MemoryBudget,
     bytes: usize,

@@ -1,4 +1,4 @@
-//! ENG-LA-008: presupuesto acumulado de memoria.
+//! ENG-LA-008: cumulative memory budget.
 use engine_linalg::{dense_bytes, sparse_bytes, DMat, MemoryBudget, ReferenceBackend};
 
 const USZ: usize = std::mem::size_of::<usize>();
@@ -9,7 +9,7 @@ fn dmat(r: usize, c: usize, v: &[f64]) -> DMat {
 
 #[test]
 fn many_individually_allowed_allocations_exceed_the_cumulative_budget() {
-    // Cada matriz (8·64·64 = 32 KiB) cabe sola; la suma no cabe en 100 KiB.
+    // Each matrix (8·64·64 = 32 KiB) fits alone; their sum does not fit in 100 KiB.
     let one = dense_bytes(64, 64).unwrap();
     assert_eq!(one, 32 * 1024);
     let mut budget = MemoryBudget::new(100 * 1024);
@@ -21,7 +21,7 @@ fn many_individually_allowed_allocations_exceed_the_cumulative_budget() {
     let e = budget.zeros(64, 64).unwrap_err();
     assert_eq!(e.code, "ENG-E-0013");
     assert!(!e.message.is_empty());
-    // El fallo no altera la cuenta; liberar permite volver a reservar.
+    // Failure does not alter accounting; releasing allows allocation again.
     assert_eq!(budget.used(), 3 * one);
     budget.release_dense(&held.pop().unwrap());
     assert!(budget.zeros(64, 64).is_ok());
@@ -36,7 +36,7 @@ fn charge_release_and_overflow_edges() {
     assert_eq!(b.charge(1).unwrap_err().code, "ENG-E-0013");
     assert_eq!(b.charge(usize::MAX).unwrap_err().code, "ENG-E-0013");
     assert_eq!(b.used(), 10);
-    b.release(100); // liberar de más satura en 0
+    b.release(100); // excess release saturates at 0
     assert_eq!(b.used(), 0);
     assert!(b.charge(0).is_ok());
     assert_eq!(
@@ -62,7 +62,7 @@ fn solve_dense_charges_working_set_and_keeps_only_the_result() {
     let a = dmat(2, 2, &[2.0, 0.0, 0.0, 4.0]);
     let b = dmat(2, 1, &[6.0, 8.0]);
     let need = dense_bytes(2, 2).unwrap() + 2 * dense_bytes(2, 1).unwrap();
-    // Un byte menos del conjunto de trabajo: rechazado sin tocar la cuenta.
+    // One byte less than the working set: rejected without touching accounting.
     let mut tight = MemoryBudget::new(need - 1);
     assert_eq!(
         tight
@@ -79,7 +79,7 @@ fn solve_dense_charges_working_set_and_keeps_only_the_result() {
     assert_eq!(ok.peak(), need);
     ok.release_dense(&x);
     assert_eq!(ok.used(), 0);
-    // Error del backend (matriz singular): la cuenta vuelve a cero.
+    // Backend error (singular matrix): accounting returns to zero.
     let sing = dmat(2, 2, &[1.0, 1.0, 1.0, 1.0]);
     let e = ok
         .solve_dense(&mut ReferenceBackend, &sing, &b)
@@ -90,20 +90,20 @@ fn solve_dense_charges_working_set_and_keeps_only_the_result() {
 
 #[test]
 fn empty_system_with_huge_column_count_does_not_panic() {
-    // J4 r3: A 0×0 con B 0×usize::MAX cargaba 0 bytes y el backend paniqueaba
-    // por reservar vectores por columna.
+    // J4 r3: A 0×0 with B 0×usize::MAX charged 0 bytes and the backend panicked
+    // when allocating vectors per column.
     let a = DMat::zeros(0, 0).unwrap();
     let b = DMat::zeros(0, usize::MAX).unwrap();
     let mut budget = MemoryBudget::new(1 << 20);
     let x = budget.solve_dense(&mut ReferenceBackend, &a, &b).unwrap();
     assert_eq!((x.rows(), x.cols()), (0, usize::MAX));
     assert_eq!(budget.used(), 0);
-    // La variante 0×n con n grande pero no vacía de memoria tampoco paniquea.
+    // The 0×n variant with large n but nonempty memory also does not panic.
     let b2 = DMat::zeros(0, 1 << 30).unwrap();
     assert!(budget.solve_dense(&mut ReferenceBackend, &a, &b2).is_ok());
 }
 
-/// Backend que entra en pánico en solve_dense (simula un fallo no recuperado).
+/// Backend that panics in solve_dense (simulates an uncaught failure).
 struct Panicking;
 impl engine_linalg::LinAlgBackend for Panicking {
     fn name(&self) -> &'static str {
@@ -157,7 +157,7 @@ fn recovered_backend_panic_does_not_leave_budget_charged() {
 
 #[test]
 fn error_order_does_not_depend_on_the_budget() {
-    // Forma incompatible: mismo error con presupuesto holgado o diminuto.
+    // Incompatible shape: same error with a generous or tiny budget.
     let a = dmat(2, 2, &[1.0, 0.0, 0.0, 1.0]);
     let b = dmat(3, 1, &[1.0, 1.0, 1.0]);
     let big = MemoryBudget::new(1 << 30)
@@ -167,7 +167,7 @@ fn error_order_does_not_depend_on_the_budget() {
         .solve_dense(&mut ReferenceBackend, &a, &b)
         .unwrap_err();
     assert_eq!(big.code, tiny.code);
-    // Con forma válida y presupuesto insuficiente: ENG-E-0013.
+    // With valid shape and insufficient budget: ENG-E-0013.
     let ok_b = dmat(2, 1, &[1.0, 1.0]);
     let e = MemoryBudget::new(1)
         .solve_dense(&mut ReferenceBackend, &a, &ok_b)
@@ -200,7 +200,7 @@ fn factorize_is_charged_keeps_only_the_factorization_and_respects_the_limit() {
     assert!((b.values()[0] - 0.25).abs() < 1e-14);
     budget.release(retained);
     assert_eq!(budget.used(), 0);
-    // Presupuesto insuficiente: ENG-E-0013 sin alterar `used`.
+    // Insufficient budget: ENG-E-0013 without altering `used`.
     let mut tiny = MemoryBudget::new(retained);
     assert_eq!(
         tiny.factorize(&mut ReferenceBackend, &a)
@@ -210,7 +210,7 @@ fn factorize_is_charged_keeps_only_the_factorization_and_respects_the_limit() {
         "ENG-E-0013"
     );
     assert_eq!(tiny.used(), 0);
-    // Error del backend (singular): `used` intacto.
+    // Backend error (singular): `used` intact.
     let singular = sym(4, 0.0);
     let mut budget = MemoryBudget::new(1 << 20);
     assert!(budget.factorize(&mut ReferenceBackend, &singular).is_err());
@@ -242,7 +242,7 @@ fn generalized_eigen_is_charged_and_respects_the_limit() {
         "ENG-E-0013"
     );
     assert_eq!(small.used(), 0);
-    // Órdenes distintos: el error no depende del presupuesto.
+    // Different orders: the error does not depend on budget.
     let m3 = sym(3, 1.0);
     let a = MemoryBudget::new(1)
         .generalized_eigen(&mut ReferenceBackend, &k, &m3)

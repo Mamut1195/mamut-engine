@@ -166,7 +166,7 @@ fn system_sink_analysis_control_examples_pass_their_kits() {
     assert_eq!(sys.accepted(), -0.2);
     let mut sink = MemorySink::default();
     assert_clean(check_result_sink(&mut sink));
-    assert_eq!(sink.entries.len(), 1); // Entradas rechazadas no dejan escritura parcial.
+    assert_eq!(sink.entries.len(), 1); // Rejected inputs leave no partial write.
     let ctl = RecordingControl::default();
     assert_clean(check_analysis_method(
         &PrescribedStep,
@@ -422,7 +422,7 @@ fn empty_samples_invalid_steps_and_wrong_inputs_never_pass() {
         detected(check_uniaxial_law(&law, &[0.0], h), "incremento");
     }
     detected(check_uniaxial_law(&law, &[], 1e-6), "muestras");
-    // T2 (J4): h finito pero absurdo (redondeo o truncamiento) tampoco pasa.
+    // T2 (J4): finite but absurd h (rounding or truncation) also fails.
     for h in [1e-12, 1e-10, 0.1, 1.0, 1e6] {
         detected(check_uniaxial_law(&law, &[0.0], h), "fuera de");
         detected(
@@ -607,7 +607,7 @@ fn analysis_errors_and_cancel_preserve_last_accepted_state() {
             .code,
         "ENG-E-0012"
     );
-    assert_eq!(sys.accepted(), 0.2); // Falló E/S después de aceptar; rollback conserva ese último aceptado.
+    assert_eq!(sys.accepted(), 0.2); // I/O failed after acceptance; rollback preserves that last committed state.
     ctl.cancel();
     assert_eq!(
         PrescribedStep
@@ -846,10 +846,10 @@ fn system_kit_detects_wrong_tangent_and_incomplete_output_overwrite() {
     }
 }
 
-/// Sistema que ACUMULA en `out` en lugar de sobrescribir (viola el trait).
+/// System that ACCUMULATES into `out` instead of overwriting (violates the trait).
 struct AccumSystem {
     inner: SpringSystem,
-    which: u8, // 0 tangente, 1 masa, 2 Kg
+    which: u8, // 0 tangent, 1 mass, 2 Kg
 }
 impl SystemView for AccumSystem {
     fn n_free_dofs(&self) -> usize {
@@ -860,7 +860,7 @@ impl SystemView for AccumSystem {
     }
     fn tangent(&mut self, u: &[Real], out: &mut SymMatrix) -> EResult<()> {
         if self.which == 3 && out.dense().values()[0] != 0.0 {
-            // Segunda salida (prellenada) de otra dimensión.
+            // Second output (prefilled) of another dimension.
             *out = SymMatrix::zeros(2)?;
             return Ok(());
         }
@@ -906,8 +906,8 @@ impl SystemView for AccumSystem {
 }
 #[test]
 fn system_kit_detects_accumulation_in_matrix_outputs() {
-    // J4 (#30): también con rigideces enormes (K=1e12), donde un centinela fijo
-    // quedaría dentro de la tolerancia de `close`.
+    // J4 (#30): also with huge stiffnesses (K=1e12), where a constant sentinel
+    // would fall within the tolerance of `close`.
     for stiffness in [12.0, 1e12, 1e306] {
         for which in 0..3u8 {
             let mut sys = AccumSystem {
@@ -925,7 +925,7 @@ fn system_kit_detects_accumulation_in_matrix_outputs() {
             );
         }
     }
-    // La segunda salida no puede cambiar de dimensión.
+    // The second output cannot change dimension.
     let mut sys = AccumSystem {
         inner: SpringSystem::new(12.0).unwrap(),
         which: 3,
@@ -939,7 +939,7 @@ fn system_kit_detects_accumulation_in_matrix_outputs() {
         ),
         "cambió de dimensión",
     );
-    // Control: sin acumulación el kit sigue limpio.
+    // Control: without accumulation the kit remains clean.
     let mut ok = AccumSystem {
         inner: SpringSystem::new(12.0).unwrap(),
         which: 9,

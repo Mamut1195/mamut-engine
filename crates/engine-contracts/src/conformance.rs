@@ -1,14 +1,14 @@
-//! Kit reutilizable de invariantes, independiente de los ejemplos y del backend.
+//! Reusable invariant kit, independent of examples and backend.
 //!
-//! Los llamadores aportan muestras interiores al rango diferenciable declarado y
-//! un incremento absoluto FD en sus unidades; no se infiere el rango físico.
-//! Una lista vacía o un incremento inválido produce diagnóstico (nunca pasa vacío).
-//! El error de tangente es norma infinito de la diferencia / máximo de las
-//! normas infinito, estrictamente < 1e-6; ambos nulos implican error cero.
-//! Comparaciones de aceptación/covarianza usan 1e-10 relativo + 1e-12 absoluto.
-//! Modos rígidos son infinitesimales desde origen sin precarga; su residuo se
-//! escala por norma de tangente y desplazamiento (umbral 1e-10 + 1e-12).
-//! Esto comprueba las muestras, no demuestra corrección para todo el dominio.
+//! Callers supply samples inside the declared differentiable range and an
+//! absolute FD increment in their units; the physical range is not inferred.
+//! An empty list or invalid increment produces a diagnostic (never passes vacuously).
+//! Tangent error is the infinity norm of the difference / maximum of the
+//! infinity norms, strictly < 1e-6; both zero imply zero error.
+//! Acceptance/covariance comparisons use 1e-10 relative + 1e-12 absolute.
+//! Rigid modes are infinitesimal from an origin without preload; their residual is
+//! scaled by tangent and displacement norms (threshold 1e-10 + 1e-12).
+//! This checks the samples, not correctness over the entire domain.
 use crate::*;
 use engine_core::math;
 use engine_core::{EntityRef, Severity};
@@ -106,11 +106,11 @@ fn symmetric(out: &mut Vec<Diagnostic>, context: &str, m: &DMat, label: &str) {
         }
     }
 }
-/// Rango del incremento de diferencias finitas centrales: por debajo, el
-/// redondeo domina (error ~ε/h); por encima, el truncamiento (error ~h²) invalida
-/// la comparación con tolerancia 1e-6. T2 (J4): h acotado, no solo finito > 0.
+/// Range of the central finite-difference increment: below it,
+/// rounding dominates (error ~ε/h); above it, truncation (error ~h²) invalidates
+/// the comparison with tolerance 1e-6. T2 (J4): bounded h, not just finite > 0.
 pub const FD_STEP_MIN: Real = 1e-9;
-/// Cota superior del incremento de diferencias finitas (véase [`FD_STEP_MIN`]).
+/// Upper bound of the finite-difference increment (see [`FD_STEP_MIN`]).
 pub const FD_STEP_MAX: Real = 1e-2;
 fn setup(out: &mut Vec<Diagnostic>, context: &str, count: usize, h: Real) -> bool {
     if count == 0 || !h.is_finite() || h <= 0.0 {
@@ -134,14 +134,14 @@ fn setup(out: &mut Vec<Diagnostic>, context: &str, count: usize, h: Real) -> boo
     }
 }
 
-/// Comprueba uniaxial/1: historia inicial/de prueba, finitud, repetibilidad,
-/// tensión aceptada, tangente inicial y derivada central con error < 1e-6.
+/// Checks uniaxial/1: initial/trial history, finiteness, repeatability,
+/// committed stress, initial tangent, and central derivative with error < 1e-6.
 ///
-/// samples en deformación adimensional (o m para resorte), h en la misma unidad;
-/// cada sample ± h debe estar en rango diferenciable. Recorre una trayectoria
-/// aceptando explícitamente trial_state entre muestras sin modificar el objeto.
-/// Devuelve diagnósticos con kind, índice, valores y error relativo, nunca panic
-/// por una respuesta con longitud incorrecta; propaga errores con contexto.
+/// samples in dimensionless strain (or m for a spring), h in the same unit;
+/// each sample ± h must be within the differentiable range. Follows a path
+/// explicitly committing trial_state between samples without modifying the object.
+/// Returns diagnostics with kind, index, values, and relative error, never panics
+/// on a response of incorrect length; propagates errors with context.
 ///
 /// ```
 /// use engine_contracts::{conformance::check_uniaxial_law, examples::LinearElastic};
@@ -353,11 +353,11 @@ fn vector_law(
     }
 }
 
-/// Comprueba section/1 con deformaciones D2 de longitud 2 o D3 de longitud 4.
-/// Usa la trayectoria de estados aceptados, finitud, repetibilidad, simetría y
-/// tangente FD central (<1e-6). h es incremento absoluto (ε y m⁻¹ respectivamente);
-/// el llamador escoge escalas SI compatibles y muestras interiores suaves.
-/// Devuelve diagnósticos detallados de contrato, tamaños, estado o derivada.
+/// Checks section/1 with D2 strains of length 2 or D3 of length 4.
+/// Uses the committed-state path, finiteness, repeatability, symmetry, and
+/// central FD tangent (<1e-6). h is an absolute increment (ε and m⁻¹ respectively);
+/// the caller chooses compatible SI scales and smooth interior samples.
+/// Returns detailed contract, size, state, or derivative diagnostics.
 pub fn check_section_law(law: &dyn SectionLaw, samples: &[Vec<Real>], h: Real) -> Vec<Diagnostic> {
     let mut out = vec![];
     contract(&mut out, law.kind(), law.contract(), "section");
@@ -428,7 +428,7 @@ fn rotated(dofs: &[Dof], values: &[Real], q: &[[Real; 3]; 3]) -> Vec<Real> {
     out
 }
 fn transformed(dofs: &[Dof], m: &DMat, q: &[[Real; 3]; 3]) -> Vec<Real> {
-    // Forma Q M Qᵀ únicamente para verificar covarianza, sin exponer álgebra pública.
+    // Forms Q M Qᵀ solely to verify covariance, without exposing public algebra.
     let n = m.rows();
     let columns: Vec<_> = (0..n)
         .map(|j| {
@@ -450,20 +450,20 @@ fn transformed(dofs: &[Dof], m: &DMat, q: &[[Real; 3]; 3]) -> Vec<Real> {
     out
 }
 
-/// Comprueba element/1: tamaños, finitud, estado aceptado, repetibilidad,
-/// tangente FD <1e-6 y simetría de tangente/ambas masas/Kg si existen.
+/// Checks element/1: sizes, finiteness, committed state, repeatability,
+/// FD tangent <1e-6 and symmetry of tangent/both masses/Kg if present.
 ///
-/// ctx debe tener geometría válida sin precarga y samples desplazamientos totales
-/// SI de n_nodes × dofs_per_node. h absoluto en m/rad. Ejecuta 3 modos rígidos
-/// D2 o 6 D3 proyectados a los GDL activos. Para conjuntos cerrados bajo rotación
-/// (todas las traslaciones y ningún giro o todos los giros de la dimensión),
-/// verifica fuerzas, tangente y masa ante dos rotaciones no triviales por eje.
-/// Para otros conjuntos la covarianza no aplica; use un elemento orientado con
-/// GDL completos para comprobarla. Historia inicial sin orientación propia;
-/// parámetros escalares se conservan al rotar. Orientaciones globales propias
-/// deben transformarse en un fixture específico, fuera de este helper mínimo.
-/// También comprueba carga nula y recuperación sin cargas en [0,0.5,1].
-/// Devuelve todos los diagnósticos con kind e invariante; no resuelve ecuaciones.
+/// ctx must have valid geometry without preload and samples must be total
+/// SI displacements of n_nodes × dofs_per_node. Absolute h in m/rad. Runs 3 rigid modes
+/// in D2 or 6 in D3 projected onto active DOFs. For sets closed under rotation
+/// (all translations and no rotations or all rotations of the dimension),
+/// checks forces, tangent, and mass under two nontrivial rotations per axis.
+/// For other sets, covariance does not apply; use an oriented element with
+/// complete DOFs to check it. Initial history without its own orientation;
+/// scalar parameters are preserved under rotation. Custom global orientations
+/// must be transformed in a specific fixture, outside this minimal helper.
+/// Also checks zero load and recovery without loads at [0,0.5,1].
+/// Returns all diagnostics with kind and invariant; does not solve equations.
 pub fn check_element(
     element: &dyn Element,
     ctx: &ElementCtx<'_>,
@@ -529,10 +529,10 @@ pub fn check_element(
                 }
             }));
         }
-        // Traslaciones: el modo es exacto también en el sentido no lineal. Giros:
-        // un giro finito (amplitud 1 rad) no es rígido para un elemento no
-        // lineal válido (p. ej. no corrotacional); el modo rígido es entonces
-        // INFINITESIMAL: se exige K₀·u ≈ 0 con la tangente del origen.
+        // Translations: the mode is also exact in the nonlinear sense. Rotations:
+        // a finite rotation (amplitude 1 rad) is not rigid for a valid nonlinear
+        // element (e.g. non-corotational); the rigid mode is then
+        // INFINITESIMAL: K₀·u ≈ 0 is required with the tangent at the origin.
         if mode < axes {
             if let Some(r) = take(&mut out, name, response(element, ctx, &u, &state)) {
                 if check_response(&mut out, name, &r, n, ns) {
@@ -550,7 +550,7 @@ pub fn check_element(
                 }
             }
         } else {
-            // Se conserva la validación de respuesta (longitudes, finitud) de ese estado.
+            // Response validation (lengths, finiteness) for that state is preserved.
             if let Some(r) = take(&mut out, name, response(element, ctx, &u, &state)) {
                 check_response(&mut out, name, &r, n, ns);
             }
@@ -759,11 +759,11 @@ fn validate_report(report: &ConvergenceReport) -> EResult<()> {
     Ok(())
 }
 
-/// Valida clave/valor mínimo results/1, sin escribir ni serializar.
-/// Exige bloque conocido, campo/entidad no vacíos, numéricos finitos, posiciones
-/// `[0,1]` y normas/tolerancias coherentes. No impone cardinalidad por campo:
-/// corresponde al esquema de ENG-CORE-005. ENG-E-0010 por estructura/rango,
-/// ENG-E-0008 por no finitos y ENG-E-0009 por diagnóstico fuera del catálogo.
+/// Validates minimal results/1 key/value, without writing or serializing.
+/// Requires a known block, nonempty field/entity, finite numerics, positions
+/// `[0,1]`, and consistent norms/tolerances. Does not impose cardinality per field:
+/// that belongs to the ENG-CORE-005 schema. ENG-E-0010 for structure/range,
+/// ENG-E-0008 for nonfinite values, and ENG-E-0009 for a diagnostic outside the catalog.
 ///
 /// ```
 /// use engine_contracts::*;
@@ -819,11 +819,11 @@ pub fn validate_result(key: &ResultKey, value: &ResultValue) -> EResult<()> {
     }
 }
 
-/// Construye un elemento mediante una fábrica y ejecuta check_element.
-/// params debe ser válido según su esquema; el contexto debe corresponder al
-/// producto. Verifica esquema no vacío y coincidencia de kind. Los ejemplos
-/// negativos de parámetros se prueban aparte porque su rango depende del kind.
-/// Devuelve fallos de construcción con contexto y todos los invariantes físicos.
+/// Constructs an element through a factory and runs check_element.
+/// params must be valid according to its schema; the context must correspond to the
+/// product. Checks nonempty schema and matching kind. Negative parameter
+/// examples are tested separately because their range depends on the kind.
+/// Returns construction failures with context and all physical invariants.
 pub fn check_element_factory(
     factory: &dyn ElementFactory,
     params: &JsonValue,
@@ -846,14 +846,14 @@ pub fn check_element_factory(
     out
 }
 
-/// Factor del centinela respecto a la magnitud de la matriz limpia: debe superar
-/// con holgura la tolerancia relativa de `close` (1e-10) para que una
-/// implementación que acumule el centinela no quede dentro de ella.
+/// Sentinel factor relative to the clean matrix magnitude: must comfortably exceed
+/// the relative tolerance of `close` (1e-10) so that an
+/// implementation accumulating the sentinel does not fall within it.
 const SENTINEL_FACTOR: Real = 1e3;
-/// Evalúa una operación que debe SOBRESCRIBIR una matriz de salida: una vez con
-/// salida en ceros y otra prellenada con un centinela simétrico no nulo; ambas
-/// deben dar el mismo resultado (una implementación que acumule en `out` falla).
-/// Devuelve la matriz de la primera llamada si ambas tuvieron éxito.
+/// Evaluates an operation that must OVERWRITE an output matrix: once with
+/// zero output and once prefilled with a nonzero symmetric sentinel; both
+/// must yield the same result (an implementation accumulating into `out` fails).
+/// Returns the matrix from the first call if both succeeded.
 fn overwritten(
     out: &mut Vec<Diagnostic>,
     context: &str,
@@ -863,15 +863,15 @@ fn overwritten(
 ) -> Option<SymMatrix> {
     let mut clean = take(out, context, SymMatrix::zeros(n))?;
     take(out, context, call(&mut clean))?;
-    // Centinela simétrico PROPORCIONAL a la magnitud de la matriz limpia
-    // (mínimo 1): con K~1e12 un centinela fijo de 7.25 caería dentro de la tolerancia.
+    // Symmetric sentinel PROPORTIONAL to the clean matrix magnitude
+    // (minimum 1): with K~1e12 a constant sentinel of 7.25 would fall within tolerance.
     let magnitude = clean
         .dense()
         .values()
         .iter()
         .fold(1.0_f64, |m, v| m.max(v.abs()));
-    // Con magnitud ~1e306 el factor desbordaría: se usa entonces la propia
-    // magnitud (acumular la duplicaría: muy por encima de la tolerancia de `close`).
+    // With magnitude ~1e306 the factor would overflow: the magnitude itself is then
+    // used (accumulation would double it: far above the tolerance of `close`).
     let scaled = SENTINEL_FACTOR * magnitude;
     let sentinel = if scaled.is_finite() {
         scaled
@@ -905,14 +905,14 @@ fn overwritten(
     Some(clean)
 }
 
-/// Comprueba SystemView mediante muestras totales SI y caso válido.
-/// Sobrescritura de fuerzas (salida prellenada con NaN) y de matrices (salida
-/// en ceros y con centinela simétrico: ambas deben coincidir), patrón del
-/// orden correcto, masa/Kg finitas, tangente FD <1e-6, escalado lineal del caso,
-/// aceptación y rollback conservando la respuesta del último aceptado.
-/// Muta el sistema: al finalizar queda aceptada la última muestra exitosa.
-/// No comprueba modos rígidos, pues el sistema reducido puede contener apoyos.
-/// Devuelve diagnósticos; muestras vacías/h inválido nunca pasan silenciosamente.
+/// Checks SystemView through total SI samples and a valid case.
+/// Overwriting forces (output prefilled with NaN) and matrices (output
+/// with zeros and with a symmetric sentinel: both must match), pattern of the
+/// correct order, finite mass/Kg, FD tangent <1e-6, linear case scaling,
+/// acceptance and rollback preserving the response of the last committed state.
+/// Mutates the system: the last successful sample remains committed on completion.
+/// Does not check rigid modes, since the reduced system may contain supports.
+/// Returns diagnostics; empty samples/invalid h never pass silently.
 pub fn check_system_view(
     sys: &mut dyn SystemView,
     samples: &[Vec<Real>],
@@ -1044,11 +1044,11 @@ pub fn check_system_view(
     out
 }
 
-/// Comprueba reports y contrato analysis/1 ejecutando una vez el método.
-/// No impone estrategia ni solución específica: las muestras analíticas se prueban
-/// por método. Verifica esquema/id, finitud, tolerancias, estado Completed y
-/// último paso fallido para NotConverged. Propaga errores como diagnósticos.
-/// Usa los ajustes SI y destinos/control aportados; muta el sistema y el sink.
+/// Checks reports and the analysis/1 contract by running the method once.
+/// Does not impose a specific strategy or solution: analytical samples are tested
+/// per method. Checks schema/id, finiteness, tolerances, Completed state, and
+/// last failed step for NotConverged. Propagates errors as diagnostics.
+/// Uses the supplied SI settings and sinks/control; mutates the system and sink.
 pub fn check_analysis_method(
     method: &dyn AnalysisMethod,
     sys: &mut dyn SystemView,
@@ -1092,10 +1092,10 @@ pub fn check_analysis_method(
     out
 }
 
-/// Prueba de recepción: entrega un valor SI válido y dos entradas inválidas.
-/// Exige rechazo de NaN con ENG-E-0008 y clave vacía con ENG-E-0010.
-/// Muta el destino; solo la implementación puede observar retención y atomicidad,
-/// que se deben verificar con su acceso de lectura específico.
+/// Sink test: supplies one valid SI value and two invalid inputs.
+/// Requires rejection of NaN with ENG-E-0008 and an empty key with ENG-E-0010.
+/// Mutates the sink; only the implementation can observe retention and atomicity,
+/// which must be checked through its specific read access.
 pub fn check_result_sink(sink: &mut dyn ResultSink) -> Vec<Diagnostic> {
     let mut out = vec![];
     let name = "ResultSink";
@@ -1133,10 +1133,10 @@ pub fn check_result_sink(sink: &mut dyn ResultSink) -> Vec<Diagnostic> {
     out
 }
 
-/// Comprueba trazas observables de RunControl: fracciones finitas en `[0,1]`,
-/// monótonas y notas no vacías. Devuelve diagnósticos por índice. Las trazas
-/// pueden provenir de cualquier observador; no presupone mutex ni hilos.
-/// Una traza vacía falla; la cancelación se prueba mediante check_analysis_method.
+/// Checks observable RunControl traces: finite fractions in `[0,1]`,
+/// monotonic and with nonempty notes. Returns diagnostics by index. Traces
+/// may come from any observer; does not assume mutexes or threads.
+/// An empty trace fails; cancellation is tested through check_analysis_method.
 pub fn check_run_control(events: &[(Real, String)]) -> Vec<Diagnostic> {
     let mut out = vec![];
     let mut previous = 0.0;

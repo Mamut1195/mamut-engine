@@ -1,47 +1,47 @@
-//! Diafragma infinitesimal rígido XY, normal +Z, exclusivamente D3.
+//! Infinitesimal rigid XY diaphragm, normal +Z, exclusively D3.
 //!
-//! Para r = x_esclavo − x_maestro: Ux_s = Ux_m − r_y Rz_m,
-//! Uy_s = Uy_m + r_x Rz_m y Rz_s = Rz_m. Uz, Rx y Ry conservan
-//! su independencia; no hay rigidez artificial ni penalización.
+//! For r = x_esclavo − x_maestro: Ux_s = Ux_m − r_y Rz_m,
+//! Uy_s = Uy_m + r_x Rz_m and Rz_s = Rz_m. Uz, Rx, and Ry retain
+//! their independence; no artificial stiffness or penalty.
 use crate::{error, finite, DofMap};
 use engine_core::{Dim, Dof, DofIndex, EResult, EntityRef, NodeId, Real};
 use std::collections::BTreeSet;
 
-/// Restricción de planta XY sobre Ux, Uy y Rz de cada esclavo.
+/// XY floor constraint on Ux, Uy, and Rz of each slave.
 ///
-/// Maestro y esclavos deben declarar esas tres componentes D3 y estar a
-/// la misma cota (tolerancia absoluta 1e-9 m). No admite D2, cadenas,
-/// ciclos, maestros repetidos ni esclavos compartidos. No impone Uz/Rx/Ry.
+/// Master and slaves must declare those three D3 components and be at
+/// the same elevation (absolute tolerance 1e-9 m). Does not allow D2, chains,
+/// cycles, repeated masters, or shared slaves. Does not impose Uz/Rx/Ry.
 #[derive(Clone, Debug)]
 pub struct RigidDiaphragm {
-    /// Nodo independiente que define traslaciones y giro alrededor de +Z.
+    /// Independent node defining translations and rotation about +Z.
     pub master: NodeId,
-    /// Nodos dependientes; el orden solo afecta al listado de fuerzas.
+    /// Dependent nodes; order only affects the force listing.
     pub slaves: Vec<NodeId>,
 }
 
-/// Acción del diafragma sobre un nodo, positiva en ejes globales.
+/// Diaphragm action on a node, positive in global axes.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct DiaphragmNodalForce {
-    /// Nodo receptor de la acción.
+    /// Node receiving the action.
     pub node: NodeId,
-    /// [Fx, Fy, Mz] en N, N, N·m, respecto al propio nodo.
+    /// [Fx, Fy, Mz] in N, N, N·m, relative to the node itself.
     pub values: [Real; 3],
 }
 
-/// Fuerzas internas de una restricción, recuperadas de Ku − factor F.
+/// Internal forces of a constraint, recovered from Ku − factor F.
 ///
-/// En equilibrio, la acción sobre cada esclavo es su residuo. La acción
-/// sobre el maestro es la opuesta a la suma de esos residuos transportados
-/// al maestro: [ΣFx, ΣFy, Σ(Mz + r_x Fy − r_y Fx)] con signo contrario.
-/// Esta resultante equilibra el diafragma; no es una reacción de apoyo ni
-/// la carga externa total del piso. Fuera de equilibrio es una estimación
-/// por residuos, y no un multiplicador obtenido de una solución equilibrada.
+/// At equilibrium, the action on each slave is its residual. The action
+/// on the master is opposite to the sum of those residuals transferred
+/// to the master: [ΣFx, ΣFy, Σ(Mz + r_x Fy − r_y Fx)] with opposite sign.
+/// This resultant balances the diaphragm; it is neither a support reaction nor
+/// the total external floor load. Away from equilibrium it is a residual-based
+/// estimate, not a multiplier obtained from an equilibrated solution.
 #[derive(Clone, Debug, PartialEq)]
 pub struct DiaphragmForces {
-    /// Resultante aplicada por el diafragma sobre el maestro.
+    /// Resultant applied by the diaphragm to the master.
     pub master: DiaphragmNodalForce,
-    /// Acciones aplicadas sobre los esclavos, en orden de declaración.
+    /// Actions applied to slaves, in declaration order.
     pub slaves: Vec<DiaphragmNodalForce>,
 }
 

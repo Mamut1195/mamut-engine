@@ -1,28 +1,28 @@
 #![forbid(unsafe_code)]
-//! Modelo de dominio e inspección de entradas, escritos desde cero.
+//! Domain model and input inspection, written from scratch.
 //!
-//! **APROBADA por Jonathan 2026-10-10 22:52: X-Y horizontal, Z vertical arriba (el Engine gobierna).** Ejes globales X, Y, Z diestros, Z vertical
-//! hacia arriba. Los nodos D2 representan el plano X-Y (coordenada Z = 0), con
-//! Ux, Uy y Rz; este plano es horizontal. D3 admite seis GDL.
-//! El eje local x va de i a j; en D2, y = (-x_y, x_x, 0) y z = x × y.
-//! En D3 se necesita una orientación adicional antes del cálculo; este modelo
-//! de dominio no la deduce. Fuerzas y desplazamientos positivos siguen los ejes;
-//! giros y momentos positivos siguen la mano derecha. Axial de tracción positivo.
-//! En una sección con normal exterior +x, las resultantes positivas son
-//! +N x, +Vy y, +Vz z y +T x, +My y, +Mz z; en la cara con normal -x se
-//! invierten todas esas direcciones. En las caras de extremo del miembro,
-//! i es la cara negativa y j la positiva. Por tanto, tracción positiva actúa
-//! hacia -x en i y +x en j; cortante Vy positivo hacia -y en i y +y en j;
-//! momento Mz positivo hacia -z en i y +z en j. Estos signos de resultantes
-//! internas deben distinguirse de cargas nodales expresadas en ejes globales.
-//! La convención de elevación 2D sigue pendiente de decisión. Véase también `docs/CONVENCION_EJES.md`.
+//! **APPROVED by Jonathan 2026-10-10 22:52: X-Y horizontal, Z vertical upward (the Engine governs).** Right-handed global X, Y, Z axes, Z vertically
+//! upward. D2 nodes represent the X-Y plane (Z coordinate = 0), with
+//! Ux, Uy, and Rz; this plane is horizontal. D3 supports six DOFs.
+//! The local x axis runs from i to j; in D2, y = (-x_y, x_x, 0) and z = x × y.
+//! In D3, an additional orientation is needed before computation; this domain
+//! model does not infer it. Positive forces and displacements follow the axes;
+//! positive rotations and moments follow the right-hand rule. Axial tension is positive.
+//! On a section with outward normal +x, the positive resultants are
+//! +N x, +Vy y, +Vz z and +T x, +My y, +Mz z; on the face with normal -x,
+//! all these directions are reversed. On the member end faces,
+//! i is the negative face and j the positive one. Thus, positive tension acts
+//! toward -x at i and +x at j; positive shear Vy toward -y at i and +y at j;
+//! positive moment Mz toward -z at i and +z at j. These signs of internal
+//! resultants must be distinguished from nodal loads expressed in global axes.
+//! The 2D elevation convention is still pending a decision. See also `docs/CONVENCION_EJES.md`.
 //!
-//! Cada nodo declara su dimensión; se permiten colecciones de nodos de distintas
-//! dimensiones sin imponer compatibilidad entre miembros en este ticket. Todas
-//! las magnitudes usan unidades coherentes elegidas por quien construye el modelo.
-//! Las coordenadas siempre tienen tres componentes. No se comprueba aquí la
-//! condición geométrica Z = 0 de D2, ni positividad física de propiedades o masas.
-//! La inserción conserva entradas inválidas y duplicadas para diagnosticarlas.
+//! Each node declares its dimension; collections of nodes with different
+//! dimensions are allowed without enforcing member compatibility in this ticket. All
+//! quantities use consistent units chosen by the model builder.
+//! Coordinates always have three components. Neither the D2 geometric
+//! condition Z = 0 nor physical positivity of properties or masses is checked here.
+//! Insertion preserves invalid and duplicate entries for diagnostics.
 //!
 //! ```
 //! use engine_model::*;
@@ -45,45 +45,45 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub use engine_core::{Diagnostic, Dim, Dof, EntityRef, MemberId, NodeId, Real};
 
-/// Tolerancia absoluta de longitud, en la unidad de coordenadas del modelo.
+/// Absolute length tolerance, in the model's coordinate unit.
 ///
-/// Una distancia euclídea tridimensional menor o igual a 1e-12 se considera nula.
-/// No se escala con el tamaño del modelo; convierta unidades de forma coherente.
+/// A three-dimensional Euclidean distance less than or equal to 1e-12 is considered zero.
+/// It does not scale with model size; convert units consistently.
 pub const LENGTH_TOLERANCE: Real = 1e-12;
 
-/// Parámetro genérico, sin interpretar su significado constitutivo.
+/// Generic parameter, without interpreting its constitutive meaning.
 #[derive(Clone, Debug)]
 pub struct Parameter {
-    /// Nombre propio del parámetro.
+    /// Custom parameter name.
     pub name: String,
-    /// Valor en las unidades coherentes del modelo.
+    /// Value in the model's consistent units.
     pub value: Real,
 }
 
-/// Valor asociado a una componente nodal (carga o masa).
+/// Value associated with a nodal component (load or mass).
 #[derive(Clone, Debug)]
 pub struct DofValue {
-    /// Componente de desplazamiento o giro asociada.
+    /// Associated displacement or rotation component.
     pub dof: Dof,
-    /// Magnitud; para giros, la masa representa inercia rotacional.
+    /// Magnitude; for rotations, mass represents rotational inertia.
     pub value: Real,
 }
 
-/// Nodo geométrico con dimensión y GDL declarados.
+/// Geometric node with declared dimension and DOFs.
 #[derive(Clone, Debug)]
 pub struct Node {
-    /// Identificador del nodo.
+    /// Node identifier.
     pub id: NodeId,
-    /// Dimensión que determina los GDL permitidos.
+    /// Dimension that determines the allowed DOFs.
     pub dim: Dim,
-    /// Coordenadas globales X, Y, Z.
+    /// Global X, Y, Z coordinates.
     pub coordinates: [Real; 3],
-    /// GDL declarados; se comprueba su pertenencia a la dimensión.
+    /// Declared DOFs; membership in the dimension is checked.
     pub dofs: Vec<Dof>,
 }
 
 impl Node {
-    /// Construye un nodo con todos los GDL de su dimensión, sin validar coordenadas.
+    /// Constructs a node with all DOFs of its dimension, without validating coordinates.
     pub fn new(id: NodeId, dim: Dim, coordinates: [Real; 3]) -> Self {
         Self {
             id,
@@ -94,161 +94,161 @@ impl Node {
     }
 }
 
-/// Miembro orientado entre dos nodos, con sección y ley por nombre.
+/// Oriented member between two nodes, with section and law by name.
 #[derive(Clone, Debug)]
 pub struct Member {
-    /// Identificador del miembro.
+    /// Member identifier.
     pub id: MemberId,
-    /// Extremos i y j, en ese orden.
+    /// Ends i and j, in that order.
     pub nodes: [NodeId; 2],
-    /// Identificador de la sección.
+    /// Section identifier.
     pub section: String,
-    /// Nombre de la ley constitutiva.
+    /// Constitutive law name.
     pub law: String,
 }
 
-/// Sección con propiedades genéricas que interpretará el cálculo futuro.
+/// Section with generic properties to be interpreted by future computation.
 #[derive(Clone, Debug)]
 pub struct Section {
-    /// Identificador propio de la sección.
+    /// Custom section identifier.
     pub id: String,
-    /// Propiedades, por ejemplo área o inercias, sin requisitos físicos aquí.
+    /// Properties, such as area or inertias, without physical requirements here.
     pub properties: Vec<Parameter>,
 }
 
-/// Ley constitutiva declarativa; este crate no evalúa su respuesta.
+/// Declarative constitutive law; this crate does not evaluate its response.
 #[derive(Clone, Debug)]
 pub struct Law {
-    /// Nombre propio, utilizado como identificador.
+    /// Custom name, used as an identifier.
     pub name: String,
-    /// Parámetros genéricos de la ley.
+    /// Generic law parameters.
     pub parameters: Vec<Parameter>,
 }
 
-/// Apoyo nodal mediante componentes restringidas a desplazamiento o giro cero.
+/// Nodal support through components constrained to zero displacement or rotation.
 #[derive(Clone, Debug)]
 pub struct Support {
-    /// Identificador propio del apoyo.
+    /// Custom support identifier.
     pub id: String,
-    /// Nodo del apoyo.
+    /// Support node.
     pub node: NodeId,
-    /// GDL restringidos.
+    /// Constrained DOFs.
     pub restrained: Vec<Dof>,
 }
 
-/// Acción nodal de un caso, expresada en ejes globales.
+/// Nodal action for a case, expressed in global axes.
 #[derive(Clone, Debug)]
 pub struct NodalLoad {
-    /// Nodo al que se aplica la carga.
+    /// Node to which the load is applied.
     pub node: NodeId,
-    /// Fuerzas o momentos asociados a componentes nodales.
+    /// Forces or moments associated with nodal components.
     pub values: Vec<DofValue>,
 }
 
-/// Caso de carga identificado por un nombre propio.
+/// Load case identified by a custom name.
 #[derive(Clone, Debug)]
 pub struct LoadCase {
-    /// Nombre del caso, utilizado como identificador.
+    /// Case name, used as an identifier.
     pub name: String,
-    /// Acciones nodales del caso.
+    /// Nodal actions for the case.
     pub loads: Vec<NodalLoad>,
 }
 
-/// Término de una combinación de casos.
+/// Term in a combination of cases.
 #[derive(Clone, Debug)]
 pub struct CaseFactor {
-    /// Nombre del caso referenciado.
+    /// Name of the referenced case.
     pub case: String,
-    /// Factor multiplicador de las acciones del caso.
+    /// Multiplying factor for the case's actions.
     pub factor: Real,
 }
 
-/// Combinación lineal declarativa de casos de carga.
+/// Declarative linear combination of load cases.
 #[derive(Clone, Debug)]
 pub struct Combination {
-    /// Identificador propio de la combinación.
+    /// Custom combination identifier.
     pub id: String,
-    /// Casos y sus factores, conservados en orden de entrada.
+    /// Cases and their factors, preserved in input order.
     pub terms: Vec<CaseFactor>,
 }
 
-/// Masas e inercias concentradas en un nodo.
+/// Masses and inertias concentrated at a node.
 #[derive(Clone, Debug)]
 pub struct NodalMass {
-    /// Identificador propio de la asignación de masa.
+    /// Custom mass assignment identifier.
     pub id: String,
-    /// Nodo receptor.
+    /// Receiving node.
     pub node: NodeId,
-    /// Valores de masa o inercia por componente nodal.
+    /// Mass or inertia values per nodal component.
     pub values: Vec<DofValue>,
 }
 
-/// Colecciones de dominio, sin validación implícita ni sustitución de duplicados.
+/// Domain collections, without implicit validation or replacement of duplicates.
 ///
-/// Los identificadores son únicos dentro de cada clase, no entre clases.
-/// Las listas públicas permiten construir y corregir entradas antes de validar.
+/// Identifiers are unique within each class, not across classes.
+/// Public lists allow building and correcting entries before validation.
 #[derive(Clone, Debug, Default)]
 pub struct Model {
-    /// Nodos en orden de inserción.
+    /// Nodes in insertion order.
     pub nodes: Vec<Node>,
-    /// Miembros en orden de inserción.
+    /// Members in insertion order.
     pub members: Vec<Member>,
-    /// Secciones en orden de inserción.
+    /// Sections in insertion order.
     pub sections: Vec<Section>,
-    /// Leyes en orden de inserción.
+    /// Laws in insertion order.
     pub laws: Vec<Law>,
-    /// Apoyos en orden de inserción.
+    /// Supports in insertion order.
     pub supports: Vec<Support>,
-    /// Casos en orden de inserción.
+    /// Cases in insertion order.
     pub cases: Vec<LoadCase>,
-    /// Combinaciones en orden de inserción.
+    /// Combinations in insertion order.
     pub combinations: Vec<Combination>,
-    /// Masas en orden de inserción.
+    /// Masses in insertion order.
     pub masses: Vec<NodalMass>,
 }
 
 impl Model {
-    /// Construye un modelo vacío, sin diagnósticos.
+    /// Constructs an empty model, without diagnostics.
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Inserta un nodo sin validar, conservando posibles duplicados.
+    /// Inserts a node without validation, preserving possible duplicates.
     pub fn insert_node(&mut self, node: Node) -> &mut Self {
         self.nodes.push(node);
         self
     }
-    /// Inserta un miembro sin validar sus referencias ni geometría.
+    /// Inserts a member without validating its references or geometry.
     pub fn insert_member(&mut self, member: Member) -> &mut Self {
         self.members.push(member);
         self
     }
-    /// Inserta una sección sin validar sus propiedades.
+    /// Inserts a section without validating its properties.
     pub fn insert_section(&mut self, section: Section) -> &mut Self {
         self.sections.push(section);
         self
     }
-    /// Inserta una ley sin validar sus parámetros.
+    /// Inserts a law without validating its parameters.
     pub fn insert_law(&mut self, law: Law) -> &mut Self {
         self.laws.push(law);
         self
     }
-    /// Inserta un apoyo sin validar el nodo ni los GDL.
+    /// Inserts a support without validating the node or DOFs.
     pub fn insert_support(&mut self, support: Support) -> &mut Self {
         self.supports.push(support);
         self
     }
-    /// Inserta un caso sin validar sus acciones.
+    /// Inserts a case without validating its actions.
     pub fn insert_case(&mut self, case: LoadCase) -> &mut Self {
         self.cases.push(case);
         self
     }
-    /// Inserta una combinación sin validar casos ni factores.
+    /// Inserts a combination without validating cases or factors.
     pub fn insert_combination(&mut self, combination: Combination) -> &mut Self {
         self.combinations.push(combination);
         self
     }
-    /// Inserta una masa sin validar valores, nodo ni GDL.
+    /// Inserts a mass without validating values, node, or DOFs.
     pub fn insert_mass(&mut self, mass: NodalMass) -> &mut Self {
         self.masses.push(mass);
         self
@@ -292,26 +292,26 @@ fn component(
     }
 }
 
-/// Inspecciona el modelo completo sin modificarlo y devuelve todos los diagnósticos.
+/// Inspects the complete model without modifying it and returns all diagnostics.
 ///
-/// Orden determinista para la misma entrada: nodos, miembros, secciones, leyes,
-/// apoyos, casos, combinaciones y masas; dentro de cada lista, orden de inserción.
-/// En cada entidad se emite primero duplicidad, luego controles en orden de campos.
-/// Cada repetición posterior de un id produce un diagnóstico. Las referencias
-/// ambiguas usan la primera declaración para continuar los controles. Un nodo
-/// es huérfano si su id no aparece en ningún extremo, aunque ese miembro tenga
-/// otras referencias rotas. Un apoyo, carga o masa no evita la condición de huérfano.
-/// No se evalúa longitud con extremos ausentes o coordenadas no finitas.
+/// Deterministic order for the same input: nodes, members, sections, laws,
+/// supports, cases, combinations, and masses; within each list, insertion order.
+/// For each entity, duplication is reported first, then checks in field order.
+/// Each subsequent repetition of an id produces a diagnostic. Ambiguous
+/// references use the first declaration to continue the checks. A node
+/// is orphaned if its id appears at no endpoint, even if that member has
+/// other broken references. A support, load, or mass does not prevent orphan status.
+/// Length is not evaluated with missing endpoints or nonfinite coordinates.
 ///
-/// `entities` identifica al culpable: nodo, miembro, ley o caso. Para apoyos y
-/// masas se usa su nodo (incluso ausente); para secciones, el primer miembro que
-/// las referencia y, si no hay ninguno, `Law(id_sección)` como referencia nominal.
-/// Para combinaciones se usa el caso del término culpable o el primero en errores
-/// de duplicidad; si no hay términos, `Case(id_combinación)` es referencia nominal.
-/// Estas referencias nominales no afirman existencia de una ley o caso homónimo.
-/// `hint` siempre incluye la clase y el nombre/id exacto de la entidad original.
+/// `entities` identifies the culprit: node, member, law, or case. For supports and
+/// masses, their node is used (even if absent); for sections, the first member
+/// referencing them and, if there is none, `Law(id_sección)` as a nominal reference.
+/// For combinations, the case of the offending term is used, or the first in duplicate
+/// errors; if there are no terms, `Case(id_combinación)` is a nominal reference.
+/// These nominal references do not assert the existence of a law or case with the same name.
+/// `hint` always includes the class and exact name/id of the original entity.
 ///
-/// Identificadores duplicados:
+/// Duplicate identifiers:
 /// ```
 /// use engine_model::*;
 /// let mut m = Model::new();
@@ -321,7 +321,7 @@ fn component(
 /// assert_eq!(d[0].code, "ENG-E-0002");
 /// assert!(matches!(&d[0].entities[0], EntityRef::Law(n) if n == "ley"));
 /// ```
-/// Referencias rotas:
+/// Broken references:
 /// ```
 /// use engine_model::*;
 /// let mut m = Model::new();
@@ -332,7 +332,7 @@ fn component(
 /// assert!(d.iter().all(|d| d.code == "ENG-E-0003"
 ///     && matches!(d.entities[0], EntityRef::Member(MemberId(7)))));
 /// ```
-/// Nodo huérfano:
+/// Orphan node:
 /// ```
 /// use engine_model::*;
 /// let mut m = Model::new();
@@ -341,7 +341,7 @@ fn component(
 /// assert_eq!(d[0].code, "ENG-E-0004");
 /// assert!(matches!(d[0].entities[0], EntityRef::Node(NodeId(3))));
 /// ```
-/// Longitud nula, incluyendo el límite de tolerancia:
+/// Zero length, including the tolerance boundary:
 /// ```
 /// use engine_model::*;
 /// let mut m = Model::new();
@@ -353,7 +353,7 @@ fn component(
 /// let d = d.iter().find(|d| d.code == "ENG-E-0005").unwrap();
 /// assert!(matches!(d.entities[0], EntityRef::Member(MemberId(4))));
 /// ```
-/// Valores no finitos:
+/// Nonfinite values:
 /// ```
 /// use engine_model::*;
 /// let mut m = Model::new();
@@ -363,7 +363,7 @@ fn component(
 /// assert_eq!(d[0].code, "ENG-E-0008");
 /// assert!(matches!(&d[0].entities[0], EntityRef::Law(n) if n == "ley"));
 /// ```
-/// GDL inválido:
+/// Invalid DOF:
 /// ```
 /// use engine_model::*;
 /// let mut m = Model::new();

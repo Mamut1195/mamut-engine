@@ -1,4 +1,4 @@
-//! Una factorización reutilizable por lote; solve conserva su semántica previa.
+//! One reusable factorization per batch; solve preserves its previous semantics.
 #[path = "fixtures/counting.rs"]
 mod counting;
 #[path = "fixtures/rigid_cases.rs"]
@@ -139,7 +139,7 @@ fn rigid_cases_validate_entire_batch_before_factorization() -> EResult<()> {
         ("ausente", 1.0, "ENG-E-0003"),
         ("B", f64::NAN, "ENG-E-0008"),
         ("B", f64::INFINITY, "ENG-E-0008"),
-        // Las fuerzas físicas son finitas; el brazo x=3 desborda al proyectar.
+        // Physical forces are finite; the arm x=3 overflows during projection.
         ("B", f64::MAX / 32.0, "ENG-E-0008"),
     ] {
         let cases = [(CaseRef("A".into()), 1.0), (CaseRef(name.into()), factor)];

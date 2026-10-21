@@ -1,7 +1,7 @@
-//! Regresión J4: cotas del presupuesto frente a bytes de heap realmente vivos.
-//! Cada medición excluye las entradas, construidas antes de reiniciar el pico.
-//! El contador mide tamaños de Layout, sin metadatos internos de System.
-//! Solo cuenta el hilo medidor; la actividad de otros hilos de libtest se ignora.
+//! J4 regression: budget bounds versus actually live heap bytes.
+//! Each measurement excludes inputs, constructed before resetting the peak.
+//! The counter measures Layout sizes, without System internal metadata.
+//! Only counts the measuring thread; activity of other libtest threads is ignored.
 use engine_linalg::{
     dense_bytes, eigen_working_bytes, factor_bytes, DMat, MemoryBudget, ReferenceBackend, SymMatrix,
 };
@@ -19,8 +19,8 @@ static PEAK: AtomicUsize = AtomicUsize::new(0);
 static MEASUREMENT: Mutex<()> = Mutex::new(());
 
 thread_local! {
-    // Inicialización constante y sin destructor: acceder desde GlobalAlloc no
-    // reserva memoria ni necesita inicialización perezosa que pueda reentrar.
+    // Constant initialization without a destructor: access from GlobalAlloc does not
+    // allocate memory or need lazy initialization that could reenter.
     static COUNTING: Cell<bool> = const { Cell::new(false) };
 }
 
@@ -37,14 +37,14 @@ impl CountingThread {
 
 impl Drop for CountingThread {
     fn drop(&mut self) {
-        // También se desactiva al desenrollar un pánico de la prueba.
+        // Also deactivates during test panic unwinding.
         let _ = COUNTING.try_with(|counting| counting.set(false));
     }
 }
 
 fn when_counting(update: impl FnOnce()) {
-    // try_with ignora TLS no disponible durante la destrucción del hilo.
-    // Desactivar mientras se actualiza protege también frente a reentrada.
+    // try_with ignores TLS unavailable during thread destruction.
+    // Deactivating during updates also protects against reentry.
     let _ = COUNTING.try_with(|counting| {
         if counting.replace(false) {
             update();
@@ -59,7 +59,7 @@ fn allocated(bytes: usize) {
 }
 
 fn deallocated(bytes: usize) {
-    // Una liberación fuera del intervalo contado nunca puede hacer underflow.
+    // A release outside the counted interval can never cause underflow.
     let mut live = LIVE.load(SeqCst);
     while let Err(current) =
         LIVE.compare_exchange_weak(live, live.saturating_sub(bytes), SeqCst, SeqCst)
@@ -68,13 +68,13 @@ fn deallocated(bytes: usize) {
     }
 }
 
-// SAFETY: se delegan punteros y Layout intactos a System, respetando el contrato
-// de GlobalAlloc. Solo se cuentan reservas exitosas y liberaciones válidas.
-// TLS constante, Cell y contadores atómicos no reservan memoria. La guarda de
-// reentrada excluye llamadas anidadas y try_with tolera TLS destruido.
+// SAFETY: unchanged pointers and Layout are delegated to System, respecting the
+// GlobalAlloc contract. Only successful allocations and valid releases are counted.
+// Constant TLS, Cell, and atomic counters do not allocate memory. The reentry
+// guard excludes nested calls and try_with tolerates destroyed TLS.
 unsafe impl GlobalAlloc for CountingAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        // SAFETY: el llamador garantiza un Layout válido; System posee la reserva.
+        // SAFETY: the caller guarantees a valid Layout; System owns the allocation.
         let pointer = unsafe { System.alloc(layout) };
         if !pointer.is_null() {
             when_counting(|| allocated(layout.size()));
@@ -83,7 +83,7 @@ unsafe impl GlobalAlloc for CountingAllocator {
     }
 
     unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
-        // SAFETY: mismo contrato que alloc, con inicialización delegada a System.
+        // SAFETY: same contract as alloc, with initialization delegated to System.
         let pointer = unsafe { System.alloc_zeroed(layout) };
         if !pointer.is_null() {
             when_counting(|| allocated(layout.size()));
@@ -92,13 +92,13 @@ unsafe impl GlobalAlloc for CountingAllocator {
     }
 
     unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
-        // SAFETY: el llamador aporta la reserva viva y su Layout original.
+        // SAFETY: the caller supplies the live allocation and its original Layout.
         unsafe { System.dealloc(pointer, layout) };
         when_counting(|| deallocated(layout.size()));
     }
 
     unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
-        // SAFETY: reserva y tamaño válidos según el contrato de GlobalAlloc.
+        // SAFETY: valid allocation and size according to the GlobalAlloc contract.
         let resized = unsafe { System.realloc(pointer, layout, new_size) };
         if !resized.is_null() {
             when_counting(|| {
@@ -109,7 +109,7 @@ unsafe impl GlobalAlloc for CountingAllocator {
                 }
             });
         }
-        // Si falla, la reserva original sigue viva y la cuenta queda intacta.
+        // On failure, the original allocation remains live and accounting stays intact.
         resized
     }
 }
@@ -124,8 +124,8 @@ fn measure<T>(operation: impl FnOnce() -> T) -> (T, usize, usize) {
 }
 
 fn spd(n: usize) -> SymMatrix {
-    // Simétrica estrictamente dominante con diagonal positiva: SPD, acoplada
-    // y determinista. La reserva de la entrada queda fuera de la medición.
+    // Strictly dominant symmetric matrix with positive diagonal: SPD, coupled,
+    // and deterministic. Input allocation is excluded from measurement.
     let mut values = vec![0.125; n * n];
     for i in 0..n {
         values[i * n + i] = n as f64 + 1.0 + i as f64 / n as f64;
@@ -134,8 +134,8 @@ fn spd(n: usize) -> SymMatrix {
 }
 
 fn eigen_inputs(n: usize) -> (SymMatrix, SymMatrix) {
-    // Bloques SPD 2×2: ejercitan rotaciones y ordenamiento Jacobi sin convertir
-    // el caso n=256 en una prueba de rendimiento O(n⁴).
+    // 2×2 SPD blocks: exercise Jacobi rotations and ordering without turning
+    // the n=256 case into an O(n⁴) performance test.
     let mut k = vec![0.0; n * n];
     let mut m = vec![0.0; n * n];
     for i in 0..n {
@@ -158,7 +158,7 @@ fn releasing_preexisting_storage_has_zero_measured_delta() {
     let _counting = CountingThread::enter();
     let existing = vec![0_u8; 64];
     std::hint::black_box(&existing);
-    // LIVE baja legítimamente de la base; la diferencia debe saturarse en cero.
+    // LIVE legitimately falls below baseline; the difference must saturate at zero.
     let (_, peak, retained) = measure(|| drop(existing));
     assert_eq!((peak, retained), (0, 0));
 }
@@ -170,12 +170,12 @@ fn allocations_on_other_threads_do_not_change_measured_counters() {
     let _serial = MEASUREMENT.lock().unwrap();
     let start = AtomicBool::new(false);
     std::thread::scope(|scope| {
-        // Crear el hilo antes de activar el contador excluye su infraestructura.
+        // Creating the thread before activating the counter excludes its infrastructure.
         let worker = scope.spawn(|| {
             while !start.load(SeqCst) {
                 std::thread::yield_now();
             }
-            // Ejercita alloc, alloc_zeroed, realloc (crecer/reducir) y dealloc.
+            // Exercises alloc, alloc_zeroed, realloc (grow/shrink), and dealloc.
             let boxed = Box::new(42_usize);
             let mut values = vec![0_u8; 64];
             values.reserve_exact(128);
@@ -185,7 +185,7 @@ fn allocations_on_other_threads_do_not_change_measured_counters() {
         });
         let counting = CountingThread::enter();
         let live = LIVE.load(SeqCst);
-        // Reiniciar evita que un pico anterior oculte las reservas del otro hilo.
+        // Resetting prevents a previous peak from hiding allocations of the other thread.
         PEAK.store(live, SeqCst);
         start.store(true, SeqCst);
         while !worker.is_finished() {
@@ -200,12 +200,12 @@ fn allocations_on_other_threads_do_not_change_measured_counters() {
 
 #[test]
 fn charged_bounds_cover_actual_factorize_and_eigen_heap_peaks() {
-    // El Mutex serializa los hilos medidores si se añaden más tests. TLS excluye
-    // otros hilos de libtest; se cuentan entradas y drops para conservar la base.
+    // The Mutex serializes measuring threads if more tests are added. TLS excludes
+    // other libtest threads; entries and drops are counted to preserve the baseline.
     let _serial = MEASUREMENT.lock().unwrap();
     let _counting = CountingThread::enter();
     let mut old_bound_failed = false;
-    // También órdenes pequeños/no potencia de dos: cabecera y capacidad de Vec.
+    // Also small/non-power-of-two orders: header and Vec capacity.
     for n in [0, 1, 3, 8, 9, 64, 65, 256] {
         let a = spd(n);
         let retained_bound = factor_bytes(n).unwrap();
