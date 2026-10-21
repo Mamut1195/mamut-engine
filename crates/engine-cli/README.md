@@ -9,8 +9,9 @@ El bloqueo anterior queda resuelto por SDK-WF-012 / MAM-493. Se usan las
 bibliotecas vendorizadas `mamut-workflow-cli` y `mamut-workflow-execution` del
 commit `1eeb91a1ca9128ad4a02ead2ab66b6b25aa08f3d`. `EngineCli::run` llama al
 `parse_args` público y a un único `dispatch` de la base con `CliConfig`,
-`MethodProvider`, `CliIdentity` y `ExitCodes::engine_v1()`. No hay parser,
-compilador, executor ni despacho de comandos propios. No se modifica vendor.
+`MethodProvider`, `CliIdentity` y `ExitCodes::engine_v1()`. El adaptador hace un
+pre-parseo de `--input` y los documentos predeterminados; la compilación y la
+ejecución de workflows siguen en la base. No se modifica vendor.
 
 ## Uso y entrada
 
@@ -20,36 +21,65 @@ Desde la raíz del repositorio, con Cargo offline:
 cargo build -p engine-cli --offline
 cargo run -p engine-cli --offline -- describe
 cargo run -p engine-cli --offline -- methods --catalog crates/engine-cli/catalog.json
-MAMUT_ENGINE_INPUT=crates/engine-api/tests/fixtures/determinism/cantilever.json \
-  cargo run -p engine-cli --offline -- run \
-  --catalog crates/engine-cli/catalog.json \
-  --workflow crates/engine-cli/run.workflow.json --progress ndjson
+cargo run -p engine-cli --offline -- run \
+  --input crates/engine-api/tests/fixtures/determinism/cantilever.json --progress ndjson
+cargo run -p engine-cli --offline -- run --input - < modelo.json
+cargo run -p engine-cli --offline -- validate --input modelo.json
+cargo run -p engine-cli --offline -- validate --input - < modelo.json
 ```
 
 `catalog.json` es el catálogo propio, también embebido como `engine_cli::CATALOG`.
 Registra `engine.run` v1 y `engine.validate` v1. El primero llama a
 `engine_api::run`; soporta los análisis que publique esa fachada (actualmente
 linearStatic, pDelta, modal y responseSpectrum). El segundo llama a
-`engine_api::validate_with`. Para usarlo, ejecutar el mismo comando `run` con
+`engine_api::validate_with`. También puede seleccionarse desde `run` con
 `validate.workflow.json`. Ambos métodos reciben parámetros `{}`; el proveedor
 rechaza parámetros numéricos y métodos/versiones ajenos, sin usar IdentityProvider.
 
-**Decisión abierta de transporte:** `engine-input/1` es un documento estructurado
-y no cabe en `NumericParameters`. La vía mínima actual es
-`MAMUT_ENGINE_INPUT=<ruta-local>` (en Rust, `EngineCli::new(Some(path))`). El
-método abre esa ruta al ejecutarse, con el límite `engine_api::MAX_INPUT_BYTES`;
-una variable ausente, error de lectura, UTF-8 inválido o exceso de tamaño da 2.
-No se añade un flag, comando ni parser de entrada. Cada paso lee la misma ruta;
-el archivo debe permanecer estable durante la invocación. Queda pendiente un
-transporte de documentos aprobado por el SDK, con entradas por paso y stdin
-directo de engine-input/1. Aquí `-` se reserva al documento de catálogo o workflow
-que lee la base; en la variable de entorno se trata como ruta literal.
+Si se omiten tanto `--catalog` como `--workflow`, `run` usa `engine_cli::CATALOG`
+y `engine_cli::RUN_WORKFLOW`; `validate` usa el mismo catálogo y
+`engine_cli::VALIDATE_WORKFLOW`. Los tres documentos están embebidos con
+`include_str!`. El adaptador los materializa en un directorio temporal privado
+para el despacho de la base y lo elimina al terminar; sus rutas no aparecen en
+la salida. Con ambos argumentos explícitos se conserva el comportamiento
+anterior: `run` ejecuta el workflow elegido y `validate` solo valida/compila ese
+workflow, sin ejecutar engine-api. Especificar solo uno de ellos sigue siendo
+uso inválido (2).
+
+**Decisión abierta de transporte (adopción en el SDK):** `--input <ruta|->` es
+ahora la vía principal de engine-input/1 en el adaptador. `-` lee stdin hasta
+EOF. Stdin se lee entero una sola vez antes del despacho y todos los pasos
+reutilizan el documento en memoria; no hay streaming por paso. La lectura se
+detiene al detectar exceso del límite `engine_api::MAX_INPUT_BYTES`
+(8 MiB, 8 388 608 bytes); exactamente ese tamaño se admite. Exceso, ruta
+inexistente, error de lectura o UTF-8 inválido dan código 2, stdout vacío y
+sobre de error sanitizado en stderr. Repetir `--input` también da 2.
+
+Se requiere un espacio entre flag y valor: `--input=valor` se rechaza con 2,
+igual que `--catalog=valor` y `--workflow=valor` en el parser de la base. Se
+conserva una única sintaxis de opciones. El token `--` no actúa como separador:
+se rechaza con 2, también antes o después de `--input`. `--input` sin valor,
+con valor vacío o seguido de otro flag (incluido `-h`) da 2; `-` es el único
+valor que puede empezar con guion. Para una ruta cuyo nombre empieza con guion,
+use un prefijo como `./-modelo.json`.
+
+`MAMUT_ENGINE_INPUT=<ruta-local>` se mantiene por compatibilidad (en Rust,
+`EngineCli::new(Some(path))`), con los mismos bytes de salida para los comandos
+con catálogo/workflow explícitos. **Si se indican ambos, gana `--input`** y no
+se abre la ruta de la variable. Sin `--input`, la ruta se lee una vez al inicio
+de `run`, pero sus errores se notifican al ejecutar el método, conservando la
+prioridad de cancelación y el progreso existentes. En la variable, `-` sigue
+siendo una ruta literal. MCP conserva la lectura por llamada de la vía antigua.
+Sigue abierta la adopción del transporte de documentos en el SDK y la entrada
+independiente por paso; engine-input/1 no cabe en `NumericParameters`.
 
 `--workflow -` **o** `--catalog -` consume stdin hasta EOF, con el límite de 16 MiB
-de la base. Ambos a la vez son uso inválido (2). Por ejemplo:
+de la base. Ambos a la vez son uso inválido (2), al igual que `--input -` junto
+con cualquiera de ellos. Una entrada por ruta permite stdin de workflow o
+catálogo. Por ejemplo:
 
 ```sh
-MAMUT_ENGINE_INPUT=modelo.json mamut-engine run \
+mamut-engine run --input modelo.json \
   --catalog crates/engine-cli/catalog.json --workflow - < crates/engine-cli/run.workflow.json
 ```
 
@@ -71,7 +101,9 @@ La base entrega un sobre cli-run/1 cuyo `data` es el manifiesto de ejecución.
 Este almacena **huellas**, no los valores calculados. El adaptador conserva ese
 manifiesto íntegro y añade `engineResults` al sobre terminal: array de documentos
 completos de engine-api, en orden de pasos. Así stdout de `run` contiene el
-results/1 real, incluidos desplazamientos, reacciones y diagnósticos. Los avisos
+results/1 real, incluidos desplazamientos, reacciones y diagnósticos. El comando
+abreviado `validate --input …` devuelve el mismo tipo de sobre cli-run/1 con el
+informe `{operation:"validate",status,diagnostics}` en `engineResults`. Los avisos
 conservan datos y manifiesto con `outcome: "warning"` y código 1.
 
 Ante fallos de entrada, método o cancelación stdout queda vacío; stderr termina
@@ -124,7 +156,7 @@ callbacks del motor. En biblioteca se configura con `Control::with_cancel_file`.
 No se crea ni elimina el marcador; use una ruta propia por ejecución. Una ruta
 ausente o cuya existencia no pueda comprobarse no solicita cancelación. Una vez
 observada, la cancelación permanece activa aunque se retire el marcador.
-No se añaden comandos, flags, hilos ni manejadores de señales de SO. Ctrl-C
+La cancelación no añade hilos ni manejadores de señales de SO. Ctrl-C
 conserva el comportamiento del SO y no garantiza el código cooperativo 5.
 
 ## Correspondencia real con engine-api
@@ -135,8 +167,8 @@ conserva el comportamiento del SO y no garantiza el código cooperativo 5.
 | capabilities | `describe` publica identidad, comandos y códigos engine_v1; `methods --catalog …` lista engine.run y engine.validate | No publica el documento completo capabilities (elementos, métodos de análisis, esquemas) |
 | schema | Los descriptores de methods referencian contratos y parámetros; no son los JSON Schema de engine-api | Sin comando estándar para `schema("engine-input/1")` / `schema("results/1")` |
 | explain | Los resultados conservan diagnósticos del motor | Sin comando estándar para `engine_api::explain(code)` |
-| validate | `validate --catalog … --workflow …` valida/compila **el workflow**; `run` seleccionando engine.validate valida engine-input/1 | No existe comando estándar de validación directa de entrada Engine |
-| run | `run --catalog … --workflow …` ejecuta engine.run con engine-api y entrega su resultado | Aprobar transporte/extension de salida anteriores |
+| validate | `validate --input …` ejecuta engine.validate con documentos embebidos; `validate --catalog … --workflow …` conserva la validación/compilación **del workflow** | Adopción del transporte en el SDK |
+| run | `run --input …` ejecuta engine.run con documentos embebidos; admite catálogo/workflow explícitos | Aprobar transporte/extensión de salida anteriores |
 
 Los comandos/flags `capabilities`, `schema`, `explain`, `version` y `--version`
 no se añaden: el parser de la base los rechaza con 2. `compile` conserva el plan
@@ -155,7 +187,9 @@ Los tests propios solo crean archivos locales y ejecutan el propio binario media
 `env!("CARGO_BIN_EXE_mamut-engine")`; la cancelación entre etapas y fallos de
 escritores se prueban además en biblioteca, sin señales, shells ni red.
 Cubren **0/1/2/3/4/5/70 con ejecuciones reales del binario**, identidad/tabla en describe,
-stdin de catálogo/workflow, NDJSON, igualdad del resultado con engine-api,
+stdin de entrada/catálogo/workflow, límites de 8 MiB, UTF-8 inválido, conflictos
+de stdin, precedencia sobre la variable y bytes idénticos entre transportes,
+NDJSON, igualdad del resultado con engine-api,
 conservación del manifiesto, orden de resultados de varios pasos y distinción
 de las dos validaciones. El 4 incluye
 inestabilidad y P-Delta sin convergencia; el 70 del binario usa un pipe stdout

@@ -101,6 +101,343 @@ fn assert_code(output: &Output, code: i32) {
     );
 }
 
+fn with_input_stdin(files: &Files, args: &[&str], input: &[u8]) -> Output {
+    let mut child = files
+        .command()
+        .current_dir(&files.0)
+        .env_remove("MAMUT_ENGINE_INPUT")
+        .args(args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut stdin = child.stdin.take().unwrap();
+    if let Err(error) = stdin.write_all(input) {
+        assert_eq!(error.kind(), io::ErrorKind::BrokenPipe);
+    }
+    drop(stdin);
+    child.wait_with_output().unwrap()
+}
+
+#[test]
+fn input_stdin_and_path_match_legacy_bytes_with_embedded_and_explicit_documents() {
+    let files = Files::new();
+    files.write("workflow.json", RUN);
+    let legacy = files.run(RUN, false);
+    assert_code(&legacy, 0);
+    let stdin = with_input_stdin(&files, &["run", "--input", "-"], INPUT.as_bytes());
+    assert_code(&stdin, 0);
+    assert_eq!(
+        value(&stdin.stdout)["engineResults"][0]["schema"],
+        "results/1"
+    );
+    assert_eq!(stdin.stdout, legacy.stdout);
+    assert_eq!(stdin.stderr, legacy.stderr);
+    for explicit in [false, true] {
+        let mut command = files.command();
+        command.current_dir(&files.0);
+        // Una variable inválida comprueba que --input tiene prioridad.
+        command.env("MAMUT_ENGINE_INPUT", files.path("missing.json"));
+        command
+            .args(["run", "--input"])
+            .arg(files.path("input.json"));
+        if explicit {
+            command.arg("--catalog").arg(files.path("catalog.json"));
+            command.arg("--workflow").arg(files.path("workflow.json"));
+        }
+        let output = command.output().unwrap();
+        assert_code(&output, 0);
+        assert_eq!(output.stdout, legacy.stdout);
+        assert_eq!(output.stderr, legacy.stderr);
+    }
+    let workflow_stdin = with_input_stdin(
+        &files,
+        &[
+            "run",
+            "--input",
+            files.path("input.json").to_str().unwrap(),
+            "--catalog",
+            files.path("catalog.json").to_str().unwrap(),
+            "--workflow",
+            "-",
+        ],
+        RUN.as_bytes(),
+    );
+    assert_code(&workflow_stdin, 0);
+    assert_eq!(workflow_stdin.stdout, legacy.stdout);
+    assert_eq!(workflow_stdin.stderr, legacy.stderr);
+
+    files.write("-", INPUT);
+    let literal_dash = files
+        .command()
+        .current_dir(&files.0)
+        .env("MAMUT_ENGINE_INPUT", "-")
+        .args(["run", "--catalog"])
+        .arg(files.path("catalog.json"))
+        .arg("--workflow")
+        .arg(files.path("workflow.json"))
+        .output()
+        .unwrap();
+    assert_code(&literal_dash, 0);
+    assert_eq!(literal_dash.stdout, legacy.stdout);
+    assert_eq!(literal_dash.stderr, legacy.stderr);
+}
+
+#[test]
+fn input_stdin_e1_preserves_existing_warning_and_results_contract() {
+    let files = Files::new();
+    let fixture = value(include_bytes!(
+        "../../../docs/validation-report/fixtures/val032/E1-v1.1.2.json"
+    ));
+    let input = fixture["runs"][0]["engine_input"].to_string();
+    let output = with_input_stdin(&files, &["run", "--input", "-"], input.as_bytes());
+    assert_code(&output, 1);
+    let result = &value(&output.stdout)["engineResults"][0];
+    assert_eq!(result["schema"], "results/1");
+    assert_eq!(result["status"], "warning");
+    assert!(result["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|diagnostic| { diagnostic["code"] == "API-W-DIAPHRAGM-RECOVERY" }));
+}
+
+#[test]
+fn validate_input_executes_embedded_validation_and_preserves_explicit_workflow_validation() {
+    let files = Files::new();
+    let stdin = with_input_stdin(&files, &["validate", "--input", "-"], INPUT.as_bytes());
+    assert_code(&stdin, 0);
+    let report = value(&stdin.stdout);
+    assert_eq!(report["engineResults"][0]["operation"], "validate");
+    assert_eq!(report["engineResults"][0]["diagnostics"], json!([]));
+    let path = files
+        .command()
+        .args(["validate", "--input"])
+        .arg(files.path("input.json"))
+        .output()
+        .unwrap();
+    assert_code(&path, 0);
+    assert_eq!(path.stdout, stdin.stdout);
+
+    let invalid = with_input_stdin(&files, &["validate", "--input", "-"], b"{}");
+    assert_code(&invalid, 2);
+    assert!(invalid.stdout.is_empty());
+    files.write("workflow.json", RUN);
+    let explicit = files
+        .command()
+        .args(["validate", "--input"])
+        .arg(files.path("input.json"))
+        .arg("--catalog")
+        .arg(files.path("catalog.json"))
+        .arg("--workflow")
+        .arg(files.path("workflow.json"))
+        .output()
+        .unwrap();
+    assert_code(&explicit, 0);
+    assert_eq!(value(&explicit.stdout)["valid"], true);
+    assert!(value(&explicit.stdout).get("engineResults").is_none());
+}
+
+#[test]
+fn input_size_boundary_and_transport_errors_are_bounded_and_sanitized() {
+    let files = Files::new();
+    let mut input = INPUT.as_bytes().to_vec();
+    for size in [engine_api::MAX_INPUT_BYTES - 1, engine_api::MAX_INPUT_BYTES] {
+        input.resize(size, b' ');
+        for command in ["run", "validate"] {
+            let exact = with_input_stdin(&files, &[command, "--input", "-"], &input);
+            assert_code(&exact, 0);
+            assert!(!exact.stdout.is_empty());
+            assert!(exact.stderr.is_empty());
+        }
+    }
+    input.push(b' ');
+    for command in ["run", "validate"] {
+        for bytes in [input.as_slice(), &[0xff]] {
+            let output = with_input_stdin(&files, &[command, "--input", "-"], bytes);
+            assert_code(&output, 2);
+            assert!(output.stdout.is_empty());
+            let error = value(&output.stderr);
+            assert!(error.get("engineResults").is_none());
+        }
+        for (name, bytes) in [
+            ("too-big.json", input.as_slice()),
+            ("invalid-utf8.json", &[0xff][..]),
+        ] {
+            fs::write(files.path(name), bytes).unwrap();
+            let output = files
+                .command()
+                .args([command, "--input"])
+                .arg(files.path(name))
+                .output()
+                .unwrap();
+            assert_code(&output, 2);
+            assert!(output.stdout.is_empty());
+            assert!(value(&output.stderr).get("engineResults").is_none());
+        }
+        let output = files
+            .command()
+            .args([command, "--input"])
+            .arg(files.path("missing-private-path.json"))
+            .output()
+            .unwrap();
+        assert_code(&output, 2);
+        assert!(output.stdout.is_empty());
+        assert!(!String::from_utf8_lossy(&output.stderr).contains("missing-private-path"));
+    }
+}
+
+#[test]
+fn input_usage_errors_reject_stdin_conflicts_duplicates_and_missing_values() {
+    let files = Files::new();
+    for command in ["run", "validate"] {
+        for suffix in [
+            vec!["--input", "-", "--workflow", "-"],
+            vec!["--catalog", "-", "--input", "-"],
+            vec!["--input", "-", "--input", "-"],
+            vec!["--input", "modelo.json", "--input", "otro.json"],
+            vec!["--input"],
+            vec!["--input", ""],
+            vec!["--input", "--catalog", "catalog.json"],
+            vec!["--input", "--workflow", "workflow.json"],
+            vec!["--input", "--progress", "ndjson"],
+            vec!["--input", "--help"],
+            vec!["--input", "-h"],
+            vec!["--input", "--unknown"],
+            vec!["--input", "-x"],
+            vec!["--"],
+            vec!["--", "--input", "-"],
+            vec!["--input", "--", "modelo.json"],
+            vec!["--input", "-", "--"],
+        ] {
+            let output = files.command().arg(command).args(suffix).output().unwrap();
+            assert_code(&output, 2);
+            assert!(output.stdout.is_empty());
+            assert!(value(&output.stderr).get("engineResults").is_none());
+            if command == "run" {
+                assert_eq!(value(&output.stderr)["outcome"], "usage");
+            }
+        }
+    }
+}
+
+#[test]
+fn equals_syntax_is_rejected_like_the_base_parser() {
+    let files = Files::new();
+    for command in ["run", "validate"] {
+        for option in ["--input", "--catalog", "--workflow"] {
+            for source in ["input.json", "-", ""] {
+                let args = vec![command.to_string(), format!("{option}={source}")];
+                assert!(mamut_workflow_cli::parse_args(&args).is_err());
+                let output = files.command().args(&args).output().unwrap();
+                assert_code(&output, 2);
+                assert!(output.stdout.is_empty());
+                if command == "run" {
+                    assert_eq!(value(&output.stderr)["outcome"], "usage");
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn embedded_documents_are_isolated_across_parallel_invocations() {
+    let barrier = std::sync::Barrier::new(16);
+    let outputs = std::thread::scope(|scope| {
+        let handles: Vec<_> = (0..16)
+            .map(|_| {
+                scope.spawn(|| {
+                    let cli = EngineCli::new(None);
+                    let args = ["run".into(), "--input".into(), "-".into()];
+                    let mut stdout = Vec::new();
+                    let mut stderr = Vec::new();
+                    barrier.wait();
+                    assert_eq!(
+                        cli.run(&args, &mut INPUT.as_bytes(), &mut stdout, &mut stderr),
+                        0
+                    );
+                    assert!(stderr.is_empty());
+                    stdout
+                })
+            })
+            .collect();
+        handles
+            .into_iter()
+            .map(|handle| handle.join().unwrap())
+            .collect::<Vec<_>>()
+    });
+    assert_eq!(
+        value(&outputs[0])["engineResults"][0]["schema"],
+        "results/1"
+    );
+    assert!(outputs.iter().all(|output| output == &outputs[0]));
+}
+
+#[test]
+fn input_stdin_is_reused_across_workflow_steps() {
+    let files = Files::new();
+    let mut workflow = value(RUN.as_bytes());
+    workflow["steps"] = json!([
+        value(VALIDATE.as_bytes())["steps"][0],
+        value(RUN.as_bytes())["steps"][0]
+    ]);
+    let mut catalog = value(CATALOG.as_bytes());
+    let slot = catalog["profile"]["slots"][0].clone();
+    catalog["profile"]["slots"] = json!([slot, slot]);
+    files.write("catalog.json", &catalog.to_string());
+    files.write("workflow.json", &workflow.to_string());
+    let output = with_input_stdin(
+        &files,
+        &[
+            "run",
+            "--input",
+            "-",
+            "--catalog",
+            files.path("catalog.json").to_str().unwrap(),
+            "--workflow",
+            files.path("workflow.json").to_str().unwrap(),
+        ],
+        INPUT.as_bytes(),
+    );
+    assert_code(&output, 0);
+    let envelope = value(&output.stdout);
+    assert_eq!(envelope["engineResults"].as_array().unwrap().len(), 2);
+    assert_eq!(envelope["engineResults"][0]["operation"], "validate");
+    assert_eq!(envelope["engineResults"][1]["schema"], "results/1");
+
+    for explicit_input in [false, true] {
+        files.write("input.json", INPUT);
+        let path = files.path("input.json");
+        let mut removed = false;
+        let cli = EngineCli::new(Some(path.clone())).with_engine_progress(move |_| {
+            if !removed {
+                fs::remove_file(&path).unwrap();
+                removed = true;
+            }
+        });
+        let mut args = files.args();
+        if explicit_input {
+            args.extend([
+                "--input".into(),
+                files.path("input.json").to_str().unwrap().into(),
+            ]);
+        }
+        let mut stdout = Vec::new();
+        assert_eq!(
+            cli.run(
+                &args,
+                &mut workflow.to_string().as_bytes(),
+                &mut stdout,
+                &mut Vec::new()
+            ),
+            0
+        );
+        assert_eq!(value(&stdout)["engineResults"], envelope["engineResults"]);
+        assert!(!files.path("input.json").exists());
+    }
+}
+
 #[test]
 fn describe_identifies_engine_and_publishes_engine_v1_table() {
     let output = Files::new().command().arg("describe").output().unwrap();
@@ -226,7 +563,7 @@ fn usage_document_workflow_and_engine_input_errors_exit_two() {
         vec!["schema"],
         vec!["explain"],
         vec!["--version"],
-        vec!["run"],
+        vec!["run", "--catalog", "missing.json"],
         vec!["run", "--catalog", "-", "--workflow", "-"],
     ] {
         let output = files.command().args(args).output().unwrap();

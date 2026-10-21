@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- MAM-862 / ENG-SFC-011: entrada engine-input/1 mediante `--input <ruta|->`
+  en run/validate, con límite de 8 MiB y lectura única compartida entre pasos;
+  catálogo/workflows embebidos por defecto, precedencia sobre MAMUT_ENGINE_INPUT
+  y conservación de los bytes de la vía explícita anterior. Pruebas de binario
+  para transporte, límites, validación, errores y compatibilidad.
+  Ronda 2: rechazo documentado de `--input=valor`, `--` y valores ausentes/flags;
+  stdin sin streaming por paso, límites MAX-1/MAX/MAX+1 y temporales con PID,
+  contador atómico y pruebas de colisión/concurrencia sin reiniciar el global.
 - MAM-860 · VAL-032 E3 v1.1.2: amplificación y deriva P-Δ por piso frente a
   referencia propia P-Δ+P-δ convergida (8/16 elementos por columna) a 1e-3
   relativo, y verificación independiente con un elemento a 1e-9. Script/JSON

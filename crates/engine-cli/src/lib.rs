@@ -7,11 +7,14 @@
 
 use std::{
     cell::RefCell,
-    fs::File,
+    fs::{self, File},
     io::{Read, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
     rc::Rc,
-    sync::Arc,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
 };
 
 use engine_api::{ApiError, CancelToken, Diagnostic, Progress, Status};
@@ -24,6 +27,12 @@ use serde_json::{json, Value};
 
 /// Catálogo propio; también disponible como archivo `catalog.json` del crate.
 pub const CATALOG: &str = include_str!("../catalog.json");
+
+/// Workflow predeterminado de ejecución de engine-input/1.
+pub const RUN_WORKFLOW: &str = include_str!("../run.workflow.json");
+
+/// Workflow predeterminado de validación de engine-input/1.
+pub const VALIDATE_WORKFLOW: &str = include_str!("../validate.workflow.json");
 
 /// Cancelación compartida del workflow y del motor, sin señales ni hilos implícitos.
 #[derive(Clone, Debug, Default)]
@@ -79,8 +88,8 @@ impl Cancellation for Control {
 
 type EngineProgress = Rc<RefCell<Box<dyn FnMut(Progress)>>>;
 
-/// Configuración del anfitrión. Los argumentos siguen siendo los de la base.
-/// Una invocación conserva una única ruta engine-input/1 para todos sus pasos.
+/// Configuración del anfitrión y transporte de entrada sobre la base.
+/// `--input` tiene prioridad sobre la ruta de compatibilidad del constructor.
 pub struct EngineCli {
     input: Option<PathBuf>,
     control: Control,
@@ -112,7 +121,7 @@ impl EngineCli {
         self
     }
 
-    /// Delega íntegramente el parser y despacho a la base.
+    /// Extrae `--input` y configura documentos embebidos antes de delegar a la base.
     /// Añade resultados completos y semántica Engine al sobre terminal de `run`.
     /// stdout contiene resultados; stderr contiene NDJSON y errores sanitizados.
     pub fn run<R: Read, O: Write, E: Write>(
@@ -122,7 +131,18 @@ impl EngineCli {
         stdout: &mut O,
         stderr: &mut E,
     ) -> u8 {
-        let command = match parse_args(args) {
+        let prepared = match PreparedArgs::new(args) {
+            Ok(prepared) => prepared,
+            Err(kind) => {
+                return report_failure(
+                    kind,
+                    args.first().is_some_and(|arg| arg == "run"),
+                    None,
+                    stderr,
+                );
+            }
+        };
+        let command = match parse_args(&prepared.args) {
             Ok(command) => command,
             Err(error) => {
                 return report_failure(
@@ -133,7 +153,37 @@ impl EngineCli {
                 );
             }
         };
+        let command = match command {
+            // La forma explícita sigue validando/compilando solo el workflow.
+            Command::Validate { catalog, workflow } if prepared.embedded.is_some() => {
+                Command::Run {
+                    catalog,
+                    workflow,
+                    progress_ndjson: false,
+                }
+            }
+            command => command,
+        };
         let is_run = matches!(command, Command::Run { .. });
+        let input = match prepared.input.as_deref() {
+            Some(source) => {
+                let document = if source == "-" {
+                    read_engine_input(&mut *stdin)
+                } else {
+                    read_engine_path(Some(Path::new(source)))
+                };
+                match document {
+                    Ok(document) => EngineInput::Document(Ok(Rc::from(document))),
+                    Err(kind) => return report_failure(kind, is_run, None, stderr),
+                }
+            }
+            // Conservar la clasificación y el momento del fallo de la vía antigua:
+            // solo se informa al ejecutar el método, después de la cancelación.
+            None if is_run => {
+                EngineInput::Document(read_engine_path(self.input.as_deref()).map(Rc::from))
+            }
+            None => EngineInput::Path(self.input.clone()),
+        };
         let state = Rc::new(RefCell::new(State {
             capture_results: is_run,
             ..State::default()
@@ -143,7 +193,7 @@ impl EngineCli {
             .with_exit_codes(ExitCodes::engine_v1())
             .with_cancellation(self.control.clone())
             .with_provider(EngineProvider {
-                input: self.input.clone(),
+                input,
                 control: self.control.clone(),
                 progress: Rc::clone(&self.progress),
                 state: Rc::clone(&state),
@@ -184,6 +234,145 @@ impl EngineCli {
             return report_failure(FailureKind::Internal, true, None, stderr);
         }
         code
+    }
+}
+
+struct PreparedArgs {
+    args: Vec<String>,
+    input: Option<String>,
+    // La base solo admite archivos o stdin. Mantener los documentos hasta
+    // terminar dispatch; sus rutas nunca forman parte del manifiesto.
+    embedded: Option<EmbeddedDocuments>,
+}
+
+impl PreparedArgs {
+    fn new(args: &[String]) -> Result<Self, FailureKind> {
+        if !args
+            .first()
+            .is_some_and(|arg| arg == "run" || arg == "validate")
+        {
+            return Ok(Self {
+                args: args.to_vec(),
+                input: None,
+                embedded: None,
+            });
+        }
+        let mut forwarded = vec![args[0].clone()];
+        let mut input = None;
+        let mut catalog = None;
+        let mut workflow = None;
+        let mut rest = args[1..].iter();
+        while let Some(arg) = rest.next() {
+            // Igual que la base: no hay sintaxis --flag=valor ni separador --.
+            if arg == "--" || arg.starts_with("--input=") {
+                return Err(FailureKind::Usage);
+            }
+            if arg == "--input" {
+                if input.is_some() {
+                    return Err(FailureKind::Usage);
+                }
+                match rest.next() {
+                    Some(value)
+                        if !value.is_empty() && (value == "-" || !value.starts_with('-')) =>
+                    {
+                        input = Some(value.clone());
+                    }
+                    _ => return Err(FailureKind::Usage),
+                }
+            } else {
+                forwarded.push(arg.clone());
+                // Respetar los valores de flags de la base: no reinterpretarlos.
+                if matches!(arg.as_str(), "--catalog" | "--workflow" | "--progress") {
+                    if let Some(value) = rest.next() {
+                        if arg == "--catalog" {
+                            catalog = Some(value.as_str());
+                        } else if arg == "--workflow" {
+                            workflow = Some(value.as_str());
+                        }
+                        forwarded.push(value.clone());
+                    }
+                }
+            }
+        }
+        if input.as_deref() == Some("-") && (catalog == Some("-") || workflow == Some("-")) {
+            return Err(FailureKind::Usage);
+        }
+        let embedded = if catalog.is_none() && workflow.is_none() {
+            let workflow = if args[0] == "validate" {
+                VALIDATE_WORKFLOW
+            } else {
+                RUN_WORKFLOW
+            };
+            let embedded = EmbeddedDocuments::new(workflow)?;
+            forwarded.extend([
+                "--catalog".into(),
+                embedded.path("catalog.json")?,
+                "--workflow".into(),
+                embedded.path("workflow.json")?,
+            ]);
+            Some(embedded)
+        } else {
+            None
+        };
+        Ok(Self {
+            args: forwarded,
+            input,
+            embedded,
+        })
+    }
+}
+
+struct EmbeddedDocuments(PathBuf);
+
+impl EmbeddedDocuments {
+    fn new(workflow: &str) -> Result<Self, FailureKind> {
+        static NEXT: AtomicUsize = AtomicUsize::new(0);
+        Self::new_in(&std::env::temp_dir(), &NEXT, workflow)
+    }
+
+    fn new_in(root: &Path, next: &AtomicUsize, workflow: &str) -> Result<Self, FailureKind> {
+        // create es exclusivo; el contador nunca se reinicia entre llamadas.
+        // PID separa procesos, y los reintentos toleran residuos de un PID reutilizado.
+        for _ in 0..128 {
+            let path = root.join(format!(
+                "mamut-engine-{}-{}",
+                std::process::id(),
+                next.fetch_add(1, Ordering::Relaxed)
+            ));
+            let mut builder = fs::DirBuilder::new();
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::DirBuilderExt;
+                builder.mode(0o700);
+            }
+            match builder.create(&path) {
+                Ok(()) => {
+                    let documents = Self(path);
+                    fs::write(documents.0.join("catalog.json"), CATALOG)
+                        .map_err(|_| FailureKind::Internal)?;
+                    fs::write(documents.0.join("workflow.json"), workflow)
+                        .map_err(|_| FailureKind::Internal)?;
+                    return Ok(documents);
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(_) => return Err(FailureKind::Internal),
+            }
+        }
+        Err(FailureKind::Internal)
+    }
+
+    fn path(&self, name: &str) -> Result<String, FailureKind> {
+        self.0
+            .join(name)
+            .into_os_string()
+            .into_string()
+            .map_err(|_| FailureKind::Internal)
+    }
+}
+
+impl Drop for EmbeddedDocuments {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
     }
 }
 
@@ -241,7 +430,7 @@ struct State {
 }
 
 struct EngineProvider {
-    input: Option<PathBuf>,
+    input: EngineInput,
     control: Control,
     progress: EngineProgress,
     state: Rc<RefCell<State>>,
@@ -279,7 +468,7 @@ impl EngineProvider {
 }
 
 struct EngineMethod {
-    input: Option<PathBuf>,
+    input: EngineInput,
     validation: bool,
     control: Control,
     progress: EngineProgress,
@@ -291,8 +480,10 @@ impl EngineMethod {
         if self.control.sync() {
             return Err(FailureKind::Cancelled);
         }
-        let path = self.input.as_ref().ok_or(FailureKind::Document)?;
-        let input = read_engine_input(File::open(path).map_err(|_| FailureKind::Document)?)?;
+        let input = match &self.input {
+            EngineInput::Document(document) => document.clone()?,
+            EngineInput::Path(path) => Rc::from(read_engine_path(path.as_deref())?),
+        };
         let progress = |event| {
             (self.progress.borrow_mut())(event);
             self.control.sync();
@@ -339,6 +530,18 @@ impl Method for EngineMethod {
             }
         }
     }
+}
+
+#[derive(Clone)]
+enum EngineInput {
+    Document(Result<Rc<str>, FailureKind>),
+    // MCP conserva la lectura por llamada de su transporte de compatibilidad.
+    Path(Option<PathBuf>),
+}
+
+fn read_engine_path(path: Option<&Path>) -> Result<String, FailureKind> {
+    let path = path.ok_or(FailureKind::Document)?;
+    read_engine_input(File::open(path).map_err(|_| FailureKind::Document)?)
 }
 
 fn read_engine_input(reader: impl Read) -> Result<String, FailureKind> {
@@ -393,6 +596,46 @@ fn failure_kind(status: Status) -> Option<FailureKind> {
 mod tests {
     use super::*;
     use std::io;
+
+    #[test]
+    fn embedded_documents_retry_collisions_and_keep_names_unique() -> Result<(), FailureKind> {
+        let root = EmbeddedDocuments::new(RUN_WORKFLOW)?;
+        let prefix = format!("mamut-engine-{}-", std::process::id());
+        let next = AtomicUsize::new(0);
+        // Contador local: este test no modifica ni reinicia el contador global.
+        for index in 0..8 {
+            fs::create_dir(root.0.join(format!("{prefix}{index}")))
+                .map_err(|_| FailureKind::Internal)?;
+        }
+        let documents = (0..16)
+            .map(|_| EmbeddedDocuments::new_in(&root.0, &next, VALIDATE_WORKFLOW))
+            .collect::<Result<Vec<_>, _>>()?;
+        let mut paths = std::collections::BTreeSet::new();
+        for document in &documents {
+            assert!(paths.insert(document.0.clone()));
+            assert!(document
+                .0
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .starts_with(&prefix));
+            assert_eq!(
+                fs::read_to_string(document.0.join("catalog.json")).unwrap(),
+                CATALOG
+            );
+            assert_eq!(
+                fs::read_to_string(document.0.join("workflow.json")).unwrap(),
+                VALIDATE_WORKFLOW
+            );
+        }
+        drop(documents);
+        assert!(paths.iter().all(|path| !path.exists()));
+        for index in 0..8 {
+            assert!(root.0.join(format!("{prefix}{index}")).is_dir());
+        }
+        Ok(())
+    }
 
     #[test]
     fn input_read_accepts_exact_max_with_eof() -> Result<(), FailureKind> {

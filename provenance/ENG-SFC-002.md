@@ -311,3 +311,73 @@ Los **16/16 hashes** de `docs/DETERMINISMO.md` coinciden con diez ejecuciones
 nativas debug por caso de `determinism_native`, sin `MAMUT_ENGINE_GIT_COMMIT`.
 Logs en `$CARGO_TARGET_DIR/mam91-brokenpipe/`. Pendiente: revisión clean-room
 **PENDIENTE (J4)**; cambios sin commitear.
+
+## MAM-862 / ENG-SFC-011 · transporte `--input` · 2026-10-21
+
+- Autor: Codex (GPT-6), implementador, America/Guayaquil.
+- Alcance: pre-parseo del adaptador CLI para `--input <ruta|->`, documentos
+  embebidos por defecto y reutilización de la entrada entre pasos; sin cambios
+  numéricos, de contratos del motor, dependencias ni fuentes vendorizadas.
+- Fuentes usadas: código y documentación propios de `crates/engine-cli`, límite
+  de `engine-api`, `docs/DETERMINISMO.md`, `crates/engine-api/tests/val032_runs.rs`,
+  fixture determinista `cantilever.json` y fixture propio VAL-032
+  `docs/validation-report/fixtures/val032/E1-v1.1.2.json`; parser y despacho
+  locales del SDK vendorizado para conocer sus puntos de extensión públicos;
+  `clean-room/check.sh` y `provenance/TEMPLATE.md` para registrar la verificación.
+- Código externo copiado, derivaciones numéricas y comparación con oráculos:
+  ninguno. No se consultaron fuentes externas, resultados de otros motores,
+  rutas restringidas ni registros de otras sesiones. Trabajo sin red.
+- Compatibilidad: se comparan bytes completos entre `--input`, documentos
+  embebidos y MAMUT_ENGINE_INPUT con catálogo/workflow explícitos. La validación
+  explícita de workflows conserva su comportamiento; la abreviada ejecuta
+  `engine.validate`. La entrada por variable conserva su clasificación de
+  errores y prioridad de cancelación. MCP mantiene la lectura por llamada.
+- E1 conserva su aviso conocido de recuperación de diafragmas y el código 1;
+  el test de éxito con código 0 usa el voladizo determinista existente. No se
+  suprimen avisos para satisfacer una expectativa incompatible con el fixture.
+- Verificación inicial: fmt, diff y clean-room OK; Clippy y tests quedaron
+  bloqueados por la ausencia de `/workspace/.cargo-target/sfc11`. En la ronda 2
+  el destino ya existe; se ejecutan allí los controles offline indicados abajo.
+- Revisor clean-room: **PENDIENTE (J4)**.
+
+### Ronda 2 · revisión OpenCode · 2026-10-21
+
+- Autor: Codex (GPT-6), implementador; mismas fuentes y alcance de MAM-862.
+  Se consulta el parser local `mamut-workflow-cli/src/parser.rs` del SDK
+  vendorizado solo para verificar su sintaxis; no se modifica ni copia código.
+  Sin red, fuentes externas, derivaciones numéricas ni comparación con oráculos.
+- Decisión: la base reconoce tokens exactos `--catalog` y `--workflow`, sin
+  `=valor` ni separador `--`. Se rechaza explícitamente `--input=valor` con
+  Usage/2 para conservar una única sintaxis. `--` también es Usage/2 antes,
+  después o como supuesto valor de `--input`. Un valor ausente, vacío o que
+  comienza con guion es Usage/2, salvo `-` (stdin); las rutas con guion pueden
+  escribirse con `./`. Tests del binario cubren ambos comandos, flags conocidos,
+  desconocidos y ayuda, y contrastan las formas `=` con el parser de la base.
+- Límites por stdin: documentos válidos rellenados con espacios hasta MAX-1 y
+  MAX bytes dan 0, stdout con resultados y stderr vacío tanto en run como en
+  validate; MAX+1 da 2 y stdout vacío. Se conserva la cobertura de UTF-8 y rutas.
+- README aclara la lectura completa de stdin antes del despacho, con límite
+  inclusivo de 8 MiB y sin streaming por paso.
+- Temporales: se mantiene PID + contador atómico global, sin reinicios,
+  creación exclusiva y hasta 128 reintentos ante AlreadyExists. Relaxed basta
+  para reservar nombres únicos; la creación del directorio arbitra colisiones
+  con residuos de procesos cuyo PID se haya reutilizado. Se extrae una función
+  privada que permite probar con raíz y contador locales: ocho colisiones
+  previas y 16 creaciones, rutas únicas con PID, contenido correcto,
+  limpieza propia y conservación de los directorios que provocaron colisiones.
+  El test no altera el contador global, evitando interferencias entre tests.
+  Otro test de integración sincroniza con barrera 16 invocaciones concurrentes
+  de EngineCli, usando el contador global real, y exige resultados idénticos.
+
+Verificación con Rust 1.99.0, `CARGO_TARGET_DIR=/workspace/.cargo-target/sfc11`,
+`CARGO_NET_OFFLINE=true` y `PIP_NO_INDEX=1`. Logs y temporales de los controles
+en `$CARGO_TARGET_DIR/mam862-r2/`. Sin commits ni cambios en Cargo, vendor,
+`.github` o `clean-room`; revisión humana clean-room **PENDIENTE (J4)**.
+
+| Comprobación | Resultado |
+| --- | --- |
+| `cargo fmt --all -- --check` | OK |
+| `cargo clippy --workspace --all-targets --offline -- -D warnings` | OK |
+| `cargo test --workspace --offline` | 758 passed / 0 failed / 0 ignored; CLI: 5 unitarios y 23 de integración |
+| `bash clean-room/check.sh origin/main` | OK |
+| `git diff --check` | OK |
