@@ -83,6 +83,7 @@
       }
     },
     "method_descriptors": {
+      "description": "Estado y evidencia del registro. nonlinearStatic, soilProfile y consolidation1d son Experimental hasta ENG-VAL-006 y requieren options.allow_experimental=true en la raíz del job (decisión de Jonathan vía J0 2026-10-20).",
       "type": "array",
       "items": {
         "$ref": "urn:mamut:method-descriptor:1"
@@ -90,6 +91,18 @@
     },
     "registry_error": {
       "type": "string"
+    },
+    "laws": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "end_releases": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   }
 }

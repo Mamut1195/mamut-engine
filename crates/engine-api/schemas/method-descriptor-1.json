@@ -22,7 +22,7 @@
       "$ref": "#/$defs/workflow"
     },
     "status": {
-      "description": "pDelta es Stable por ENG-BENCH-002 (PR #132), provenance/ENG-BENCH-002.md. Solo Experimental requiere options.allow_experimental=true; los estados delimitan la evidencia publicada, sin certificar modelos arbitrarios.",
+      "description": "pDelta es Stable por ENG-BENCH-002 (PR #132), provenance/ENG-BENCH-002.md. nonlinearStatic, soilProfile y consolidation1d son Experimental hasta ENG-VAL-006 (decisión de Jonathan vía J0 2026-10-20). Solo Experimental requiere options.allow_experimental=true; los estados delimitan la evidencia publicada, sin certificar modelos arbitrarios.",
       "enum": [
         "Experimental",
         "Stable",

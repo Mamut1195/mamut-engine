@@ -31,7 +31,7 @@ InputId: TypeAlias = int
 
 InputDof: TypeAlias = Literal['Ux', 'Uy', 'Uz', 'Rx', 'Ry', 'Rz']
 
-InputMethod: TypeAlias = Literal['linearStatic', 'pDelta', 'modal', 'responseSpectrum']
+InputMethod: TypeAlias = Literal['linearStatic', 'pDelta', 'modal', 'responseSpectrum', 'nonlinearStatic', 'soilProfile', 'consolidation1d']
 
 class InputNode(TypedDict):
     """Campos requeridos del contrato InputNode."""
@@ -51,6 +51,9 @@ class InputMember(InputMemberRequired, total=False):
     """Campos opcionales, sin valores físicos implícitos."""
     element: str
     orientation: list[float]
+    release_i: bool | list[bool]
+    release_j: bool | list[bool]
+    winkler: InputWinkler
 
 class InputParameter(TypedDict):
     """Campos requeridos del contrato InputParameter."""
@@ -62,10 +65,16 @@ class InputSection(TypedDict):
     id: str
     properties: list[InputParameter]
 
-class InputLaw(TypedDict):
+class InputLawRequired(TypedDict):
     """Campos requeridos del contrato InputLaw."""
     name: str
     parameters: list[InputParameter]
+
+class InputLaw(InputLawRequired, total=False):
+    """Selección opcional de ley uniaxial."""
+    kind: Literal["elastic", "steel.bilinear_kinematic", "multilinear_elastic", "elastic.cubic"]
+    points: list[list[float]]
+    mode: Literal["both", "compression_only", "tension_only"]
 
 class InputSupport(TypedDict):
     """Campos requeridos del contrato InputSupport."""
@@ -108,7 +117,7 @@ class InputTerm(TypedDict):
     case: str
     factor: float
 
-InputAnalysis: TypeAlias = "LinearStaticAnalysis | PDeltaAnalysis | ModalAnalysis | SpectrumAnalysis"
+InputAnalysis: TypeAlias = "LinearStaticAnalysis | PDeltaAnalysis | ModalAnalysis | SpectrumAnalysis | NonlinearStaticAnalysis | SoilProfileAnalysis | Consolidation1dAnalysis"
 
 class InputModelRequired(TypedDict):
     """Campos requeridos del contrato InputModel."""
@@ -124,6 +133,7 @@ class InputModel(InputModelRequired, total=False):
     """Campos opcionales, sin valores físicos implícitos."""
     prescribed: list[InputPrescribed]
     diaphragms: list[InputDiaphragm]
+    springs: list[InputSpring]
 
 class InputMassSource(TypedDict):
     """Campos requeridos del contrato InputMassSource."""
@@ -220,13 +230,17 @@ class ResultNodeIdentity(TypedDict):
 
 ResultDof: TypeAlias = Literal['Ux', 'Uy', 'Uz', 'Rx', 'Ry', 'Rz']
 
-class ResultMemberIdentity(TypedDict):
+class ResultMemberIdentityRequired(TypedDict):
     """Campos requeridos del contrato ResultMemberIdentity."""
     id: ResultId
     nodes: list[ResultId]
     element: str
     section: str
     law: str
+
+class ResultMemberIdentity(ResultMemberIdentityRequired, total=False):
+    """Etiquetas opcionales de recuperación de resortes."""
+    end_dofs: list[str]
 
 class ResultCombination(TypedDict):
     """Campos requeridos del contrato ResultCombination."""
@@ -370,7 +384,7 @@ class ResultsDocumentRequired(TypedDict):
     modes: list[ResultMode]
     cases: list[ResultCase]
     envelopes: list[ResultEnvelope]
-    convergence: None | ResultPDeltaConvergence
+    convergence: None | ResultPDeltaConvergence | ResultNewton_convergence
     diagnostics: list[ResultDiagnostic]
     combinations: list[ResultCombination]
 
@@ -378,6 +392,7 @@ class ResultsDocument(ResultsDocumentRequired, total=False):
     """Procedencia opcional para admitir documentos results/1 anteriores."""
     git_commit: str | None
     target: str
+    geotechnical: ResultSoil_result | ResultConsolidation_result
 
 class VersionInfo(TypedDict):
     """Versión del motor y contratos publicados."""
@@ -455,6 +470,8 @@ class CapabilitiesRequired(TypedDict):
 class Capabilities(CapabilitiesRequired, total=False):
     """Error opcional si Rust no pudo construir su registro."""
     registry_error: str
+    laws: list[str]
+    end_releases: list[str]
 
 class Progress(TypedDict):
     """Evento diferido; completed y total cuentan etapas del motor."""
@@ -466,3 +483,180 @@ class Progress(TypedDict):
 class ValidationReport(TypedDict):
     """Diagnósticos topológicos, sin comprobar estabilidad."""
     diagnostics: list[ResultDiagnostic]
+
+InputWinkler: TypeAlias = "JSONDocument | JSONDocument"
+
+class InputSpringRequired(TypedDict):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    id: InputId
+    nodes: list[InputId]
+    kind: Literal['spring.linear', 'spring.nonlinear']
+    dof: InputDof
+
+class InputSpring(InputSpringRequired, total=False):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    k: float
+    law: str
+    direction: list[float]
+    rotation: list[list[float]]
+
+
+class InputNewton_optionsRequired(TypedDict):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    case: str
+    load_factors: list[float]
+    tolerance: float
+    max_iterations: int
+    force_scale: float
+
+class InputNewton_options(InputNewton_optionsRequired, total=False):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    displacement_tolerance: float
+    energy_tolerance: float
+    displacement_scale: float
+    energy_scale: float
+
+
+class InputGeo_parameter(TypedDict):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    value: float
+    provenance: Literal['measured', 'assumed']
+
+
+class InputSoil_layerRequired(TypedDict):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    thickness_m: float
+
+class InputSoil_layer(InputSoil_layerRequired, total=False):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    gamma_kn_m3: InputGeo_parameter
+    gamma_sat_kn_m3: InputGeo_parameter
+
+
+class InputSoil_optionsRequired(TypedDict):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    layers: list[InputSoil_layer]
+    depths_m: list[float]
+
+class InputSoil_options(InputSoil_optionsRequired, total=False):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    groundwater_depth_m: InputGeo_parameter
+    water_unit_weight_kn_m3: InputGeo_parameter
+
+
+class InputConsolidation_layerRequired(TypedDict):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    thickness_m: InputGeo_parameter
+    elements: int
+
+class InputConsolidation_layer(InputConsolidation_layerRequired, total=False):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    cv_m2_s: InputGeo_parameter
+    mv_per_kpa: InputGeo_parameter
+    k_m_s: InputGeo_parameter
+
+
+class InputConsolidation_loadRequired(TypedDict):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    time_s: float
+
+class InputConsolidation_load(InputConsolidation_loadRequired, total=False):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    delta_stress_kpa: InputGeo_parameter
+
+
+class InputConsolidation_optionsRequired(TypedDict):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    layers: list[InputConsolidation_layer]
+    drainage: Literal['top', 'bottom', 'double']
+    history: list[InputConsolidation_load]
+    output_times_s: list[float]
+    theta: float
+    max_step_s: float
+
+class InputConsolidation_options(InputConsolidation_optionsRequired, total=False):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    water_unit_weight_kn_m3: InputGeo_parameter
+
+
+class ResultNewton_step(TypedDict):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    load_factor: float
+    iterations: int
+    converged: bool
+    force_norm: float
+    displacement_norm: float
+    energy_norm: float
+    relative_force_norm: float
+    relative_displacement_norm: float
+    relative_energy_norm: float
+    results: None | ResultCase
+    element_states: None | list[list[float]]
+
+
+class ResultNewton_convergenceRequired(TypedDict):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    method: Literal['nonlinearStatic']
+    case: str
+    status: Literal['ok', 'notConverged', 'unstable']
+    accepted_factor: float | None
+    tolerance: float
+    max_iterations: int
+    force_scale: float
+    displacement_tolerance: float | None
+    energy_tolerance: float | None
+    displacement_scale: float
+    energy_scale: float
+    steps: list[ResultNewton_step]
+
+
+class ResultNewton_convergence(ResultNewton_convergenceRequired, total=False):
+    """Factor opcional de un intento con tangente singular."""
+    failed_factor: float
+
+class ResultSoil_state(TypedDict):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    depth_m: float
+    total_vertical_kpa: float
+    pore_pressure_kpa: float
+    effective_vertical_kpa: float
+    assumed_parameters: list[str]
+
+
+class ResultSoil_result(TypedDict):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    method: Literal['soilProfile']
+    states: list[ResultSoil_state]
+
+
+class ResultConsolidation_state(TypedDict):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    time_s: float
+    delta_stress_kpa: float
+    excess_pore_pressure_kpa: list[float]
+    settlement_m: float
+    mean_degree: float | None
+
+
+class ResultConsolidation_result(TypedDict):
+    """Campos del contrato SFC-010; unidades según el esquema publicado."""
+    method: Literal['consolidation1d']
+    depths_m: list[float]
+    assumed_parameters: list[str]
+    states: list[ResultConsolidation_state]
+
+
+class NonlinearStaticAnalysis(TypedDict):
+    """Selección del análisis SFC-010."""
+    method: Literal["nonlinearStatic"]
+    options: InputNewton_options
+
+class SoilProfileAnalysis(TypedDict):
+    """Selección del análisis SFC-010."""
+    method: Literal["soilProfile"]
+    options: InputSoil_options
+
+class Consolidation1dAnalysis(TypedDict):
+    """Selección del análisis SFC-010."""
+    method: Literal["consolidation1d"]
+    options: InputConsolidation_options

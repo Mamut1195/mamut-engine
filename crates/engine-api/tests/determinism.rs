@@ -111,3 +111,27 @@ fn spatial_fixtures_exercise_static_recovery_and_rotated_modes() {
         );
     }
 }
+
+#[test]
+fn all_sixteen_published_hashes_remain_unchanged() {
+    let document = include_str!("../../../docs/DETERMINISMO.md");
+    let table = document
+        .rsplit("| Entrada / caso de bits | Hash |")
+        .next()
+        .unwrap();
+    for index in 0..fixtures::case_count() {
+        let name = fixtures::case_name(index).unwrap();
+        let row = table
+            .lines()
+            .find(|line| line.starts_with(&format!("| {name} |")))
+            .unwrap();
+        let expected = row.split('`').nth(1).unwrap();
+        let actual: String = fixtures::case_hash(index)
+            .unwrap()
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect();
+        assert_eq!(actual, expected, "{name}");
+    }
+    assert_eq!(fixtures::case_count(), 16);
+}

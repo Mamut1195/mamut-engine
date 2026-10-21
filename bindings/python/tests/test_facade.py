@@ -44,7 +44,8 @@ class PublicFacadeTest(unittest.TestCase):
                                 set(result.version["contracts"]))
                 self.assertEqual(result.data["nodes"], model.data["model"]["nodes"])
                 self.assertEqual([m["id"] for m in result.data["members"]],
-                                 [m["id"] for m in model.data["model"]["members"]])
+                                 [m["id"] for m in (model.data["model"]["members"]
+                                     + model.data["model"].get("springs", []))])
                 self.assertFalse(result.partial)
                 self.assertTrue(events)
                 self.assertEqual(engine.Results.from_json(result.to_json(), model=model).to_json(),

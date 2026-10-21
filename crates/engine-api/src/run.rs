@@ -1,5 +1,7 @@
 //! Ejecución y serialización, sin E/S.
 pub(crate) mod advanced;
+pub(crate) mod geo;
+pub(crate) mod nonlinear;
 pub(crate) mod static_linear;
 use crate::{input, ApiError, CancelToken, Diagnostic, Progress};
 use engine_analysis::{
@@ -32,7 +34,7 @@ pub enum Status {
     NotConverged,
     /// Sistema singular o mecanismo.
     Unstable,
-    /// Cancelación entre etapas.
+    /// Cancelación cooperativa en un punto de control.
     Cancelled,
     /// Reservado; no se generan plazos en esta fachada.
     Timeout,
@@ -81,7 +83,12 @@ pub(crate) struct MethodContext<'a> {
     pub cases: &'a [CaseResults],
 }
 
-pub(crate) struct Failure(Status, Vec<Diagnostic>);
+pub(crate) struct Failure(pub(crate) Status, pub(crate) Vec<Diagnostic>);
+impl From<engine_core::Diagnostic> for Failure {
+    fn from(d: engine_core::Diagnostic) -> Self {
+        Self(Status::Invalid, vec![d.into()])
+    }
+}
 impl From<EngineError> for Failure {
     fn from(e: EngineError) -> Self {
         let status = match e.code {
@@ -125,7 +132,8 @@ fn diagnostic(code: &'static str, severity: &'static str, cause: String) -> Diag
 
 pub(crate) struct Member {
     id: engine_core::MemberId,
-    nodes: [engine_core::NodeId; 2],
+    nodes: Vec<engine_core::NodeId>,
+    variable: bool,
     dim: Dim,
     element: Arc<dyn Element>,
     params: ElementParams,
@@ -251,15 +259,23 @@ fn execute(
     step(cancel, progress, "parse", 1, total)?;
     let model = &execution.model;
     document["methods"] = json!(execution.methods);
-    let diagnostics: Vec<_> = engine_model::validate(model)
-        .into_iter()
-        .map(Diagnostic::from)
-        .collect();
+    let diagnostics = validation(&execution);
     if diagnostics.iter().any(|d| d.severity == "error") {
-        return Err(Failure(Status::Invalid, diagnostics));
+        return Err(Failure(
+            if diagnostics.iter().any(|d| d.code == "ENG-E-0013") {
+                Status::Unsupported
+            } else {
+                Status::Invalid
+            },
+            diagnostics,
+        ));
     }
     document["diagnostics"] = json!(diagnostics);
     step(cancel, progress, "model", 2, total)?;
+    if let crate::methods::Runner::Standalone(execute) = method.execute {
+        execute(&execution, cancel, progress, document, total)?;
+        return step(cancel, progress, "serialization", total, total);
+    }
     let members = build_members(&execution)?;
     let contributions = assemble_members(model, &members)?;
     let mut system = LinearSystem::from_model_with_diaphragms(
@@ -273,8 +289,8 @@ fn execute(
         push_warning(document, "API-W-DIAPHRAGM-RECOVERY", "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados.".into());
     }
     step(cancel, progress, "assembly", 3, total)?;
-    identities(document, model, &members);
-    (method.execute)(MethodContext {
+    identities(document, &execution, &members);
+    method.run(MethodContext {
         execution: &execution,
         members: &members,
         contributions: &contributions,
@@ -290,10 +306,17 @@ fn execute(
     step(cancel, progress, "serialization", total, total)
 }
 
-fn identities(document: &mut Value, model: &engine_model::Model, members: &[Member]) {
+fn identities(document: &mut Value, execution: &input::Execution, members: &[Member]) {
+    let model = &execution.model;
     // Identidades/geometría arriba; respuestas numéricas siempre dentro de su caso.
     document["nodes"] = json!(model.nodes.iter().map(|n| json!({"id": n.id.0, "dim": format!("{:?}", n.dim), "coordinates": n.coordinates, "dofs": n.dofs.iter().map(|d| format!("{d:?}")).collect::<Vec<_>>()})).collect::<Vec<_>>());
-    document["members"] = json!(model.members.iter().zip(members).map(|(m, built)| json!({"id": m.id.0, "nodes": m.nodes.map(|n| n.0), "section": m.section, "law": m.law, "element": built.element.kind()})).collect::<Vec<_>>());
+    let mut identities: Vec<_> = model.members.iter().zip(members).map(|(m, built)| json!({"id": m.id.0, "nodes": m.nodes.map(|n| n.0), "section": m.section, "law": m.law, "element": built.element.kind()})).collect();
+    identities.extend(members.iter().skip(model.members.len()).zip(&execution.springs).map(|(m, s)| {
+        let ends: &[&str] = if m.nodes.len() == 1 { &["j"] } else { &["i", "j"] };
+        let labels: Vec<_> = ends.iter().flat_map(|end| m.element.dofs_per_node().iter().map(move |dof| format!("{end}.{dof:?}"))).collect();
+        json!({"id": m.id.0, "nodes": m.nodes.iter().map(|n| n.0).collect::<Vec<_>>(), "section": "", "law": s.law.as_deref().unwrap_or(""), "element": m.element.kind(), "end_dofs": labels})
+    }));
+    document["members"] = json!(identities);
 }
 
 fn push_warning(document: &mut Value, code: &'static str, cause: String) {
@@ -309,7 +332,9 @@ fn build_members(execution: &input::Execution) -> Result<Vec<Member>, Failure> {
     let model = &execution.model;
     let map = DofMap::new(&model.nodes)?;
     let mut members = Vec::new();
-    for (m, (kind, orientation)) in model.members.iter().zip(&execution.elements) {
+    for (m, beam) in model.members.iter().zip(&execution.elements) {
+        let kind = &beam.kind;
+        let orientation = &beam.orientation;
         let build = || -> Result<Member, EngineError> {
             let dimension = |id| {
                 model
@@ -337,6 +362,8 @@ fn build_members(execution: &input::Execution) -> Result<Vec<Member>, Failure> {
             let factory: Box<dyn ElementFactory> = match kind {
                 "frame2d.euler_elastic" => Box::new(engine_elements_frame::FrameFactory),
                 "frame3d.euler_elastic" => Box::new(engine_elements_frame3d::FrameFactory),
+                "frame2d.winkler" => Box::new(engine_elements_frame::WinklerFactory),
+                "frame3d.winkler" => Box::new(engine_elements_frame3d::WinklerFactory),
                 "truss2d.linear" => Box::new(engine_elements_truss::TrussFactory::new(Dim::D2)),
                 "truss3d.linear" => Box::new(engine_elements_truss::TrussFactory::new(Dim::D3)),
                 _ => {
@@ -376,6 +403,32 @@ fn build_members(execution: &input::Execution) -> Result<Vec<Member>, Failure> {
                     JsonValue::Array(o.iter().map(|v| JsonValue::Number(*v)).collect()),
                 );
             }
+            for (key, release) in [
+                ("release_i", &beam.release_i),
+                ("release_j", &beam.release_j),
+            ] {
+                if let Some(release) = release {
+                    let value = match release {
+                        crate::extensions::Release::Plane(v) => JsonValue::Bool(*v),
+                        crate::extensions::Release::Spatial(v) => {
+                            JsonValue::Array(v.iter().map(|b| JsonValue::Bool(*b)).collect())
+                        }
+                    };
+                    fields.insert(key.into(), value);
+                }
+            }
+            if let Some(w) = &beam.winkler {
+                for (key, value) in [("k", w.k), ("ky", w.ky), ("kz", w.kz)] {
+                    if let Some(value) = value {
+                        if fields
+                            .insert(key.into(), JsonValue::Number(value))
+                            .is_some()
+                        {
+                            return Err(crate::extensions::invalid("Propiedad Winkler duplicada."));
+                        }
+                    }
+                }
+            }
             let coords = m
                 .nodes
                 .iter()
@@ -399,7 +452,8 @@ fn build_members(execution: &input::Execution) -> Result<Vec<Member>, Failure> {
                 .collect();
             Ok(Member {
                 id: m.id,
-                nodes: m.nodes,
+                nodes: m.nodes.to_vec(),
+                variable: false,
                 dim,
                 element: Arc::from(element),
                 params,
@@ -411,6 +465,22 @@ fn build_members(execution: &input::Execution) -> Result<Vec<Member>, Failure> {
             e
         })?);
     }
+    for spring in &execution.springs {
+        let (dim, element) = spring.build(execution)?;
+        members.push(Member {
+            id: engine_core::MemberId(spring.id),
+            nodes: spring
+                .nodes
+                .iter()
+                .map(|&n| engine_core::NodeId(n))
+                .collect(),
+            variable: spring.kind == "spring.nonlinear",
+            dim,
+            element: Arc::from(element),
+            params: ElementParams::default(),
+            loads: vec![vec![]; model.cases.len()],
+        });
+    }
     Ok(members)
 }
 
@@ -421,6 +491,7 @@ fn assemble_members(
     let map = DofMap::new(&model.nodes)?;
     members
         .iter()
+        .filter(|m| !m.variable)
         .map(|m| {
             let assemble = || -> Result<ElementContribution, EngineError> {
                 let coords = m
@@ -478,12 +549,45 @@ fn case_json(case: &CaseResults) -> Value {
 
 pub(crate) fn explain(code: &str) -> Option<&'static str> {
     match code {
-        "API-E-INPUT" => Some("JSON o estructura engine-input/1 inválida. Revise campos, tipos y referencias de cargas de miembro."),
-        "API-I-CANCELLED" => Some("Cancelación cooperativa solicitada entre etapas. No se emiten respuestas parciales."),
+        "API-E-SFC-OPTIONS" => Some("SFC-010: nonlinearStatic, soilProfile y consolidation1d son Experimental hasta la cobertura de ENG-VAL-006 (decisión de Jonathan vía J0 2026-10-20); requieren options.allow_experimental = true en la raíz del job. Revise compatibilidad entre método, resorte, ley, Winkler y liberaciones. Parámetros físicos y procedencia de suelo son explícitos; consulte docs/GUIA_METODOS.md."),
+        "API-E-CONSOLIDATION-WORK" => Some("consolidation1d supera MAX_CONSOLIDATION_WORK = 50000000: suma de subpasos de toda la historia, partida en quiebres de carga y tiempos de salida, multiplicada por el número total de elementos. Reduzca historia/malla o aumente max_step_s. Se rechaza durante la validación, antes de integrar; consulte docs/GUIA_METODOS.md."),
+        "API-E-CONSOLIDATION-COST" => Some("consolidation1d supera MAX_CONSOLIDATION_COST = 500000000 (Σ intervalos n³ + Σ subpasos n², n nodos libres: elementos con drenaje simple, elementos−1 con drenaje doble), MAX_CONSOLIDATION_SEGMENTS = 256 o MAX_CONSOLIDATION_SUBSTEPS = 100000. Los intervalos unen quiebres de carga y tiempos de salida de toda la historia, incluso después de la última salida; cada uno aporta max(1, ceil(intervalo/max_step_s)) subpasos. Aritmética u128 saturante, sin descontar factores reutilizados. Se rechaza en validación con invalid / salida 2; reduzca historia/malla/salidas o aumente max_step_s. Presupuesto calibrado en release con objetivo ≤5 s, sin garantía de plazo en otras máquinas; consulte docs/GUIA_METODOS.md y provenance/ENG-SFC-010.md, r3."),
+        "API-E-INPUT" => Some("JSON o estructura engine-input/1 inválida. Revise campos, tipos y referencias de cargas de miembro. nonlinearStatic, soilProfile y consolidation1d son Experimental hasta ENG-VAL-006: requieren options.allow_experimental = true en la raíz del job."),
+        "API-I-CANCELLED" => Some("Cancelación cooperativa solicitada entre etapas, antes de combine/factorize de cada intervalo de consolidación, entre bloques de hasta 16 columnas de su factorización de referencia o antes de cada subpaso. No se emiten respuestas parciales."),
         "API-W-COMBINED-PRESCRIBED" => Some("Seguimiento #85: los prescritos de una combinación son suma factor·δ, incluido el asentamiento único ponderado. Revise el factor explícito; varios casos de asentamiento no nulo se rechazan."),
         "API-W-DIAPHRAGM-RECOVERY" => Some("Seguimiento #84: la recuperación con diafragmas no tiene cobertura de pruebas del dominio. Revise equilibrio y resultados antes de usarlos."),
         "API-W-MASS-PROJECTION" => Some("#86: la conversión de cargas a masa rechaza cualquier proyección negativa, sin tolerancia; con gravedad no alineada a ejes puede rechazar por redondeo."),
         "API-W-PDELTA-INERTIA" => Some("#78: inercia LDLᵀ con bloques 2×2 usa copysign sin prueba confirmada; revisar el diagnóstico de estabilidad."),
         _ => None,
     }
+}
+
+/// Integra validación del modelo y las extensiones sin alterar el dominio.
+pub(crate) fn validation(e: &input::Execution) -> Vec<Diagnostic> {
+    let mut diagnostics: Vec<_> = engine_model::validate(&e.model).into_iter().filter(|d| {
+        // Un nodo unido a un resorte ya tiene conectividad de frontera.
+        !(d.code == "ENG-E-0004" && d.entities.iter().any(|entity| matches!(entity, EntityRef::Node(id) if e.springs.iter().any(|s| s.nodes.contains(&id.0)))))
+    }).map(Diagnostic::from).collect();
+    if diagnostics.iter().any(|d| d.severity == "error") {
+        return diagnostics;
+    }
+    if let Err(error) = crate::extensions::validate(e) {
+        diagnostics.extend(Failure::from(error).1);
+        return diagnostics;
+    }
+    if let Err(error) = crate::geo_input::validate(e) {
+        diagnostics.push(error.into());
+        return diagnostics;
+    }
+    if e.elements.iter().any(|b| {
+        b.winkler.is_some()
+            || b.release_i.is_some()
+            || b.release_j.is_some()
+            || matches!(b.kind.as_str(), "frame2d.winkler" | "frame3d.winkler")
+    }) {
+        if let Err(failure) = build_members(e) {
+            diagnostics.extend(failure.1);
+        }
+    }
+    diagnostics
 }

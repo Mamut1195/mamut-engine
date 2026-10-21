@@ -135,6 +135,17 @@ pub trait LinAlgBackend {
     /// Factoriza una matriz simétrica densa una sola vez, sin regularización.
     /// El factor posee sus datos y puede sobrevivir al backend y a la matriz.
     fn factorize(&mut self, a: &SymMatrix) -> EResult<Box<dyn SymFactorization>>;
+    /// Factoriza consultando un control que puede interrumpir con su propio error.
+    /// Por defecto consulta antes de factorizar; ReferenceBackend consulta además
+    /// entre bloques de hasta 16 columnas, sin alterar las operaciones numéricas.
+    fn factorize_with_check(
+        &mut self,
+        a: &SymMatrix,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<Box<dyn SymFactorization>> {
+        check()?;
+        self.factorize(a)
+    }
     /// Inercia (positivos, negativos, nulos) por congruencia LDLᵀ.
     ///
     /// Por defecto consulta el factor; ENG-E-0013 si no ofrece inercia.

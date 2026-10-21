@@ -1,0 +1,48 @@
+//! Entradas compartidas por las pruebas de frontera de MAM-835.
+//! Fuentes y derivaciones: provenance/ENG-SFC-010.md.
+pub const FIXTURES: &[(&str, &str)] = &[
+    (
+        "spring-series",
+        include_str!("../../fixtures/input/valid/sfc010-spring-series.json"),
+    ),
+    (
+        "spring3d",
+        include_str!("../../fixtures/input/valid/sfc010-spring3d.json"),
+    ),
+    (
+        "multilinear",
+        include_str!("../../fixtures/input/valid/sfc010-multilinear.json"),
+    ),
+    (
+        "cubic",
+        include_str!("../../fixtures/input/valid/sfc010-cubic.json"),
+    ),
+    (
+        "steel",
+        include_str!("../../fixtures/input/valid/sfc010-steel.json"),
+    ),
+    (
+        "winkler2d",
+        include_str!("../../fixtures/input/valid/sfc010-winkler2d.json"),
+    ),
+    (
+        "winkler3d",
+        include_str!("../../fixtures/input/valid/sfc010-winkler3d.json"),
+    ),
+    (
+        "release2d",
+        include_str!("../../fixtures/input/valid/sfc010-release2d.json"),
+    ),
+    (
+        "release3d",
+        include_str!("../../fixtures/input/valid/sfc010-release3d.json"),
+    ),
+    (
+        "soil",
+        include_str!("../../fixtures/input/valid/sfc010-soil.json"),
+    ),
+    (
+        "consolidation",
+        include_str!("../../fixtures/input/valid/sfc010-consolidation.json"),
+    ),
+];

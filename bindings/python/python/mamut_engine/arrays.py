@@ -17,6 +17,8 @@ LOCAL_FIELDS = ("N", "Vy", "Vz", "T", "My", "Mz")
 ELEMENT_DOFS = {
     "frame2d.euler_elastic": ("Ux", "Uy", "Rz"),
     "frame3d.euler_elastic": DOFS,
+    "frame2d.winkler": ("Ux", "Uy", "Rz"),
+    "frame3d.winkler": DOFS,
     "truss2d.linear": ("Ux", "Uy"),
     "truss3d.linear": ("Ux", "Uy", "Uz"),
 }
@@ -131,7 +133,7 @@ def export(document: ResultsDocument, *, numpy: bool) -> ArrayResults:
         }
         members = data.get("members", [])
         seen: set[int] = set()
-        groups: dict[str, list[dict[str, Any]]] = {}
+        groups: dict[tuple[str, tuple[str, ...]], list[dict[str, Any]]] = {}
         station_rows: list[list[float]] = []
         positions: list[list[float]] = []
         station_ids: list[int] = []
@@ -142,20 +144,29 @@ def export(document: ResultsDocument, *, numpy: bool) -> ArrayResults:
                 raise checks.invalid("ID de elemento duplicado o sin identidad")
             seen.add(mid)
             kind = identities[mid]["element"]
-            if kind not in ELEMENT_DOFS:
+            if kind in ELEMENT_DOFS:
+                labels = tuple(f"{end}.{dof}" for end in ("i", "j")
+                               for dof in ELEMENT_DOFS[kind])
+                group_name = kind
+            elif kind in ("spring.linear", "spring.nonlinear"):
+                labels = tuple(identities[mid].get("end_dofs", []))
+                if (not labels or any(label not in {f"{end}.{dof}"
+                        for end in ("i", "j") for dof in DOFS} for label in labels)):
+                    raise checks.invalid("resorte sin etiquetas locales válidas")
+                # Resortes con distintos GDL o conexión requieren tablas distintas.
+                group_name = kind + "/" + "_".join(labels)
+            else:
                 raise Unsupported(f"Etiquetas de elemento no soportadas: {kind}",
                                   code="ENG-E-0013")
-            groups.setdefault(kind, []).append(member)
+            groups.setdefault((group_name, labels), []).append(member)
             for index, station in enumerate(member["stations"]):
                 station_ids.append(mid)
                 station_indices.append(index)
                 station_rows.append(station["forces_local"])
                 positions.append([station["position"]])
-        for kind, group in groups.items():
-            dofs = ELEMENT_DOFS[kind]
-            labels = tuple(f"{end}.{dof}" for end in ("i", "j") for dof in dofs)
-            force_units = tuple("N*m" if d.startswith("R") else "N"
-                                for _ in ("i", "j") for d in dofs)
+        for (kind, labels), group in groups.items():
+            force_units = tuple("N*m" if label.split(".", 1)[1].startswith("R") else "N"
+                                for label in labels)
             matrices[f"end_forces_local/{kind}"] = table(
                 [m["end_forces_local"] for m in group], [m["id"] for m in group],
                 [0] * len(group), labels, force_units, "local")

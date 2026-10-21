@@ -33,6 +33,140 @@ fn close(a: f64, b: f64) {
 }
 
 #[test]
+fn cancellation_callback_checks_every_substep_and_preserves_result_bits() {
+    let model = profile(4, Drainage::Top);
+    let history = [point(0.0, 100.0), point(0.5, 80.0), point(1.0, 120.0)];
+    let outputs = [0.0, 0.25, 0.75, 1.0];
+    let options = ConsolidationOptions::new(0.125);
+    // El backend explícito conserva la ruta sin caché como referencia por bits.
+    let expected = model
+        .solve_with_backend(
+            &mut engine_linalg::ReferenceBackend,
+            &history,
+            &outputs,
+            options,
+        )
+        .unwrap();
+    let mut calls = 0;
+    let actual = model
+        .solve_with_cancel(&history, &outputs, options, &mut || {
+            calls += 1;
+            false
+        })
+        .unwrap();
+    // Ocho subpasos, cuatro intervalos y una sola factorización (dt idéntico).
+    assert_eq!(calls, 13);
+    assert_eq!(actual.depths_m, expected.depths_m);
+    assert_eq!(actual.assumed_parameters, expected.assumed_parameters);
+    assert_eq!(actual.states.len(), expected.states.len());
+    for (a, e) in actual.states.iter().zip(&expected.states) {
+        assert_eq!(a.time_s.to_bits(), e.time_s.to_bits());
+        assert_eq!(a.delta_stress_kpa.to_bits(), e.delta_stress_kpa.to_bits());
+        assert_eq!(a.settlement_m.to_bits(), e.settlement_m.to_bits());
+        assert_eq!(
+            a.mean_degree.map(f64::to_bits),
+            e.mean_degree.map(f64::to_bits)
+        );
+        assert_eq!(
+            a.excess_pore_pressure_kpa
+                .iter()
+                .map(|v| v.to_bits())
+                .collect::<Vec<_>>(),
+            e.excess_pore_pressure_kpa
+                .iter()
+                .map(|v| v.to_bits())
+                .collect::<Vec<_>>()
+        );
+    }
+    let mut calls = 0;
+    let error = model
+        .solve_with_cancel(&history, &outputs, options, &mut || {
+            calls += 1;
+            calls == 4
+        })
+        .unwrap_err();
+    assert_eq!(calls, 4);
+    assert_eq!(error.code, "API-I-CANCELLED");
+}
+
+#[test]
+fn cancellation_precedes_dense_combine_and_factorization_even_for_2048_elements() {
+    let model = profile(2048, Drainage::Top);
+    let mut calls = 0;
+    let start = std::time::Instant::now();
+    let error = model
+        .solve_with_cancel(
+            &[point(0.0, 100.0), point(1.0, 100.0)],
+            &[1.0],
+            ConsolidationOptions::new(1.0),
+            &mut || {
+                calls += 1;
+                true
+            },
+        )
+        .unwrap_err();
+    assert_eq!(calls, 1);
+    assert_eq!(error.code, "API-I-CANCELLED");
+    assert!(start.elapsed() < std::time::Duration::from_secs(2));
+}
+
+#[test]
+fn cached_and_uncached_reference_factors_preserve_every_output_bit() {
+    for n in [1, 17] {
+        for drainage in [Drainage::Top, Drainage::Bottom, Drainage::Double] {
+            for theta in [0.5, 1.0] {
+                let model = profile(
+                    if drainage == Drainage::Double {
+                        n.max(2)
+                    } else {
+                        n
+                    },
+                    drainage,
+                );
+                let history = [point(0.0, 100.0), point(0.5, -20.0), point(1.0, 0.0)];
+                // dt=0.125 repetido y luego 0.0625: reutilización e invalidación.
+                let outputs = [0.0, 0.25, 0.75, 0.9375, 1.0];
+                let options = ConsolidationOptions {
+                    theta,
+                    max_step_s: 0.125,
+                };
+                let cached = model.solve(&history, &outputs, options).unwrap();
+                let uncached = model
+                    .solve_with_backend(
+                        &mut engine_linalg::ReferenceBackend,
+                        &history,
+                        &outputs,
+                        options,
+                    )
+                    .unwrap();
+                assert_eq!(cached.depths_m, uncached.depths_m);
+                assert_eq!(cached.assumed_parameters, uncached.assumed_parameters);
+                assert_eq!(cached.states.len(), uncached.states.len());
+                for (a, b) in cached.states.iter().zip(&uncached.states) {
+                    assert_eq!(a.time_s.to_bits(), b.time_s.to_bits());
+                    assert_eq!(a.delta_stress_kpa.to_bits(), b.delta_stress_kpa.to_bits());
+                    assert_eq!(a.settlement_m.to_bits(), b.settlement_m.to_bits());
+                    assert_eq!(
+                        a.mean_degree.map(f64::to_bits),
+                        b.mean_degree.map(f64::to_bits)
+                    );
+                    assert_eq!(
+                        a.excess_pore_pressure_kpa
+                            .iter()
+                            .map(|v| v.to_bits())
+                            .collect::<Vec<_>>(),
+                        b.excess_pore_pressure_kpa
+                            .iter()
+                            .map(|v| v.to_bits())
+                            .collect::<Vec<_>>()
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn theta_matches_hand_derived_single_free_dof_and_consistent_source() {
     // One linear element: Mff=mv L/3, Kff=cv mv/L, Ff=mv L/2.
     // The two loads distinguish the full source from reduced Mff*1.

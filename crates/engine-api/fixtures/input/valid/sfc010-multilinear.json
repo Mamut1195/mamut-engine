@@ -1,0 +1,94 @@
+{
+  "schema": "engine-input/1",
+  "units": "SI",
+  "model": {
+    "axes": "Z-up",
+    "nodes": [
+      {
+        "id": 1,
+        "dim": "D2",
+        "coordinates": [
+          0,
+          0,
+          0
+        ],
+        "dofs": [
+          "Ux"
+        ]
+      }
+    ],
+    "members": [],
+    "sections": [],
+    "laws": [
+      {
+        "name": "law",
+        "kind": "multilinear_elastic",
+        "parameters": [],
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            0.1,
+            10
+          ],
+          [
+            0.5,
+            18
+          ]
+        ],
+        "mode": "both"
+      }
+    ],
+    "supports": [],
+    "masses": [],
+    "springs": [
+      {
+        "id": 1,
+        "nodes": [
+          1
+        ],
+        "kind": "spring.nonlinear",
+        "dof": "Ux",
+        "law": "law"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "P",
+      "loads": [
+        {
+          "node": 1,
+          "values": [
+            {
+              "dof": "Ux",
+              "value": 16
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "combinations": [],
+  "analyses": [
+    {
+      "method": "nonlinearStatic",
+      "options": {
+        "case": "P",
+        "load_factors": [
+          0.25,
+          0.5,
+          1
+        ],
+        "tolerance": 1e-10,
+        "max_iterations": 30,
+        "force_scale": 16
+      }
+    }
+  ],
+  "options": {
+    "allow_experimental": true
+  }
+}

@@ -6,9 +6,15 @@
 #![deny(missing_docs)]
 
 mod analysis_input;
+mod extensions;
+mod geo_input;
 mod input;
 mod json;
 mod limits;
+pub use geo_input::{
+    MAX_CONSOLIDATION_COST, MAX_CONSOLIDATION_SEGMENTS, MAX_CONSOLIDATION_SUBSTEPS,
+    MAX_CONSOLIDATION_WORK,
+};
 mod methods;
 pub use methods::{method_descriptor, method_descriptors, MethodDescriptor, MethodStatus};
 mod query;
@@ -147,8 +153,9 @@ pub fn version() -> Value {
 /// Capacidades reales: estático, P-Delta, modal, espectro y combinaciones lineales.
 /// `engine` indica presencia en engine-analysis; `run` indica soporte de la fachada.
 /// `method_descriptors` publica estado, contratos y evidencia desde el registro SDK;
-/// pDelta es Stable y se habilita por defecto; solo Experimental requiere
-/// options.allow_experimental al ejecutar el job.
+/// pDelta es Stable y se habilita por defecto. nonlinearStatic, soilProfile y
+/// consolidation1d son Experimental hasta ENG-VAL-006; requieren
+/// options.allow_experimental = true al ejecutar el job.
 pub fn capabilities() -> Value {
     let mut capabilities = json!({
         "run": true,
@@ -156,9 +163,14 @@ pub fn capabilities() -> Value {
         "schemas": {"engine-input/1": {"validate": true}, "results/1": {"emit": true}},
         "validation": "topology",
         "combinations": {"run": true},
-        "elements": ["frame2d.euler_elastic", "frame3d.euler_elastic", "truss2d.linear", "truss3d.linear"],
+        "elements": ["frame2d.euler_elastic", "frame3d.euler_elastic", "truss2d.linear", "truss3d.linear", "frame2d.winkler", "frame3d.winkler", "spring.linear", "spring.nonlinear"],
+        "laws": ["elastic", "steel.bilinear_kinematic", "multilinear_elastic", "elastic.cubic"],
+        "end_releases": ["frame2d.euler_elastic", "frame3d.euler_elastic"],
         "methods": {
             "linearStatic": {"engine": true, "run": true},
+            "nonlinearStatic": {"engine": true, "run": true},
+            "soilProfile": {"engine": true, "run": true},
+            "consolidation1d": {"engine": true, "run": true},
             "pDelta": {"engine": true, "run": true},
             "modal": {"engine": true, "run": true},
             "responseSpectrum": {"engine": true, "run": true}
@@ -243,12 +255,9 @@ pub fn validate_with(
         return Err(ApiError::UnsupportedSchema(contract.into()));
     }
     checkpoint(cancel, &mut progress, "parse", 1)?;
-    let model = input::model(value)?;
+    let execution = input::decode(value)?;
     checkpoint(cancel, &mut progress, "model", 2)?;
-    let diagnostics = engine_model::validate(&model)
-        .into_iter()
-        .map(Diagnostic::from)
-        .collect();
+    let diagnostics = run::validation(&execution);
     checkpoint(cancel, &mut progress, "topology", 3)?;
     Ok(diagnostics)
 }

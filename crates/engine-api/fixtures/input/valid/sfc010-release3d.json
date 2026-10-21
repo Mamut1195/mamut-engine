@@ -1,0 +1,166 @@
+{
+  "schema": "engine-input/1",
+  "units": "SI",
+  "model": {
+    "axes": "Z-up",
+    "nodes": [
+      {
+        "id": 1,
+        "dim": "D3",
+        "coordinates": [
+          0,
+          0,
+          0
+        ],
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": 2,
+        "dim": "D3",
+        "coordinates": [
+          4,
+          0,
+          0
+        ],
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      }
+    ],
+    "members": [
+      {
+        "id": 7,
+        "nodes": [
+          1,
+          2
+        ],
+        "section": "s",
+        "law": "elastic",
+        "element": "frame3d.euler_elastic",
+        "orientation": [
+          0,
+          0,
+          1
+        ],
+        "release_i": [
+          false,
+          true,
+          true
+        ],
+        "release_j": [
+          false,
+          true,
+          true
+        ]
+      }
+    ],
+    "sections": [
+      {
+        "id": "s",
+        "properties": [
+          {
+            "name": "A",
+            "value": 2
+          },
+          {
+            "name": "J",
+            "value": 1
+          },
+          {
+            "name": "Iy",
+            "value": 3
+          },
+          {
+            "name": "Iz",
+            "value": 3
+          }
+        ]
+      }
+    ],
+    "laws": [
+      {
+        "name": "elastic",
+        "parameters": [
+          {
+            "name": "E",
+            "value": 200
+          },
+          {
+            "name": "G",
+            "value": 80
+          },
+          {
+            "name": "rho",
+            "value": 0
+          }
+        ]
+      }
+    ],
+    "supports": [
+      {
+        "id": "i",
+        "node": 1,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": "j",
+        "node": 2,
+        "restrained": [
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      }
+    ],
+    "masses": []
+  },
+  "cases": [
+    {
+      "name": "q",
+      "loads": [],
+      "member_loads": [
+        {
+          "member": 7,
+          "force_per_length": [
+            0,
+            -20,
+            -60
+          ],
+          "moment_per_length": [
+            0,
+            0,
+            0
+          ]
+        }
+      ]
+    }
+  ],
+  "combinations": [],
+  "analyses": [
+    {
+      "method": "linearStatic"
+    }
+  ],
+  "options": {}
+}

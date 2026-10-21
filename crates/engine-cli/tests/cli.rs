@@ -562,3 +562,44 @@ fn provider_rejects_unknown_methods_and_numeric_parameters_without_identity_fall
     workflow["steps"][0]["parameters"] = json!({"n":2.0});
     assert_code(&files.run(&workflow.to_string(), false), 2);
 }
+
+#[path = "../../engine-api/tests/support/sfc010.rs"]
+mod sfc010;
+#[test]
+fn sfc010_cli_envelope_contains_identical_canonical_api_bytes_for_every_fixture() {
+    let files = Files::new();
+    for &(name, input) in sfc010::FIXTURES {
+        files.write("input.json", input);
+        let output = files.run(RUN, false);
+        assert_code(&output, 0);
+        let envelope = value(&output.stdout);
+        let actual = engine_api::canonical_json(&envelope["engineResults"][0].to_string()).unwrap();
+        let expected = engine_api::run(input, &engine_api::CancelToken::new(), |_| {});
+        assert_eq!(actual.as_bytes(), expected.document.as_bytes(), "{name}");
+    }
+}
+
+#[test]
+fn sfc010_cli_rejects_experimental_methods_without_job_opt_in() {
+    let files = Files::new();
+    for &(name, source) in sfc010::FIXTURES {
+        let mut input: Value = serde_json::from_str(source).unwrap();
+        if input["options"]["allow_experimental"] != true {
+            continue;
+        }
+        for options in [json!({}), json!({"allow_experimental": false})] {
+            input["options"] = options;
+            files.write("input.json", &input.to_string());
+            let output = files.run(RUN, false);
+            assert_code(&output, 2);
+            assert!(output.stdout.is_empty());
+            let envelope = value(&output.stderr);
+            let document = &envelope["engineResults"][0];
+            assert_eq!(document["status"], "invalid", "{name}: {envelope}");
+            assert_eq!(document["diagnostics"][0]["code"], "API-E-INPUT");
+            assert!(document
+                .to_string()
+                .contains("options.allow_experimental = true"));
+        }
+    }
+}

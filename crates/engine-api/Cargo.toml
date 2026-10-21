@@ -18,6 +18,9 @@ engine-linalg = { path = "../engine-linalg" }
 engine-elements-frame = { path = "../engine-elements-frame" }
 engine-elements-frame3d = { path = "../engine-elements-frame3d" }
 engine-elements-truss = { path = "../engine-elements-truss" }
+engine-elements-spring = { path = "../engine-elements-spring" }
+engine-laws = { path = "../engine-laws" }
+engine-geo = { path = "../engine-geo" }
 engine-loads = { path = "../engine-loads" }
 mamut-workflow = { path = "../../vendor/mamut-workflows/mamut-workflow", version = "=0.1.0" }
 

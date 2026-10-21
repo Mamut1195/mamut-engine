@@ -91,7 +91,7 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
             crate::methods::RESULTS_CONTRACT,
             execution.allow_experimental,
         )?;
-        (method.execute)(MethodContext {
+        method.run(MethodContext {
             execution,
             members,
             contributions,

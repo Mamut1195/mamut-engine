@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:mamut:engine-input:1",
-  "title": "engine-input/1 — incremento 2a",
-  "description": "SI: m, kg, s, N, Pa, rad; momentos N·m. D2 en XY, Z=0; D3 con Z arriba. run: linearStatic, pDelta, modal, responseSpectrum y combinaciones. pDelta es Stable y está habilitado por defecto (ENG-BENCH-002 (PR #132), provenance/ENG-BENCH-002.md). options.allow_experimental habilita futuros métodos Experimental. Un solo análisis por run; opciones dinámicas explícitas. Masas nodales o fuente desde cargas, sin suma implícita; sin tolerancia de succión (#86).",
+  "title": "engine-input/1 — MAM-835 / ENG-SFC-010",
+  "description": "SI: m, kg, s, N, Pa, rad; momentos N·m. D2 en XY, Z=0; D3 con Z arriba. run: linearStatic, pDelta, modal, responseSpectrum y combinaciones. pDelta es Stable y está habilitado por defecto (ENG-BENCH-002 (PR #132), provenance/ENG-BENCH-002.md). nonlinearStatic, soilProfile y consolidation1d son Experimental hasta ENG-VAL-006 y requieren options.allow_experimental=true en la raíz del job (decisión de Jonathan vía J0 2026-10-20). Un solo análisis por run; opciones dinámicas explícitas. Masas nodales o fuente desde cargas, sin suma implícita; sin tolerancia de succión (#86). Extensiones opcionales: Winkler, liberaciones, resortes, leyes uniaxiales, nonlinearStatic, soilProfile y consolidation1d. Geotecnia: unidades con prefijos explícitos kPa y kN/m³.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "units", "model", "cases", "combinations", "analyses", "options"],
@@ -21,7 +21,7 @@
     "diaphragm": {"type": "object", "additionalProperties": false, "required": ["master", "slaves"], "properties": {"master": {"$ref": "#/$defs/id"}, "slaves": {"type": "array", "items": {"$ref": "#/$defs/id"}}}},
     "id": {"type": "integer", "minimum": 0, "maximum": 4294967295},
     "dof": {"enum": ["Ux", "Uy", "Uz", "Rx", "Ry", "Rz"]},
-    "method": {"enum": ["linearStatic", "pDelta", "modal", "responseSpectrum"]},
+    "method": {"enum": ["linearStatic", "pDelta", "modal", "responseSpectrum", "nonlinearStatic", "soilProfile", "consolidation1d"]},
     "node": {
       "type": "object", "additionalProperties": false, "required": ["id", "dim", "coordinates", "dofs"], "allOf": [{"if": {"properties": {"dim": {"const": "D2"}}}, "then": {"properties": {"coordinates": {"prefixItems": [{}, {}, {"const": 0}]}}}}],
       "properties": {
@@ -39,7 +39,10 @@
         "section": {"type": "string"},
         "law": {"type": "string"},
         "element": {"type": "string", "description": "Ausente: frame2d.euler_elastic para D2, frame3d.euler_elastic para D3. Kind desconocido: Unsupported."},
-        "orientation": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}
+        "orientation": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+        "release_i": {"oneOf": [{"type": "boolean"}, {"type": "array", "items": {"type": "boolean"}, "minItems": 3, "maxItems": 3}], "description": "Momento z local en D2; [T,My,Mz] locales en D3. Solo Euler."},
+        "release_j": {"oneOf": [{"type": "boolean"}, {"type": "array", "items": {"type": "boolean"}, "minItems": 3, "maxItems": 3}]},
+        "winkler": {"$ref": "#/$defs/winkler"}
       }
     },
     "parameter": {
@@ -60,7 +63,10 @@
       "type": "object", "additionalProperties": false, "required": ["name", "parameters"],
       "properties": {
         "name": {"type": "string"},
-        "parameters": {"type": "array", "items": {"$ref": "#/$defs/parameter"}}
+        "parameters": {"type": "array", "items": {"$ref": "#/$defs/parameter"}},
+        "kind": {"enum": ["elastic", "steel.bilinear_kinematic", "multilinear_elastic", "elastic.cubic"], "description": "Ausente conserva el tratamiento histórico de parámetros. Las leyes no lineales solo se conectan a spring.nonlinear."},
+        "points": {"type": "array", "items": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}, "minItems": 2, "maxItems": 16384},
+        "mode": {"enum": ["both", "compression_only", "tension_only"]}
       }
     },
     "support": {
@@ -115,7 +121,7 @@
         "factor": {"type": "number"}
       }
     },
-    "analysis": {"oneOf": [{"type": "object", "additionalProperties": false, "required": ["method"], "properties": {"method": {"const": "linearStatic"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "pDelta"}, "options": {"$ref": "#/$defs/pDeltaOptions"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "modal"}, "options": {"$ref": "#/$defs/modalOptions"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "responseSpectrum"}, "options": {"$ref": "#/$defs/spectrumOptions"}}}]},
+    "analysis": {"oneOf": [{"type": "object", "additionalProperties": false, "required": ["method"], "properties": {"method": {"const": "linearStatic"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "pDelta"}, "options": {"$ref": "#/$defs/pDeltaOptions"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "modal"}, "options": {"$ref": "#/$defs/modalOptions"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "responseSpectrum"}, "options": {"$ref": "#/$defs/spectrumOptions"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "nonlinearStatic"}, "options": {"$ref": "#/$defs/newton_options"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "soilProfile"}, "options": {"$ref": "#/$defs/soil_options"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "consolidation1d"}, "options": {"$ref": "#/$defs/consolidation_options"}}}]},
     "model": {
       "type": "object", "additionalProperties": false, "required": ["axes", "nodes", "members", "sections", "laws", "supports", "masses"],
       "properties": {
@@ -127,7 +133,8 @@
         "supports": {"type": "array", "items": {"$ref": "#/$defs/support"}},
         "masses": {"type": "array", "items": {"$ref": "#/$defs/mass"}},
         "prescribed": {"type": "array", "items": {"$ref": "#/$defs/prescribed"}},
-        "diaphragms": {"type": "array", "items": {"$ref": "#/$defs/diaphragm"}}
+        "diaphragms": {"type": "array", "items": {"$ref": "#/$defs/diaphragm"}},
+        "springs": {"type": "array", "items": {"$ref": "#/$defs/spring"}, "minItems": 0, "maxItems": 1024}
       }
     },
     "massSource": {
@@ -188,6 +195,15 @@
         "directional_factors": {"type": "array", "items": {"type": "number", "minimum": 0}, "minItems": 1},
         "mass_source": {"$ref": "#/$defs/massSource"}
       }
-    }
+    },
+    "winkler": {"oneOf": [{"type": "object", "additionalProperties": false, "required": ["k"], "properties": {"k": {"type": "number", "minimum": 0}}}, {"type": "object", "additionalProperties": false, "required": ["ky", "kz"], "properties": {"ky": {"type": "number", "minimum": 0}, "kz": {"type": "number", "minimum": 0}}}], "description": "D2 requiere k; D3 ky y kz. N/m² de longitud, ejes transversales locales; no admite liberaciones."},
+    "spring": {"type": "object", "additionalProperties": false, "required": ["id", "nodes", "kind", "dof"], "properties": {"id": {"$ref": "#/$defs/id"}, "nodes": {"type": "array", "items": {"$ref": "#/$defs/id"}, "minItems": 1, "maxItems": 2}, "kind": {"enum": ["spring.linear", "spring.nonlinear"]}, "dof": {"$ref": "#/$defs/dof"}, "k": {"type": "number", "minimum": 0}, "law": {"type": "string"}, "direction": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}, "rotation": {"type": "array", "items": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}, "minItems": 3, "maxItems": 3}}, "description": "Un nodo a tierra, dos entre nodos distintos; id comparte espacio con members. Un GDL local por resorte. direction/rotation excluyentes. spring.linear requiere k sin law; spring.nonlinear law sin k y nonlinearStatic. La ley se interpreta F(δ) o M(θ), sin convertir material ni geometría."},
+    "newton_options": {"type": "object", "additionalProperties": false, "required": ["case", "load_factors", "tolerance", "max_iterations", "force_scale"], "properties": {"case": {"type": "string"}, "load_factors": {"type": "array", "items": {"type": "number"}, "minItems": 1, "maxItems": 16384}, "tolerance": {"type": "number", "exclusiveMinimum": 0}, "max_iterations": {"type": "integer", "minimum": 1, "maximum": 16384}, "force_scale": {"type": "number", "exclusiveMinimum": 0}, "displacement_tolerance": {"type": "number", "exclusiveMinimum": 0}, "energy_tolerance": {"type": "number", "exclusiveMinimum": 0}, "displacement_scale": {"type": "number", "exclusiveMinimum": 0}, "energy_scale": {"type": "number", "exclusiveMinimum": 0}}, "description": "Factores absolutos, permiten descarga/repeticiones. tolerance mide norma infinita residual/force_scale. Cada criterio adicional exige su escala positiva; todos los activos deben cumplirse. No admite diafragmas ni combinaciones."},
+    "geo_parameter": {"type": "object", "additionalProperties": false, "required": ["value", "provenance"], "properties": {"value": {"type": "number"}, "provenance": {"enum": ["measured", "assumed"]}}},
+    "soil_layer": {"type": "object", "additionalProperties": false, "required": ["thickness_m"], "properties": {"thickness_m": {"type": "number", "exclusiveMinimum": 0}, "gamma_kn_m3": {"$ref": "#/$defs/geo_parameter"}, "gamma_sat_kn_m3": {"$ref": "#/$defs/geo_parameter"}}},
+    "soil_options": {"type": "object", "additionalProperties": false, "required": ["layers", "depths_m"], "properties": {"layers": {"type": "array", "items": {"$ref": "#/$defs/soil_layer"}, "minItems": 1, "maxItems": 16384}, "groundwater_depth_m": {"$ref": "#/$defs/geo_parameter"}, "water_unit_weight_kn_m3": {"$ref": "#/$defs/geo_parameter"}, "depths_m": {"type": "array", "items": {"type": "number", "minimum": 0}, "minItems": 1, "maxItems": 16384}}, "description": "γ requerido en cada capa; γsat requerido bajo zw; zw y γw requeridos aun en seco. Datos ausentes producen ENG-E-0003. Modelo estructural/casos/combinaciones vacíos. Profundidad positiva hacia abajo; tensiones kPa con compresión positiva."},
+    "consolidation_layer": {"type": "object", "additionalProperties": false, "required": ["thickness_m", "elements"], "properties": {"thickness_m": {"$ref": "#/$defs/geo_parameter"}, "cv_m2_s": {"$ref": "#/$defs/geo_parameter"}, "mv_per_kpa": {"$ref": "#/$defs/geo_parameter"}, "k_m_s": {"$ref": "#/$defs/geo_parameter"}, "elements": {"type": "integer", "minimum": 1, "maximum": 2048}}},
+    "consolidation_load": {"type": "object", "additionalProperties": false, "required": ["time_s"], "properties": {"time_s": {"type": "number", "minimum": 0}, "delta_stress_kpa": {"$ref": "#/$defs/geo_parameter"}}},
+    "consolidation_options": {"type": "object", "additionalProperties": false, "required": ["layers", "drainage", "history", "output_times_s", "theta", "max_step_s"], "properties": {"layers": {"type": "array", "items": {"$ref": "#/$defs/consolidation_layer"}, "minItems": 1, "maxItems": 2048}, "water_unit_weight_kn_m3": {"$ref": "#/$defs/geo_parameter"}, "drainage": {"enum": ["top", "bottom", "double"]}, "history": {"type": "array", "items": {"$ref": "#/$defs/consolidation_load"}, "minItems": 2, "maxItems": 257}, "output_times_s": {"type": "array", "items": {"type": "number", "minimum": 0}, "minItems": 1, "maxItems": 16384}, "theta": {"type": "number", "minimum": 0, "maximum": 1}, "max_step_s": {"type": "number", "exclusiveMinimum": 0}}, "description": "cv,k,mv y γw explícitos con procedencia; cv=k/(mv γw). El dominio limita a 2048 elementos y 8000000 valores nodales; el presupuesto denso de esta frontera restringe además la malla efectiva. Historia creciente desde 0; salidas crecientes sin extrapolar. Modelo estructural/casos/combinaciones vacíos. Trabajo total máximo MAX_CONSOLIDATION_WORK=50000000: suma de subpasos de toda la historia (quiebres de carga y salidas) por elementos totales; superar la cota se rechaza en validación con API-E-CONSOLIDATION-WORK. Además MAX_CONSOLIDATION_COST=500000000: Σ intervalos n³ + Σ subpasos n², n nodos libres (elementos con drenaje simple, elementos−1 con doble). Aritmética u128 saturante, sin descuento por reutilización de factores; MAX_CONSOLIDATION_SEGMENTS=256 al unir quiebres y salidas de toda la historia (máximo 257 puntos de carga), MAX_CONSOLIDATION_SUBSTEPS=100000. Superar cualquiera de estos tres topes produce API-E-CONSOLIDATION-COST (invalid / salida 2) antes de integrar. Implica como máximo 793 elementos con drenaje simple o 794 con doble. Cancelación antes de combine/factorize de cada intervalo, entre bloques de hasta 16 columnas del backend de referencia y en cada subpaso (API-I-CANCELLED)."}
   }
 }

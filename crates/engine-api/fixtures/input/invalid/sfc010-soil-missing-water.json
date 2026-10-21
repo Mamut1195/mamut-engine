@@ -1,0 +1,59 @@
+{
+  "schema": "engine-input/1",
+  "units": "SI",
+  "model": {
+    "axes": "Z-up",
+    "nodes": [],
+    "members": [],
+    "sections": [],
+    "laws": [],
+    "supports": [],
+    "masses": []
+  },
+  "cases": [],
+  "combinations": [],
+  "analyses": [
+    {
+      "method": "soilProfile",
+      "options": {
+        "layers": [
+          {
+            "thickness_m": 2,
+            "gamma_kn_m3": {
+              "value": 18,
+              "provenance": "measured"
+            },
+            "gamma_sat_kn_m3": {
+              "value": 20,
+              "provenance": "measured"
+            }
+          },
+          {
+            "thickness_m": 3,
+            "gamma_kn_m3": {
+              "value": 19,
+              "provenance": "measured"
+            },
+            "gamma_sat_kn_m3": {
+              "value": 21,
+              "provenance": "measured"
+            }
+          }
+        ],
+        "groundwater_depth_m": {
+          "value": 1,
+          "provenance": "measured"
+        },
+        "depths_m": [
+          0,
+          1,
+          2,
+          5
+        ]
+      }
+    }
+  ],
+  "options": {
+    "allow_experimental": true
+  }
+}

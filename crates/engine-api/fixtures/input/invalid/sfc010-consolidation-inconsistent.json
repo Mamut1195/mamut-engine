@@ -1,0 +1,95 @@
+{
+  "schema": "engine-input/1",
+  "units": "SI",
+  "model": {
+    "axes": "Z-up",
+    "nodes": [],
+    "members": [],
+    "sections": [],
+    "laws": [],
+    "supports": [],
+    "masses": []
+  },
+  "cases": [],
+  "combinations": [],
+  "analyses": [
+    {
+      "method": "consolidation1d",
+      "options": {
+        "layers": [
+          {
+            "thickness_m": {
+              "value": 0.5,
+              "provenance": "measured"
+            },
+            "cv_m2_s": {
+              "value": 2,
+              "provenance": "measured"
+            },
+            "mv_per_kpa": {
+              "value": 0.001,
+              "provenance": "measured"
+            },
+            "k_m_s": {
+              "value": 0.001,
+              "provenance": "measured"
+            },
+            "elements": 20
+          },
+          {
+            "thickness_m": {
+              "value": 0.5,
+              "provenance": "measured"
+            },
+            "cv_m2_s": {
+              "value": 0.1,
+              "provenance": "measured"
+            },
+            "mv_per_kpa": {
+              "value": 0.001,
+              "provenance": "measured"
+            },
+            "k_m_s": {
+              "value": 0.001,
+              "provenance": "measured"
+            },
+            "elements": 20
+          }
+        ],
+        "water_unit_weight_kn_m3": {
+          "value": 10,
+          "provenance": "measured"
+        },
+        "drainage": "top",
+        "history": [
+          {
+            "time_s": 0,
+            "delta_stress_kpa": {
+              "value": 20,
+              "provenance": "assumed"
+            }
+          },
+          {
+            "time_s": 100,
+            "delta_stress_kpa": {
+              "value": 20,
+              "provenance": "measured"
+            }
+          }
+        ],
+        "output_times_s": [
+          0,
+          0.1,
+          1,
+          10,
+          100
+        ],
+        "theta": 1,
+        "max_step_s": 0.05
+      }
+    }
+  ],
+  "options": {
+    "allow_experimental": true
+  }
+}

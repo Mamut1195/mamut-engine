@@ -23,7 +23,8 @@ impl<'de, T: DeserializeOwned> Deserialize<'de> for Object<T> {
 // Las etiquetas son solo strings; se rechaza la forma externa {"D2": null}.
 macro_rules! string_enum {
     ($name:ident { $($variant:ident => $label:literal),+ $(,)? }) => {
-        enum $name { $($variant),+ }
+        #[derive(Clone, Copy)]
+        pub(crate) enum $name { $($variant),+ }
         impl<'de> Deserialize<'de> for $name {
             fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
                 match String::deserialize(d)?.as_str() {
@@ -55,7 +56,7 @@ string_enum!(Dimension { D2 => "D2", D3 => "D3" });
 string_enum!(Component { Ux => "Ux", Uy => "Uy", Uz => "Uz", Rx => "Rx", Ry => "Ry", Rz => "Rz" });
 
 impl Component {
-    fn dof(self) -> Dof {
+    pub(crate) fn dof(self) -> Dof {
         match self {
             Self::Ux => Dof::Ux,
             Self::Uy => Dof::Uy,
@@ -91,6 +92,8 @@ struct Model {
     prescribed: Vec<Object<Prescribed>>,
     #[serde(default)]
     diaphragms: Vec<Object<Diaphragm>>,
+    #[serde(default)]
+    springs: Vec<Object<crate::extensions::Spring>>,
 }
 
 #[derive(Deserialize)]
@@ -113,6 +116,12 @@ struct Member {
     element: String,
     #[serde(default, deserialize_with = "orientation")]
     orientation: Option<[f64; 3]>,
+    #[serde(default, deserialize_with = "crate::extensions::optional")]
+    release_i: Option<crate::extensions::Release>,
+    #[serde(default, deserialize_with = "crate::extensions::optional")]
+    release_j: Option<crate::extensions::Release>,
+    #[serde(default, deserialize_with = "crate::extensions::optional")]
+    winkler: Option<Object<crate::extensions::Winkler>>,
 }
 
 // Ausencia permitida; null explícito no pertenece al esquema del vector.
@@ -148,6 +157,12 @@ struct Section {
 struct Law {
     name: String,
     parameters: Vec<Object<Parameter>>,
+    #[serde(default, deserialize_with = "crate::extensions::nonempty")]
+    kind: String,
+    #[serde(default)]
+    points: Vec<[f64; 2]>,
+    #[serde(default, deserialize_with = "crate::extensions::nonempty")]
+    mode: String,
 }
 
 #[derive(Deserialize)]
@@ -238,14 +253,12 @@ pub(crate) struct Execution {
     pub allow_experimental: bool,
     pub methods: Vec<&'static str>,
     pub analyses: Vec<Analysis>,
-    pub elements: Vec<(String, Option<[f64; 3]>)>,
+    pub elements: Vec<crate::extensions::Beam>,
+    pub springs: Vec<crate::extensions::Spring>,
+    pub laws: Vec<crate::extensions::Law>,
     pub loads: Vec<Vec<(engine_core::MemberId, engine_contracts::MemberLoad)>>,
     pub prescribed: Vec<engine_assembly::PrescribedDof>,
     pub diaphragms: Vec<engine_assembly::RigidDiaphragm>,
-}
-
-pub(crate) fn model(value: Value) -> Result<domain::Model, ApiError> {
-    Ok(decode(value)?.model)
 }
 
 pub(crate) fn decode(value: Value) -> Result<Execution, ApiError> {
@@ -257,7 +270,13 @@ pub(crate) fn decode(value: Value) -> Result<Execution, ApiError> {
     let elements = source
         .members
         .iter()
-        .map(|Object(m)| (m.element.clone(), m.orientation))
+        .map(|Object(m)| crate::extensions::Beam {
+            kind: m.element.clone(),
+            orientation: m.orientation,
+            release_i: m.release_i.clone(),
+            release_j: m.release_j.clone(),
+            winkler: m.winkler.as_ref().map(|Object(w)| w.clone()),
+        })
         .collect();
     let loads: Vec<Vec<_>> = input
         .cases
@@ -294,6 +313,22 @@ pub(crate) fn decode(value: Value) -> Result<Execution, ApiError> {
             slaves: d.slaves.into_iter().map(NodeId).collect(),
         })
         .collect();
+    let laws = source
+        .laws
+        .iter()
+        .map(|Object(l)| crate::extensions::Law {
+            name: l.name.clone(),
+            kind: l.kind.clone(),
+            parameters: l
+                .parameters
+                .iter()
+                .map(|Object(p)| (p.name.clone(), p.value))
+                .collect(),
+            points: l.points.clone(),
+            mode: l.mode.clone(),
+        })
+        .collect();
+    let springs = source.springs.into_iter().map(|Object(s)| s).collect();
     let mut model = domain::Model::new();
     for Object(n) in source.nodes {
         let dim = match n.dim {
@@ -411,6 +446,8 @@ pub(crate) fn decode(value: Value) -> Result<Execution, ApiError> {
         methods,
         analyses,
         elements,
+        springs,
+        laws,
         loads,
         prescribed,
         diaphragms,

@@ -33,7 +33,9 @@
 //! cv incompatible; 0003 por dato ausente; 0008 por datos/resultados no finitos.
 use crate::{Diagnostic, GeoResult, Parameter, Provenance, Real};
 use engine_core::{EngineError, Severity};
-use engine_linalg::{DMat, LinAlgBackend, ReferenceBackend, SparseMatrix, SymMatrix, Triplet};
+use engine_linalg::{
+    DMat, LinAlgBackend, ReferenceBackend, SparseMatrix, SymFactorization, SymMatrix, Triplet,
+};
 
 /// Capa saturada; todos los datos físicos llevan origen explícito.
 #[derive(Clone, Debug)]
@@ -168,6 +170,9 @@ fn diagnostic(code: &'static str, hint: impl Into<String>) -> Diagnostic {
     d
 }
 fn algebra(e: EngineError) -> Diagnostic {
+    if e.code == "API-I-CANCELLED" {
+        return Diagnostic::new(e.code, Severity::Info, e.message);
+    }
     let mut d = diagnostic(e.code, e.message);
     d.entities = e.entities;
     d
@@ -366,7 +371,27 @@ impl ConsolidationProfile {
         output_times_s: &[Real],
         options: ConsolidationOptions,
     ) -> GeoResult<ConsolidationResult> {
-        self.solve_with_backend(&mut ReferenceBackend, history, output_times_s, options)
+        self.solve_with_cancel(history, output_times_s, options, &mut || false)
+    }
+
+    /// Integra consultando el cierre antes de cada intervalo, factorización,
+    /// bloque de hasta 16 columnas y subpaso, sin cambiar la
+    /// partición temporal ni la aritmética de `solve`.
+    /// Si devuelve true, termina con API-I-CANCELLED y sin resultados parciales.
+    pub fn solve_with_cancel(
+        &self,
+        history: &[LoadPoint],
+        output_times_s: &[Real],
+        options: ConsolidationOptions,
+        cancelled: &mut dyn FnMut() -> bool,
+    ) -> GeoResult<ConsolidationResult> {
+        self.solve_with_backend_and_cancel::<_, true>(
+            &mut ReferenceBackend,
+            history,
+            output_times_s,
+            options,
+            cancelled,
+        )
     }
 
     /// Integra con un backend existente; no implementa eliminación ni solver propio.
@@ -377,6 +402,23 @@ impl ConsolidationProfile {
         history: &[LoadPoint],
         output_times_s: &[Real],
         options: ConsolidationOptions,
+    ) -> GeoResult<ConsolidationResult> {
+        self.solve_with_backend_and_cancel::<_, false>(
+            backend,
+            history,
+            output_times_s,
+            options,
+            &mut || false,
+        )
+    }
+
+    fn solve_with_backend_and_cancel<B: LinAlgBackend, const REUSE_FACTOR: bool>(
+        &self,
+        backend: &mut B,
+        history: &[LoadPoint],
+        output_times_s: &[Real],
+        options: ConsolidationOptions,
+        cancelled: &mut dyn FnMut() -> bool,
     ) -> GeoResult<ConsolidationResult> {
         finite(options.theta, "theta")?;
         positive(options.max_step_s, "max_step_s")?;
@@ -435,6 +477,7 @@ impl ConsolidationProfile {
         let mut time = 0.0;
         let mut stress = loads[0];
         let mut segment = 0;
+        let mut cached_factor: Option<(u64, Box<dyn SymFactorization>)> = None;
         for &target in output_times_s {
             while time < target {
                 while segment + 1 < history.len() - 1 && time >= history[segment + 1].time_s {
@@ -449,15 +492,39 @@ impl ConsolidationProfile {
                 }
                 let steps = steps_real as usize;
                 let dt = positive(span / steps as Real, "dt")?;
+                check_cancelled(cancelled).map_err(algebra)?;
                 check_stability(&m, &k, options.theta, dt)?;
-                let a = combine(&m, &k, options.theta * dt)?;
-                let factor = backend.factorize(&a).map_err(algebra)?;
+                // Solo ReferenceBackend: M, K y theta son inmutables; el mismo
+                // dt por bits produce la misma matriz y LDLᵀ determinista.
+                // Los backends del llamador mantienen todas sus llamadas.
+                if !REUSE_FACTOR
+                    || cached_factor
+                        .as_ref()
+                        .is_none_or(|(bits, _)| *bits != dt.to_bits())
+                {
+                    let a = combine(&m, &k, options.theta * dt)?;
+                    let factor = backend
+                        .factorize_with_check(&a, &mut || check_cancelled(cancelled))
+                        .map_err(algebra)?;
+                    cached_factor = Some((dt.to_bits(), factor));
+                }
+                let factor = &cached_factor
+                    .as_ref()
+                    .ok_or_else(|| invalid("Falta la factorización temporal."))?
+                    .1;
                 let load_span = positive(
                     history[segment + 1].time_s - history[segment].time_s,
                     "intervalo de carga",
                 )?;
                 let mut previous_time = time;
                 for step in 1..=steps {
+                    if cancelled() {
+                        return Err(Diagnostic::new(
+                            "API-I-CANCELLED",
+                            Severity::Info,
+                            "Consolidación cancelada en un subpaso.",
+                        ));
+                    }
                     let next_time = if step == steps {
                         stop
                     } else {
@@ -526,6 +593,17 @@ impl ConsolidationProfile {
             states,
             assumed_parameters: assumed,
         })
+    }
+}
+
+fn check_cancelled(cancelled: &mut dyn FnMut() -> bool) -> Result<(), EngineError> {
+    if cancelled() {
+        Err(EngineError::new(
+            "API-I-CANCELLED",
+            "Consolidación cancelada antes o durante la factorización.",
+        ))
+    } else {
+        Ok(())
     }
 }
 

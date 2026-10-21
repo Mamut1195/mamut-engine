@@ -106,6 +106,13 @@ impl LinAlgBackend for ReferenceBackend {
     fn factorize(&mut self, a: &SymMatrix) -> EResult<Box<dyn SymFactorization>> {
         Ok(Box::new(Ldlt::new(a)?))
     }
+    fn factorize_with_check(
+        &mut self,
+        a: &SymMatrix,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<Box<dyn SymFactorization>> {
+        Ok(Box::new(Ldlt::build_with_check(a, false, check)?))
+    }
     fn symmetric_inertia(&mut self, a: &SymMatrix) -> EResult<(usize, usize, usize)> {
         Ldlt::build(a, true)?
             .info
@@ -252,6 +259,14 @@ impl Ldlt {
     }
     // `allow_null` solo se usa para inercia; nunca para entregar un factor resoluble.
     fn build(matrix: &SymMatrix, allow_null: bool) -> EResult<Self> {
+        Self::build_with_check(matrix, allow_null, &mut || Ok(()))
+    }
+    fn build_with_check(
+        matrix: &SymMatrix,
+        allow_null: bool,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<Self> {
+        check()?;
         let n = matrix.order();
         let equil = equilibration(matrix.dense().values(), n);
         let balanced: Vec<Real> = (0..n * n)
@@ -278,7 +293,14 @@ impl Ldlt {
         let mut smallest = f64::INFINITY;
         let mut largest = 0.0_f64;
         let mut k = 0;
+        // Un pivote puede consumir dos columnas: umbral 15 para que nunca
+        // transcurran más de 16 columnas entre controles.
+        let mut next_check = 15;
         while k < n {
+            if k >= next_check {
+                check()?;
+                next_check = k + 15;
+            }
             let diag = (k..n)
                 .max_by(|&i, &j| a[i * n + i].abs().total_cmp(&a[j * n + j].abs()))
                 .ok_or_else(|| invalid("LDLᵀ: bloque activo vacío."))?;

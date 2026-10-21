@@ -48,7 +48,7 @@ pub struct MethodDescriptor {
 
 pub(crate) struct EngineMethod {
     descriptor: MethodDescriptor,
-    pub execute: for<'a> fn(run::MethodContext<'a>) -> Result<(), run::Failure>,
+    pub execute: Runner,
     pub budget: fn(&Execution) -> usize,
 }
 
@@ -67,8 +67,16 @@ fn dimensions() -> MethodDimensions {
 
 fn registry() -> Result<MethodRegistry<EngineMethod>, ApiError> {
     let mut registry = MethodRegistry::new();
-    let factories: [MethodFactory<EngineMethod>; 5] =
-        [linear_static, combinations, pdelta, modal, spectrum];
+    let factories: [MethodFactory<EngineMethod>; 8] = [
+        linear_static,
+        combinations,
+        pdelta,
+        modal,
+        spectrum,
+        nonlinear,
+        soil,
+        consolidation,
+    ];
     for factory in factories {
         let method = factory(&NumericParameters::new()).map_err(ApiError::InvalidInput)?;
         registry
@@ -153,7 +161,33 @@ fn enforce_policy(descriptor: &MethodDescriptor, allow_experimental: bool) -> Re
     Ok(())
 }
 
-type Runner = for<'a> fn(run::MethodContext<'a>) -> Result<(), run::Failure>;
+type StructuralRunner = for<'a> fn(run::MethodContext<'a>) -> Result<(), run::Failure>;
+type StandaloneRunner = fn(
+    &Execution,
+    &crate::CancelToken,
+    &mut dyn FnMut(crate::Progress),
+    &mut serde_json::Value,
+    usize,
+) -> Result<(), run::Failure>;
+#[derive(Clone, Copy)]
+pub(crate) enum Runner {
+    Structural(StructuralRunner),
+    Standalone(StandaloneRunner),
+}
+impl EngineMethod {
+    pub fn run(&self, context: run::MethodContext<'_>) -> Result<(), run::Failure> {
+        match self.execute {
+            Runner::Structural(execute) => execute(context),
+            Runner::Standalone(execute) => execute(
+                context.execution,
+                context.cancel,
+                context.progress,
+                context.document,
+                context.total,
+            ),
+        }
+    }
+}
 
 #[allow(clippy::too_many_arguments)]
 fn builtin(
@@ -205,7 +239,7 @@ fn builtin(
 fn linear_static(_: &NumericParameters) -> Result<EngineMethod, String> {
     builtin(
         "linearStatic", MethodStatus::Validated, "engine-input/1",
-        run::static_linear::execute, run::static_linear::budget,
+        Runner::Structural(run::static_linear::execute), run::static_linear::budget,
         "crates/engine-api/fixtures/input/valid/cantilever-linear-static.json",
         "provenance/ENG-API-001.md · Incremento 2a: equilibrio e integración del voladizo y viga apoyada",
         "provenance/ENG-ANL-001.md",
@@ -214,7 +248,7 @@ fn linear_static(_: &NumericParameters) -> Result<EngineMethod, String> {
 fn combinations(_: &NumericParameters) -> Result<EngineMethod, String> {
     builtin(
         "combinations", MethodStatus::Validated, "results/1",
-        run::static_linear::combinations, run::static_linear::budget,
+        Runner::Structural(run::static_linear::combinations), run::static_linear::budget,
         "crates/engine-api/fixtures/input/valid/beam-combination.json",
         "provenance/ENG-API-001.md · Incremento 2a: superposición 1,2D+1,6L y restricciones de prescritos",
         "provenance/ENG-RES-001.md",
@@ -223,7 +257,7 @@ fn combinations(_: &NumericParameters) -> Result<EngineMethod, String> {
 fn pdelta(_: &NumericParameters) -> Result<EngineMethod, String> {
     builtin(
         "pDelta", MethodStatus::Stable, "engine-input/1",
-        run::advanced::pdelta, run::advanced::pdelta_budget,
+        Runner::Structural(run::advanced::pdelta), run::advanced::pdelta_budget,
         "crates/engine-api/fixtures/input/valid/p-delta.json",
         "provenance/ENG-CORE-006.md · MAM-582: ENG-BENCH-002 (PR #132), provenance/ENG-BENCH-002.md; AISC 360-16 Comm. C2 casos 1 y 2; error ≤0.27%, tolerancias 3% M / 5% Δ; límites #78/#84",
         "provenance/ENG-ANL-003.md",
@@ -234,7 +268,7 @@ fn modal(_: &NumericParameters) -> Result<EngineMethod, String> {
         "modal",
         MethodStatus::Validated,
         "engine-input/1",
-        run::advanced::modal,
+        Runner::Structural(run::advanced::modal),
         run::advanced::modal_budget,
         "crates/engine-api/fixtures/input/valid/modal-single-dof.json",
         "provenance/ENG-API-001.md · Incremento 2c: oscilador axial, omega²=k/m y participación",
@@ -246,12 +280,51 @@ fn spectrum(_: &NumericParameters) -> Result<EngineMethod, String> {
         "responseSpectrum",
         MethodStatus::Validated,
         "engine-input/1",
-        run::advanced::spectrum,
+        Runner::Structural(run::advanced::spectrum),
         run::advanced::spectrum_budget,
         "crates/engine-api/fixtures/input/valid/response-spectrum.json",
         "provenance/ENG-API-001.md · Incremento 2c: q=Gamma Sa/omega², u=Sa/omega² y V=m Sa",
         "provenance/ENG-ANL-004.md",
     )
+}
+
+fn nonlinear(_: &NumericParameters) -> Result<EngineMethod, String> {
+    builtin(
+        "nonlinearStatic",
+        MethodStatus::Experimental,
+        "engine-input/1",
+        Runner::Structural(run::nonlinear::execute),
+        run::nonlinear::budget,
+        "crates/engine-api/fixtures/input/valid/sfc010-steel.json",
+        "provenance/ENG-SFC-010.md · Equilibrio de resortes e historia cinemática",
+        "provenance/ENG-SFC-010.md",
+    )
+}
+fn soil(_: &NumericParameters) -> Result<EngineMethod, String> {
+    let method = builtin(
+        "soilProfile",
+        MethodStatus::Experimental,
+        "engine-input/1",
+        Runner::Standalone(run::geo::execute),
+        run::geo::budget,
+        "crates/engine-api/fixtures/input/valid/sfc010-soil.json",
+        "provenance/ENG-SFC-010.md · Perfil hidrostático estratificado",
+        "provenance/ENG-GEO-001.md",
+    )?;
+    Ok(method)
+}
+fn consolidation(_: &NumericParameters) -> Result<EngineMethod, String> {
+    let method = builtin(
+        "consolidation1d",
+        MethodStatus::Experimental,
+        "engine-input/1",
+        Runner::Standalone(run::geo::execute),
+        run::geo::budget,
+        "crates/engine-api/fixtures/input/valid/sfc010-consolidation.json",
+        "provenance/ENG-SFC-010.md · Serie de Terzaghi U(Tv)",
+        "provenance/ENG-GEO-006.md",
+    )?;
+    Ok(method)
 }
 
 #[cfg(test)]

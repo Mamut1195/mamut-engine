@@ -7,6 +7,18 @@ use serde::{Deserialize, Deserializer};
 pub(crate) enum Analysis {
     #[serde(rename = "linearStatic")]
     LinearStatic {},
+    #[serde(rename = "nonlinearStatic")]
+    Nonlinear {
+        options: Object<crate::extensions::Newton>,
+    },
+    #[serde(rename = "soilProfile")]
+    SoilProfile {
+        options: Object<crate::geo_input::Soil>,
+    },
+    #[serde(rename = "consolidation1d")]
+    Consolidation {
+        options: Object<crate::geo_input::Consolidation>,
+    },
     #[serde(rename = "pDelta")]
     PDelta { options: Object<PDelta> },
     #[serde(rename = "modal")]
@@ -18,6 +30,9 @@ impl Analysis {
     pub fn method(&self) -> &'static str {
         match self {
             Self::LinearStatic { .. } => "linearStatic",
+            Self::Nonlinear { .. } => "nonlinearStatic",
+            Self::SoilProfile { .. } => "soilProfile",
+            Self::Consolidation { .. } => "consolidation1d",
             Self::PDelta { .. } => "pDelta",
             Self::Modal { .. } => "modal",
             Self::Spectrum { .. } => "responseSpectrum",

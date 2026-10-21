@@ -347,3 +347,60 @@ fn rhs_spanning_more_than_1e300_loses_the_small_component_documented_limit() {
     assert_eq!(b.values()[0], 5e299);
     assert!(b.values()[1] == 0.0 || (b.values()[1] - 5e-31).abs() <= 5e-31);
 }
+
+#[test]
+fn factorization_control_interrupts_before_work_and_between_column_blocks() {
+    let n = 33;
+    let mut values = vec![0.0; n * n];
+    for i in 0..n {
+        values[i * n + i] = (i + 2) as f64;
+    }
+    let matrix = SymMatrix::new(DMat::new(n, n, values).unwrap()).unwrap();
+    let rhs = DMat::new(n, 1, (0..n).map(|i| i as f64 - 0.5).collect()).unwrap();
+    let expected = ReferenceBackend
+        .factorize(&matrix)
+        .unwrap()
+        .solve(&rhs)
+        .unwrap();
+    let mut calls = 0;
+    let actual = ReferenceBackend
+        .factorize_with_check(&matrix, &mut || {
+            calls += 1;
+            Ok(())
+        })
+        .unwrap()
+        .solve(&rhs)
+        .unwrap();
+    assert_eq!(calls, 3); // Antes del equilibrado y tras 15 y 30 columnas.
+    assert_eq!(
+        actual
+            .values()
+            .iter()
+            .map(|v| v.to_bits())
+            .collect::<Vec<_>>(),
+        expected
+            .values()
+            .iter()
+            .map(|v| v.to_bits())
+            .collect::<Vec<_>>()
+    );
+    for stop in [1, 2, 3] {
+        let mut calls = 0;
+        let error = ReferenceBackend
+            .factorize_with_check(&matrix, &mut || {
+                calls += 1;
+                if calls == stop {
+                    Err(engine_core::EngineError::new(
+                        "API-I-CANCELLED",
+                        "Control de prueba.",
+                    ))
+                } else {
+                    Ok(())
+                }
+            })
+            .err()
+            .unwrap();
+        assert_eq!(calls, stop);
+        assert_eq!(error.code, "API-I-CANCELLED");
+    }
+}

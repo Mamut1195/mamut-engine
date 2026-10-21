@@ -50,11 +50,13 @@ P-Delta tiene estado `Stable` y se ejecuta con `options: {}`; no requiere
 AISC 360-16 Comm. C2, casos 1 y 2, con error ≤0.27% frente a tolerancias de
 3% en momentos M y 5% en desplazamientos Δ, según la evidencia suministrada
 para el ticket. Véase la [nota de provenance](../../provenance/ENG-CORE-006.md#mam-582--pdelta-estable--2026-10-15).
-Los demás métodos son `Validated` dentro de los fixtures publicados.
-La opción booleana `options.allow_experimental` se conserva (por defecto `false`)
-para futuros métodos `Experimental`: sin consentimiento `true`, `run` devuelve
-`invalid`, código `API-E-INPUT`, salida 2 y causa con el método y la opción
-requerida, antes del ensamblaje. Actualmente no hay métodos `Experimental`.
+`nonlinearStatic`, `soilProfile` y `consolidation1d` son `Experimental` hasta
+que ENG-VAL-006 cubra su validación (decisión de Jonathan vía J0 2026-10-20).
+Los restantes métodos son `Validated` dentro de los fixtures publicados.
+La opción booleana `options.allow_experimental` (por defecto `false`) exige
+consentimiento `true` en la raíz del job para ejecutar métodos `Experimental`:
+sin él, `run` devuelve `invalid`, código `API-E-INPUT`, salida 2 y causa con el
+método y la opción requerida, antes del ensamblaje.
 `Deprecated` se reserva para compatibilidad; no hay métodos deprecados.
 Los estados no cierran los seguimientos #78/#84/#85/#86 ni certifican modelos arbitrarios.
 `validate` conserva su alcance de contrato/topología y no ejecuta ni habilita métodos.

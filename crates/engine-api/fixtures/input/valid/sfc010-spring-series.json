@@ -1,0 +1,82 @@
+{
+  "schema": "engine-input/1",
+  "units": "SI",
+  "model": {
+    "axes": "Z-up",
+    "nodes": [
+      {
+        "id": 1,
+        "dim": "D2",
+        "coordinates": [
+          0,
+          0,
+          0
+        ],
+        "dofs": [
+          "Ux"
+        ]
+      },
+      {
+        "id": 2,
+        "dim": "D2",
+        "coordinates": [
+          0,
+          0,
+          0
+        ],
+        "dofs": [
+          "Ux"
+        ]
+      }
+    ],
+    "members": [],
+    "sections": [],
+    "laws": [],
+    "supports": [],
+    "masses": [],
+    "springs": [
+      {
+        "id": 1,
+        "nodes": [
+          1
+        ],
+        "kind": "spring.linear",
+        "dof": "Ux",
+        "k": 100
+      },
+      {
+        "id": 2,
+        "nodes": [
+          1,
+          2
+        ],
+        "kind": "spring.linear",
+        "dof": "Ux",
+        "k": 200
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "P",
+      "loads": [
+        {
+          "node": 2,
+          "values": [
+            {
+              "dof": "Ux",
+              "value": 12
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "combinations": [],
+  "analyses": [
+    {
+      "method": "linearStatic"
+    }
+  ],
+  "options": {}
+}

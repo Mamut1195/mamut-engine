@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+- MAM-835 / ENG-SFC-010, r3 (J4 H1'): presupuesto público denso de
+  consolidation1d `Σ intervalos n³ + Σ subpasos n² ≤ 500000000`, 256 intervalos
+  y 100000 subpasos totales; rechazo temprano API-E-CONSOLIDATION-COST,
+  conservando la cota r2. Calibración release con objetivo ≤5 s.
+  Reutilización del factor de referencia con dt idéntico por bits y cancelación
+  antes de combine/factorize y entre bloques de hasta 16 columnas; aritmética
+  y hashes conservados. [Provenance r3](provenance/ENG-SFC-010.md#r3--revisión-j4-h1).
+
+- MAM-835 / ENG-SFC-010, r2 H2: nonlinearStatic, soilProfile y
+  consolidation1d se registran como `Experimental` hasta la cobertura de
+  ENG-VAL-006 (decisión de Jonathan vía J0 2026-10-20). Catálogo, esquemas,
+  explain y guía actualizados; fixtures SFC-010 habilitan explícitamente
+  `options.allow_experimental`. Los demás métodos conservan su estado.
+
+- MAM-835 / ENG-SFC-010, r2 (J4): cota pública de trabajo total de
+  consolidation1d (50000000 subpasos por elementos), rechazo temprano
+  API-E-CONSOLIDATION-WORK y cancelación en cada subpaso con el diagnóstico
+  existente. Pruebas de fronteras M1/M4/M8/M9/M10 y longitud de la historia
+  del acero; sin cambios de aritmética ni estados de métodos.
+  [Provenance r2](provenance/ENG-SFC-010.md#r2--revisión-j4).
+
+- MAM-835 / ENG-SFC-010: frontera engine-input/1 para Winkler 2D/3D,
+  liberaciones, resortes y leyes uniaxiales; nonlinearStatic por pasos,
+  soilProfile y consolidation1d. Esquemas y DTO Python compatibles,
+  diagnósticos y fixtures analíticos compartidos por CLI/Python/WASM;
+  núcleo numérico intacto. [Provenance](provenance/ENG-SFC-010.md).
 - #184 · ENG-LA-009: condensación estática de Guyan para GDL libres sin masa
   en modal y espectro, tras apoyos/diafragmas; recuperación de modos completos
   y un solo factor de Kss. ENG-E-0014 identifica mecanismos sin masa.

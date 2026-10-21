@@ -56,7 +56,9 @@ class NumPyContractTest(unittest.TestCase):
                 identities = {m["id"]: m["element"] for m in arrays.document["members"]}
                 for name, matrix in a.matrices.items():
                     if name.startswith("end_forces_local/"):
-                        rows = [m for m in members if identities[m["id"]] == name.split("/", 1)[1]]
+                        rows = [m for m in members if m["id"] in matrix.row_ids]
+                        self.assertTrue(all(identities[m["id"]] == name.split("/")[1]
+                                            for m in rows))
                         self.assertEqual(matrix.row_ids, tuple(m["id"] for m in rows))
                         self.assertEqual(matrix.values.tolist(), [m["end_forces_local"] for m in rows])
                 self.assertEqual(a.matrices["forces_local"].values.tolist(),
@@ -105,6 +107,12 @@ class NumPyContractTest(unittest.TestCase):
         self.assertEqual(again.document, snapshot)
         self.assertEqual(result.to_dict(), snapshot)
         self.assertEqual(result.to_json().encode(), reference.read_bytes())
+        if not arrays.blocks:
+            # Los métodos geotécnicos conservan su campo completo en document;
+            # no producen tablas de nodos estructurales artificiales.
+            self.assertIn("geotechnical", arrays.document)
+            self.assertEqual(arrays.document, snapshot)
+            return
         saved = arrays.blocks[0].matrices["displacements"].values
         # La segunda exportación tampoco puede alterar una exportación posterior.
         again.blocks[0].matrices["displacements"].values[:] = -123

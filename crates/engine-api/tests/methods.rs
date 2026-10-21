@@ -1,7 +1,7 @@
 //! Contratos de resolución SDK, política del job y evidencia de descubrimiento.
 use engine_api::{
-    capabilities, method_descriptor, method_descriptors, run, schema, CancelToken, MethodStatus,
-    Status,
+    capabilities, explain, method_descriptor, method_descriptors, run, schema, CancelToken,
+    MethodStatus, Status,
 };
 use serde_json::{json, Value};
 use std::path::Path;
@@ -92,7 +92,7 @@ fn ascii_keys(value: &Value) {
 fn capabilities_are_deterministic_compatible_and_backed_by_evidence() {
     let a = capabilities();
     let descriptors = method_descriptors().unwrap();
-    assert_eq!(descriptors.len(), 5);
+    assert_eq!(descriptors.len(), 8);
     let ids: Vec<_> = descriptors
         .iter()
         .map(|d| d.workflow.method_id.as_str())
@@ -101,10 +101,13 @@ fn capabilities_are_deterministic_compatible_and_backed_by_evidence() {
         ids,
         [
             "combinations",
+            "consolidation1d",
             "linearStatic",
             "modal",
+            "nonlinearStatic",
             "pDelta",
-            "responseSpectrum"
+            "responseSpectrum",
+            "soilProfile"
         ]
     );
     assert_eq!(a["method_descriptors"], json!(descriptors));
@@ -153,4 +156,92 @@ fn capabilities_are_deterministic_compatible_and_backed_by_evidence() {
         .as_array()
         .unwrap()
         .contains(&json!("Stable")));
+}
+
+#[path = "support/sfc010.rs"]
+mod sfc010;
+
+#[test]
+fn sfc010_experimental_methods_require_explicit_job_opt_in() {
+    let capabilities = capabilities();
+    for (id, expected) in [
+        ("combinations", MethodStatus::Validated),
+        ("consolidation1d", MethodStatus::Experimental),
+        ("linearStatic", MethodStatus::Validated),
+        ("modal", MethodStatus::Validated),
+        ("nonlinearStatic", MethodStatus::Experimental),
+        ("pDelta", MethodStatus::Stable),
+        ("responseSpectrum", MethodStatus::Validated),
+        ("soilProfile", MethodStatus::Experimental),
+    ] {
+        let descriptor = method_descriptors()
+            .unwrap()
+            .into_iter()
+            .find(|d| d.workflow.method_id == id)
+            .unwrap();
+        assert_eq!(descriptor.status, expected, "{id}");
+        let published = capabilities["method_descriptors"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|d| d["workflow"]["method_id"] == id)
+            .unwrap();
+        assert_eq!(published["status"], json!(expected), "{id}");
+    }
+    for &(name, source) in sfc010::FIXTURES {
+        let mut input: Value = serde_json::from_str(source).unwrap();
+        let id = input["analyses"][0]["method"].as_str().unwrap().to_owned();
+        if !matches!(
+            id.as_str(),
+            "nonlinearStatic" | "soilProfile" | "consolidation1d"
+        ) {
+            continue;
+        }
+        assert_eq!(input["options"]["allow_experimental"], true, "{name}");
+        assert_eq!(
+            method_descriptor(&id, INPUT, true).unwrap().status,
+            MethodStatus::Experimental
+        );
+        let error = method_descriptor(&id, INPUT, false)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            error.contains("options.allow_experimental = true"),
+            "{error}"
+        );
+        for options in [json!({}), json!({"allow_experimental": false})] {
+            input["options"] = options;
+            let outcome = run(&input.to_string(), &CancelToken::new(), |_| {});
+            assert_eq!(
+                outcome.status,
+                Status::Invalid,
+                "{name}: {}",
+                outcome.document
+            );
+            assert_eq!(outcome.exit_code(), 2);
+            let document: Value = serde_json::from_str(&outcome.document).unwrap();
+            assert_eq!(document["diagnostics"][0]["code"], "API-E-INPUT");
+            assert!(outcome.document.contains(&id));
+            assert!(outcome.document.contains("Experimental"));
+            assert!(outcome
+                .document
+                .contains("options.allow_experimental = true"));
+            assert_eq!(document["cases"], json!([]));
+            assert!(document.get("geotechnical").is_none());
+            assert!(document["convergence"].is_null());
+        }
+    }
+    for code in ["API-E-SFC-OPTIONS", "API-E-INPUT"] {
+        let explanation = explain(code).unwrap();
+        for expected in [
+            "nonlinearStatic",
+            "soilProfile",
+            "consolidation1d",
+            "Experimental",
+            "ENG-VAL-006",
+            "options.allow_experimental = true",
+        ] {
+            assert!(explanation.contains(expected), "{code}: {explanation}");
+        }
+    }
 }
