@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mamut:progress:1",
+  "title": "progress/1 — etapas del motor",
+  "description": "Un evento por callback de engine_api::Progress, sin tiempos. index identifica el paso del workflow desde cero. completed cuenta etapas, no iteraciones; total puede reservar etapas que no llegan a ejecutarse. El tipo actual no expone iteración ni residuo: no se infieren ni se añaden campos ficticios. No se admiten números no finitos. Una futura extensión con residuo deberá representar los valores no finitos como null y revisar el contrato.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "index", "operation", "stage", "completed", "total"],
+  "properties": {
+    "schema": {"const": "progress/1"},
+    "index": {"type": "integer", "minimum": 0},
+    "operation": {"enum": ["run", "validate"]},
+    "stage": {"type": "string"},
+    "completed": {"type": "integer", "minimum": 0},
+    "total": {"type": "integer", "minimum": 0}
+  }
+}

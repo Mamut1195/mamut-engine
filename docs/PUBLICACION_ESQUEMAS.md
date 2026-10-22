@@ -43,6 +43,7 @@ entrada del índice; por ejemplo:
 | `urn:mamut:cli-error:1` | `https://schemas.mamut.systems/cli-error/1.json` |
 | `urn:mamut:capabilities:1` | `https://schemas.mamut.systems/capabilities/1.json` |
 | `urn:mamut:method-descriptor:1` | `https://schemas.mamut.systems/method-descriptor/1.json` |
+| `urn:mamut:progress:1` | `https://schemas.mamut.systems/progress/1.json` |
 
 La URL sirve los bytes cuya identidad sigue siendo el URN. Un consumidor puede
 usar el índice como catálogo para resolver esa identidad. Cambiar la base de
@@ -98,6 +99,11 @@ CLI, agregar el archivo y una entrada a `scripts/schema-sources.json`:
   ]
 }
 ```
+
+Actualmente se publica `progress/1` desde el CLI mediante `additional_schemas`.
+Es un contrato de transporte del CLI: no se registra en `SCHEMAS` ni se expone
+mediante `engine_api::schema()`. La API no depende del CLI; el generador reúne
+ambos registros para la distribución pública.
 
 Registrar cada entrada cuando su archivo exista. Después regenerar y revisar
 `schemas/`. Los archivos adicionales se leen como bytes; las pruebas rechazan

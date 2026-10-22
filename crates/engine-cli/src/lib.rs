@@ -92,7 +92,9 @@ impl Cancellation for Control {
     }
 }
 
-type EngineProgress = Rc<RefCell<Box<dyn FnMut(Progress)>>>;
+mod progress;
+
+type EngineProgress<'a> = Rc<RefCell<Box<dyn FnMut(Progress) + 'a>>>;
 
 /// Configuración del anfitrión, transporte de entrada y timeout sobre la base.
 /// `--input` tiene prioridad sobre la ruta de compatibilidad del constructor.
@@ -100,7 +102,7 @@ type EngineProgress = Rc<RefCell<Box<dyn FnMut(Progress)>>>;
 pub struct EngineCli {
     input: Option<PathBuf>,
     control: Control,
-    progress: EngineProgress,
+    progress: EngineProgress<'static>,
     #[cfg(unix)]
     signals: bool,
 }
@@ -135,7 +137,7 @@ impl EngineCli {
     }
 
     /// Observa etapas de engine-api. Puede cancelar mediante un `Control` clonado.
-    /// El NDJSON estándar conserva los eventos started/finished del workflow.
+    /// El NDJSON incluye estas etapas entre started/finished del workflow.
     #[must_use]
     pub fn with_engine_progress(mut self, progress: impl FnMut(Progress) + 'static) -> Self {
         self.progress = Rc::new(RefCell::new(Box::new(progress)));
@@ -232,26 +234,33 @@ impl EngineCli {
             capture_results: is_run,
             ..State::default()
         }));
+        let enabled = matches!(
+            command,
+            Command::Run {
+                progress_ndjson: true,
+                ..
+            }
+        );
+        let mut stderr = progress::Output::new(stderr, enabled);
         let config = CliConfig::new()
             .with_identity(identity())
             .with_exit_codes(ExitCodes::engine_v1())
             .with_cancellation(self.control.clone())
+            .with_progress(stderr.clone())
+            .with_progress_writer(stderr.clone())
             .with_provider(EngineProvider {
                 input,
                 control: self.control.clone(),
-                progress: Rc::clone(&self.progress),
+                progress: stderr.callback(Rc::clone(&self.progress)),
                 state: Rc::clone(&state),
             });
         let mut buffered = Vec::new();
         // Solo se retiene el sobre terminal. MCP y NDJSON conservan streaming.
         let mut output: &mut dyn Write = if is_run { &mut buffered } else { stdout };
-        let result = dispatch(
-            command,
-            stdin,
-            &mut output,
-            &mut EventWriter(stderr),
-            &config,
-        );
+        let result = dispatch(command, stdin, &mut output, &mut stderr, &config);
+        if stderr.failed() {
+            return report_failure(FailureKind::Internal, operation, None, &mut stderr);
+        }
         let state = state.borrow();
         let (result, document) = match result {
             Ok(()) => (Ok(()), None),
@@ -275,14 +284,14 @@ impl EngineCli {
             } else {
                 document
             };
-            return report_failure(kind, operation, document, stderr);
+            return report_failure(kind, operation, document, &mut stderr);
         }
         if !is_run {
             return config.exit_codes.ok;
         }
         let mut envelope: Value = match serde_json::from_slice(&buffered) {
             Ok(envelope) => envelope,
-            Err(_) => return report_failure(FailureKind::Internal, operation, None, stderr),
+            Err(_) => return report_failure(FailureKind::Internal, operation, None, &mut stderr),
         };
         let code = if state.warning {
             envelope["outcome"] = json!("warning");
@@ -294,7 +303,7 @@ impl EngineCli {
         // No se altera el manifiesto sellado ni su recordFingerprint.
         envelope["engineResults"] = json!(state.results);
         if writeln!(stdout, "{envelope}").is_err() {
-            return report_failure(FailureKind::Internal, operation, None, stderr);
+            return report_failure(FailureKind::Internal, operation, None, &mut stderr);
         }
         code
     }
@@ -539,14 +548,14 @@ struct State {
     failure: Option<(FailureKind, Option<Value>)>,
 }
 
-struct EngineProvider {
+struct EngineProvider<'a> {
     input: EngineInput,
     control: Control,
-    progress: EngineProgress,
+    progress: EngineProgress<'a>,
     state: Rc<RefCell<State>>,
 }
 
-impl MethodProvider for EngineProvider {
+impl MethodProvider for EngineProvider<'_> {
     fn create(
         &self,
         descriptor: &MethodDescriptor,
@@ -560,32 +569,33 @@ impl MethodProvider for EngineProvider {
         if !step.parameters.is_empty() {
             return self.fail(FailureKind::Validation);
         }
-        Ok(Box::new(EngineMethod {
+        let mut method = EngineMethod {
             input: self.input.clone(),
             validation,
             control: self.control.clone(),
             progress: Rc::clone(&self.progress),
             state: Rc::clone(&self.state),
-        }))
+        };
+        Ok(progress::completed(method.run()))
     }
 }
 
-impl EngineProvider {
+impl EngineProvider<'_> {
     fn fail<T>(&self, kind: FailureKind) -> Result<T, String> {
         self.state.borrow_mut().failure = Some((kind, None));
         Err("Engine method rejected".into())
     }
 }
 
-struct EngineMethod {
+struct EngineMethod<'a> {
     input: EngineInput,
     validation: bool,
     control: Control,
-    progress: EngineProgress,
+    progress: EngineProgress<'a>,
     state: Rc<RefCell<State>>,
 }
 
-impl EngineMethod {
+impl EngineMethod<'_> {
     fn execute(&self) -> Result<(Status, Value), FailureKind> {
         if self.control.sync() {
             return Err(FailureKind::Cancelled);
@@ -615,7 +625,7 @@ impl EngineMethod {
     }
 }
 
-impl Method for EngineMethod {
+impl Method for EngineMethod<'_> {
     fn run(&mut self) -> Result<Value, String> {
         let result = self.execute();
         let mut state = self.state.borrow_mut();

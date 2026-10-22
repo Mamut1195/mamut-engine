@@ -17,10 +17,20 @@ pub fn assert_error_stream(bytes: &[u8], exit_code: i32) -> Value {
             errors.push(value);
         } else {
             assert!(errors.is_empty(), "Progreso tras el sobre terminal");
-            assert!(
-                matches!(value["phase"].as_str(), Some("started" | "finished")),
-                "Emisor ajeno al contrato: {value}"
-            );
+            if value["schema"] == "progress/1" {
+                let root: Value =
+                    serde_json::from_str(include_str!("../../schemas/progress-1.json")).unwrap();
+                audit(&root);
+                assert!(
+                    valid(&root, &root, &value),
+                    "progress/1 fuera de schema: {value}"
+                );
+            } else {
+                assert!(
+                    matches!(value["phase"].as_str(), Some("started" | "finished")),
+                    "Emisor ajeno al contrato: {value}"
+                );
+            }
         }
     }
     assert_eq!(

@@ -15,6 +15,9 @@ use engine_cli::{Control, EngineCli, CATALOG};
 use mamut_workflow_cli::{Cancellation, ExitCodes};
 use serde_json::{json, Value};
 
+#[path = "../../engine-api/tests/support/schema.rs"]
+mod schema_validator;
+
 #[path = "support/validate_report.rs"]
 mod validate_report_schema;
 use validate_report_schema::assert_validate_report;
@@ -289,8 +292,11 @@ fn interrupted_run(signal: &str) {
             .map(|line| serde_json::from_str(line).expect("Complete JSON line"))
             .collect();
         let (envelope, events) = lines.split_last().unwrap();
-        assert_eq!(events.len(), 1);
         assert_eq!(events[0]["phase"], "started");
+        for event in &events[1..] {
+            assert!(progress::conforms(event));
+            assert_eq!(event["index"], 0);
+        }
         assert_eq!(envelope["schema"], "cli-error/1");
         assert_eq!(envelope["code"], "CLI-E-CANCELLED");
         assert_eq!(envelope["exitCode"], 5);
@@ -351,10 +357,19 @@ fn timeout_with_ndjson_emits_only_complete_json_lines_and_timeout_last() {
                 })
                 .collect();
             let (envelope, events) = lines.split_last().unwrap();
+            let mut started = false;
             for event in events {
-                assert_eq!(event["phase"], "started");
-                assert_eq!(event["method_id"], "engine.run");
-                saw_started = true;
+                if event["schema"] == "progress/1" {
+                    assert!(started);
+                    assert!(progress::conforms(event));
+                    assert_eq!(event["index"], 0);
+                } else {
+                    assert_eq!(event["phase"], "started");
+                    assert_eq!(event["method_id"], "engine.run");
+                    assert!(!started);
+                    started = true;
+                    saw_started = true;
+                }
             }
             assert_eq!(envelope["exitCode"], 6);
             assert_eq!(envelope["outcome"], "timeout");
@@ -1127,13 +1142,20 @@ fn stdin_workflow_ndjson_and_complete_api_result_preserve_manifest() {
         .lines()
         .map(|line| serde_json::from_str(line).unwrap())
         .collect();
-    assert_eq!(events.len(), 2);
-    for (event, phase) in events.iter().zip(["started", "finished"]) {
+    let sdk_events: Vec<_> = events
+        .iter()
+        .filter(|event| event["schema"] != "progress/1")
+        .collect();
+    assert_eq!(sdk_events.len(), 2);
+    for (event, phase) in sdk_events.iter().zip(["started", "finished"]) {
         assert_eq!(event["phase"], phase);
         assert_eq!(event["method_id"], "engine.run");
         assert_eq!(event["index"], 0);
     }
 }
+
+#[path = "support/progress.rs"]
+mod progress;
 
 struct ApiProvider;
 impl mamut_workflow_cli::MethodProvider for ApiProvider {
@@ -1234,9 +1256,13 @@ fn actual_engine_warning_unsupported_and_unstable_exit_one_three_four() {
         } else {
             assert!(output.stdout.is_empty());
             let lines = String::from_utf8(output.stderr.clone()).unwrap();
-            let lines: Vec<_> = lines.lines().collect();
+            let lines: Vec<Value> = lines
+                .lines()
+                .map(|line| serde_json::from_str(line).unwrap())
+                .filter(|event: &Value| event["schema"] != "progress/1")
+                .collect();
             assert_eq!(lines.len(), 2); // started + fallo; sin finished.
-            serde_json::from_str(lines[1]).unwrap()
+            lines[1].clone()
         };
         assert_eq!(envelope["exitCode"], code);
         assert_eq!(envelope["outcome"], outcome);

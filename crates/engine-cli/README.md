@@ -152,6 +152,42 @@ method, contract errors are Invalid; error diagnostics 0006/0007/0012/0013/0014
 map as in engine-api, and other errors are Invalid. Warnings without errors
 produce Warning. An unknown input contract is invalid (2).
 
+`--progress ndjson` preserves the base events on stderr: `started` and
+`finished` per step, with the same fields and bytes. Between them it emits one
+`progress/1` line per `engine_api::Progress` callback, without timestamps or
+durations. The published schema is [schemas/progress-1.json](schemas/progress-1.json),
+also distributed through the [schema publication tree](../../schemas/progress/1.json).
+For example, a stage of the first step:
+
+```json
+{"completed":1,"index":0,"operation":"run","schema":"progress/1","stage":"parse","total":7}
+```
+
+`index` is the zero-based step index, matching SDK events; `operation`, `stage`,
+`completed` and `total` are copied directly from the API. `completed` counts
+completed stages rather than iterations. `total` may reserve a maximum number of
+stages and finish earlier. The current type exposes neither iteration nor
+residual, so those fields are omitted. Non-finite numbers are rejected; a future
+residual extension must represent non-finite values as `null` and revise the schema.
+
+**Interface decision:** the existing flag includes `progress/1` by default.
+Consumers can distinguish stages by `schema` and SDK events by `phase`.
+Consumers that assumed exactly two lines per step must accept the added stages.
+This requires no changes to the vendored parser.
+
+The adapter reuses `EventWriter` to buffer each event together with its newline
+before `write_all`, followed by `flush`; error envelopes use the same writer.
+A timeout does not interleave the envelope with event fragments. Stages are
+written during the callback, before the host's `with_engine_progress` observer,
+without waiting for step completion. A write or flush failure returns 70 via
+`cli-error/1` with `CLI-E-INTERNAL` when stderr remains writable.
+A method failure preserves emitted stages and the final envelope, without
+`finished`. Numbers use `engine_api::canonical_json`, as results/1 does: sorted
+keys, decimal integers and floating zero normalization where applicable.
+Without `--progress`, output retains its previous behavior. stdout remains a
+single JSON document, byte-identical to execution without progress, as described
+in [docs/DETERMINISMO.md](../../docs/DETERMINISMO.md).
+
 ### Terminal `cli-error/1` contract · ENG-CONT-001 / MAM-867
 
 Every adapter-controlled terminal process failure without a direct validation

@@ -175,7 +175,7 @@ elemento desconocido retorna 0 en validate (run sí lo rechaza). Por ello esta
 regresión se prueba en la biblioteca con el diagnóstico explícito, sin extender
 la validación ni inventar una entrada JSON que active una ruta hoy inalcanzable.
 No se detectó un bug en los dos comportamientos objeto de este seguimiento;
-no se introduce un fix funcional.
+no se introduce una corrección funcional.
 
 Mutaciones temporales, compiladas y ejecutadas por separado:
 
