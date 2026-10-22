@@ -1,0 +1,44 @@
+{
+  "schema": "bench-model/1",
+  "id": "cap-truss-no-diaphragm",
+  "units": "SI",
+  "source": {
+    "geometry": "Una barra axial, sin diafragma y sin masa.",
+    "material": "E de prueba. La celosía no tiene G.",
+    "torsion": "truss3d.linear no tiene J.",
+    "mass": "m = 0, Izz = 0 y nodal_masses vacío.",
+    "spectrum": "Tabla mínima en m/s^2. Este ensayo es estático."
+  },
+  "stories": [{"level": 1, "h": 3.0, "mass": {"m": 0.0, "Izz": 0.0}}],
+  "grid": {"x": [0.0, 2.0], "y": [0.0, 2.0]},
+  "nodes": [
+    {"id": 1, "story": 0, "ix": 0, "iy": 0, "coordinates": [0.0, 0.0, 0.0]},
+    {"id": 2, "story": 1, "ix": 1, "iy": 0, "coordinates": [2.0, 0.0, 0.0]}
+  ],
+  "members": [
+    {"id": 1, "kind": "truss", "nodes": [1, 2], "section": "diagonal"}
+  ],
+  "sections": [
+    {"id": "diagonal", "E": 2.5e10, "A": 0.01}
+  ],
+  "diaphragms": [],
+  "restraints": [
+    {"node": 1, "dofs": ["Ux", "Uy", "Uz", "Rx", "Ry", "Rz"]},
+    {"node": 2, "dofs": ["Uy", "Uz", "Rx", "Ry", "Rz"]}
+  ],
+  "load_patterns": {
+    "gravity": [],
+    "lateral": [{"node": 2, "values": [{"dof": "Ux", "value": 1000.0}]}]
+  },
+  "modal": {"n": 1, "mass_kind": "lumped", "directions": [[1.0, 0.0, 0.0]]},
+  "spectrum": {
+    "zone": "V", "Z": 0.4, "soil": "D", "R": 8.0, "eta": 1.8,
+    "Fa": 1.2, "Fd": 1.19, "Fs": 1.02, "zeta": 0.05, "g": 9.80665, "r": 1.0,
+    "direction": {"axis": "X", "vector": [1.0, 0.0, 0.0]},
+    "directional_combination": {"method": "weightedSum", "factors": [1.0]},
+    "interpolation": "linear", "extrapolation": "error",
+    "Sa": {"unit": "m/s^2", "pairs": [[0.0, 1.0], [1.0, 1.0]]}
+  },
+  "combination": {"method": "cqc", "zeta": 0.05},
+  "nodal_masses": []
+}

@@ -1,0 +1,4598 @@
+{
+  "analyses": [
+    {
+      "method": "linearStatic"
+    }
+  ],
+  "cases": [
+    {
+      "loads": [
+        {
+          "node": 17,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 18,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 19,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 20,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 21,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 22,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 23,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 24,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 25,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 26,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 27,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 28,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 29,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 30,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 31,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 32,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 33,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 34,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 35,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 36,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 37,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 38,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 39,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 40,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 41,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 42,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 43,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 44,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 45,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 46,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 47,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 48,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 49,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 50,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 51,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 52,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 53,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 54,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 55,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 56,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 57,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 58,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 59,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 60,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 61,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 62,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 63,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        },
+        {
+          "node": 64,
+          "values": [
+            {
+              "dof": "Uz",
+              "value": -132240.47849999997
+            }
+          ]
+        }
+      ],
+      "name": "gravity"
+    },
+    {
+      "loads": [
+        {
+          "node": 22,
+          "values": [
+            {
+              "dof": "Ux",
+              "value": 211584.76559999996
+            }
+          ]
+        },
+        {
+          "node": 38,
+          "values": [
+            {
+              "dof": "Ux",
+              "value": 211584.76559999996
+            }
+          ]
+        },
+        {
+          "node": 54,
+          "values": [
+            {
+              "dof": "Ux",
+              "value": 211584.76559999996
+            }
+          ]
+        }
+      ],
+      "name": "lateral"
+    }
+  ],
+  "combinations": [],
+  "model": {
+    "axes": "Z-up",
+    "diaphragms": [
+      {
+        "master": 22,
+        "slaves": [
+          17,
+          18,
+          19,
+          20,
+          21,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32
+        ]
+      },
+      {
+        "master": 38,
+        "slaves": [
+          33,
+          34,
+          35,
+          36,
+          37,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48
+        ]
+      },
+      {
+        "master": 54,
+        "slaves": [
+          49,
+          50,
+          51,
+          52,
+          53,
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          62,
+          63,
+          64
+        ]
+      }
+    ],
+    "laws": [
+      {
+        "name": "elastic-column",
+        "parameters": [
+          {
+            "name": "E",
+            "value": 24870062324.007153
+          },
+          {
+            "name": "G",
+            "value": 10362525968.336313
+          },
+          {
+            "name": "rho",
+            "value": 0.0
+          }
+        ]
+      }
+    ],
+    "masses": [
+      {
+        "id": "mass-22",
+        "node": 22,
+        "values": [
+          {
+            "dof": "Ux",
+            "value": 215756.4159014546
+          },
+          {
+            "dof": "Uy",
+            "value": 215756.4159014546
+          },
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Rz",
+            "value": 15534461.944904732
+          }
+        ]
+      },
+      {
+        "id": "mass-17",
+        "node": 17,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-18",
+        "node": 18,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-19",
+        "node": 19,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-20",
+        "node": 20,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-21",
+        "node": 21,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-23",
+        "node": 23,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-24",
+        "node": 24,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-25",
+        "node": 25,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-26",
+        "node": 26,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-27",
+        "node": 27,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-28",
+        "node": 28,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-29",
+        "node": 29,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-30",
+        "node": 30,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-31",
+        "node": 31,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-32",
+        "node": 32,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-38",
+        "node": 38,
+        "values": [
+          {
+            "dof": "Ux",
+            "value": 215756.4159014546
+          },
+          {
+            "dof": "Uy",
+            "value": 215756.4159014546
+          },
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Rz",
+            "value": 15534461.944904732
+          }
+        ]
+      },
+      {
+        "id": "mass-33",
+        "node": 33,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-34",
+        "node": 34,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-35",
+        "node": 35,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-36",
+        "node": 36,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-37",
+        "node": 37,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-39",
+        "node": 39,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-40",
+        "node": 40,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-41",
+        "node": 41,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-42",
+        "node": 42,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-43",
+        "node": 43,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-44",
+        "node": 44,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-45",
+        "node": 45,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-46",
+        "node": 46,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-47",
+        "node": 47,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-48",
+        "node": 48,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-54",
+        "node": 54,
+        "values": [
+          {
+            "dof": "Ux",
+            "value": 215756.4159014546
+          },
+          {
+            "dof": "Uy",
+            "value": 215756.4159014546
+          },
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Rz",
+            "value": 15534461.944904732
+          }
+        ]
+      },
+      {
+        "id": "mass-49",
+        "node": 49,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-50",
+        "node": 50,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-51",
+        "node": 51,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-52",
+        "node": 52,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-53",
+        "node": 53,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-55",
+        "node": 55,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-56",
+        "node": 56,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-57",
+        "node": 57,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-58",
+        "node": 58,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-59",
+        "node": 59,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-60",
+        "node": 60,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-61",
+        "node": 61,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-62",
+        "node": 62,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-63",
+        "node": 63,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      },
+      {
+        "id": "mass-64",
+        "node": 64,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": 13484.775993840913
+          },
+          {
+            "dof": "Rx",
+            "value": 40454.327981522736
+          },
+          {
+            "dof": "Ry",
+            "value": 40454.327981522736
+          }
+        ]
+      }
+    ],
+    "members": [
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 1,
+        "law": "elastic-column",
+        "nodes": [
+          1,
+          17
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 2,
+        "law": "elastic-column",
+        "nodes": [
+          2,
+          18
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 3,
+        "law": "elastic-column",
+        "nodes": [
+          3,
+          19
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 4,
+        "law": "elastic-column",
+        "nodes": [
+          4,
+          20
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 5,
+        "law": "elastic-column",
+        "nodes": [
+          5,
+          21
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 6,
+        "law": "elastic-column",
+        "nodes": [
+          6,
+          22
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 7,
+        "law": "elastic-column",
+        "nodes": [
+          7,
+          23
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 8,
+        "law": "elastic-column",
+        "nodes": [
+          8,
+          24
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 9,
+        "law": "elastic-column",
+        "nodes": [
+          9,
+          25
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 10,
+        "law": "elastic-column",
+        "nodes": [
+          10,
+          26
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 11,
+        "law": "elastic-column",
+        "nodes": [
+          11,
+          27
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 12,
+        "law": "elastic-column",
+        "nodes": [
+          12,
+          28
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 13,
+        "law": "elastic-column",
+        "nodes": [
+          13,
+          29
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 14,
+        "law": "elastic-column",
+        "nodes": [
+          14,
+          30
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 15,
+        "law": "elastic-column",
+        "nodes": [
+          15,
+          31
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 16,
+        "law": "elastic-column",
+        "nodes": [
+          16,
+          32
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 17,
+        "law": "elastic-column",
+        "nodes": [
+          17,
+          33
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 18,
+        "law": "elastic-column",
+        "nodes": [
+          18,
+          34
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 19,
+        "law": "elastic-column",
+        "nodes": [
+          19,
+          35
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 20,
+        "law": "elastic-column",
+        "nodes": [
+          20,
+          36
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 21,
+        "law": "elastic-column",
+        "nodes": [
+          21,
+          37
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 22,
+        "law": "elastic-column",
+        "nodes": [
+          22,
+          38
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 23,
+        "law": "elastic-column",
+        "nodes": [
+          23,
+          39
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 24,
+        "law": "elastic-column",
+        "nodes": [
+          24,
+          40
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 25,
+        "law": "elastic-column",
+        "nodes": [
+          25,
+          41
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 26,
+        "law": "elastic-column",
+        "nodes": [
+          26,
+          42
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 27,
+        "law": "elastic-column",
+        "nodes": [
+          27,
+          43
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 28,
+        "law": "elastic-column",
+        "nodes": [
+          28,
+          44
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 29,
+        "law": "elastic-column",
+        "nodes": [
+          29,
+          45
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 30,
+        "law": "elastic-column",
+        "nodes": [
+          30,
+          46
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 31,
+        "law": "elastic-column",
+        "nodes": [
+          31,
+          47
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 32,
+        "law": "elastic-column",
+        "nodes": [
+          32,
+          48
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 33,
+        "law": "elastic-column",
+        "nodes": [
+          33,
+          49
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 34,
+        "law": "elastic-column",
+        "nodes": [
+          34,
+          50
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 35,
+        "law": "elastic-column",
+        "nodes": [
+          35,
+          51
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 36,
+        "law": "elastic-column",
+        "nodes": [
+          36,
+          52
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 37,
+        "law": "elastic-column",
+        "nodes": [
+          37,
+          53
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 38,
+        "law": "elastic-column",
+        "nodes": [
+          38,
+          54
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 39,
+        "law": "elastic-column",
+        "nodes": [
+          39,
+          55
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 40,
+        "law": "elastic-column",
+        "nodes": [
+          40,
+          56
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 41,
+        "law": "elastic-column",
+        "nodes": [
+          41,
+          57
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 42,
+        "law": "elastic-column",
+        "nodes": [
+          42,
+          58
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 43,
+        "law": "elastic-column",
+        "nodes": [
+          43,
+          59
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 44,
+        "law": "elastic-column",
+        "nodes": [
+          44,
+          60
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 45,
+        "law": "elastic-column",
+        "nodes": [
+          45,
+          61
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 46,
+        "law": "elastic-column",
+        "nodes": [
+          46,
+          62
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 47,
+        "law": "elastic-column",
+        "nodes": [
+          47,
+          63
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 48,
+        "law": "elastic-column",
+        "nodes": [
+          48,
+          64
+        ],
+        "orientation": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "section": "column"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 49,
+        "law": "elastic-column",
+        "nodes": [
+          17,
+          18
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 50,
+        "law": "elastic-column",
+        "nodes": [
+          18,
+          19
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 51,
+        "law": "elastic-column",
+        "nodes": [
+          19,
+          20
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 52,
+        "law": "elastic-column",
+        "nodes": [
+          21,
+          22
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 53,
+        "law": "elastic-column",
+        "nodes": [
+          22,
+          23
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 54,
+        "law": "elastic-column",
+        "nodes": [
+          23,
+          24
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 55,
+        "law": "elastic-column",
+        "nodes": [
+          25,
+          26
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 56,
+        "law": "elastic-column",
+        "nodes": [
+          26,
+          27
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 57,
+        "law": "elastic-column",
+        "nodes": [
+          27,
+          28
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 58,
+        "law": "elastic-column",
+        "nodes": [
+          29,
+          30
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 59,
+        "law": "elastic-column",
+        "nodes": [
+          30,
+          31
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 60,
+        "law": "elastic-column",
+        "nodes": [
+          31,
+          32
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 61,
+        "law": "elastic-column",
+        "nodes": [
+          17,
+          21
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 62,
+        "law": "elastic-column",
+        "nodes": [
+          21,
+          25
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 63,
+        "law": "elastic-column",
+        "nodes": [
+          25,
+          29
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 64,
+        "law": "elastic-column",
+        "nodes": [
+          18,
+          22
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 65,
+        "law": "elastic-column",
+        "nodes": [
+          22,
+          26
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 66,
+        "law": "elastic-column",
+        "nodes": [
+          26,
+          30
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 67,
+        "law": "elastic-column",
+        "nodes": [
+          19,
+          23
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 68,
+        "law": "elastic-column",
+        "nodes": [
+          23,
+          27
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 69,
+        "law": "elastic-column",
+        "nodes": [
+          27,
+          31
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 70,
+        "law": "elastic-column",
+        "nodes": [
+          20,
+          24
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 71,
+        "law": "elastic-column",
+        "nodes": [
+          24,
+          28
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 72,
+        "law": "elastic-column",
+        "nodes": [
+          28,
+          32
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 73,
+        "law": "elastic-column",
+        "nodes": [
+          33,
+          34
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 74,
+        "law": "elastic-column",
+        "nodes": [
+          34,
+          35
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 75,
+        "law": "elastic-column",
+        "nodes": [
+          35,
+          36
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 76,
+        "law": "elastic-column",
+        "nodes": [
+          37,
+          38
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 77,
+        "law": "elastic-column",
+        "nodes": [
+          38,
+          39
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 78,
+        "law": "elastic-column",
+        "nodes": [
+          39,
+          40
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 79,
+        "law": "elastic-column",
+        "nodes": [
+          41,
+          42
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 80,
+        "law": "elastic-column",
+        "nodes": [
+          42,
+          43
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 81,
+        "law": "elastic-column",
+        "nodes": [
+          43,
+          44
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 82,
+        "law": "elastic-column",
+        "nodes": [
+          45,
+          46
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 83,
+        "law": "elastic-column",
+        "nodes": [
+          46,
+          47
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 84,
+        "law": "elastic-column",
+        "nodes": [
+          47,
+          48
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 85,
+        "law": "elastic-column",
+        "nodes": [
+          33,
+          37
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 86,
+        "law": "elastic-column",
+        "nodes": [
+          37,
+          41
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 87,
+        "law": "elastic-column",
+        "nodes": [
+          41,
+          45
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 88,
+        "law": "elastic-column",
+        "nodes": [
+          34,
+          38
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 89,
+        "law": "elastic-column",
+        "nodes": [
+          38,
+          42
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 90,
+        "law": "elastic-column",
+        "nodes": [
+          42,
+          46
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 91,
+        "law": "elastic-column",
+        "nodes": [
+          35,
+          39
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 92,
+        "law": "elastic-column",
+        "nodes": [
+          39,
+          43
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 93,
+        "law": "elastic-column",
+        "nodes": [
+          43,
+          47
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 94,
+        "law": "elastic-column",
+        "nodes": [
+          36,
+          40
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 95,
+        "law": "elastic-column",
+        "nodes": [
+          40,
+          44
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 96,
+        "law": "elastic-column",
+        "nodes": [
+          44,
+          48
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 97,
+        "law": "elastic-column",
+        "nodes": [
+          49,
+          50
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 98,
+        "law": "elastic-column",
+        "nodes": [
+          50,
+          51
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 99,
+        "law": "elastic-column",
+        "nodes": [
+          51,
+          52
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 100,
+        "law": "elastic-column",
+        "nodes": [
+          53,
+          54
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 101,
+        "law": "elastic-column",
+        "nodes": [
+          54,
+          55
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 102,
+        "law": "elastic-column",
+        "nodes": [
+          55,
+          56
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 103,
+        "law": "elastic-column",
+        "nodes": [
+          57,
+          58
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 104,
+        "law": "elastic-column",
+        "nodes": [
+          58,
+          59
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 105,
+        "law": "elastic-column",
+        "nodes": [
+          59,
+          60
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 106,
+        "law": "elastic-column",
+        "nodes": [
+          61,
+          62
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 107,
+        "law": "elastic-column",
+        "nodes": [
+          62,
+          63
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 108,
+        "law": "elastic-column",
+        "nodes": [
+          63,
+          64
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 109,
+        "law": "elastic-column",
+        "nodes": [
+          49,
+          53
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 110,
+        "law": "elastic-column",
+        "nodes": [
+          53,
+          57
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 111,
+        "law": "elastic-column",
+        "nodes": [
+          57,
+          61
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 112,
+        "law": "elastic-column",
+        "nodes": [
+          50,
+          54
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 113,
+        "law": "elastic-column",
+        "nodes": [
+          54,
+          58
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 114,
+        "law": "elastic-column",
+        "nodes": [
+          58,
+          62
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 115,
+        "law": "elastic-column",
+        "nodes": [
+          51,
+          55
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 116,
+        "law": "elastic-column",
+        "nodes": [
+          55,
+          59
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 117,
+        "law": "elastic-column",
+        "nodes": [
+          59,
+          63
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 118,
+        "law": "elastic-column",
+        "nodes": [
+          52,
+          56
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 119,
+        "law": "elastic-column",
+        "nodes": [
+          56,
+          60
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      },
+      {
+        "element": "frame3d.euler_elastic",
+        "id": 120,
+        "law": "elastic-column",
+        "nodes": [
+          60,
+          64
+        ],
+        "orientation": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "section": "beam"
+      }
+    ],
+    "nodes": [
+      {
+        "coordinates": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 1
+      },
+      {
+        "coordinates": [
+          6.0,
+          0.0,
+          0.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 2
+      },
+      {
+        "coordinates": [
+          12.0,
+          0.0,
+          0.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 3
+      },
+      {
+        "coordinates": [
+          18.0,
+          0.0,
+          0.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 4
+      },
+      {
+        "coordinates": [
+          0.0,
+          6.0,
+          0.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 5
+      },
+      {
+        "coordinates": [
+          6.0,
+          6.0,
+          0.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 6
+      },
+      {
+        "coordinates": [
+          12.0,
+          6.0,
+          0.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 7
+      },
+      {
+        "coordinates": [
+          18.0,
+          6.0,
+          0.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 8
+      },
+      {
+        "coordinates": [
+          0.0,
+          12.0,
+          0.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 9
+      },
+      {
+        "coordinates": [
+          6.0,
+          12.0,
+          0.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 10
+      },
+      {
+        "coordinates": [
+          12.0,
+          12.0,
+          0.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 11
+      },
+      {
+        "coordinates": [
+          18.0,
+          12.0,
+          0.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 12
+      },
+      {
+        "coordinates": [
+          0.0,
+          18.0,
+          0.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 13
+      },
+      {
+        "coordinates": [
+          6.0,
+          18.0,
+          0.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 14
+      },
+      {
+        "coordinates": [
+          12.0,
+          18.0,
+          0.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 15
+      },
+      {
+        "coordinates": [
+          18.0,
+          18.0,
+          0.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 16
+      },
+      {
+        "coordinates": [
+          0.0,
+          0.0,
+          3.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 17
+      },
+      {
+        "coordinates": [
+          6.0,
+          0.0,
+          3.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 18
+      },
+      {
+        "coordinates": [
+          12.0,
+          0.0,
+          3.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 19
+      },
+      {
+        "coordinates": [
+          18.0,
+          0.0,
+          3.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 20
+      },
+      {
+        "coordinates": [
+          0.0,
+          6.0,
+          3.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 21
+      },
+      {
+        "coordinates": [
+          6.0,
+          6.0,
+          3.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 22
+      },
+      {
+        "coordinates": [
+          12.0,
+          6.0,
+          3.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 23
+      },
+      {
+        "coordinates": [
+          18.0,
+          6.0,
+          3.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 24
+      },
+      {
+        "coordinates": [
+          0.0,
+          12.0,
+          3.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 25
+      },
+      {
+        "coordinates": [
+          6.0,
+          12.0,
+          3.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 26
+      },
+      {
+        "coordinates": [
+          12.0,
+          12.0,
+          3.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 27
+      },
+      {
+        "coordinates": [
+          18.0,
+          12.0,
+          3.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 28
+      },
+      {
+        "coordinates": [
+          0.0,
+          18.0,
+          3.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 29
+      },
+      {
+        "coordinates": [
+          6.0,
+          18.0,
+          3.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 30
+      },
+      {
+        "coordinates": [
+          12.0,
+          18.0,
+          3.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 31
+      },
+      {
+        "coordinates": [
+          18.0,
+          18.0,
+          3.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 32
+      },
+      {
+        "coordinates": [
+          0.0,
+          0.0,
+          6.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 33
+      },
+      {
+        "coordinates": [
+          6.0,
+          0.0,
+          6.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 34
+      },
+      {
+        "coordinates": [
+          12.0,
+          0.0,
+          6.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 35
+      },
+      {
+        "coordinates": [
+          18.0,
+          0.0,
+          6.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 36
+      },
+      {
+        "coordinates": [
+          0.0,
+          6.0,
+          6.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 37
+      },
+      {
+        "coordinates": [
+          6.0,
+          6.0,
+          6.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 38
+      },
+      {
+        "coordinates": [
+          12.0,
+          6.0,
+          6.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 39
+      },
+      {
+        "coordinates": [
+          18.0,
+          6.0,
+          6.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 40
+      },
+      {
+        "coordinates": [
+          0.0,
+          12.0,
+          6.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 41
+      },
+      {
+        "coordinates": [
+          6.0,
+          12.0,
+          6.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 42
+      },
+      {
+        "coordinates": [
+          12.0,
+          12.0,
+          6.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 43
+      },
+      {
+        "coordinates": [
+          18.0,
+          12.0,
+          6.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 44
+      },
+      {
+        "coordinates": [
+          0.0,
+          18.0,
+          6.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 45
+      },
+      {
+        "coordinates": [
+          6.0,
+          18.0,
+          6.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 46
+      },
+      {
+        "coordinates": [
+          12.0,
+          18.0,
+          6.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 47
+      },
+      {
+        "coordinates": [
+          18.0,
+          18.0,
+          6.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 48
+      },
+      {
+        "coordinates": [
+          0.0,
+          0.0,
+          9.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 49
+      },
+      {
+        "coordinates": [
+          6.0,
+          0.0,
+          9.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 50
+      },
+      {
+        "coordinates": [
+          12.0,
+          0.0,
+          9.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 51
+      },
+      {
+        "coordinates": [
+          18.0,
+          0.0,
+          9.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 52
+      },
+      {
+        "coordinates": [
+          0.0,
+          6.0,
+          9.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 53
+      },
+      {
+        "coordinates": [
+          6.0,
+          6.0,
+          9.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 54
+      },
+      {
+        "coordinates": [
+          12.0,
+          6.0,
+          9.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 55
+      },
+      {
+        "coordinates": [
+          18.0,
+          6.0,
+          9.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 56
+      },
+      {
+        "coordinates": [
+          0.0,
+          12.0,
+          9.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 57
+      },
+      {
+        "coordinates": [
+          6.0,
+          12.0,
+          9.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 58
+      },
+      {
+        "coordinates": [
+          12.0,
+          12.0,
+          9.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 59
+      },
+      {
+        "coordinates": [
+          18.0,
+          12.0,
+          9.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 60
+      },
+      {
+        "coordinates": [
+          0.0,
+          18.0,
+          9.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 61
+      },
+      {
+        "coordinates": [
+          6.0,
+          18.0,
+          9.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 62
+      },
+      {
+        "coordinates": [
+          12.0,
+          18.0,
+          9.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 63
+      },
+      {
+        "coordinates": [
+          18.0,
+          18.0,
+          9.0
+        ],
+        "dim": "D3",
+        "dofs": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ],
+        "id": 64
+      }
+    ],
+    "sections": [
+      {
+        "id": "column",
+        "properties": [
+          {
+            "name": "A",
+            "value": 0.48999999999999994
+          },
+          {
+            "name": "Iy",
+            "value": 0.020008333333333326
+          },
+          {
+            "name": "Iz",
+            "value": 0.020008333333333326
+          },
+          {
+            "name": "J",
+            "value": 0.03381408333333332
+          }
+        ]
+      },
+      {
+        "id": "beam",
+        "properties": [
+          {
+            "name": "A",
+            "value": 0.21
+          },
+          {
+            "name": "Iy",
+            "value": 0.008574999999999998
+          },
+          {
+            "name": "Iz",
+            "value": 0.0015749999999999998
+          },
+          {
+            "name": "J",
+            "value": 0.004603782069970844
+          }
+        ]
+      }
+    ],
+    "supports": [
+      {
+        "id": "support-1",
+        "node": 1,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": "support-2",
+        "node": 2,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": "support-3",
+        "node": 3,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": "support-4",
+        "node": 4,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": "support-5",
+        "node": 5,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": "support-6",
+        "node": 6,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": "support-7",
+        "node": 7,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": "support-8",
+        "node": 8,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": "support-9",
+        "node": 9,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": "support-10",
+        "node": 10,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": "support-11",
+        "node": 11,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": "support-12",
+        "node": 12,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": "support-13",
+        "node": 13,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": "support-14",
+        "node": 14,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": "support-15",
+        "node": 15,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      },
+      {
+        "id": "support-16",
+        "node": 16,
+        "restrained": [
+          "Ux",
+          "Uy",
+          "Uz",
+          "Rx",
+          "Ry",
+          "Rz"
+        ]
+      }
+    ]
+  },
+  "options": {},
+  "schema": "engine-input/1",
+  "units": "SI"
+}

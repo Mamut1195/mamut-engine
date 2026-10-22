@@ -103,6 +103,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-bench"
+version = "0.1.0"
+dependencies = [
+ "engine-api",
+ "engine-core",
+ "mamut-canon",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "engine-cli"
 version = "0.1.0"
 dependencies = [

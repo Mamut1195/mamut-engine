@@ -1,0 +1,163 @@
+{
+  "schema": "bench-index/1",
+  "encoding": "utf-8",
+  "newline": "lf",
+  "bench_model_schema": "crates/engine-bench/schemas/bench-model-1.json",
+  "hash": {
+    "name": "sha256",
+    "encoding": "lowercase hexadecimal",
+    "subject": "bytes UTF-8 exactos del archivo, con el salto LF final y sin BOM",
+    "not_equal_to": "results/1.input_sha256, que es SHA-256 sobre JSON RFC 8785"
+  },
+  "limits": {
+    "contract": "engine-input/1",
+    "max_nodes": 256,
+    "max_members": 1024
+  },
+  "models": [
+    {
+      "id": "rc3d-3s",
+      "path": "crates/engine-bench/fixtures/models/rc3d-3s.json",
+      "sha256": "199cfb84d248877d70caa6e1df641582386a0dabfe725d8ec659007d4552d7b3",
+      "nodes": 64,
+      "members": 120,
+      "engine_input": {
+        "static": {
+          "path": "crates/engine-bench/fixtures/engine-input/rc3d-3s-static.json",
+          "sha256": "4e7179735d6f1242c0140fc81495027d485e2bbce7f210d14f1b2e974c2e2ce8"
+        },
+        "modal": {
+          "path": "crates/engine-bench/fixtures/engine-input/rc3d-3s-modal.json",
+          "sha256": "98bd1f9d30a820fc7de0f751941db759dc1f5c6133eb76b320aaedca1942832d"
+        },
+        "spectrum": {
+          "path": "crates/engine-bench/fixtures/engine-input/rc3d-3s-spectrum.json",
+          "sha256": "05f56505679c567295fadc378305fe65fe2a92ad0f36a75057d275186e8b41f3"
+        }
+      },
+      "roof_node": 54,
+      "pointers": {
+        "period": {
+          "result": "modal",
+          "json_pointer": "/modes/0/period",
+          "unit": "s",
+          "component": null,
+          "case": null,
+          "description": "Periodo en segundos del modo 1, el de menor autovalor, en results/1 del archivo modal."
+        },
+        "static_roof_displacement": {
+          "result": "static",
+          "json_pointer": "/cases/1/nodes/53/displacements/0",
+          "unit": "m",
+          "component": "Ux",
+          "case": "lateral",
+          "description": "Desplazamiento Ux en metros del nudo de techo 54 en el caso lateral. results/1 ordena los nudos por id ascendente; el índice de este nudo es 53. cases/0 es gravity y cases/1 es lateral. displacements/0 es Ux, displacements/1 es Uy y displacements/2 es Uz."
+        },
+        "cqc_roof_displacement": {
+          "result": "spectrum",
+          "json_pointer": "/envelopes/1/nodes/53/displacements/0",
+          "unit": "m",
+          "component": "Ux",
+          "case": null,
+          "description": "Componente Ux en metros del nudo de techo 54 en la envolvente final de responseSpectrum. envelopes/0 es la dirección global X combinada con CQC. envelopes/1 es la combinación direccional final, con direction null. Hay una sola dirección y el factor es 1. La magnitud CQC de cada componente es no negativa."
+        }
+      }
+    },
+    {
+      "id": "rc3d-8s",
+      "path": "crates/engine-bench/fixtures/models/rc3d-8s.json",
+      "sha256": "33fa7da8e4af10edf89adf4d19737eab72391618c297a5952cfb059cf5efe960",
+      "nodes": 144,
+      "members": 320,
+      "engine_input": {
+        "static": {
+          "path": "crates/engine-bench/fixtures/engine-input/rc3d-8s-static.json",
+          "sha256": "f4362e79562f717bbdf34b34c81f9a862fee043b8ebabed54cd82f346e5f7736"
+        },
+        "modal": {
+          "path": "crates/engine-bench/fixtures/engine-input/rc3d-8s-modal.json",
+          "sha256": "d38ef438e544830c8511034471b098f016fac5b3d71ce98448119710d4184549"
+        },
+        "spectrum": {
+          "path": "crates/engine-bench/fixtures/engine-input/rc3d-8s-spectrum.json",
+          "sha256": "a9198cb8bf38c12cdb1eccbb678ddf5fc0f43940ee50b247b10d36c7ea34570e"
+        }
+      },
+      "roof_node": 134,
+      "pointers": {
+        "period": {
+          "result": "modal",
+          "json_pointer": "/modes/0/period",
+          "unit": "s",
+          "component": null,
+          "case": null,
+          "description": "Periodo en segundos del modo 1, el de menor autovalor, en results/1 del archivo modal."
+        },
+        "static_roof_displacement": {
+          "result": "static",
+          "json_pointer": "/cases/1/nodes/133/displacements/0",
+          "unit": "m",
+          "component": "Ux",
+          "case": "lateral",
+          "description": "Desplazamiento Ux en metros del nudo de techo 134 en el caso lateral. results/1 ordena los nudos por id ascendente; el índice de este nudo es 133. cases/0 es gravity y cases/1 es lateral. displacements/0 es Ux, displacements/1 es Uy y displacements/2 es Uz."
+        },
+        "cqc_roof_displacement": {
+          "result": "spectrum",
+          "json_pointer": "/envelopes/1/nodes/133/displacements/0",
+          "unit": "m",
+          "component": "Ux",
+          "case": null,
+          "description": "Componente Ux en metros del nudo de techo 134 en la envolvente final de responseSpectrum. envelopes/0 es la dirección global X combinada con CQC. envelopes/1 es la combinación direccional final, con direction null. Hay una sola dirección y el factor es 1. La magnitud CQC de cada componente es no negativa."
+        }
+      }
+    },
+    {
+      "id": "rc3d-15s",
+      "path": "crates/engine-bench/fixtures/models/rc3d-15s.json",
+      "sha256": "b914e418b36a9ce8085ad31f7caecf1d512946215577ea961ccb0071e998a5b9",
+      "nodes": 256,
+      "members": 600,
+      "engine_input": {
+        "static": {
+          "path": "crates/engine-bench/fixtures/engine-input/rc3d-15s-static.json",
+          "sha256": "5238f0896e222c2d1ffce4fd3c3c61ece07d763a6c17fa45659c7f6cb3d69cce"
+        },
+        "modal": {
+          "path": "crates/engine-bench/fixtures/engine-input/rc3d-15s-modal.json",
+          "sha256": "0efec83b0a508f9d9ffd816c0288c29c047e1100440464372be7200f86e76e3a"
+        },
+        "spectrum": {
+          "path": "crates/engine-bench/fixtures/engine-input/rc3d-15s-spectrum.json",
+          "sha256": "56fbb7f3cdc8c2431b5dcaf5053e00e451ccdc6cdf6f65c33c59a0c081b2e2ad"
+        }
+      },
+      "roof_node": 246,
+      "pointers": {
+        "period": {
+          "result": "modal",
+          "json_pointer": "/modes/0/period",
+          "unit": "s",
+          "component": null,
+          "case": null,
+          "description": "Periodo en segundos del modo 1, el de menor autovalor, en results/1 del archivo modal."
+        },
+        "static_roof_displacement": {
+          "result": "static",
+          "json_pointer": "/cases/1/nodes/245/displacements/0",
+          "unit": "m",
+          "component": "Ux",
+          "case": "lateral",
+          "description": "Desplazamiento Ux en metros del nudo de techo 246 en el caso lateral. results/1 ordena los nudos por id ascendente; el índice de este nudo es 245. cases/0 es gravity y cases/1 es lateral. displacements/0 es Ux, displacements/1 es Uy y displacements/2 es Uz."
+        },
+        "cqc_roof_displacement": {
+          "result": "spectrum",
+          "json_pointer": "/envelopes/1/nodes/245/displacements/0",
+          "unit": "m",
+          "component": "Ux",
+          "case": null,
+          "description": "Componente Ux en metros del nudo de techo 246 en la envolvente final de responseSpectrum. envelopes/0 es la dirección global X combinada con CQC. envelopes/1 es la combinación direccional final, con direction null. Hay una sola dirección y el factor es 1. La magnitud CQC de cada componente es no negativa."
+        }
+      }
+    }
+  ]
+}

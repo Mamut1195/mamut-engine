@@ -1,0 +1,3 @@
+# Los hashes del índice son de estos bytes con salto LF. Sin conversión CRLF.
+crates/engine-bench/fixtures/** text eol=lf linguist-language=JSON
+crates/engine-bench/schemas/** text eol=lf linguist-language=JSON

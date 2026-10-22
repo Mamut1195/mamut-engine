@@ -1,0 +1,64 @@
+{
+  "schema": "bench-model/1",
+  "id": "cap-spectrum-srss-xy",
+  "units": "SI",
+  "source": {
+    "geometry": "Un piso con diafragma. La corrida por defecto excita X e Y.",
+    "material": "Valores de prueba.",
+    "torsion": "J declarado.",
+    "mass": "Reparto tributario de este piso.",
+    "spectrum": "Sa elástica de prueba en m/s^2. R = 8 es metadato y no se vuelve a aplicar. La variante cqc-X es otra corrida del mismo modelo."
+  },
+  "stories": [{"level": 1, "h": 3.0, "mass": {"m": 1000.0, "Izz": 2000.0}}],
+  "grid": {"x": [0.0, 6.0], "y": [0.0, 6.0]},
+  "nodes": [
+    {"id": 1, "story": 0, "ix": 0, "iy": 0, "coordinates": [0.0, 0.0, 0.0]},
+    {"id": 2, "story": 1, "ix": 0, "iy": 0, "coordinates": [0.0, 0.0, 3.0]},
+    {"id": 3, "story": 1, "ix": 1, "iy": 0, "coordinates": [6.0, 0.0, 3.0]}
+  ],
+  "members": [
+    {
+      "id": 1,
+      "kind": "column",
+      "nodes": [1, 3],
+      "section": "column",
+      "orientation": {"kind": "local_z_vector", "vector": [1.0, 0.0, 0.0]}
+    },
+    {
+      "id": 2,
+      "kind": "beam",
+      "nodes": [2, 3],
+      "section": "column",
+      "orientation": {"kind": "local_z_vector", "vector": [0.0, 0.0, 1.0]}
+    }
+  ],
+  "sections": [
+    {"id": "column", "E": 2.5e10, "G": 1.0e10, "A": 0.25, "Iy": 0.002, "Iz": 0.002, "J": 0.001}
+  ],
+  "diaphragms": [{"level": 1, "z": 3.0, "master": 3, "slaves": [2]}],
+  "restraints": [
+    {"node": 1, "dofs": ["Ux", "Uy", "Uz", "Rx", "Ry", "Rz"]}
+  ],
+  "load_patterns": {"gravity": [], "lateral": []},
+  "modal": {"n": 2, "mass_kind": "lumped", "directions": [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]},
+  "spectrum": {
+    "zone": "V", "Z": 0.4, "soil": "D", "R": 8.0, "eta": 1.8,
+    "Fa": 1.2, "Fd": 1.19, "Fs": 1.02, "zeta": 0.05, "g": 9.80665, "r": 1.0,
+    "directions": [
+      {"axis": "X", "vector": [1.0, 0.0, 0.0]},
+      {"axis": "Y", "vector": [0.0, 1.0, 0.0]}
+    ],
+    "directional_combination": {"method": "srss", "factors": [1.0, 1.0]},
+    "variants": [
+      {
+        "id": "cqc-X",
+        "method": "cqc",
+        "directions": [{"axis": "X", "vector": [1.0, 0.0, 0.0]}],
+        "directional_combination": {"method": "srss", "factors": [1.0]}
+      }
+    ],
+    "interpolation": "linear", "extrapolation": "error",
+    "Sa": {"unit": "m/s^2", "pairs": [[0.0, 1.0], [4.0, 0.2]]}
+  },
+  "combination": {"method": "srss", "zeta": 0.05}
+}

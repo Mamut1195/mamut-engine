@@ -1,0 +1,19 @@
+[package]
+name = "engine-bench"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "Modelos bench-model/1 y su traducción a engine-input/1 para ENG-VAL-006."
+
+[dependencies]
+engine-api = { path = "../engine-api" }
+engine-core = { path = "../engine-core" }
+mamut-canon = { path = "../../vendor/mamut-workflows/mamut-canon" }
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = { version = "=1.0.154", features = ["float_roundtrip"] }
+
+[[bin]]
+name = "bench-prepare"
+path = "src/bin/bench-prepare.rs"

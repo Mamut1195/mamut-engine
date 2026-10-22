@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mamut:bench-index:1",
+  "title": "bench-index/1",
+  "description": "Índice explícito para un consumidor externo. Las rutas son relativas a la raíz del repositorio y usan /. sha256 es el hash de los bytes del archivo, no el input_sha256 JCS de results/1. engine-input/1 admite un solo análisis, por eso engine_input tiene tres archivos.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "encoding", "newline", "bench_model_schema", "hash", "limits", "models"],
+  "properties": {
+    "schema": {"const": "bench-index/1"},
+    "encoding": {"const": "utf-8"},
+    "newline": {"const": "lf"},
+    "bench_model_schema": {"type": "string"},
+    "hash": {"$ref": "#/$defs/hash"},
+    "limits": {"$ref": "#/$defs/limits"},
+    "models": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/model"}}
+  },
+  "$defs": {
+    "hash": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "encoding", "subject", "not_equal_to"],
+      "properties": {
+        "name": {"const": "sha256"},
+        "encoding": {"const": "lowercase hexadecimal"},
+        "subject": {"type": "string"},
+        "not_equal_to": {"type": "string"}
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "max_nodes", "max_members"],
+      "properties": {
+        "contract": {"const": "engine-input/1"},
+        "max_nodes": {"const": 256},
+        "max_members": {"const": 1024}
+      }
+    },
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^[^\\\\]+$"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "pointer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result", "json_pointer", "unit", "component", "case", "description"],
+      "properties": {
+        "result": {"enum": ["static", "modal", "spectrum"]},
+        "json_pointer": {"type": "string", "minLength": 1},
+        "unit": {"type": "string"},
+        "component": {"type": ["string", "null"]},
+        "case": {"type": ["string", "null"]},
+        "description": {"type": "string"}
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path", "sha256", "nodes", "members", "engine_input", "roof_node", "pointers"],
+      "properties": {
+        "id": {"type": "string"},
+        "path": {"type": "string"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "nodes": {"type": "integer", "minimum": 1, "maximum": 256},
+        "members": {"type": "integer", "minimum": 1, "maximum": 1024},
+        "engine_input": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["static", "modal", "spectrum"],
+          "properties": {
+            "static": {"$ref": "#/$defs/file"},
+            "modal": {"$ref": "#/$defs/file"},
+            "spectrum": {"$ref": "#/$defs/file"}
+          }
+        },
+        "roof_node": {"type": "integer", "minimum": 1},
+        "pointers": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["period", "static_roof_displacement", "cqc_roof_displacement"],
+          "properties": {
+            "period": {"$ref": "#/$defs/pointer"},
+            "static_roof_displacement": {"$ref": "#/$defs/pointer"},
+            "cqc_roof_displacement": {"$ref": "#/$defs/pointer"}
+          }
+        }
+      }
+    }
+  }
+}

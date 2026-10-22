@@ -1,0 +1,365 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mamut:bench-model:1",
+  "title": "bench-model/1",
+  "description": "Modelo de benchmark en JSON y unidades SI: m, kg, s, N, Pa, rad. Z global hacia arriba. La traducción a engine-input/1 rechaza más de 256 nudos o más de 1024 barras (engine_api::MAX_NODES y engine_api::MAX_MEMBERS). engine-input/1 admite un solo análisis por documento. Los modelos oficiales producen static, modal y spectrum. pDelta se traduce solo si p_delta trae todas sus opciones. Sa está almacenada en m/s^2; ningún motor reconstruye la norma ni vuelve a aplicar R. orientation de una columna o viga es un vector, no un ángulo. La dirección del espectro es un eje global. Los campos nodal_masses, load_patterns.patterns, static_combinations, spectrum.directions, spectrum.variants y p_delta son opcionales: ausentes, el documento se traduce como los rc3d.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "units", "source", "stories", "grid", "nodes", "members", "sections", "diaphragms", "restraints", "load_patterns", "modal", "spectrum", "combination"],
+  "properties": {
+    "schema": {"const": "bench-model/1"},
+    "id": {"type": "string", "minLength": 1},
+    "units": {"const": "SI"},
+    "source": {"$ref": "#/$defs/source"},
+    "stories": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/story"}},
+    "grid": {"$ref": "#/$defs/grid"},
+    "nodes": {"type": "array", "minItems": 1, "maxItems": 256, "items": {"$ref": "#/$defs/node"}},
+    "members": {"type": "array", "minItems": 1, "maxItems": 1024, "items": {"$ref": "#/$defs/member"}},
+    "sections": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/section"}},
+    "diaphragms": {"type": "array", "items": {"$ref": "#/$defs/diaphragm"}, "description": "Puede estar vacío. Sin diafragma y sin nodal_masses, cada stories[].mass debe ser m = 0 e Izz = 0."},
+    "nodal_masses": {"type": "array", "items": {"$ref": "#/$defs/nodalMass"}, "description": "Si la clave está presente, incluso con arreglo vacío, es la única masa nodal. El traductor no añade Uz, Rx ni Ry. Si la clave está ausente, aplica el reparto tributario documentado en storyMass."},
+    "p_delta": {"$ref": "#/$defs/pDelta"},
+    "static_combinations": {"type": "array", "items": {"$ref": "#/$defs/staticCombination"}, "description": "Combinaciones lineales de casos. Solo se emiten en el documento linearStatic. pDelta, modal y responseSpectrum del Engine rechazan combinations."},
+    "restraints": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/restraint"}},
+    "load_patterns": {"$ref": "#/$defs/loadPatterns"},
+    "modal": {"$ref": "#/$defs/modal"},
+    "spectrum": {"$ref": "#/$defs/spectrum"},
+    "combination": {"$ref": "#/$defs/combination"}
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["geometry", "material", "torsion", "mass", "spectrum"],
+      "properties": {
+        "geometry": {"type": "string"},
+        "material": {"type": "string"},
+        "torsion": {"type": "string"},
+        "mass": {"type": "string"},
+        "spectrum": {"type": "string"}
+      }
+    },
+    "story": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "h", "mass"],
+      "properties": {
+        "level": {"type": "integer", "minimum": 1},
+        "h": {"type": "number", "exclusiveMinimum": 0, "description": "Altura del piso, en m, medida hasta el nivel inferior."},
+        "mass": {"$ref": "#/$defs/storyMass"}
+      }
+    },
+    "storyMass": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Masa del piso. m es la masa traslacional total en kg. Izz es el momento de inercia de esa masa, en kg·m², respecto del eje global Z que pasa por el nudo maestro del diafragma de este piso. No es la inercia respecto del centroide, salvo que el maestro coincida con él. Si nodal_masses está ausente y hay diafragmas, el traductor asigna: maestro Ux=m, Uy=m, Uz=m/N, Rx=Ry=m·bay²/(12·N), Rz=Izz; cada esclavo Uz=m/N, Rx=Ry=m·bay²/(12·N). N es el número de nudos del diafragma. bay es la menor distancia positiva entre cotas consecutivas de grid.x y de grid.y, en m. Los esclavos no reciben Ux, Uy ni Rz. Si nodal_masses está presente, este objeto no se reparte: solo se emiten los componentes declarados allí. m = 0 e Izz = 0 son una masa nula, no un reparto implícito.",
+      "required": ["m", "Izz"],
+      "properties": {
+        "m": {"type": "number", "minimum": 0, "description": "Masa traslacional total del piso, en kg. 0 es una masa nula."},
+        "Izz": {"type": "number", "minimum": 0, "description": "Inercia de masa alrededor del eje global Z que pasa por el nudo maestro, en kg·m². 0 es una inercia nula."}
+      }
+    },
+    "grid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y"],
+      "properties": {
+        "x": {"type": "array", "minItems": 2, "items": {"type": "number"}, "description": "Cotas X globales, en m, estrictamente crecientes."},
+        "y": {"type": "array", "minItems": 2, "items": {"type": "number"}, "description": "Cotas Y globales, en m, estrictamente crecientes."}
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "story", "ix", "iy", "coordinates"],
+      "properties": {
+        "id": {"type": "integer", "minimum": 1},
+        "story": {"type": "integer", "minimum": 0, "description": "0 es la base."},
+        "ix": {"type": "integer", "minimum": 0},
+        "iy": {"type": "integer", "minimum": 0},
+        "coordinates": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3, "description": "[x, y, z] en m. Z hacia arriba."}
+      }
+    },
+    "orientation": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Vector de referencia del eje local z, expresado en coordenadas globales. Es el mismo dato que orientation de engine-input/1. No es un ángulo en radianes ni en grados: no hay campo de ángulo.",
+      "required": ["kind", "vector"],
+      "properties": {
+        "kind": {"const": "local_z_vector"},
+        "vector": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3, "description": "Componentes globales [x, y, z] del vector de referencia. Una columna vertical no puede usar [0, 0, 1] porque ese vector es paralelo a su eje."}
+      }
+    },
+    "member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "nodes", "section"],
+      "properties": {
+        "id": {"type": "integer", "minimum": 1},
+        "kind": {"enum": ["column", "beam", "truss"]},
+        "nodes": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
+        "section": {"type": "string", "minLength": 1},
+        "orientation": {"$ref": "#/$defs/orientation"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"kind": {"enum": ["column", "beam"]}}, "required": ["kind"]},
+          "then": {"required": ["orientation"]}
+        },
+        {
+          "if": {"properties": {"kind": {"const": "truss"}}, "required": ["kind"]},
+          "then": {"not": {"required": ["orientation"]}}
+        }
+      ]
+    },
+    "section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "E", "A"],
+      "description": "Una columna o viga trae también G, Iy, Iz y J. Una celosía trae solo E y A: truss3d.linear no acepta los otros. No se rellena una sección a medias.",
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "E": {"type": "number", "exclusiveMinimum": 0, "description": "Módulo de Young, en Pa."},
+        "G": {"type": "number", "exclusiveMinimum": 0, "description": "Módulo de corte, en Pa. Obligatorio en columna y viga. Ausente en celosía."},
+        "A": {"type": "number", "exclusiveMinimum": 0, "description": "Área, en m²."},
+        "Iy": {"type": "number", "exclusiveMinimum": 0, "description": "Inercia respecto del eje local y, en m⁴. Obligatorio en columna y viga. Ausente en celosía."},
+        "Iz": {"type": "number", "exclusiveMinimum": 0, "description": "Inercia respecto del eje local z, en m⁴. Obligatorio en columna y viga. Ausente en celosía."},
+        "J": {"type": "number", "exclusiveMinimum": 0, "description": "Constante de torsión de Saint-Venant, en m⁴. No es la inercia polar. Obligatorio en columna y viga. Ausente en celosía."}
+      }
+    },
+    "diaphragm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "z", "master", "slaves"],
+      "properties": {
+        "level": {"type": "integer", "minimum": 1, "description": "Mismo índice que stories[].level."},
+        "z": {"type": "number", "description": "Cota global Z del plano, en m."},
+        "master": {"type": "integer", "minimum": 1, "description": "Nudo independiente. Izz de ese piso se mide respecto del eje vertical que pasa por este nudo."},
+        "slaves": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 1}}
+      }
+    },
+    "restraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node", "dofs"],
+      "properties": {
+        "node": {"type": "integer", "minimum": 1},
+        "dofs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/dof"}}
+      }
+    },
+    "dof": {"enum": ["Ux", "Uy", "Uz", "Rx", "Ry", "Rz"]},
+    "dofValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dof", "value"],
+      "properties": {
+        "dof": {"$ref": "#/$defs/dof"},
+        "value": {"type": "number", "description": "Fuerza en N o momento en N·m."}
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node", "values"],
+      "properties": {
+        "node": {"type": "integer", "minimum": 1},
+        "values": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/dofValue"}}
+      }
+    },
+    "loadPatterns": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gravity", "lateral"],
+      "properties": {
+        "gravity": {"type": "array", "items": {"$ref": "#/$defs/action"}, "description": "Acciones de peso. Uz es negativa porque Z apunta hacia arriba."},
+        "lateral": {"type": "array", "items": {"$ref": "#/$defs/action"}, "description": "Acciones horizontales del mismo eje global que spectrum.direction."},
+        "patterns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/namedPattern"},
+          "description": "Si está presente, el documento estático y el de pDelta usan estos casos en este orden y no emiten gravity ni lateral. Esos dos arreglos deben quedar vacíos."
+        }
+      }
+    },
+    "modal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["n", "mass_kind", "directions"],
+      "properties": {
+        "n": {"type": "integer", "minimum": 1, "maximum": 16384, "description": "Número de modos. Los pórticos rc3d usan 12. Otro modelo puede pedir 15 u otro entero de este rango. El traductor no lo recorta."},
+        "mass_kind": {"enum": ["lumped", "consistent"]},
+        "directions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+          "description": "Direcciones globales en las que se informa la participación modal. No son la dirección del espectro."
+        }
+      }
+    },
+    "globalDirection": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Dirección de excitación, expresada como eje del triedro global Z hacia arriba. vector es el unitario de axis: X = [1, 0, 0], Y = [0, 1, 0], Z = [0, 0, 1]. No es un eje local de barra.",
+      "required": ["axis", "vector"],
+      "properties": {
+        "axis": {"enum": ["X", "Y", "Z"]},
+        "vector": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}
+      }
+    },
+    "saTable": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Tabla Sa ya evaluada. La unidad es m/s^2 (metros por segundo al cuadrado). No está en g ni en fracción de g. El campo unit rechaza cualquier otro token, incluido g.",
+      "required": ["unit", "pairs"],
+      "properties": {
+        "unit": {"const": "m/s^2"},
+        "pairs": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {"type": "number"},
+            "description": "[T en s, Sa en m/s^2]. T es estrictamente creciente y Sa es no negativa."
+          }
+        }
+      }
+    },
+    "directionalCombination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "factors"],
+      "properties": {
+        "method": {"enum": ["srss", "weightedSum"]},
+        "factors": {"type": "array", "minItems": 1, "items": {"type": "number", "minimum": 0}, "description": "Un factor no negativo por dirección, en el mismo orden. Con una sola dirección sigue habiendo un elemento."}
+      }
+    },
+    "spectrum": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["zone", "Z", "soil", "R", "eta", "Fa", "Fd", "Fs", "zeta", "g", "r", "directional_combination", "interpolation", "extrapolation", "Sa"],
+      "allOf": [
+        {"anyOf": [{"required": ["direction"]}, {"required": ["directions"]}]},
+        {"not": {"required": ["direction", "directions"]}}
+      ],
+      "properties": {
+        "zone": {"type": "string", "description": "Etiqueta de zona."},
+        "Z": {"type": "number", "exclusiveMinimum": 0, "description": "Factor de zona, adimensional."},
+        "soil": {"type": "string", "description": "Etiqueta de suelo."},
+        "R": {"type": "number", "exclusiveMinimum": 0, "description": "Factor de reducción de respuesta, adimensional. Es metadato del origen de la tabla. El motor no lo vuelve a aplicar. Sa puede ser elástica o ya dividida por R: el valor almacenado, en m/s^2, es el que se usa."},
+        "eta": {"type": "number", "exclusiveMinimum": 0, "description": "η, adimensional. Metadato del origen de la tabla. El motor no lo vuelve a aplicar."},
+        "Fa": {"type": "number", "exclusiveMinimum": 0},
+        "Fd": {"type": "number", "exclusiveMinimum": 0},
+        "Fs": {"type": "number", "exclusiveMinimum": 0},
+        "zeta": {"type": "number", "minimum": 0, "exclusiveMaximum": 1, "description": "ζ de la tabla. CQC lo usa como amortiguamiento. SRSS no lo vuelve a aplicar."},
+        "g": {"type": "number", "exclusiveMinimum": 0, "description": "Gravedad, en m/s^2, usada al construir Sa. No es una ordenada."},
+        "r": {"type": "number", "description": "Exponente de la rama descendente. Metadato del origen de la tabla. El motor no lo vuelve a aplicar."},
+        "direction": {"$ref": "#/$defs/globalDirection"},
+        "directions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/globalDirection"},
+          "description": "Varias direcciones globales, en orden. Incompatible con direction. factors tiene la misma longitud."
+        },
+        "directional_combination": {"$ref": "#/$defs/directionalCombination"},
+        "variants": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/spectrumVariant"},
+          "description": "Corridas espectrales adicionales del mismo modelo. Comparten Sa, ζ y el resto de coeficientes. Se eligen por id al traducir."
+        },
+        "interpolation": {"enum": ["linear", "logLog"]},
+        "extrapolation": {"enum": ["error", "plateau"]},
+        "Sa": {"$ref": "#/$defs/saTable"}
+      }
+    },
+    "combination": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Combinación modal de la respuesta espectral. No combina los casos estáticos.",
+      "required": ["method", "zeta"],
+      "properties": {
+        "method": {"enum": ["cqc", "srss"]},
+        "zeta": {"type": "number", "minimum": 0, "exclusiveMaximum": 1, "description": "Mismo ζ que spectrum.zeta."}
+      }
+    },
+    "namedPattern": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "actions"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "description": "Nombre del caso, por ejemplo D, L, EX o EY."},
+        "actions": {"type": "array", "items": {"$ref": "#/$defs/action"}}
+      }
+    },
+    "staticCombination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "terms"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "terms": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/caseFactor"}
+        }
+      }
+    },
+    "caseFactor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case", "factor"],
+      "properties": {
+        "case": {"type": "string", "minLength": 1},
+        "factor": {"type": "number", "description": "Factor con signo. No se sustituye ni se toma en valor absoluto."}
+      }
+    },
+    "nodalMass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node", "values"],
+      "properties": {
+        "node": {"type": "integer", "minimum": 1},
+        "values": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/dofValue"}, "description": "Solo estos componentes. La unidad es kg en Ux, Uy y Uz, y kg·m² en Rx, Ry y Rz."}
+      }
+    },
+    "pDelta": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Opciones literales de engine-input/1 method pDelta. Si falta cualquiera, el traductor falla y no elige un valor.",
+      "required": ["gravity", "lateral", "tolerance", "max_iterations", "displacement_scale", "rotation_scale"],
+      "properties": {
+        "gravity": {"$ref": "#/$defs/caseFactor"},
+        "lateral": {"$ref": "#/$defs/caseFactor"},
+        "tolerance": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1},
+        "max_iterations": {"type": "integer", "minimum": 1, "maximum": 16384},
+        "displacement_scale": {"type": "number", "exclusiveMinimum": 0},
+        "rotation_scale": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "spectrumVariant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "method", "directions", "directional_combination"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "method": {"enum": ["cqc", "srss"]},
+        "directions": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/globalDirection"}},
+        "directional_combination": {"$ref": "#/$defs/directionalCombination"}
+      }
+    }
+  },
+  "x-mamut-orientation": {
+    "kind": "local_z_vector",
+    "not": "angle"
+  },
+  "x-mamut-spectrum-direction": {
+    "frame": "global Z-up",
+    "forms": ["direction", "directions"]
+  },
+  "x-mamut-sa": {
+    "unit": "m/s^2",
+    "not": "g"
+  }
+}

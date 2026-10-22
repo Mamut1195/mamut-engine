@@ -1,0 +1,9601 @@
+{
+  "schema": "bench-model/1",
+  "id": "rc3d-8s",
+  "units": "SI",
+  "source": {
+    "geometry": "Pórtico espacial de hormigón, 3×3 vanos de 6 m, altura de piso 3 m, 16 nudos por nivel incluida la base y diafragma rígido en cada piso. ENG-VAL-006. Las secciones son las mismas en los tres tamaños.",
+    "material": "Hormigón f'c = 28 MPa. E = 4700·sqrt(f'c) MPa (ACI 318-19 §19.2.2.1.a). ν = 0.2. G = E / (2 (1 + ν)). Densidad 2400 kg/m³.",
+    "torsion": "J de Saint-Venant del rectángulo: a·b³·(1/3 − 0.21·(b/a)·(1 − (b/a)⁴/12)), con a el lado mayor.",
+    "mass": "m = área·(espesor·densidad + sobrecarga/g), área 18 m × 18 m, espesor 0.15 m, sobrecarga 3000 N/m², g = 9.80665 m/s². Izz es la inercia de esa masa uniforme respecto del eje global Z que pasa por el nudo maestro: m·(Lx²+Ly²)/12 + m·d². Unidades: m en kg, Izz en kg·m².",
+    "spectrum": "NEC-SE-DS 2015, zona V (Z = 0.4), suelo D, η = 1.8, Fa = 1.2, Fd = 1.19, Fs = 1.02, R = 8, ζ = 0.05. Sa está en m/s²: (ordenada elástica en g) / R · g. No está en g. El motor recibe la tabla; no interpreta la norma."
+  },
+  "stories": [
+    {
+      "level": 1,
+      "h": 3.0,
+      "mass": {
+        "m": 215756.4159014546,
+        "Izz": 15534461.944904732
+      }
+    },
+    {
+      "level": 2,
+      "h": 3.0,
+      "mass": {
+        "m": 215756.4159014546,
+        "Izz": 15534461.944904732
+      }
+    },
+    {
+      "level": 3,
+      "h": 3.0,
+      "mass": {
+        "m": 215756.4159014546,
+        "Izz": 15534461.944904732
+      }
+    },
+    {
+      "level": 4,
+      "h": 3.0,
+      "mass": {
+        "m": 215756.4159014546,
+        "Izz": 15534461.944904732
+      }
+    },
+    {
+      "level": 5,
+      "h": 3.0,
+      "mass": {
+        "m": 215756.4159014546,
+        "Izz": 15534461.944904732
+      }
+    },
+    {
+      "level": 6,
+      "h": 3.0,
+      "mass": {
+        "m": 215756.4159014546,
+        "Izz": 15534461.944904732
+      }
+    },
+    {
+      "level": 7,
+      "h": 3.0,
+      "mass": {
+        "m": 215756.4159014546,
+        "Izz": 15534461.944904732
+      }
+    },
+    {
+      "level": 8,
+      "h": 3.0,
+      "mass": {
+        "m": 215756.4159014546,
+        "Izz": 15534461.944904732
+      }
+    }
+  ],
+  "grid": {
+    "x": [
+      0.0,
+      6.0,
+      12.0,
+      18.0
+    ],
+    "y": [
+      0.0,
+      6.0,
+      12.0,
+      18.0
+    ]
+  },
+  "nodes": [
+    {
+      "id": 1,
+      "story": 0,
+      "ix": 0,
+      "iy": 0,
+      "coordinates": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 2,
+      "story": 0,
+      "ix": 1,
+      "iy": 0,
+      "coordinates": [
+        6.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 3,
+      "story": 0,
+      "ix": 2,
+      "iy": 0,
+      "coordinates": [
+        12.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 4,
+      "story": 0,
+      "ix": 3,
+      "iy": 0,
+      "coordinates": [
+        18.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": 5,
+      "story": 0,
+      "ix": 0,
+      "iy": 1,
+      "coordinates": [
+        0.0,
+        6.0,
+        0.0
+      ]
+    },
+    {
+      "id": 6,
+      "story": 0,
+      "ix": 1,
+      "iy": 1,
+      "coordinates": [
+        6.0,
+        6.0,
+        0.0
+      ]
+    },
+    {
+      "id": 7,
+      "story": 0,
+      "ix": 2,
+      "iy": 1,
+      "coordinates": [
+        12.0,
+        6.0,
+        0.0
+      ]
+    },
+    {
+      "id": 8,
+      "story": 0,
+      "ix": 3,
+      "iy": 1,
+      "coordinates": [
+        18.0,
+        6.0,
+        0.0
+      ]
+    },
+    {
+      "id": 9,
+      "story": 0,
+      "ix": 0,
+      "iy": 2,
+      "coordinates": [
+        0.0,
+        12.0,
+        0.0
+      ]
+    },
+    {
+      "id": 10,
+      "story": 0,
+      "ix": 1,
+      "iy": 2,
+      "coordinates": [
+        6.0,
+        12.0,
+        0.0
+      ]
+    },
+    {
+      "id": 11,
+      "story": 0,
+      "ix": 2,
+      "iy": 2,
+      "coordinates": [
+        12.0,
+        12.0,
+        0.0
+      ]
+    },
+    {
+      "id": 12,
+      "story": 0,
+      "ix": 3,
+      "iy": 2,
+      "coordinates": [
+        18.0,
+        12.0,
+        0.0
+      ]
+    },
+    {
+      "id": 13,
+      "story": 0,
+      "ix": 0,
+      "iy": 3,
+      "coordinates": [
+        0.0,
+        18.0,
+        0.0
+      ]
+    },
+    {
+      "id": 14,
+      "story": 0,
+      "ix": 1,
+      "iy": 3,
+      "coordinates": [
+        6.0,
+        18.0,
+        0.0
+      ]
+    },
+    {
+      "id": 15,
+      "story": 0,
+      "ix": 2,
+      "iy": 3,
+      "coordinates": [
+        12.0,
+        18.0,
+        0.0
+      ]
+    },
+    {
+      "id": 16,
+      "story": 0,
+      "ix": 3,
+      "iy": 3,
+      "coordinates": [
+        18.0,
+        18.0,
+        0.0
+      ]
+    },
+    {
+      "id": 17,
+      "story": 1,
+      "ix": 0,
+      "iy": 0,
+      "coordinates": [
+        0.0,
+        0.0,
+        3.0
+      ]
+    },
+    {
+      "id": 18,
+      "story": 1,
+      "ix": 1,
+      "iy": 0,
+      "coordinates": [
+        6.0,
+        0.0,
+        3.0
+      ]
+    },
+    {
+      "id": 19,
+      "story": 1,
+      "ix": 2,
+      "iy": 0,
+      "coordinates": [
+        12.0,
+        0.0,
+        3.0
+      ]
+    },
+    {
+      "id": 20,
+      "story": 1,
+      "ix": 3,
+      "iy": 0,
+      "coordinates": [
+        18.0,
+        0.0,
+        3.0
+      ]
+    },
+    {
+      "id": 21,
+      "story": 1,
+      "ix": 0,
+      "iy": 1,
+      "coordinates": [
+        0.0,
+        6.0,
+        3.0
+      ]
+    },
+    {
+      "id": 22,
+      "story": 1,
+      "ix": 1,
+      "iy": 1,
+      "coordinates": [
+        6.0,
+        6.0,
+        3.0
+      ]
+    },
+    {
+      "id": 23,
+      "story": 1,
+      "ix": 2,
+      "iy": 1,
+      "coordinates": [
+        12.0,
+        6.0,
+        3.0
+      ]
+    },
+    {
+      "id": 24,
+      "story": 1,
+      "ix": 3,
+      "iy": 1,
+      "coordinates": [
+        18.0,
+        6.0,
+        3.0
+      ]
+    },
+    {
+      "id": 25,
+      "story": 1,
+      "ix": 0,
+      "iy": 2,
+      "coordinates": [
+        0.0,
+        12.0,
+        3.0
+      ]
+    },
+    {
+      "id": 26,
+      "story": 1,
+      "ix": 1,
+      "iy": 2,
+      "coordinates": [
+        6.0,
+        12.0,
+        3.0
+      ]
+    },
+    {
+      "id": 27,
+      "story": 1,
+      "ix": 2,
+      "iy": 2,
+      "coordinates": [
+        12.0,
+        12.0,
+        3.0
+      ]
+    },
+    {
+      "id": 28,
+      "story": 1,
+      "ix": 3,
+      "iy": 2,
+      "coordinates": [
+        18.0,
+        12.0,
+        3.0
+      ]
+    },
+    {
+      "id": 29,
+      "story": 1,
+      "ix": 0,
+      "iy": 3,
+      "coordinates": [
+        0.0,
+        18.0,
+        3.0
+      ]
+    },
+    {
+      "id": 30,
+      "story": 1,
+      "ix": 1,
+      "iy": 3,
+      "coordinates": [
+        6.0,
+        18.0,
+        3.0
+      ]
+    },
+    {
+      "id": 31,
+      "story": 1,
+      "ix": 2,
+      "iy": 3,
+      "coordinates": [
+        12.0,
+        18.0,
+        3.0
+      ]
+    },
+    {
+      "id": 32,
+      "story": 1,
+      "ix": 3,
+      "iy": 3,
+      "coordinates": [
+        18.0,
+        18.0,
+        3.0
+      ]
+    },
+    {
+      "id": 33,
+      "story": 2,
+      "ix": 0,
+      "iy": 0,
+      "coordinates": [
+        0.0,
+        0.0,
+        6.0
+      ]
+    },
+    {
+      "id": 34,
+      "story": 2,
+      "ix": 1,
+      "iy": 0,
+      "coordinates": [
+        6.0,
+        0.0,
+        6.0
+      ]
+    },
+    {
+      "id": 35,
+      "story": 2,
+      "ix": 2,
+      "iy": 0,
+      "coordinates": [
+        12.0,
+        0.0,
+        6.0
+      ]
+    },
+    {
+      "id": 36,
+      "story": 2,
+      "ix": 3,
+      "iy": 0,
+      "coordinates": [
+        18.0,
+        0.0,
+        6.0
+      ]
+    },
+    {
+      "id": 37,
+      "story": 2,
+      "ix": 0,
+      "iy": 1,
+      "coordinates": [
+        0.0,
+        6.0,
+        6.0
+      ]
+    },
+    {
+      "id": 38,
+      "story": 2,
+      "ix": 1,
+      "iy": 1,
+      "coordinates": [
+        6.0,
+        6.0,
+        6.0
+      ]
+    },
+    {
+      "id": 39,
+      "story": 2,
+      "ix": 2,
+      "iy": 1,
+      "coordinates": [
+        12.0,
+        6.0,
+        6.0
+      ]
+    },
+    {
+      "id": 40,
+      "story": 2,
+      "ix": 3,
+      "iy": 1,
+      "coordinates": [
+        18.0,
+        6.0,
+        6.0
+      ]
+    },
+    {
+      "id": 41,
+      "story": 2,
+      "ix": 0,
+      "iy": 2,
+      "coordinates": [
+        0.0,
+        12.0,
+        6.0
+      ]
+    },
+    {
+      "id": 42,
+      "story": 2,
+      "ix": 1,
+      "iy": 2,
+      "coordinates": [
+        6.0,
+        12.0,
+        6.0
+      ]
+    },
+    {
+      "id": 43,
+      "story": 2,
+      "ix": 2,
+      "iy": 2,
+      "coordinates": [
+        12.0,
+        12.0,
+        6.0
+      ]
+    },
+    {
+      "id": 44,
+      "story": 2,
+      "ix": 3,
+      "iy": 2,
+      "coordinates": [
+        18.0,
+        12.0,
+        6.0
+      ]
+    },
+    {
+      "id": 45,
+      "story": 2,
+      "ix": 0,
+      "iy": 3,
+      "coordinates": [
+        0.0,
+        18.0,
+        6.0
+      ]
+    },
+    {
+      "id": 46,
+      "story": 2,
+      "ix": 1,
+      "iy": 3,
+      "coordinates": [
+        6.0,
+        18.0,
+        6.0
+      ]
+    },
+    {
+      "id": 47,
+      "story": 2,
+      "ix": 2,
+      "iy": 3,
+      "coordinates": [
+        12.0,
+        18.0,
+        6.0
+      ]
+    },
+    {
+      "id": 48,
+      "story": 2,
+      "ix": 3,
+      "iy": 3,
+      "coordinates": [
+        18.0,
+        18.0,
+        6.0
+      ]
+    },
+    {
+      "id": 49,
+      "story": 3,
+      "ix": 0,
+      "iy": 0,
+      "coordinates": [
+        0.0,
+        0.0,
+        9.0
+      ]
+    },
+    {
+      "id": 50,
+      "story": 3,
+      "ix": 1,
+      "iy": 0,
+      "coordinates": [
+        6.0,
+        0.0,
+        9.0
+      ]
+    },
+    {
+      "id": 51,
+      "story": 3,
+      "ix": 2,
+      "iy": 0,
+      "coordinates": [
+        12.0,
+        0.0,
+        9.0
+      ]
+    },
+    {
+      "id": 52,
+      "story": 3,
+      "ix": 3,
+      "iy": 0,
+      "coordinates": [
+        18.0,
+        0.0,
+        9.0
+      ]
+    },
+    {
+      "id": 53,
+      "story": 3,
+      "ix": 0,
+      "iy": 1,
+      "coordinates": [
+        0.0,
+        6.0,
+        9.0
+      ]
+    },
+    {
+      "id": 54,
+      "story": 3,
+      "ix": 1,
+      "iy": 1,
+      "coordinates": [
+        6.0,
+        6.0,
+        9.0
+      ]
+    },
+    {
+      "id": 55,
+      "story": 3,
+      "ix": 2,
+      "iy": 1,
+      "coordinates": [
+        12.0,
+        6.0,
+        9.0
+      ]
+    },
+    {
+      "id": 56,
+      "story": 3,
+      "ix": 3,
+      "iy": 1,
+      "coordinates": [
+        18.0,
+        6.0,
+        9.0
+      ]
+    },
+    {
+      "id": 57,
+      "story": 3,
+      "ix": 0,
+      "iy": 2,
+      "coordinates": [
+        0.0,
+        12.0,
+        9.0
+      ]
+    },
+    {
+      "id": 58,
+      "story": 3,
+      "ix": 1,
+      "iy": 2,
+      "coordinates": [
+        6.0,
+        12.0,
+        9.0
+      ]
+    },
+    {
+      "id": 59,
+      "story": 3,
+      "ix": 2,
+      "iy": 2,
+      "coordinates": [
+        12.0,
+        12.0,
+        9.0
+      ]
+    },
+    {
+      "id": 60,
+      "story": 3,
+      "ix": 3,
+      "iy": 2,
+      "coordinates": [
+        18.0,
+        12.0,
+        9.0
+      ]
+    },
+    {
+      "id": 61,
+      "story": 3,
+      "ix": 0,
+      "iy": 3,
+      "coordinates": [
+        0.0,
+        18.0,
+        9.0
+      ]
+    },
+    {
+      "id": 62,
+      "story": 3,
+      "ix": 1,
+      "iy": 3,
+      "coordinates": [
+        6.0,
+        18.0,
+        9.0
+      ]
+    },
+    {
+      "id": 63,
+      "story": 3,
+      "ix": 2,
+      "iy": 3,
+      "coordinates": [
+        12.0,
+        18.0,
+        9.0
+      ]
+    },
+    {
+      "id": 64,
+      "story": 3,
+      "ix": 3,
+      "iy": 3,
+      "coordinates": [
+        18.0,
+        18.0,
+        9.0
+      ]
+    },
+    {
+      "id": 65,
+      "story": 4,
+      "ix": 0,
+      "iy": 0,
+      "coordinates": [
+        0.0,
+        0.0,
+        12.0
+      ]
+    },
+    {
+      "id": 66,
+      "story": 4,
+      "ix": 1,
+      "iy": 0,
+      "coordinates": [
+        6.0,
+        0.0,
+        12.0
+      ]
+    },
+    {
+      "id": 67,
+      "story": 4,
+      "ix": 2,
+      "iy": 0,
+      "coordinates": [
+        12.0,
+        0.0,
+        12.0
+      ]
+    },
+    {
+      "id": 68,
+      "story": 4,
+      "ix": 3,
+      "iy": 0,
+      "coordinates": [
+        18.0,
+        0.0,
+        12.0
+      ]
+    },
+    {
+      "id": 69,
+      "story": 4,
+      "ix": 0,
+      "iy": 1,
+      "coordinates": [
+        0.0,
+        6.0,
+        12.0
+      ]
+    },
+    {
+      "id": 70,
+      "story": 4,
+      "ix": 1,
+      "iy": 1,
+      "coordinates": [
+        6.0,
+        6.0,
+        12.0
+      ]
+    },
+    {
+      "id": 71,
+      "story": 4,
+      "ix": 2,
+      "iy": 1,
+      "coordinates": [
+        12.0,
+        6.0,
+        12.0
+      ]
+    },
+    {
+      "id": 72,
+      "story": 4,
+      "ix": 3,
+      "iy": 1,
+      "coordinates": [
+        18.0,
+        6.0,
+        12.0
+      ]
+    },
+    {
+      "id": 73,
+      "story": 4,
+      "ix": 0,
+      "iy": 2,
+      "coordinates": [
+        0.0,
+        12.0,
+        12.0
+      ]
+    },
+    {
+      "id": 74,
+      "story": 4,
+      "ix": 1,
+      "iy": 2,
+      "coordinates": [
+        6.0,
+        12.0,
+        12.0
+      ]
+    },
+    {
+      "id": 75,
+      "story": 4,
+      "ix": 2,
+      "iy": 2,
+      "coordinates": [
+        12.0,
+        12.0,
+        12.0
+      ]
+    },
+    {
+      "id": 76,
+      "story": 4,
+      "ix": 3,
+      "iy": 2,
+      "coordinates": [
+        18.0,
+        12.0,
+        12.0
+      ]
+    },
+    {
+      "id": 77,
+      "story": 4,
+      "ix": 0,
+      "iy": 3,
+      "coordinates": [
+        0.0,
+        18.0,
+        12.0
+      ]
+    },
+    {
+      "id": 78,
+      "story": 4,
+      "ix": 1,
+      "iy": 3,
+      "coordinates": [
+        6.0,
+        18.0,
+        12.0
+      ]
+    },
+    {
+      "id": 79,
+      "story": 4,
+      "ix": 2,
+      "iy": 3,
+      "coordinates": [
+        12.0,
+        18.0,
+        12.0
+      ]
+    },
+    {
+      "id": 80,
+      "story": 4,
+      "ix": 3,
+      "iy": 3,
+      "coordinates": [
+        18.0,
+        18.0,
+        12.0
+      ]
+    },
+    {
+      "id": 81,
+      "story": 5,
+      "ix": 0,
+      "iy": 0,
+      "coordinates": [
+        0.0,
+        0.0,
+        15.0
+      ]
+    },
+    {
+      "id": 82,
+      "story": 5,
+      "ix": 1,
+      "iy": 0,
+      "coordinates": [
+        6.0,
+        0.0,
+        15.0
+      ]
+    },
+    {
+      "id": 83,
+      "story": 5,
+      "ix": 2,
+      "iy": 0,
+      "coordinates": [
+        12.0,
+        0.0,
+        15.0
+      ]
+    },
+    {
+      "id": 84,
+      "story": 5,
+      "ix": 3,
+      "iy": 0,
+      "coordinates": [
+        18.0,
+        0.0,
+        15.0
+      ]
+    },
+    {
+      "id": 85,
+      "story": 5,
+      "ix": 0,
+      "iy": 1,
+      "coordinates": [
+        0.0,
+        6.0,
+        15.0
+      ]
+    },
+    {
+      "id": 86,
+      "story": 5,
+      "ix": 1,
+      "iy": 1,
+      "coordinates": [
+        6.0,
+        6.0,
+        15.0
+      ]
+    },
+    {
+      "id": 87,
+      "story": 5,
+      "ix": 2,
+      "iy": 1,
+      "coordinates": [
+        12.0,
+        6.0,
+        15.0
+      ]
+    },
+    {
+      "id": 88,
+      "story": 5,
+      "ix": 3,
+      "iy": 1,
+      "coordinates": [
+        18.0,
+        6.0,
+        15.0
+      ]
+    },
+    {
+      "id": 89,
+      "story": 5,
+      "ix": 0,
+      "iy": 2,
+      "coordinates": [
+        0.0,
+        12.0,
+        15.0
+      ]
+    },
+    {
+      "id": 90,
+      "story": 5,
+      "ix": 1,
+      "iy": 2,
+      "coordinates": [
+        6.0,
+        12.0,
+        15.0
+      ]
+    },
+    {
+      "id": 91,
+      "story": 5,
+      "ix": 2,
+      "iy": 2,
+      "coordinates": [
+        12.0,
+        12.0,
+        15.0
+      ]
+    },
+    {
+      "id": 92,
+      "story": 5,
+      "ix": 3,
+      "iy": 2,
+      "coordinates": [
+        18.0,
+        12.0,
+        15.0
+      ]
+    },
+    {
+      "id": 93,
+      "story": 5,
+      "ix": 0,
+      "iy": 3,
+      "coordinates": [
+        0.0,
+        18.0,
+        15.0
+      ]
+    },
+    {
+      "id": 94,
+      "story": 5,
+      "ix": 1,
+      "iy": 3,
+      "coordinates": [
+        6.0,
+        18.0,
+        15.0
+      ]
+    },
+    {
+      "id": 95,
+      "story": 5,
+      "ix": 2,
+      "iy": 3,
+      "coordinates": [
+        12.0,
+        18.0,
+        15.0
+      ]
+    },
+    {
+      "id": 96,
+      "story": 5,
+      "ix": 3,
+      "iy": 3,
+      "coordinates": [
+        18.0,
+        18.0,
+        15.0
+      ]
+    },
+    {
+      "id": 97,
+      "story": 6,
+      "ix": 0,
+      "iy": 0,
+      "coordinates": [
+        0.0,
+        0.0,
+        18.0
+      ]
+    },
+    {
+      "id": 98,
+      "story": 6,
+      "ix": 1,
+      "iy": 0,
+      "coordinates": [
+        6.0,
+        0.0,
+        18.0
+      ]
+    },
+    {
+      "id": 99,
+      "story": 6,
+      "ix": 2,
+      "iy": 0,
+      "coordinates": [
+        12.0,
+        0.0,
+        18.0
+      ]
+    },
+    {
+      "id": 100,
+      "story": 6,
+      "ix": 3,
+      "iy": 0,
+      "coordinates": [
+        18.0,
+        0.0,
+        18.0
+      ]
+    },
+    {
+      "id": 101,
+      "story": 6,
+      "ix": 0,
+      "iy": 1,
+      "coordinates": [
+        0.0,
+        6.0,
+        18.0
+      ]
+    },
+    {
+      "id": 102,
+      "story": 6,
+      "ix": 1,
+      "iy": 1,
+      "coordinates": [
+        6.0,
+        6.0,
+        18.0
+      ]
+    },
+    {
+      "id": 103,
+      "story": 6,
+      "ix": 2,
+      "iy": 1,
+      "coordinates": [
+        12.0,
+        6.0,
+        18.0
+      ]
+    },
+    {
+      "id": 104,
+      "story": 6,
+      "ix": 3,
+      "iy": 1,
+      "coordinates": [
+        18.0,
+        6.0,
+        18.0
+      ]
+    },
+    {
+      "id": 105,
+      "story": 6,
+      "ix": 0,
+      "iy": 2,
+      "coordinates": [
+        0.0,
+        12.0,
+        18.0
+      ]
+    },
+    {
+      "id": 106,
+      "story": 6,
+      "ix": 1,
+      "iy": 2,
+      "coordinates": [
+        6.0,
+        12.0,
+        18.0
+      ]
+    },
+    {
+      "id": 107,
+      "story": 6,
+      "ix": 2,
+      "iy": 2,
+      "coordinates": [
+        12.0,
+        12.0,
+        18.0
+      ]
+    },
+    {
+      "id": 108,
+      "story": 6,
+      "ix": 3,
+      "iy": 2,
+      "coordinates": [
+        18.0,
+        12.0,
+        18.0
+      ]
+    },
+    {
+      "id": 109,
+      "story": 6,
+      "ix": 0,
+      "iy": 3,
+      "coordinates": [
+        0.0,
+        18.0,
+        18.0
+      ]
+    },
+    {
+      "id": 110,
+      "story": 6,
+      "ix": 1,
+      "iy": 3,
+      "coordinates": [
+        6.0,
+        18.0,
+        18.0
+      ]
+    },
+    {
+      "id": 111,
+      "story": 6,
+      "ix": 2,
+      "iy": 3,
+      "coordinates": [
+        12.0,
+        18.0,
+        18.0
+      ]
+    },
+    {
+      "id": 112,
+      "story": 6,
+      "ix": 3,
+      "iy": 3,
+      "coordinates": [
+        18.0,
+        18.0,
+        18.0
+      ]
+    },
+    {
+      "id": 113,
+      "story": 7,
+      "ix": 0,
+      "iy": 0,
+      "coordinates": [
+        0.0,
+        0.0,
+        21.0
+      ]
+    },
+    {
+      "id": 114,
+      "story": 7,
+      "ix": 1,
+      "iy": 0,
+      "coordinates": [
+        6.0,
+        0.0,
+        21.0
+      ]
+    },
+    {
+      "id": 115,
+      "story": 7,
+      "ix": 2,
+      "iy": 0,
+      "coordinates": [
+        12.0,
+        0.0,
+        21.0
+      ]
+    },
+    {
+      "id": 116,
+      "story": 7,
+      "ix": 3,
+      "iy": 0,
+      "coordinates": [
+        18.0,
+        0.0,
+        21.0
+      ]
+    },
+    {
+      "id": 117,
+      "story": 7,
+      "ix": 0,
+      "iy": 1,
+      "coordinates": [
+        0.0,
+        6.0,
+        21.0
+      ]
+    },
+    {
+      "id": 118,
+      "story": 7,
+      "ix": 1,
+      "iy": 1,
+      "coordinates": [
+        6.0,
+        6.0,
+        21.0
+      ]
+    },
+    {
+      "id": 119,
+      "story": 7,
+      "ix": 2,
+      "iy": 1,
+      "coordinates": [
+        12.0,
+        6.0,
+        21.0
+      ]
+    },
+    {
+      "id": 120,
+      "story": 7,
+      "ix": 3,
+      "iy": 1,
+      "coordinates": [
+        18.0,
+        6.0,
+        21.0
+      ]
+    },
+    {
+      "id": 121,
+      "story": 7,
+      "ix": 0,
+      "iy": 2,
+      "coordinates": [
+        0.0,
+        12.0,
+        21.0
+      ]
+    },
+    {
+      "id": 122,
+      "story": 7,
+      "ix": 1,
+      "iy": 2,
+      "coordinates": [
+        6.0,
+        12.0,
+        21.0
+      ]
+    },
+    {
+      "id": 123,
+      "story": 7,
+      "ix": 2,
+      "iy": 2,
+      "coordinates": [
+        12.0,
+        12.0,
+        21.0
+      ]
+    },
+    {
+      "id": 124,
+      "story": 7,
+      "ix": 3,
+      "iy": 2,
+      "coordinates": [
+        18.0,
+        12.0,
+        21.0
+      ]
+    },
+    {
+      "id": 125,
+      "story": 7,
+      "ix": 0,
+      "iy": 3,
+      "coordinates": [
+        0.0,
+        18.0,
+        21.0
+      ]
+    },
+    {
+      "id": 126,
+      "story": 7,
+      "ix": 1,
+      "iy": 3,
+      "coordinates": [
+        6.0,
+        18.0,
+        21.0
+      ]
+    },
+    {
+      "id": 127,
+      "story": 7,
+      "ix": 2,
+      "iy": 3,
+      "coordinates": [
+        12.0,
+        18.0,
+        21.0
+      ]
+    },
+    {
+      "id": 128,
+      "story": 7,
+      "ix": 3,
+      "iy": 3,
+      "coordinates": [
+        18.0,
+        18.0,
+        21.0
+      ]
+    },
+    {
+      "id": 129,
+      "story": 8,
+      "ix": 0,
+      "iy": 0,
+      "coordinates": [
+        0.0,
+        0.0,
+        24.0
+      ]
+    },
+    {
+      "id": 130,
+      "story": 8,
+      "ix": 1,
+      "iy": 0,
+      "coordinates": [
+        6.0,
+        0.0,
+        24.0
+      ]
+    },
+    {
+      "id": 131,
+      "story": 8,
+      "ix": 2,
+      "iy": 0,
+      "coordinates": [
+        12.0,
+        0.0,
+        24.0
+      ]
+    },
+    {
+      "id": 132,
+      "story": 8,
+      "ix": 3,
+      "iy": 0,
+      "coordinates": [
+        18.0,
+        0.0,
+        24.0
+      ]
+    },
+    {
+      "id": 133,
+      "story": 8,
+      "ix": 0,
+      "iy": 1,
+      "coordinates": [
+        0.0,
+        6.0,
+        24.0
+      ]
+    },
+    {
+      "id": 134,
+      "story": 8,
+      "ix": 1,
+      "iy": 1,
+      "coordinates": [
+        6.0,
+        6.0,
+        24.0
+      ]
+    },
+    {
+      "id": 135,
+      "story": 8,
+      "ix": 2,
+      "iy": 1,
+      "coordinates": [
+        12.0,
+        6.0,
+        24.0
+      ]
+    },
+    {
+      "id": 136,
+      "story": 8,
+      "ix": 3,
+      "iy": 1,
+      "coordinates": [
+        18.0,
+        6.0,
+        24.0
+      ]
+    },
+    {
+      "id": 137,
+      "story": 8,
+      "ix": 0,
+      "iy": 2,
+      "coordinates": [
+        0.0,
+        12.0,
+        24.0
+      ]
+    },
+    {
+      "id": 138,
+      "story": 8,
+      "ix": 1,
+      "iy": 2,
+      "coordinates": [
+        6.0,
+        12.0,
+        24.0
+      ]
+    },
+    {
+      "id": 139,
+      "story": 8,
+      "ix": 2,
+      "iy": 2,
+      "coordinates": [
+        12.0,
+        12.0,
+        24.0
+      ]
+    },
+    {
+      "id": 140,
+      "story": 8,
+      "ix": 3,
+      "iy": 2,
+      "coordinates": [
+        18.0,
+        12.0,
+        24.0
+      ]
+    },
+    {
+      "id": 141,
+      "story": 8,
+      "ix": 0,
+      "iy": 3,
+      "coordinates": [
+        0.0,
+        18.0,
+        24.0
+      ]
+    },
+    {
+      "id": 142,
+      "story": 8,
+      "ix": 1,
+      "iy": 3,
+      "coordinates": [
+        6.0,
+        18.0,
+        24.0
+      ]
+    },
+    {
+      "id": 143,
+      "story": 8,
+      "ix": 2,
+      "iy": 3,
+      "coordinates": [
+        12.0,
+        18.0,
+        24.0
+      ]
+    },
+    {
+      "id": 144,
+      "story": 8,
+      "ix": 3,
+      "iy": 3,
+      "coordinates": [
+        18.0,
+        18.0,
+        24.0
+      ]
+    }
+  ],
+  "members": [
+    {
+      "id": 1,
+      "kind": "column",
+      "nodes": [
+        1,
+        17
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "kind": "column",
+      "nodes": [
+        2,
+        18
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "kind": "column",
+      "nodes": [
+        3,
+        19
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "kind": "column",
+      "nodes": [
+        4,
+        20
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "kind": "column",
+      "nodes": [
+        5,
+        21
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "kind": "column",
+      "nodes": [
+        6,
+        22
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "kind": "column",
+      "nodes": [
+        7,
+        23
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "kind": "column",
+      "nodes": [
+        8,
+        24
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 9,
+      "kind": "column",
+      "nodes": [
+        9,
+        25
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "kind": "column",
+      "nodes": [
+        10,
+        26
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 11,
+      "kind": "column",
+      "nodes": [
+        11,
+        27
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 12,
+      "kind": "column",
+      "nodes": [
+        12,
+        28
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 13,
+      "kind": "column",
+      "nodes": [
+        13,
+        29
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 14,
+      "kind": "column",
+      "nodes": [
+        14,
+        30
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 15,
+      "kind": "column",
+      "nodes": [
+        15,
+        31
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 16,
+      "kind": "column",
+      "nodes": [
+        16,
+        32
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 17,
+      "kind": "column",
+      "nodes": [
+        17,
+        33
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 18,
+      "kind": "column",
+      "nodes": [
+        18,
+        34
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 19,
+      "kind": "column",
+      "nodes": [
+        19,
+        35
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 20,
+      "kind": "column",
+      "nodes": [
+        20,
+        36
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 21,
+      "kind": "column",
+      "nodes": [
+        21,
+        37
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 22,
+      "kind": "column",
+      "nodes": [
+        22,
+        38
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 23,
+      "kind": "column",
+      "nodes": [
+        23,
+        39
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 24,
+      "kind": "column",
+      "nodes": [
+        24,
+        40
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 25,
+      "kind": "column",
+      "nodes": [
+        25,
+        41
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 26,
+      "kind": "column",
+      "nodes": [
+        26,
+        42
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 27,
+      "kind": "column",
+      "nodes": [
+        27,
+        43
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 28,
+      "kind": "column",
+      "nodes": [
+        28,
+        44
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 29,
+      "kind": "column",
+      "nodes": [
+        29,
+        45
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 30,
+      "kind": "column",
+      "nodes": [
+        30,
+        46
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 31,
+      "kind": "column",
+      "nodes": [
+        31,
+        47
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 32,
+      "kind": "column",
+      "nodes": [
+        32,
+        48
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 33,
+      "kind": "column",
+      "nodes": [
+        33,
+        49
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 34,
+      "kind": "column",
+      "nodes": [
+        34,
+        50
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 35,
+      "kind": "column",
+      "nodes": [
+        35,
+        51
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 36,
+      "kind": "column",
+      "nodes": [
+        36,
+        52
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 37,
+      "kind": "column",
+      "nodes": [
+        37,
+        53
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 38,
+      "kind": "column",
+      "nodes": [
+        38,
+        54
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 39,
+      "kind": "column",
+      "nodes": [
+        39,
+        55
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 40,
+      "kind": "column",
+      "nodes": [
+        40,
+        56
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 41,
+      "kind": "column",
+      "nodes": [
+        41,
+        57
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 42,
+      "kind": "column",
+      "nodes": [
+        42,
+        58
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 43,
+      "kind": "column",
+      "nodes": [
+        43,
+        59
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 44,
+      "kind": "column",
+      "nodes": [
+        44,
+        60
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 45,
+      "kind": "column",
+      "nodes": [
+        45,
+        61
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 46,
+      "kind": "column",
+      "nodes": [
+        46,
+        62
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 47,
+      "kind": "column",
+      "nodes": [
+        47,
+        63
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 48,
+      "kind": "column",
+      "nodes": [
+        48,
+        64
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 49,
+      "kind": "column",
+      "nodes": [
+        49,
+        65
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 50,
+      "kind": "column",
+      "nodes": [
+        50,
+        66
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 51,
+      "kind": "column",
+      "nodes": [
+        51,
+        67
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 52,
+      "kind": "column",
+      "nodes": [
+        52,
+        68
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 53,
+      "kind": "column",
+      "nodes": [
+        53,
+        69
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 54,
+      "kind": "column",
+      "nodes": [
+        54,
+        70
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 55,
+      "kind": "column",
+      "nodes": [
+        55,
+        71
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 56,
+      "kind": "column",
+      "nodes": [
+        56,
+        72
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 57,
+      "kind": "column",
+      "nodes": [
+        57,
+        73
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 58,
+      "kind": "column",
+      "nodes": [
+        58,
+        74
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 59,
+      "kind": "column",
+      "nodes": [
+        59,
+        75
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 60,
+      "kind": "column",
+      "nodes": [
+        60,
+        76
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 61,
+      "kind": "column",
+      "nodes": [
+        61,
+        77
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 62,
+      "kind": "column",
+      "nodes": [
+        62,
+        78
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 63,
+      "kind": "column",
+      "nodes": [
+        63,
+        79
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 64,
+      "kind": "column",
+      "nodes": [
+        64,
+        80
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 65,
+      "kind": "column",
+      "nodes": [
+        65,
+        81
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 66,
+      "kind": "column",
+      "nodes": [
+        66,
+        82
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 67,
+      "kind": "column",
+      "nodes": [
+        67,
+        83
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 68,
+      "kind": "column",
+      "nodes": [
+        68,
+        84
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 69,
+      "kind": "column",
+      "nodes": [
+        69,
+        85
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 70,
+      "kind": "column",
+      "nodes": [
+        70,
+        86
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 71,
+      "kind": "column",
+      "nodes": [
+        71,
+        87
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 72,
+      "kind": "column",
+      "nodes": [
+        72,
+        88
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 73,
+      "kind": "column",
+      "nodes": [
+        73,
+        89
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 74,
+      "kind": "column",
+      "nodes": [
+        74,
+        90
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 75,
+      "kind": "column",
+      "nodes": [
+        75,
+        91
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 76,
+      "kind": "column",
+      "nodes": [
+        76,
+        92
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 77,
+      "kind": "column",
+      "nodes": [
+        77,
+        93
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 78,
+      "kind": "column",
+      "nodes": [
+        78,
+        94
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 79,
+      "kind": "column",
+      "nodes": [
+        79,
+        95
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 80,
+      "kind": "column",
+      "nodes": [
+        80,
+        96
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 81,
+      "kind": "column",
+      "nodes": [
+        81,
+        97
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 82,
+      "kind": "column",
+      "nodes": [
+        82,
+        98
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 83,
+      "kind": "column",
+      "nodes": [
+        83,
+        99
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 84,
+      "kind": "column",
+      "nodes": [
+        84,
+        100
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 85,
+      "kind": "column",
+      "nodes": [
+        85,
+        101
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 86,
+      "kind": "column",
+      "nodes": [
+        86,
+        102
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 87,
+      "kind": "column",
+      "nodes": [
+        87,
+        103
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 88,
+      "kind": "column",
+      "nodes": [
+        88,
+        104
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 89,
+      "kind": "column",
+      "nodes": [
+        89,
+        105
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 90,
+      "kind": "column",
+      "nodes": [
+        90,
+        106
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 91,
+      "kind": "column",
+      "nodes": [
+        91,
+        107
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 92,
+      "kind": "column",
+      "nodes": [
+        92,
+        108
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 93,
+      "kind": "column",
+      "nodes": [
+        93,
+        109
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 94,
+      "kind": "column",
+      "nodes": [
+        94,
+        110
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 95,
+      "kind": "column",
+      "nodes": [
+        95,
+        111
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 96,
+      "kind": "column",
+      "nodes": [
+        96,
+        112
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 97,
+      "kind": "column",
+      "nodes": [
+        97,
+        113
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 98,
+      "kind": "column",
+      "nodes": [
+        98,
+        114
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 99,
+      "kind": "column",
+      "nodes": [
+        99,
+        115
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 100,
+      "kind": "column",
+      "nodes": [
+        100,
+        116
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 101,
+      "kind": "column",
+      "nodes": [
+        101,
+        117
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 102,
+      "kind": "column",
+      "nodes": [
+        102,
+        118
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 103,
+      "kind": "column",
+      "nodes": [
+        103,
+        119
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 104,
+      "kind": "column",
+      "nodes": [
+        104,
+        120
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 105,
+      "kind": "column",
+      "nodes": [
+        105,
+        121
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 106,
+      "kind": "column",
+      "nodes": [
+        106,
+        122
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 107,
+      "kind": "column",
+      "nodes": [
+        107,
+        123
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 108,
+      "kind": "column",
+      "nodes": [
+        108,
+        124
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 109,
+      "kind": "column",
+      "nodes": [
+        109,
+        125
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 110,
+      "kind": "column",
+      "nodes": [
+        110,
+        126
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 111,
+      "kind": "column",
+      "nodes": [
+        111,
+        127
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 112,
+      "kind": "column",
+      "nodes": [
+        112,
+        128
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 113,
+      "kind": "column",
+      "nodes": [
+        113,
+        129
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 114,
+      "kind": "column",
+      "nodes": [
+        114,
+        130
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 115,
+      "kind": "column",
+      "nodes": [
+        115,
+        131
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 116,
+      "kind": "column",
+      "nodes": [
+        116,
+        132
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 117,
+      "kind": "column",
+      "nodes": [
+        117,
+        133
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 118,
+      "kind": "column",
+      "nodes": [
+        118,
+        134
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 119,
+      "kind": "column",
+      "nodes": [
+        119,
+        135
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 120,
+      "kind": "column",
+      "nodes": [
+        120,
+        136
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 121,
+      "kind": "column",
+      "nodes": [
+        121,
+        137
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 122,
+      "kind": "column",
+      "nodes": [
+        122,
+        138
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 123,
+      "kind": "column",
+      "nodes": [
+        123,
+        139
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 124,
+      "kind": "column",
+      "nodes": [
+        124,
+        140
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 125,
+      "kind": "column",
+      "nodes": [
+        125,
+        141
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 126,
+      "kind": "column",
+      "nodes": [
+        126,
+        142
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 127,
+      "kind": "column",
+      "nodes": [
+        127,
+        143
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 128,
+      "kind": "column",
+      "nodes": [
+        128,
+        144
+      ],
+      "section": "column",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "id": 129,
+      "kind": "beam",
+      "nodes": [
+        17,
+        18
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 130,
+      "kind": "beam",
+      "nodes": [
+        18,
+        19
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 131,
+      "kind": "beam",
+      "nodes": [
+        19,
+        20
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 132,
+      "kind": "beam",
+      "nodes": [
+        21,
+        22
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 133,
+      "kind": "beam",
+      "nodes": [
+        22,
+        23
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 134,
+      "kind": "beam",
+      "nodes": [
+        23,
+        24
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 135,
+      "kind": "beam",
+      "nodes": [
+        25,
+        26
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 136,
+      "kind": "beam",
+      "nodes": [
+        26,
+        27
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 137,
+      "kind": "beam",
+      "nodes": [
+        27,
+        28
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 138,
+      "kind": "beam",
+      "nodes": [
+        29,
+        30
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 139,
+      "kind": "beam",
+      "nodes": [
+        30,
+        31
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 140,
+      "kind": "beam",
+      "nodes": [
+        31,
+        32
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 141,
+      "kind": "beam",
+      "nodes": [
+        17,
+        21
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 142,
+      "kind": "beam",
+      "nodes": [
+        21,
+        25
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 143,
+      "kind": "beam",
+      "nodes": [
+        25,
+        29
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 144,
+      "kind": "beam",
+      "nodes": [
+        18,
+        22
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 145,
+      "kind": "beam",
+      "nodes": [
+        22,
+        26
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 146,
+      "kind": "beam",
+      "nodes": [
+        26,
+        30
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 147,
+      "kind": "beam",
+      "nodes": [
+        19,
+        23
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 148,
+      "kind": "beam",
+      "nodes": [
+        23,
+        27
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 149,
+      "kind": "beam",
+      "nodes": [
+        27,
+        31
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 150,
+      "kind": "beam",
+      "nodes": [
+        20,
+        24
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 151,
+      "kind": "beam",
+      "nodes": [
+        24,
+        28
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 152,
+      "kind": "beam",
+      "nodes": [
+        28,
+        32
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 153,
+      "kind": "beam",
+      "nodes": [
+        33,
+        34
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 154,
+      "kind": "beam",
+      "nodes": [
+        34,
+        35
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 155,
+      "kind": "beam",
+      "nodes": [
+        35,
+        36
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 156,
+      "kind": "beam",
+      "nodes": [
+        37,
+        38
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 157,
+      "kind": "beam",
+      "nodes": [
+        38,
+        39
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 158,
+      "kind": "beam",
+      "nodes": [
+        39,
+        40
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 159,
+      "kind": "beam",
+      "nodes": [
+        41,
+        42
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 160,
+      "kind": "beam",
+      "nodes": [
+        42,
+        43
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 161,
+      "kind": "beam",
+      "nodes": [
+        43,
+        44
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 162,
+      "kind": "beam",
+      "nodes": [
+        45,
+        46
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 163,
+      "kind": "beam",
+      "nodes": [
+        46,
+        47
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 164,
+      "kind": "beam",
+      "nodes": [
+        47,
+        48
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 165,
+      "kind": "beam",
+      "nodes": [
+        33,
+        37
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 166,
+      "kind": "beam",
+      "nodes": [
+        37,
+        41
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 167,
+      "kind": "beam",
+      "nodes": [
+        41,
+        45
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 168,
+      "kind": "beam",
+      "nodes": [
+        34,
+        38
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 169,
+      "kind": "beam",
+      "nodes": [
+        38,
+        42
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 170,
+      "kind": "beam",
+      "nodes": [
+        42,
+        46
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 171,
+      "kind": "beam",
+      "nodes": [
+        35,
+        39
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 172,
+      "kind": "beam",
+      "nodes": [
+        39,
+        43
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 173,
+      "kind": "beam",
+      "nodes": [
+        43,
+        47
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 174,
+      "kind": "beam",
+      "nodes": [
+        36,
+        40
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 175,
+      "kind": "beam",
+      "nodes": [
+        40,
+        44
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 176,
+      "kind": "beam",
+      "nodes": [
+        44,
+        48
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 177,
+      "kind": "beam",
+      "nodes": [
+        49,
+        50
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 178,
+      "kind": "beam",
+      "nodes": [
+        50,
+        51
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 179,
+      "kind": "beam",
+      "nodes": [
+        51,
+        52
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 180,
+      "kind": "beam",
+      "nodes": [
+        53,
+        54
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 181,
+      "kind": "beam",
+      "nodes": [
+        54,
+        55
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 182,
+      "kind": "beam",
+      "nodes": [
+        55,
+        56
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 183,
+      "kind": "beam",
+      "nodes": [
+        57,
+        58
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 184,
+      "kind": "beam",
+      "nodes": [
+        58,
+        59
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 185,
+      "kind": "beam",
+      "nodes": [
+        59,
+        60
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 186,
+      "kind": "beam",
+      "nodes": [
+        61,
+        62
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 187,
+      "kind": "beam",
+      "nodes": [
+        62,
+        63
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 188,
+      "kind": "beam",
+      "nodes": [
+        63,
+        64
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 189,
+      "kind": "beam",
+      "nodes": [
+        49,
+        53
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 190,
+      "kind": "beam",
+      "nodes": [
+        53,
+        57
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 191,
+      "kind": "beam",
+      "nodes": [
+        57,
+        61
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 192,
+      "kind": "beam",
+      "nodes": [
+        50,
+        54
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 193,
+      "kind": "beam",
+      "nodes": [
+        54,
+        58
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 194,
+      "kind": "beam",
+      "nodes": [
+        58,
+        62
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 195,
+      "kind": "beam",
+      "nodes": [
+        51,
+        55
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 196,
+      "kind": "beam",
+      "nodes": [
+        55,
+        59
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 197,
+      "kind": "beam",
+      "nodes": [
+        59,
+        63
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 198,
+      "kind": "beam",
+      "nodes": [
+        52,
+        56
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 199,
+      "kind": "beam",
+      "nodes": [
+        56,
+        60
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 200,
+      "kind": "beam",
+      "nodes": [
+        60,
+        64
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 201,
+      "kind": "beam",
+      "nodes": [
+        65,
+        66
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 202,
+      "kind": "beam",
+      "nodes": [
+        66,
+        67
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 203,
+      "kind": "beam",
+      "nodes": [
+        67,
+        68
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 204,
+      "kind": "beam",
+      "nodes": [
+        69,
+        70
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 205,
+      "kind": "beam",
+      "nodes": [
+        70,
+        71
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 206,
+      "kind": "beam",
+      "nodes": [
+        71,
+        72
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 207,
+      "kind": "beam",
+      "nodes": [
+        73,
+        74
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 208,
+      "kind": "beam",
+      "nodes": [
+        74,
+        75
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 209,
+      "kind": "beam",
+      "nodes": [
+        75,
+        76
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 210,
+      "kind": "beam",
+      "nodes": [
+        77,
+        78
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 211,
+      "kind": "beam",
+      "nodes": [
+        78,
+        79
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 212,
+      "kind": "beam",
+      "nodes": [
+        79,
+        80
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 213,
+      "kind": "beam",
+      "nodes": [
+        65,
+        69
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 214,
+      "kind": "beam",
+      "nodes": [
+        69,
+        73
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 215,
+      "kind": "beam",
+      "nodes": [
+        73,
+        77
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 216,
+      "kind": "beam",
+      "nodes": [
+        66,
+        70
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 217,
+      "kind": "beam",
+      "nodes": [
+        70,
+        74
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 218,
+      "kind": "beam",
+      "nodes": [
+        74,
+        78
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 219,
+      "kind": "beam",
+      "nodes": [
+        67,
+        71
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 220,
+      "kind": "beam",
+      "nodes": [
+        71,
+        75
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 221,
+      "kind": "beam",
+      "nodes": [
+        75,
+        79
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 222,
+      "kind": "beam",
+      "nodes": [
+        68,
+        72
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 223,
+      "kind": "beam",
+      "nodes": [
+        72,
+        76
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 224,
+      "kind": "beam",
+      "nodes": [
+        76,
+        80
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 225,
+      "kind": "beam",
+      "nodes": [
+        81,
+        82
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 226,
+      "kind": "beam",
+      "nodes": [
+        82,
+        83
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 227,
+      "kind": "beam",
+      "nodes": [
+        83,
+        84
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 228,
+      "kind": "beam",
+      "nodes": [
+        85,
+        86
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 229,
+      "kind": "beam",
+      "nodes": [
+        86,
+        87
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 230,
+      "kind": "beam",
+      "nodes": [
+        87,
+        88
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 231,
+      "kind": "beam",
+      "nodes": [
+        89,
+        90
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 232,
+      "kind": "beam",
+      "nodes": [
+        90,
+        91
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 233,
+      "kind": "beam",
+      "nodes": [
+        91,
+        92
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 234,
+      "kind": "beam",
+      "nodes": [
+        93,
+        94
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 235,
+      "kind": "beam",
+      "nodes": [
+        94,
+        95
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 236,
+      "kind": "beam",
+      "nodes": [
+        95,
+        96
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 237,
+      "kind": "beam",
+      "nodes": [
+        81,
+        85
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 238,
+      "kind": "beam",
+      "nodes": [
+        85,
+        89
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 239,
+      "kind": "beam",
+      "nodes": [
+        89,
+        93
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 240,
+      "kind": "beam",
+      "nodes": [
+        82,
+        86
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 241,
+      "kind": "beam",
+      "nodes": [
+        86,
+        90
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 242,
+      "kind": "beam",
+      "nodes": [
+        90,
+        94
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 243,
+      "kind": "beam",
+      "nodes": [
+        83,
+        87
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 244,
+      "kind": "beam",
+      "nodes": [
+        87,
+        91
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 245,
+      "kind": "beam",
+      "nodes": [
+        91,
+        95
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 246,
+      "kind": "beam",
+      "nodes": [
+        84,
+        88
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 247,
+      "kind": "beam",
+      "nodes": [
+        88,
+        92
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 248,
+      "kind": "beam",
+      "nodes": [
+        92,
+        96
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 249,
+      "kind": "beam",
+      "nodes": [
+        97,
+        98
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 250,
+      "kind": "beam",
+      "nodes": [
+        98,
+        99
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 251,
+      "kind": "beam",
+      "nodes": [
+        99,
+        100
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 252,
+      "kind": "beam",
+      "nodes": [
+        101,
+        102
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 253,
+      "kind": "beam",
+      "nodes": [
+        102,
+        103
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 254,
+      "kind": "beam",
+      "nodes": [
+        103,
+        104
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 255,
+      "kind": "beam",
+      "nodes": [
+        105,
+        106
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 256,
+      "kind": "beam",
+      "nodes": [
+        106,
+        107
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 257,
+      "kind": "beam",
+      "nodes": [
+        107,
+        108
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 258,
+      "kind": "beam",
+      "nodes": [
+        109,
+        110
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 259,
+      "kind": "beam",
+      "nodes": [
+        110,
+        111
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 260,
+      "kind": "beam",
+      "nodes": [
+        111,
+        112
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 261,
+      "kind": "beam",
+      "nodes": [
+        97,
+        101
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 262,
+      "kind": "beam",
+      "nodes": [
+        101,
+        105
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 263,
+      "kind": "beam",
+      "nodes": [
+        105,
+        109
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 264,
+      "kind": "beam",
+      "nodes": [
+        98,
+        102
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 265,
+      "kind": "beam",
+      "nodes": [
+        102,
+        106
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 266,
+      "kind": "beam",
+      "nodes": [
+        106,
+        110
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 267,
+      "kind": "beam",
+      "nodes": [
+        99,
+        103
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 268,
+      "kind": "beam",
+      "nodes": [
+        103,
+        107
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 269,
+      "kind": "beam",
+      "nodes": [
+        107,
+        111
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 270,
+      "kind": "beam",
+      "nodes": [
+        100,
+        104
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 271,
+      "kind": "beam",
+      "nodes": [
+        104,
+        108
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 272,
+      "kind": "beam",
+      "nodes": [
+        108,
+        112
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 273,
+      "kind": "beam",
+      "nodes": [
+        113,
+        114
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 274,
+      "kind": "beam",
+      "nodes": [
+        114,
+        115
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 275,
+      "kind": "beam",
+      "nodes": [
+        115,
+        116
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 276,
+      "kind": "beam",
+      "nodes": [
+        117,
+        118
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 277,
+      "kind": "beam",
+      "nodes": [
+        118,
+        119
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 278,
+      "kind": "beam",
+      "nodes": [
+        119,
+        120
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 279,
+      "kind": "beam",
+      "nodes": [
+        121,
+        122
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 280,
+      "kind": "beam",
+      "nodes": [
+        122,
+        123
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 281,
+      "kind": "beam",
+      "nodes": [
+        123,
+        124
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 282,
+      "kind": "beam",
+      "nodes": [
+        125,
+        126
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 283,
+      "kind": "beam",
+      "nodes": [
+        126,
+        127
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 284,
+      "kind": "beam",
+      "nodes": [
+        127,
+        128
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 285,
+      "kind": "beam",
+      "nodes": [
+        113,
+        117
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 286,
+      "kind": "beam",
+      "nodes": [
+        117,
+        121
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 287,
+      "kind": "beam",
+      "nodes": [
+        121,
+        125
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 288,
+      "kind": "beam",
+      "nodes": [
+        114,
+        118
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 289,
+      "kind": "beam",
+      "nodes": [
+        118,
+        122
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 290,
+      "kind": "beam",
+      "nodes": [
+        122,
+        126
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 291,
+      "kind": "beam",
+      "nodes": [
+        115,
+        119
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 292,
+      "kind": "beam",
+      "nodes": [
+        119,
+        123
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 293,
+      "kind": "beam",
+      "nodes": [
+        123,
+        127
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 294,
+      "kind": "beam",
+      "nodes": [
+        116,
+        120
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 295,
+      "kind": "beam",
+      "nodes": [
+        120,
+        124
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 296,
+      "kind": "beam",
+      "nodes": [
+        124,
+        128
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 297,
+      "kind": "beam",
+      "nodes": [
+        129,
+        130
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 298,
+      "kind": "beam",
+      "nodes": [
+        130,
+        131
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 299,
+      "kind": "beam",
+      "nodes": [
+        131,
+        132
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 300,
+      "kind": "beam",
+      "nodes": [
+        133,
+        134
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 301,
+      "kind": "beam",
+      "nodes": [
+        134,
+        135
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 302,
+      "kind": "beam",
+      "nodes": [
+        135,
+        136
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 303,
+      "kind": "beam",
+      "nodes": [
+        137,
+        138
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 304,
+      "kind": "beam",
+      "nodes": [
+        138,
+        139
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 305,
+      "kind": "beam",
+      "nodes": [
+        139,
+        140
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 306,
+      "kind": "beam",
+      "nodes": [
+        141,
+        142
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 307,
+      "kind": "beam",
+      "nodes": [
+        142,
+        143
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 308,
+      "kind": "beam",
+      "nodes": [
+        143,
+        144
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 309,
+      "kind": "beam",
+      "nodes": [
+        129,
+        133
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 310,
+      "kind": "beam",
+      "nodes": [
+        133,
+        137
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 311,
+      "kind": "beam",
+      "nodes": [
+        137,
+        141
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 312,
+      "kind": "beam",
+      "nodes": [
+        130,
+        134
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 313,
+      "kind": "beam",
+      "nodes": [
+        134,
+        138
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 314,
+      "kind": "beam",
+      "nodes": [
+        138,
+        142
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 315,
+      "kind": "beam",
+      "nodes": [
+        131,
+        135
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 316,
+      "kind": "beam",
+      "nodes": [
+        135,
+        139
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 317,
+      "kind": "beam",
+      "nodes": [
+        139,
+        143
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 318,
+      "kind": "beam",
+      "nodes": [
+        132,
+        136
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 319,
+      "kind": "beam",
+      "nodes": [
+        136,
+        140
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    },
+    {
+      "id": 320,
+      "kind": "beam",
+      "nodes": [
+        140,
+        144
+      ],
+      "section": "beam",
+      "orientation": {
+        "kind": "local_z_vector",
+        "vector": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": "column",
+      "E": 24870062324.007153,
+      "G": 10362525968.336313,
+      "A": 0.48999999999999994,
+      "Iy": 0.020008333333333326,
+      "Iz": 0.020008333333333326,
+      "J": 0.03381408333333332
+    },
+    {
+      "id": "beam",
+      "E": 24870062324.007153,
+      "G": 10362525968.336313,
+      "A": 0.21,
+      "Iy": 0.008574999999999998,
+      "Iz": 0.0015749999999999998,
+      "J": 0.004603782069970844
+    }
+  ],
+  "diaphragms": [
+    {
+      "level": 1,
+      "z": 3.0,
+      "master": 22,
+      "slaves": [
+        17,
+        18,
+        19,
+        20,
+        21,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32
+      ]
+    },
+    {
+      "level": 2,
+      "z": 6.0,
+      "master": 38,
+      "slaves": [
+        33,
+        34,
+        35,
+        36,
+        37,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48
+      ]
+    },
+    {
+      "level": 3,
+      "z": 9.0,
+      "master": 54,
+      "slaves": [
+        49,
+        50,
+        51,
+        52,
+        53,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64
+      ]
+    },
+    {
+      "level": 4,
+      "z": 12.0,
+      "master": 70,
+      "slaves": [
+        65,
+        66,
+        67,
+        68,
+        69,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80
+      ]
+    },
+    {
+      "level": 5,
+      "z": 15.0,
+      "master": 86,
+      "slaves": [
+        81,
+        82,
+        83,
+        84,
+        85,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96
+      ]
+    },
+    {
+      "level": 6,
+      "z": 18.0,
+      "master": 102,
+      "slaves": [
+        97,
+        98,
+        99,
+        100,
+        101,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112
+      ]
+    },
+    {
+      "level": 7,
+      "z": 21.0,
+      "master": 118,
+      "slaves": [
+        113,
+        114,
+        115,
+        116,
+        117,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128
+      ]
+    },
+    {
+      "level": 8,
+      "z": 24.0,
+      "master": 134,
+      "slaves": [
+        129,
+        130,
+        131,
+        132,
+        133,
+        135,
+        136,
+        137,
+        138,
+        139,
+        140,
+        141,
+        142,
+        143,
+        144
+      ]
+    }
+  ],
+  "restraints": [
+    {
+      "node": 1,
+      "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+      ]
+    },
+    {
+      "node": 2,
+      "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+      ]
+    },
+    {
+      "node": 3,
+      "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+      ]
+    },
+    {
+      "node": 4,
+      "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+      ]
+    },
+    {
+      "node": 5,
+      "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+      ]
+    },
+    {
+      "node": 6,
+      "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+      ]
+    },
+    {
+      "node": 7,
+      "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+      ]
+    },
+    {
+      "node": 8,
+      "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+      ]
+    },
+    {
+      "node": 9,
+      "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+      ]
+    },
+    {
+      "node": 10,
+      "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+      ]
+    },
+    {
+      "node": 11,
+      "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+      ]
+    },
+    {
+      "node": 12,
+      "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+      ]
+    },
+    {
+      "node": 13,
+      "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+      ]
+    },
+    {
+      "node": 14,
+      "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+      ]
+    },
+    {
+      "node": 15,
+      "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+      ]
+    },
+    {
+      "node": 16,
+      "dofs": [
+        "Ux",
+        "Uy",
+        "Uz",
+        "Rx",
+        "Ry",
+        "Rz"
+      ]
+    }
+  ],
+  "load_patterns": {
+    "gravity": [
+      {
+        "node": 17,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 18,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 19,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 20,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 21,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 22,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 23,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 24,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 25,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 26,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 27,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 28,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 29,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 30,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 31,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 32,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 33,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 34,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 35,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 36,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 37,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 38,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 39,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 40,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 41,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 42,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 43,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 44,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 45,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 46,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 47,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 48,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 49,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 50,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 51,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 52,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 53,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 54,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 55,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 56,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 57,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 58,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 59,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 60,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 61,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 62,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 63,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 64,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 65,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 66,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 67,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 68,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 69,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 70,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 71,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 72,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 73,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 74,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 75,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 76,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 77,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 78,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 79,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 80,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 81,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 82,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 83,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 84,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 85,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 86,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 87,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 88,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 89,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 90,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 91,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 92,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 93,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 94,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 95,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 96,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 97,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 98,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 99,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 100,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 101,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 102,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 103,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 104,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 105,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 106,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 107,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 108,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 109,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 110,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 111,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 112,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 113,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 114,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 115,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 116,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 117,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 118,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 119,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 120,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 121,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 122,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 123,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 124,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 125,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 126,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 127,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 128,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 129,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 130,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 131,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 132,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 133,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 134,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 135,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 136,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 137,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 138,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 139,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 140,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 141,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 142,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 143,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      },
+      {
+        "node": 144,
+        "values": [
+          {
+            "dof": "Uz",
+            "value": -132240.47849999997
+          }
+        ]
+      }
+    ],
+    "lateral": [
+      {
+        "node": 22,
+        "values": [
+          {
+            "dof": "Ux",
+            "value": 211584.76559999996
+          }
+        ]
+      },
+      {
+        "node": 38,
+        "values": [
+          {
+            "dof": "Ux",
+            "value": 211584.76559999996
+          }
+        ]
+      },
+      {
+        "node": 54,
+        "values": [
+          {
+            "dof": "Ux",
+            "value": 211584.76559999996
+          }
+        ]
+      },
+      {
+        "node": 70,
+        "values": [
+          {
+            "dof": "Ux",
+            "value": 211584.76559999996
+          }
+        ]
+      },
+      {
+        "node": 86,
+        "values": [
+          {
+            "dof": "Ux",
+            "value": 211584.76559999996
+          }
+        ]
+      },
+      {
+        "node": 102,
+        "values": [
+          {
+            "dof": "Ux",
+            "value": 211584.76559999996
+          }
+        ]
+      },
+      {
+        "node": 118,
+        "values": [
+          {
+            "dof": "Ux",
+            "value": 211584.76559999996
+          }
+        ]
+      },
+      {
+        "node": 134,
+        "values": [
+          {
+            "dof": "Ux",
+            "value": 211584.76559999996
+          }
+        ]
+      }
+    ]
+  },
+  "modal": {
+    "n": 12,
+    "mass_kind": "lumped",
+    "directions": [
+      [
+        1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        1.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ]
+  },
+  "spectrum": {
+    "zone": "V",
+    "Z": 0.4,
+    "soil": "D",
+    "R": 8.0,
+    "eta": 1.8,
+    "Fa": 1.2,
+    "Fd": 1.19,
+    "Fs": 1.02,
+    "zeta": 0.05,
+    "g": 9.80665,
+    "r": 1.0,
+    "direction": {
+      "axis": "X",
+      "vector": [
+        1.0,
+        0.0,
+        0.0
+      ]
+    },
+    "directional_combination": {
+      "method": "weightedSum",
+      "factors": [
+        1.0
+      ]
+    },
+    "interpolation": "linear",
+    "extrapolation": "error",
+    "Sa": {
+      "unit": "m/s^2",
+      "pairs": [
+        [
+          0.0,
+          0.5883989999999999
+        ],
+        [
+          0.05,
+          0.8210827370242214
+        ],
+        [
+          0.1,
+          1.0537664740484427
+        ],
+        [
+          0.10115,
+          1.0591182
+        ],
+        [
+          0.15000000000000002,
+          1.0591182000000001
+        ],
+        [
+          0.2,
+          1.0591182000000001
+        ],
+        [
+          0.25,
+          1.0591182000000001
+        ],
+        [
+          0.30000000000000004,
+          1.0591182000000001
+        ],
+        [
+          0.35000000000000003,
+          1.0591182000000001
+        ],
+        [
+          0.4,
+          1.0591182000000001
+        ],
+        [
+          0.45,
+          1.0591182000000001
+        ],
+        [
+          0.5,
+          1.0591182000000001
+        ],
+        [
+          0.55,
+          1.0591182000000001
+        ],
+        [
+          0.5563250000000001,
+          1.0591182000000001
+        ],
+        [
+          0.6000000000000001,
+          0.982023221025
+        ],
+        [
+          0.65,
+          0.9064829732538463
+        ],
+        [
+          0.7000000000000001,
+          0.8417341894500001
+        ],
+        [
+          0.75,
+          0.7856185768200001
+        ],
+        [
+          0.8,
+          0.7365174157687501
+        ],
+        [
+          0.8500000000000001,
+          0.6931928619
+        ],
+        [
+          0.9,
+          0.6546821473500001
+        ],
+        [
+          0.9500000000000001,
+          0.6202251922263158
+        ],
+        [
+          1.0,
+          0.5892139326150001
+        ],
+        [
+          1.05,
+          0.5611561263
+        ],
+        [
+          1.1,
+          0.53564902965
+        ],
+        [
+          1.1500000000000001,
+          0.5123599414043479
+        ],
+        [
+          1.2000000000000002,
+          0.4910116105125
+        ],
+        [
+          1.25,
+          0.47137114609200015
+        ],
+        [
+          1.3,
+          0.45324148662692315
+        ],
+        [
+          1.35,
+          0.43645476490000007
+        ],
+        [
+          1.4000000000000001,
+          0.42086709472500006
+        ],
+        [
+          1.4500000000000002,
+          0.40635443628620693
+        ],
+        [
+          1.5,
+          0.39280928841000007
+        ],
+        [
+          1.55,
+          0.38013802104193556
+        ],
+        [
+          1.6,
+          0.36825870788437504
+        ],
+        [
+          1.6500000000000001,
+          0.3570993531
+        ],
+        [
+          1.7000000000000002,
+          0.34659643095
+        ],
+        [
+          1.75,
+          0.33669367578000003
+        ],
+        [
+          1.8,
+          0.32734107367500004
+        ],
+        [
+          1.85,
+          0.3184940176297298
+        ],
+        [
+          1.9000000000000001,
+          0.3101125961131579
+        ],
+        [
+          1.9500000000000002,
+          0.30216099108461536
+        ],
+        [
+          2.0,
+          0.29460696630750005
+        ],
+        [
+          2.0500000000000003,
+          0.28742143054390246
+        ],
+        [
+          2.1,
+          0.28057806315
+        ],
+        [
+          2.15,
+          0.27405299191395355
+        ],
+        [
+          2.2,
+          0.267824514825
+        ],
+        [
+          2.25,
+          0.26187285894000006
+        ],
+        [
+          2.3000000000000003,
+          0.25617997070217396
+        ],
+        [
+          2.35,
+          0.2507293330276596
+        ],
+        [
+          2.4000000000000004,
+          0.24550580525625
+        ],
+        [
+          2.45,
+          0.24049548270000004
+        ],
+        [
+          2.5,
+          0.23568557304600007
+        ],
+        [
+          2.5500000000000003,
+          0.2310642873
+        ],
+        [
+          2.6,
+          0.22662074331346158
+        ],
+        [
+          2.6500000000000004,
+          0.2223448802320755
+        ],
+        [
+          2.7,
+          0.21822738245000003
+        ],
+        [
+          2.75,
+          0.21425961186000006
+        ],
+        [
+          2.8000000000000003,
+          0.21043354736250003
+        ],
+        [
+          2.85,
+          0.20674173074210528
+        ],
+        [
+          2.856,
+          0.20630739937500003
+        ],
+        [
+          2.9000000000000004,
+          0.20009452931610455
+        ],
+        [
+          2.95,
+          0.19336914582573284
+        ],
+        [
+          3.0,
+          0.18697722128316
+        ],
+        [
+          3.0500000000000003,
+          0.18089706977139905
+        ],
+        [
+          3.1,
+          0.1751087400154464
+        ],
+        [
+          3.1500000000000004,
+          0.16959385150399997
+        ],
+        [
+          3.2,
+          0.16433544839340236
+        ],
+        [
+          3.25,
+          0.15931786902233752
+        ],
+        [
+          3.3000000000000003,
+          0.15452662915963636
+        ],
+        [
+          3.35,
+          0.1499483173578472
+        ],
+        [
+          3.4000000000000004,
+          0.14557050099899999
+        ],
+        [
+          3.45,
+          0.14138164180201138
+        ],
+        [
+          3.5,
+          0.13737101971824
+        ],
+        [
+          3.5500000000000003,
+          0.13352866427680538
+        ],
+        [
+          3.6,
+          0.12984529255775
+        ],
+        [
+          3.6500000000000004,
+          0.12631225307175378
+        ],
+        [
+          3.7,
+          0.12292147491223081
+        ],
+        [
+          3.75,
+          0.11966542162122239
+        ],
+        [
+          3.8000000000000003,
+          0.11653704927620775
+        ],
+        [
+          3.85,
+          0.11352976836218183
+        ],
+        [
+          3.9000000000000004,
+          0.11063740904328992
+        ],
+        [
+          3.95,
+          0.1078541894919686
+        ],
+        [
+          4.0,
+          0.1051746869717775
+        ],
+        [
+          4.05,
+          0.10259381140365431
+        ],
+        [
+          4.1000000000000005,
+          0.10010678117480305
+        ],
+        [
+          4.15,
+          0.09770910097537755
+        ],
+        [
+          4.2,
+          0.095396541471
+        ],
+        [
+          4.25,
+          0.09316512063935999
+        ],
+        [
+          4.3,
+          0.09101108661700597
+        ],
+        [
+          4.3500000000000005,
+          0.08893090191826872
+        ],
+        [
+          4.4,
+          0.08692122890229546
+        ],
+        [
+          4.45,
+          0.08497891637664134
+        ],
+        [
+          4.5,
+          0.08310098723696
+        ],
+        [
+          4.55,
+          0.08128462705221302
+        ],
+        [
+          4.6000000000000005,
+          0.07952717351363137
+        ],
+        [
+          4.65,
+          0.07782610667353174
+        ],
+        [
+          4.7,
+          0.0761790399071272
+        ],
+        [
+          4.75,
+          0.07458371153677297
+        ],
+        [
+          4.800000000000001,
+          0.07303797706373436
+        ],
+        [
+          4.8500000000000005,
+          0.07153980195763376
+        ],
+        [
+          4.9,
+          0.0700872549582857
+        ],
+        [
+          4.95,
+          0.06867850184872727
+        ],
+        [
+          5.0,
+          0.0673117996619376
+        ],
+        [
+          5.050000000000001,
+          0.06598549128706754
+        ],
+        [
+          5.1000000000000005,
+          0.064698000444
+        ],
+        [
+          5.15,
+          0.0634478269977732
+        ],
+        [
+          5.2,
+          0.06223354258685059
+        ],
+        [
+          5.25,
+          0.061053786541439996
+        ],
+        [
+          5.300000000000001,
+          0.05990726207007617
+        ],
+        [
+          5.3500000000000005,
+          0.05879273269450398
+        ],
+        [
+          5.4,
+          0.05770901891455555
+        ],
+        [
+          5.45,
+          0.056654995086219684
+        ],
+        [
+          5.5,
+          0.055629586497469095
+        ],
+        [
+          5.550000000000001,
+          0.054631766627658146
+        ],
+        [
+          5.6000000000000005,
+          0.05366055457743748
+        ],
+        [
+          5.65,
+          0.052715012657167826
+        ],
+        [
+          5.7,
+          0.051794244122758994
+        ],
+        [
+          5.75,
+          0.05089739104872409
+        ],
+        [
+          5.800000000000001,
+          0.05002363232902614
+        ],
+        [
+          5.8500000000000005,
+          0.049172181797017746
+        ],
+        [
+          5.9,
+          0.04834228645643321
+        ],
+        [
+          5.95,
+          0.04753322481600001
+        ],
+        [
+          6.0,
+          0.04674430532079
+        ],
+        [
+          6.050000000000001,
+          0.04597486487394139
+        ],
+        [
+          6.1000000000000005,
+          0.04522426744284976
+        ],
+        [
+          6.15,
+          0.04449190274435693
+        ],
+        [
+          6.2,
+          0.0437771850038616
+        ],
+        [
+          6.25,
+          0.04307955178364006
+        ],
+        [
+          6.300000000000001,
+          0.04239846287599999
+        ],
+        [
+          6.3500000000000005,
+          0.04173339925719982
+        ],
+        [
+          6.4,
+          0.04108386209835059
+        ],
+        [
+          6.45,
+          0.04044937182978043
+        ],
+        [
+          6.5,
+          0.03982946725558438
+        ],
+        [
+          6.550000000000001,
+          0.03922370471530656
+        ],
+        [
+          6.6000000000000005,
+          0.03863165728990909
+        ],
+        [
+          6.65,
+          0.038052914049373956
+        ],
+        [
+          6.7,
+          0.0374870793394618
+        ],
+        [
+          6.75,
+          0.03693377210531556
+        ],
+        [
+          6.800000000000001,
+          0.036392625249749996
+        ],
+        [
+          6.8500000000000005,
+          0.035863285024208845
+        ],
+        [
+          6.9,
+          0.035345410450502844
+        ],
+        [
+          6.95,
+          0.03483867277156338
+        ],
+        [
+          7.0,
+          0.03434275492956
+        ],
+        [
+          7.050000000000001,
+          0.03385735106983431
+        ],
+        [
+          7.1000000000000005,
+          0.033382166069201344
+        ],
+        [
+          7.15,
+          0.03291691508725981
+        ],
+        [
+          7.2,
+          0.0324613231394375
+        ],
+        [
+          7.25,
+          0.03201512469057675
+        ],
+        [
+          7.300000000000001,
+          0.031578063267938446
+        ],
+        [
+          7.3500000000000005,
+          0.031149891092571425
+        ],
+        [
+          7.4,
+          0.030730368728057702
+        ],
+        [
+          7.45,
+          0.03031926474570407
+        ],
+        [
+          7.5,
+          0.029916355405305597
+        ],
+        [
+          7.550000000000001,
+          0.029521424350659
+        ],
+        [
+          7.6000000000000005,
+          0.02913426231905194
+        ],
+        [
+          7.65,
+          0.028754666863999995
+        ],
+        [
+          7.7,
+          0.028382442090545457
+        ],
+        [
+          7.75,
+          0.028017398402471427
+        ],
+        [
+          7.800000000000001,
+          0.02765935226082248
+        ],
+        [
+          7.8500000000000005,
+          0.02730812595315737
+        ],
+        [
+          7.9,
+          0.02696354737299215
+        ],
+        [
+          7.95,
+          0.026625449808922747
+        ],
+        [
+          8.0,
+          0.026293671742944374
+        ],
+        [
+          8.05,
+          0.025968056657512284
+        ],
+        [
+          8.1,
+          0.025648452850913578
+        ],
+        [
+          8.15,
+          0.025334713260543342
+        ],
+        [
+          8.200000000000001,
+          0.025026695293700763
+        ],
+        [
+          8.25,
+          0.024724260665541814
+        ],
+        [
+          8.3,
+          0.024427275243844387
+        ],
+        [
+          8.35,
+          0.024135608900260896
+        ],
+        [
+          8.4,
+          0.02384913536775
+        ],
+        [
+          8.450000000000001,
+          0.023567732103896077
+        ],
+        [
+          8.5,
+          0.023291280159839996
+        ],
+        [
+          8.55,
+          0.02301966405455955
+        ],
+        [
+          8.6,
+          0.02275277165425149
+        ],
+        [
+          8.65,
+          0.02249049405657977
+        ],
+        [
+          8.700000000000001,
+          0.02223272547956718
+        ],
+        [
+          8.75,
+          0.021979363154918396
+        ],
+        [
+          8.8,
+          0.021730307225573866
+        ],
+        [
+          8.85,
+          0.021485460647303653
+        ],
+        [
+          8.9,
+          0.021244729094160336
+        ],
+        [
+          8.950000000000001,
+          0.021008020867618857
+        ],
+        [
+          9.0,
+          0.02077524680924
+        ],
+        [
+          9.05,
+          0.020546320216702052
+        ],
+        [
+          9.1,
+          0.020321156763053256
+        ],
+        [
+          9.15,
+          0.020099674419044346
+        ],
+        [
+          9.200000000000001,
+          0.01988179337840784
+        ],
+        [
+          9.25,
+          0.01966743598595693
+        ],
+        [
+          9.3,
+          0.019456526668382934
+        ],
+        [
+          9.35,
+          0.01924899186763637
+        ],
+        [
+          9.4,
+          0.0190447599767818
+        ],
+        [
+          9.450000000000001,
+          0.018843761278222217
+        ],
+        [
+          9.5,
+          0.018645927884193243
+        ],
+        [
+          9.55,
+          0.018451193679432473
+        ],
+        [
+          9.600000000000001,
+          0.01825949426593359
+        ],
+        [
+          9.65,
+          0.018070766909698947
+        ],
+        [
+          9.700000000000001,
+          0.01788495048940844
+        ],
+        [
+          9.75,
+          0.01770198544692639
+        ],
+        [
+          9.8,
+          0.017521813739571426
+        ],
+        [
+          9.850000000000001,
+          0.01734437879407807
+        ],
+        [
+          9.9,
+          0.017169625462181818
+        ],
+        [
+          9.950000000000001,
+          0.016997499977762575
+        ],
+        [
+          10.0,
+          0.0168279499154844
+        ]
+      ]
+    }
+  },
+  "combination": {
+    "method": "cqc",
+    "zeta": 0.05
+  }
+}

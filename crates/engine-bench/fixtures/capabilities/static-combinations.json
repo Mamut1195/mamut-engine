@@ -1,0 +1,61 @@
+{
+  "schema": "bench-model/1",
+  "id": "cap-static-combinations",
+  "units": "SI",
+  "source": {
+    "geometry": "Columna en voladizo. Casos D, L y EX separados.",
+    "material": "Valores de prueba.",
+    "torsion": "J declarado.",
+    "mass": "Masa nula. La estática no la usa.",
+    "spectrum": "Tabla mínima en m/s^2."
+  },
+  "stories": [{"level": 1, "h": 3.0, "mass": {"m": 0.0, "Izz": 0.0}}],
+  "grid": {"x": [0.0, 6.0], "y": [0.0, 6.0]},
+  "nodes": [
+    {"id": 1, "story": 0, "ix": 0, "iy": 0, "coordinates": [0.0, 0.0, 0.0]},
+    {"id": 2, "story": 1, "ix": 0, "iy": 0, "coordinates": [0.0, 0.0, 3.0]}
+  ],
+  "members": [
+    {
+      "id": 1,
+      "kind": "column",
+      "nodes": [1, 2],
+      "section": "column",
+      "orientation": {"kind": "local_z_vector", "vector": [1.0, 0.0, 0.0]}
+    }
+  ],
+  "sections": [
+    {"id": "column", "E": 2.5e10, "G": 1.0e10, "A": 0.25, "Iy": 0.002, "Iz": 0.002, "J": 0.001}
+  ],
+  "diaphragms": [],
+  "restraints": [
+    {"node": 1, "dofs": ["Ux", "Uy", "Uz", "Rx", "Ry", "Rz"]}
+  ],
+  "load_patterns": {
+    "gravity": [],
+    "lateral": [],
+    "patterns": [
+      {"name": "D", "actions": [{"node": 2, "values": [{"dof": "Uz", "value": -1000.0}]}]},
+      {"name": "L", "actions": [{"node": 2, "values": [{"dof": "Uz", "value": -400.0}]}]},
+      {"name": "EX", "actions": [{"node": 2, "values": [{"dof": "Ux", "value": 100.0}]}]}
+    ]
+  },
+  "modal": {"n": 1, "mass_kind": "lumped", "directions": [[1.0, 0.0, 0.0]]},
+  "spectrum": {
+    "zone": "V", "Z": 0.4, "soil": "D", "R": 8.0, "eta": 1.8,
+    "Fa": 1.2, "Fd": 1.19, "Fs": 1.02, "zeta": 0.05, "g": 9.80665, "r": 1.0,
+    "direction": {"axis": "X", "vector": [1.0, 0.0, 0.0]},
+    "directional_combination": {"method": "weightedSum", "factors": [1.0]},
+    "interpolation": "linear", "extrapolation": "error",
+    "Sa": {"unit": "m/s^2", "pairs": [[0.0, 1.0], [1.0, 1.0]]}
+  },
+  "combination": {"method": "cqc", "zeta": 0.05},
+  "static_combinations": [
+    {"id": "C1_1.4D", "terms": [{"case": "D", "factor": 1.4}]},
+    {"id": "C5_1.2D+L-EX", "terms": [
+      {"case": "D", "factor": 1.2},
+      {"case": "L", "factor": 1.0},
+      {"case": "EX", "factor": -1.0}
+    ]}
+  ]
+}
