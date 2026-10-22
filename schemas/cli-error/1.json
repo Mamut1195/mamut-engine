@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mamut:cli-error:1",
+  "title": "cli-error/1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "exitCode",
+    "outcome",
+    "code",
+    "diagnostics",
+    "pointer",
+    "hint",
+    "engineId",
+    "engineVersion",
+    "operation",
+    "messageKey",
+    "type",
+    "error"
+  ],
+  "properties": {
+    "schema": {
+      "const": "cli-error/1"
+    },
+    "exitCode": {
+      "enum": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        70
+      ]
+    },
+    "outcome": {
+      "enum": [
+        "usage",
+        "invalid_input",
+        "unsupported",
+        "not_converged",
+        "cancelled",
+        "timeout",
+        "internal"
+      ]
+    },
+    "code": {
+      "type": "string",
+      "pattern": "^(ENG-E-[0-9]{4}|API-[EWI]-[A-Z-]+|CLI-E-[A-Z-]+)$"
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/diagnostic"
+      }
+    },
+    "pointer": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^(?:/(?:[^~/]|~[01])*)*$"
+    },
+    "hint": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "engineId": {
+      "const": "mamut-engine"
+    },
+    "engineVersion": {
+      "type": "string"
+    },
+    "operation": {
+      "enum": [
+        "run",
+        "validate",
+        "compile",
+        "methods",
+        "describe",
+        "help",
+        "mcp",
+        "cli"
+      ]
+    },
+    "messageKey": {
+      "type": "string"
+    },
+    "type": {
+      "const": "result"
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^(ENG-E-[0-9]{4}|API-[EWI]-[A-Z-]+|CLI-E-[A-Z-]+)$"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "engineResults": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "object"
+      }
+    }
+  },
+  "$defs": {
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "severity",
+        "entities",
+        "cause",
+        "hint"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^(ENG-E-[0-9]{4}|API-[EWI]-[A-Z-]+|CLI-E-[A-Z-]+)$"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ]
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "cause": {
+          "type": "string"
+        },
+        "hint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "exitCode": {
+            "const": 2
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "outcome": {
+            "enum": [
+              "usage",
+              "invalid_input"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "exitCode": {
+            "const": 3
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "outcome": {
+            "enum": [
+              "unsupported"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "exitCode": {
+            "const": 4
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "outcome": {
+            "enum": [
+              "not_converged"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "exitCode": {
+            "const": 5
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "outcome": {
+            "enum": [
+              "cancelled"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "exitCode": {
+            "const": 6
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "outcome": {
+            "enum": [
+              "timeout"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "exitCode": {
+            "const": 70
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "outcome": {
+            "enum": [
+              "internal"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

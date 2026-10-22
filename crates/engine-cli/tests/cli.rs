@@ -22,6 +22,9 @@ use validate_report_schema::assert_validate_report;
 const RUN: &str = include_str!("../run.workflow.json");
 const VALIDATE: &str = include_str!("../validate.workflow.json");
 const INPUT: &str = include_str!("../../engine-api/tests/fixtures/determinism/cantilever.json");
+#[path = "support/schema.rs"]
+mod error_schema;
+
 static NEXT: AtomicUsize = AtomicUsize::new(0);
 
 struct Files(PathBuf);
@@ -99,6 +102,15 @@ fn value(bytes: &[u8]) -> Value {
     serde_json::from_slice(bytes).unwrap()
 }
 fn assert_code(output: &Output, code: i32) {
+    if code == 2 && !output.stdout.is_empty() {
+        let report = value(&output.stdout);
+        assert_validate_report(&report);
+        assert_eq!(report["status"], "invalid");
+        assert!(output.stderr.is_empty());
+    } else if code > 1 {
+        error_schema::assert_error_stream(&output.stderr, code);
+        assert!(output.stdout.is_empty(), "stdout de fallo debe estar vacío");
+    }
     assert_eq!(
         output.status.code(),
         Some(code),
@@ -186,6 +198,8 @@ fn timeout_flag_and_environment_cancel_heavy_consolidation_with_six() {
         let envelope = value(&output.stderr);
         assert_eq!(envelope["exitCode"], 6);
         assert_eq!(envelope["outcome"], "timeout");
+        assert_eq!(envelope["code"], "CLI-E-TIMEOUT");
+        assert_eq!(envelope["operation"], "run");
         assert_eq!(envelope["engineId"], "mamut-engine");
     }
 }
@@ -203,7 +217,7 @@ fn interrupted_run(signal: &str) {
     files.write("input.json", &heavy_consolidation());
     let temporary = files.path("tmp");
     fs::create_dir(&temporary).unwrap();
-    // Verifica también que un plazo amplio no reclasifique la señal como timeout.
+    // A long deadline must not reclassify signal cancellation as timeout.
     for timeout in [false, true] {
         let mut command = files.command();
         command
@@ -232,14 +246,14 @@ fn interrupted_run(signal: &str) {
             bytes
         });
         write_child_stdin(&mut child, RUN);
-        // started se escribe después de instalar ambos manejadores. No enviar
-        // la señal durante exec/arranque; dejar entrar al método pesado.
+        // Both handlers are installed before started. Wait for the heavy method
+        // to begin rather than sending the signal during process startup.
         let first = match started.recv_timeout(Duration::from_secs(5)) {
             Ok(first) => first,
             Err(error) => {
                 let _ = child.kill();
                 let _ = child.wait();
-                panic!("No llegó started: {error}; stderr: {:?}", reader.join());
+                panic!("No started event: {error}; stderr: {:?}", reader.join());
             }
         };
         assert_eq!(value(first.as_bytes())["phase"], "started");
@@ -253,14 +267,14 @@ fn interrupted_run(signal: &str) {
         if !sent.status.success() {
             let _ = child.kill();
             let _ = child.wait();
-            panic!("No se pudo enviar {signal}: {sent:?}");
+            panic!("Could not send {signal}: {sent:?}");
         }
         let start = Instant::now();
         while child.try_wait().unwrap().is_none() {
             if start.elapsed() >= Duration::from_secs(1) {
                 let _ = child.kill();
                 let _ = child.wait();
-                panic!("{signal} no canceló el cálculo en 1 s");
+                panic!("{signal} did not cancel computation within 1 s");
             }
             thread::sleep(Duration::from_millis(5));
         }
@@ -272,24 +286,37 @@ fn interrupted_run(signal: &str) {
         let lines: Vec<Value> = std::str::from_utf8(&output.stderr)
             .unwrap()
             .lines()
-            .map(|line| serde_json::from_str(line).expect("Línea JSON completa"))
+            .map(|line| serde_json::from_str(line).expect("Complete JSON line"))
             .collect();
         let (envelope, events) = lines.split_last().unwrap();
         assert_eq!(events.len(), 1);
         assert_eq!(events[0]["phase"], "started");
+        assert_eq!(envelope["schema"], "cli-error/1");
+        assert_eq!(envelope["code"], "CLI-E-CANCELLED");
         assert_eq!(envelope["exitCode"], 5);
         assert_eq!(envelope["outcome"], "cancelled");
         assert_eq!(envelope["engineId"], "mamut-engine");
         assert_eq!(envelope["type"], "result");
         assert_eq!(envelope["operation"], "run");
-        assert_eq!(envelope["error"]["code"], "WF-E-0005");
-        assert_eq!(envelope["error"]["message"], "Execution was cancelled");
+        assert_eq!(envelope["error"]["code"], "CLI-E-CANCELLED");
+        assert_eq!(envelope["error"]["message"], "Execution was cancelled.");
         assert!(envelope.get("data").is_none());
+        // Match external cancellation: retain only the failed API document,
+        // if produced, with no prior results or partial workflow manifest.
+        if let Some(results) = envelope.get("engineResults") {
+            let documents = results.as_array().unwrap();
+            assert_eq!(documents.len(), 1);
+            assert_eq!(documents[0]["schema"], "results/1");
+            assert_eq!(documents[0]["status"], "cancelled");
+        }
         assert_eq!(fs::read_dir(&temporary).unwrap().count(), 0);
         assert_eq!(fs::read_dir(&directory).unwrap().count(), 3);
     }
     drop(files);
-    assert!(!directory.exists(), "Directorio temporal sin recoger");
+    assert!(
+        !directory.exists(),
+        "Temporary directory was not cleaned up"
+    );
 }
 
 #[cfg(unix)]
@@ -331,6 +358,8 @@ fn timeout_with_ndjson_emits_only_complete_json_lines_and_timeout_last() {
             }
             assert_eq!(envelope["exitCode"], 6);
             assert_eq!(envelope["outcome"], "timeout");
+            assert_eq!(envelope["code"], "CLI-E-TIMEOUT");
+            assert_eq!(envelope["operation"], "run");
             assert_eq!(envelope["engineId"], "mamut-engine");
             assert!(envelope.get("engineResults").is_none());
         }
@@ -369,7 +398,8 @@ fn invalid_timeout_is_usage_and_flag_overrides_environment() {
             let envelope = value(&output.stderr);
             assert_eq!(envelope["outcome"], "usage");
             assert_eq!(envelope["exitCode"], 2);
-            assert_eq!(envelope["error"]["message"], "Invalid command or arguments");
+            assert_eq!(envelope["code"], "CLI-E-USAGE");
+            assert_eq!(envelope["operation"], "run");
             assert_eq!(envelope["engineId"], "mamut-engine");
         }
     }
@@ -397,6 +427,34 @@ fn invalid_timeout_is_usage_and_flag_overrides_environment() {
         assert_code(&output, 0);
         assert_eq!(output.stdout, baseline.stdout);
         assert_eq!(output.stderr, baseline.stderr);
+    }
+}
+
+#[test]
+fn leading_timeout_preserves_command_identity_on_usage_and_transport_failures() {
+    let files = Files::new();
+    for command in ["run", "validate", "methods", "compile", "mcp", "describe"] {
+        let output = files
+            .command()
+            .args(["--timeout", "31536001", command])
+            .output()
+            .unwrap();
+        assert_code(&output, 2);
+        let envelope = value(&output.stderr);
+        assert_eq!(envelope["operation"], command);
+        assert_eq!(envelope["code"], "CLI-E-USAGE");
+    }
+    for command in ["run", "validate"] {
+        let output = files
+            .command()
+            .args(["--timeout", "60", command, "--input"])
+            .arg(files.path("missing-private-path.json"))
+            .output()
+            .unwrap();
+        assert_code(&output, 2);
+        let envelope = value(&output.stderr);
+        assert_eq!(envelope["operation"], command);
+        assert_eq!(envelope["code"], "CLI-E-DOCUMENT");
     }
 }
 
@@ -774,7 +832,9 @@ fn direct_validation_preserves_cooperative_cancellation() {
             5
         );
         assert!(stdout.is_empty());
-        assert_eq!(value(&stderr)["exitCode"], 5);
+        let envelope = error_schema::assert_error_stream(&stderr, 5);
+        assert_eq!(envelope["operation"], "validate");
+        assert_eq!(envelope["code"], "CLI-E-CANCELLED");
     }
 }
 
@@ -798,10 +858,14 @@ fn input_size_boundary_and_transport_errors_are_bounded_and_sanitized() {
             assert_code(&output, 2);
             assert!(output.stdout.is_empty());
             let error = value(&output.stderr);
+            assert_eq!(error["code"], "CLI-E-DOCUMENT");
+            assert_eq!(error["operation"], command);
             assert!(error.get("engineResults").is_none());
             if command == "validate" {
                 let previous = with_input_stdin(&files, &["run", "--input", "-"], bytes);
-                assert_eq!(output.stderr, previous.stderr);
+                let mut previous_error = value(&previous.stderr);
+                previous_error["operation"] = json!("validate");
+                assert_eq!(value(&output.stderr), previous_error);
             }
         }
         for (name, bytes) in [
@@ -835,7 +899,9 @@ fn input_size_boundary_and_transport_errors_are_bounded_and_sanitized() {
                 .arg(files.path("missing-private-path.json"))
                 .output()
                 .unwrap();
-            assert_eq!(output.stderr, previous.stderr);
+            let mut previous_error = value(&previous.stderr);
+            previous_error["operation"] = json!("validate");
+            assert_eq!(value(&output.stderr), previous_error);
         }
     }
 }
@@ -1048,7 +1114,14 @@ fn stdin_workflow_ndjson_and_complete_api_result_preserve_manifest() {
         ),
         0
     );
-    assert_eq!(envelope["data"], value(&base_stdout)["data"]);
+    let mut expected = value(&base_stdout);
+    assert_eq!(envelope["data"], expected["data"]);
+    // Reconstruye los bytes del adaptador anterior a ENG-CONT-001 a partir del SDK.
+    expected["engineId"] = json!("mamut-engine");
+    expected["engineVersion"] = engine_api::version()["engine_version"].clone();
+    expected["operation"] = json!("run");
+    expected["engineResults"] = json!([value(api.document.as_bytes())]);
+    assert_eq!(output.stdout, format!("{expected}\n").as_bytes());
     let events: Vec<Value> = String::from_utf8(output.stderr)
         .unwrap()
         .lines()
@@ -1239,6 +1312,7 @@ fn cancellation_before_workflow_and_during_engine_stages_returns_five() {
         );
         assert!(stdout.is_empty());
         assert_eq!(value(&stderr)["outcome"], "cancelled");
+        assert_eq!(value(&stderr)["code"], "CLI-E-CANCELLED");
         assert!(control.flag().is_cancelled());
         assert!(control.token().is_cancelled());
     }
@@ -1279,6 +1353,7 @@ fn cancellation_before_workflow_and_during_engine_stages_returns_five() {
         assert!(control.token().is_cancelled());
         assert!(stdout.is_empty());
         assert_eq!(value(&stderr)["outcome"], "cancelled");
+        assert_eq!(value(&stderr)["code"], "CLI-E-CANCELLED");
         if via_file {
             fs::remove_file(files.path("cancel")).unwrap();
             // Quitar el marcador no revoca una cancelación ya sincronizada.
@@ -1491,4 +1566,94 @@ fn sfc010_cli_rejects_experimental_methods_without_job_opt_in() {
                 .contains("options.allow_experimental = true"));
         }
     }
+}
+
+#[test]
+fn binary_failures_without_progress_have_exactly_one_error_line() {
+    let files = Files::new();
+    let output = files.command().arg("unknown").output().unwrap();
+    assert_code(&output, 2);
+    assert_eq!(value(&output.stderr)["code"], "CLI-E-USAGE");
+    assert_eq!(value(&output.stderr)["operation"], "cli");
+    let cases = [
+        ("{private-invalid-json".into(), 2, "API-E-INPUT"),
+        (
+            {
+                let mut input = value(INPUT.as_bytes());
+                input["model"]["members"][0]["element"] = json!("unknown");
+                input.to_string()
+            },
+            3,
+            "ENG-E-0013",
+        ),
+        (
+            {
+                let mut input = value(INPUT.as_bytes());
+                input["model"]["supports"] = json!([]);
+                input.to_string()
+            },
+            4,
+            "ENG-E-0006",
+        ),
+    ];
+    for (input, exit_code, code) in cases {
+        files.write("input.json", &input);
+        let output = files.run(RUN, false);
+        assert_code(&output, exit_code);
+        let envelope = value(&output.stderr); // falla también si hay varias líneas
+        assert_eq!(envelope["code"], code);
+        assert_eq!(envelope["operation"], "run");
+        assert!(!String::from_utf8_lossy(&output.stderr).contains("private-invalid-json"));
+    }
+    for command in ["methods", "mcp"] {
+        let output = files
+            .command()
+            .args([command, "--catalog"])
+            .arg(files.path("private-missing.json"))
+            .output()
+            .unwrap();
+        assert_code(&output, 2);
+        let envelope = value(&output.stderr);
+        assert_eq!(envelope["code"], "CLI-E-DOCUMENT");
+        assert_eq!(envelope["operation"], command);
+        assert!(!String::from_utf8_lossy(&output.stderr).contains("private-missing.json"));
+    }
+}
+
+#[test]
+fn mcp_sdk_protocol_errors_stay_in_rpc_but_terminal_transport_errors_use_cli_error() {
+    let files = Files::new();
+    for (input, exit_code) in [("{\n", 0), ("Content-Length: 10\r\n\r\nx", 70)] {
+        let mut child = files
+            .command()
+            .args(["mcp", "--catalog"])
+            .arg(files.path("catalog.json"))
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        write_child_stdin(&mut child, input);
+        let output = child.wait_with_output().unwrap();
+        assert_code(&output, exit_code);
+        if exit_code == 0 {
+            assert!(output.stderr.is_empty());
+            assert_eq!(value(&output.stdout)["error"]["code"], -32700);
+        } else {
+            assert_eq!(value(&output.stderr)["operation"], "mcp");
+        }
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn non_utf8_argument_is_a_sanitized_usage_error() {
+    use std::{ffi::OsString, os::unix::ffi::OsStringExt};
+    let output = Files::new()
+        .command()
+        .arg(OsString::from_vec(vec![0xff]))
+        .output()
+        .unwrap();
+    assert_code(&output, 2);
+    assert_eq!(value(&output.stderr)["code"], "CLI-E-USAGE");
 }

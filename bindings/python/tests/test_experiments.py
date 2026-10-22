@@ -676,6 +676,71 @@ class WorkflowTimeoutTest(unittest.TestCase):
                     pid_file.unlink(missing_ok=True)
 
 
+class WorkflowFailureEnvelopeTest(unittest.TestCase):
+    def test_cli_error_without_engine_results_through_public_workflow_functions(self):
+        for exit_code, code, outcome, cls in [
+            (2, "CLI-E-USAGE", "usage", engine.InvalidInputError),
+            (2, "CLI-E-DOCUMENT", "invalid_input", engine.InvalidInputError),
+            (2, "CLI-E-VALIDATION", "invalid_input", engine.InvalidInputError),
+            (3, "CLI-E-UNSUPPORTED", "unsupported", engine.Unsupported),
+            (4, "CLI-E-NOT-CONVERGED", "not_converged", engine.AnalysisError),
+            (5, "CLI-E-CANCELLED", "cancelled", engine.Cancelled),
+            (6, "CLI-E-TIMEOUT", "timeout", engine.AnalysisError),
+            (70, "CLI-E-INTERNAL", "internal", engine.InternalEngineError),
+        ]:
+            envelope = {
+                "schema": "cli-error/1", "type": "result", "engineId": "mamut-engine",
+                "engineVersion": engine.__version__, "operation": "compile",
+                "exitCode": exit_code, "outcome": outcome, "code": code,
+                "messageKey": f"errors.{code}", "diagnostics": [],
+                "error": {"code": code, "message": f"Failure: {code}"},
+                "pointer": None, "hint": None,
+            }
+            with TemporaryDirectory() as directory:
+                executable = Path(directory) / "failure-cli"
+                executable.write_text(
+                    f"#!{sys.executable}\nimport sys\n"
+                    f"sys.stderr.write({json.dumps(envelope)!r})\nsys.exit({exit_code})\n",
+                    encoding="utf-8")
+                executable.chmod(0o755)
+                compiled = ex.CompiledWorkflow("{}", "{}", "{}", str(executable))
+                for operation in (
+                    lambda: ex.compile_workflow({}, {}, executable=str(executable)),
+                    lambda: ex.run_workflow(compiled, BASE, {"schema": "mamut.experiment/1",
+                                                           "name": "failure", "version": 1}),
+                ):
+                    with self.subTest(code=code), self.assertRaises(cls) as caught:
+                        operation()
+                    error = caught.exception
+                    self.assertEqual(error.code, code)
+                    self.assertEqual(error.cause, envelope["error"]["message"])
+                    self.assertEqual(error.diagnostics, [])
+                    self.assertIsNone(error.results)
+                    self.assertIsNone(error.document)
+                    self.assertEqual(error.details["workflow_envelope"], envelope)
+
+    def test_envelope_diagnostics_and_metadata_are_independent_copies(self):
+        envelope = {"schema": "cli-error/1", "code": "ENG-E-0014",
+                    "error": {"code": "ENG-E-0014", "message": "Massless mechanism"},
+                    "diagnostics": [{"code": "ENG-E-0014", "severity": "error"}],
+                    "hint": "Review supports", "pointer": None}
+        error = workflows._failure(4, envelope)
+        self.assertIsInstance(error, engine.Unstable)
+        self.assertEqual(error.diagnostics, envelope["diagnostics"])
+        snapshot = deepcopy(envelope)
+        envelope["diagnostics"].clear()
+        envelope["error"]["message"] = "changed"
+        self.assertEqual(error.cause, "Massless mechanism")
+        self.assertEqual(error.diagnostics, snapshot["diagnostics"])
+        self.assertEqual(error.details["workflow_envelope"], snapshot)
+
+    def test_legacy_sdk_envelope_is_still_supported(self):
+        error = workflows._failure(2, {"exit_code": 2, "message": "Legacy failure"})
+        self.assertIsInstance(error, engine.InvalidInputError)
+        self.assertEqual(error.code, "SDK-EXIT-2")
+        self.assertEqual(error.cause, "Legacy failure")
+
+
 @unittest.skipUnless(CLI, "Defina MAMUT_EXPERIMENT_CLI con el binario Rust local")
 class WorkflowTest(unittest.TestCase):
     def setUp(self):
@@ -722,8 +787,13 @@ class WorkflowTest(unittest.TestCase):
         self.assertEqual(caught.exception.diagnostics, caught.exception.results.diagnostics)
         self.assertIn("workflow_envelope", caught.exception.details)
         self.workflow["steps"][0]["method_id"] = "python.function"
-        with self.assertRaises(engine.InvalidInputError):
+        with self.assertRaises(engine.InvalidInputError) as caught:
             ex.compile_workflow(self.catalog, self.workflow, executable=CLI)
+        error = caught.exception
+        self.assertEqual(error.code, "CLI-E-VALIDATION")
+        self.assertEqual(error.cause, error.details["workflow_envelope"]["error"]["message"])
+        self.assertNotIn("engineResults", error.details["workflow_envelope"])
+        self.assertIsNone(error.results)
 
     def test_sdk_no_transport_silencing_and_profile_policy(self):
         with self.assertRaises(engine.InvalidInputError) as caught:

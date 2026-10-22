@@ -1,3 +1,8 @@
 {
-  "additional_schemas": []
+  "additional_schemas": [
+    {
+      "kind": "cli-error/1",
+      "source": "crates/engine-cli/schemas/cli-error-1.json"
+    }
+  ]
 }

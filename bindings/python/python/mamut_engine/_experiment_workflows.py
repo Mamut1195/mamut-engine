@@ -60,7 +60,16 @@ def _failure(code: int, envelope: dict[str, Any]) -> EngineError:
     else:
         cls = {2: InvalidInputError, 3: Unsupported, 4: AnalysisError,
                5: Cancelled, 6: AnalysisError}.get(code, InternalEngineError)
-        error = cls(envelope.get("message", "Fallo de workflow SDK"), code=f"SDK-EXIT-{code}")
+        if envelope.get("schema") == "cli-error/1":
+            primary = envelope["error"]
+            error_code = envelope["code"]
+            cls = {"ENG-E-0006": Unstable, "ENG-E-0014": Unstable,
+                   "ENG-E-0007": NotConverged}.get(error_code, cls)
+            error = cls(primary["message"], code=error_code, details=deepcopy(primary))
+            error.diagnostics = deepcopy(envelope["diagnostics"])
+        else:
+            error = cls(envelope.get("message", "Fallo de workflow SDK"),
+                        code=f"SDK-EXIT-{code}")
     error.details["workflow_envelope"] = deepcopy(envelope)
     return error
 

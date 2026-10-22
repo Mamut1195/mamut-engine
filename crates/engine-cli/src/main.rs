@@ -3,7 +3,15 @@
 #![forbid(unsafe_code)]
 
 fn main() -> std::process::ExitCode {
-    let args = std::env::args().skip(1).collect::<Vec<_>>();
+    let args = match std::env::args_os()
+        .skip(1)
+        .map(|arg| arg.into_string())
+        .collect::<Result<Vec<_>, _>>()
+    {
+        Ok(args) => args,
+        // El parser clasifica el argumento inválido sin reflejar bytes privados.
+        Err(_) => vec![String::new()],
+    };
     let mut control = engine_cli::Control::default();
     if let Some(path) = std::env::var_os("MAMUT_ENGINE_CANCEL_FILE") {
         control = control.with_cancel_file(path.into());

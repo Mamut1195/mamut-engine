@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! Puente Unix de flags de señales al token cooperativo existente.
+//! Bridge Unix signal flags to the existing cooperative cancellation token.
 use std::{
     io,
     sync::{
@@ -33,8 +33,8 @@ impl Signals {
             stop,
             thread: None,
         };
-        // El manejador solo escribe un atómico. Ni E/S ni cancelación del SDK
-        // (cuyo flag usa Rc<Cell<bool>>) se ejecutan en contexto de señal.
+        // The handler only writes an atomic. I/O and SDK cancellation
+        // (whose flag uses Rc<Cell<bool>>) never run in signal context.
         for signal in [SIGINT, SIGTERM] {
             signals
                 .registrations
@@ -45,8 +45,8 @@ impl Signals {
                 .name("mamut-engine-signals".into())
                 .spawn(move || loop {
                     if interrupted.load(Ordering::Relaxed) {
-                        // Como timeout, cancela el token incluso dentro de un solver;
-                        // Control sincroniza el flag SDK en su siguiente consulta.
+                        // Like timeout, cancel the token even inside a solver;
+                        // Control synchronizes the SDK flag on its next check.
                         token.cancel();
                         return;
                     }
@@ -67,7 +67,7 @@ impl Drop for Signals {
         for registration in self.registrations.drain(..) {
             low_level::unregister(registration);
         }
-        // También recoge el hilo sin esperar al próximo sondeo al salir o fallar.
+        // Join promptly on completion or failure without waiting for the next poll.
         let _ = self.stop.send(());
         if let Some(thread) = self.thread.take() {
             let _ = thread.join();

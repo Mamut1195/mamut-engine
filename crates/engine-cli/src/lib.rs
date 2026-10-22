@@ -20,14 +20,16 @@ use std::{
 use engine_api::{ApiError, CancelToken, Diagnostic, Progress, Status};
 use mamut_workflow::{CompiledStep, MethodDescriptor, RegisteredMethod};
 use mamut_workflow_cli::{
-    cli_run_failure_with_identity, dispatch, parse_args, CancelFlag, Cancellation, CliConfig,
-    CliIdentity, Command, ExitCodes, FailureKind, Method, MethodProvider,
+    dispatch, parse_args, CancelFlag, Cancellation, CliConfig, CliIdentity, Command, ExitCodes,
+    FailureKind, Method, MethodProvider,
 };
 use serde_json::{json, Value};
 
+mod error;
 #[cfg(unix)]
 mod signals;
 mod timeout;
+use error::report_failure;
 
 /// Catálogo propio; también disponible como archivo `catalog.json` del crate.
 pub const CATALOG: &str = include_str!("../catalog.json");
@@ -122,9 +124,9 @@ impl EngineCli {
         self
     }
 
-    /// Activa SIGINT/SIGTERM durante `run` mediante manejadores globales del proceso.
-    /// Solo Unix; el binario lo activa, la biblioteca no instala señales por defecto.
-    /// Retirar los registros al salir no restaura las disposiciones previas del SO.
+    /// Enable process-wide SIGINT/SIGTERM handlers during `run` on Unix.
+    /// The binary opts in; the library installs no handlers by default.
+    /// Removing registrations does not restore previous OS dispositions.
     #[cfg(unix)]
     #[must_use]
     pub fn with_signals(mut self) -> Self {
@@ -151,25 +153,17 @@ impl EngineCli {
         stdout: &mut O,
         stderr: &mut E,
     ) -> u8 {
+        let operation = error::operation(args);
         let (args, timeout) = match timeout::parse_timeout_args(args) {
             Ok(parsed) => parsed,
-            Err(kind) => {
-                return report_failure(kind, args.iter().any(|arg| arg == "run"), None, stderr);
-            }
+            Err(kind) => return report_failure(kind, operation, None, stderr),
         };
         let prepared = match PreparedArgs::new(&args) {
             Ok(prepared) => prepared,
-            Err(kind) => {
-                return report_failure(
-                    kind,
-                    args.first().is_some_and(|arg| arg == "run"),
-                    None,
-                    stderr,
-                );
-            }
+            Err(kind) => return report_failure(kind, operation, None, stderr),
         };
         if prepared.direct_validation {
-            // Timeout ya validado; esta vía breve no inicia un temporizador.
+            // Validate the timeout option without starting a timer on this short path.
             let input = match prepared.input.as_deref() {
                 Some("-") => read_engine_input(stdin),
                 Some(path) => read_engine_path(Some(Path::new(path))),
@@ -177,20 +171,14 @@ impl EngineCli {
             };
             let input = match input {
                 Ok(input) => input,
-                // Conservar el sobre de transporte de la abreviatura de #197.
-                Err(kind) => return report_failure(kind, true, None, stderr),
+                Err(kind) => return report_failure(kind, operation, None, stderr),
             };
             return self.validate_input(&input, stdout, stderr);
         }
         let command = match parse_args(&prepared.args) {
             Ok(command) => command,
             Err(error) => {
-                return report_failure(
-                    error.kind,
-                    args.first().is_some_and(|arg| arg == "run"),
-                    None,
-                    stderr,
-                );
+                return report_failure(error.kind, operation, None, stderr);
             }
         };
         let command = match command {
@@ -209,7 +197,7 @@ impl EngineCli {
         let _signals = if self.signals {
             match signals::Signals::start(self.control.token()) {
                 Ok(signals) => Some(signals),
-                Err(_) => return report_failure(FailureKind::Internal, is_run, None, stderr),
+                Err(_) => return report_failure(FailureKind::Internal, operation, None, stderr),
             }
         } else {
             None
@@ -219,7 +207,7 @@ impl EngineCli {
             .transpose()
         {
             Ok(timer) => timer,
-            Err(kind) => return report_failure(kind, is_run, None, stderr),
+            Err(kind) => return report_failure(kind, operation, None, stderr),
         };
         let input = match prepared.input.as_deref() {
             Some(source) => {
@@ -230,7 +218,7 @@ impl EngineCli {
                 };
                 match document {
                     Ok(document) => EngineInput::Document(Ok(Rc::from(document))),
-                    Err(kind) => return report_failure(kind, is_run, None, stderr),
+                    Err(kind) => return report_failure(kind, operation, None, stderr),
                 }
             }
             // Conservar la clasificación y el momento del fallo de la vía antigua:
@@ -287,14 +275,14 @@ impl EngineCli {
             } else {
                 document
             };
-            return report_failure(kind, is_run, document, stderr);
+            return report_failure(kind, operation, document, stderr);
         }
         if !is_run {
             return config.exit_codes.ok;
         }
         let mut envelope: Value = match serde_json::from_slice(&buffered) {
             Ok(envelope) => envelope,
-            Err(_) => return report_failure(FailureKind::Internal, true, None, stderr),
+            Err(_) => return report_failure(FailureKind::Internal, operation, None, stderr),
         };
         let code = if state.warning {
             envelope["outcome"] = json!("warning");
@@ -306,14 +294,14 @@ impl EngineCli {
         // No se altera el manifiesto sellado ni su recordFingerprint.
         envelope["engineResults"] = json!(state.results);
         if writeln!(stdout, "{envelope}").is_err() {
-            return report_failure(FailureKind::Internal, true, None, stderr);
+            return report_failure(FailureKind::Internal, operation, None, stderr);
         }
         code
     }
 
     fn validate_input(&self, input: &str, stdout: &mut impl Write, stderr: &mut impl Write) -> u8 {
         if self.control.sync() {
-            return report_failure(FailureKind::Cancelled, true, None, stderr);
+            return report_failure(FailureKind::Cancelled, "validate", None, stderr);
         }
         let diagnostics = match engine_api::validate_with(input, &self.control.token, |event| {
             (self.progress.borrow_mut())(event);
@@ -330,11 +318,11 @@ impl EngineCli {
                     hint: None,
                 }]
             }
-            Err(error) => return report_failure(api_failure(error), true, None, stderr),
+            Err(error) => return report_failure(api_failure(error), "validate", None, stderr),
         };
         let (code, report) = validation_report(&diagnostics);
         if writeln!(stdout, "{report}").is_err() {
-            return report_failure(FailureKind::Internal, true, None, stderr);
+            return report_failure(FailureKind::Internal, "validate", None, stderr);
         }
         code
     }
@@ -542,39 +530,6 @@ fn identity() -> CliIdentity {
     }
 }
 
-fn report_failure(
-    kind: FailureKind,
-    is_run: bool,
-    document: Option<&Value>,
-    stderr: &mut impl Write,
-) -> u8 {
-    let code = ExitCodes::engine_v1().code(kind);
-    let (outcome, message) = match kind {
-        FailureKind::Usage => ("usage", "Invalid command or arguments"),
-        FailureKind::Document | FailureKind::Validation => ("invalid_input", "Invalid input"),
-        FailureKind::Unsupported => ("unsupported", "Operation is not supported"),
-        FailureKind::NotConverged => ("not_converged", "Execution did not converge or is unstable"),
-        FailureKind::Cancelled => ("cancelled", "Execution was cancelled"),
-        FailureKind::Timeout => ("timeout", "Execution timed out"),
-        FailureKind::Method | FailureKind::Internal => {
-            ("internal", "Execution could not be completed")
-        }
-    };
-    let mut envelope = if is_run {
-        cli_run_failure_with_identity(&identity(), code, outcome, message)
-    } else {
-        json!({"exit_code":code, "message":message})
-    };
-    if let Some(document) = document {
-        envelope["engineResults"] = json!([document]);
-    }
-    if writeln!(EventWriter(stderr), "{envelope}").is_err() {
-        ExitCodes::engine_v1().internal
-    } else {
-        code
-    }
-}
-
 #[derive(Default)]
 struct State {
     // MCP entrega sus propios frames: no retener documentos entre llamadas.
@@ -722,7 +677,7 @@ fn api_failure(error: ApiError) -> FailureKind {
 fn diagnostic_status(diagnostics: &[Diagnostic]) -> Status {
     if let Some(diagnostic) = diagnostics.iter().find(|d| d.severity == "error") {
         match diagnostic.code {
-            "ENG-E-0006" => Status::Unstable,
+            "ENG-E-0006" | "ENG-E-0014" => Status::Unstable,
             "ENG-E-0007" => Status::NotConverged,
             "ENG-E-0012" => Status::InternalError,
             "ENG-E-0013" => Status::Unsupported,
@@ -774,7 +729,7 @@ mod tests {
         writeln!(writer, "{}", json!({"phase":"started", "index":0})).unwrap();
         writer.flush().unwrap();
         assert_eq!(
-            report_failure(FailureKind::Timeout, true, None, &mut stderr),
+            report_failure(FailureKind::Timeout, "run", None, &mut stderr),
             6
         );
         assert_eq!(stderr.0.len(), 2);
@@ -858,7 +813,7 @@ mod tests {
         assert!(matches!(result, Err(FailureKind::Document)));
         if let Err(kind) = result {
             let mut stderr = Vec::new();
-            assert_eq!(report_failure(kind, true, None, &mut stderr), 2);
+            assert_eq!(report_failure(kind, "run", None, &mut stderr), 2);
         }
     }
 
@@ -890,10 +845,24 @@ mod tests {
         assert!(matches!(result, Err(FailureKind::Document)));
         if let Err(kind) = result {
             let mut stderr = Vec::new();
-            assert_eq!(report_failure(kind, true, None, &mut stderr), 2);
+            assert_eq!(report_failure(kind, "run", None, &mut stderr), 2);
             let envelope = serde_json::from_slice::<Value>(&stderr);
             assert!(matches!(envelope, Ok(value) if value["outcome"] == "invalid_input"));
         }
+    }
+
+    #[test]
+    fn validate_massless_instability_maps_to_exit_four() {
+        let diagnostics = [Diagnostic {
+            code: "ENG-E-0014",
+            severity: "error",
+            entities: Vec::new(),
+            cause: "Rigidez sin masa no positiva".into(),
+            hint: None,
+        }];
+        let status = diagnostic_status(&diagnostics);
+        assert_eq!(status, Status::Unstable);
+        assert_eq!(failure_kind(status), Some(FailureKind::NotConverged));
     }
 
     #[test]
@@ -911,7 +880,7 @@ mod tests {
         let kind = failure_kind(status);
         if let Some(kind) = kind {
             let mut stderr = Vec::new();
-            assert_eq!(report_failure(kind, true, None, &mut stderr), 3);
+            assert_eq!(report_failure(kind, "run", None, &mut stderr), 3);
             let envelope = serde_json::from_slice::<Value>(&stderr);
             assert!(matches!(envelope, Ok(value)
                 if value["exitCode"] == 3 && value["outcome"] == "unsupported"));

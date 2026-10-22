@@ -1,0 +1,261 @@
+{
+  "schema": "error-codes-lock/1",
+  "codes": [
+    {
+      "id": "API-E-CONSOLIDATION-COST",
+      "exitCode": 2,
+      "outcome": "invalid_input",
+      "description": "Consolidation cost, segment count or substep count exceeds its budget.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.API-E-CONSOLIDATION-COST"
+    },
+    {
+      "id": "API-E-CONSOLIDATION-WORK",
+      "exitCode": 2,
+      "outcome": "invalid_input",
+      "description": "Consolidation work exceeds the permitted budget.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.API-E-CONSOLIDATION-WORK"
+    },
+    {
+      "id": "API-E-INPUT",
+      "exitCode": 2,
+      "outcome": "invalid_input",
+      "description": "Invalid JSON or engine input structure.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.API-E-INPUT"
+    },
+    {
+      "id": "API-E-SFC-OPTIONS",
+      "exitCode": 2,
+      "outcome": "invalid_input",
+      "description": "Invalid or incompatible advanced analysis options.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.API-E-SFC-OPTIONS"
+    },
+    {
+      "id": "API-I-CANCELLED",
+      "exitCode": 5,
+      "outcome": "cancelled",
+      "description": "Cooperative cancellation was requested.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.API-I-CANCELLED"
+    },
+    {
+      "id": "API-W-COMBINED-PRESCRIBED",
+      "exitCode": 1,
+      "outcome": "warning",
+      "description": "Combined prescribed displacements require review.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.API-W-COMBINED-PRESCRIBED"
+    },
+    {
+      "id": "API-W-DIAPHRAGM-RECOVERY",
+      "exitCode": 1,
+      "outcome": "warning",
+      "description": "Diaphragm recovery has limited domain test coverage.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.API-W-DIAPHRAGM-RECOVERY"
+    },
+    {
+      "id": "API-W-MASS-PROJECTION",
+      "exitCode": 1,
+      "outcome": "warning",
+      "description": "Mass conversion rejects negative load projections without a tolerance.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.API-W-MASS-PROJECTION"
+    },
+    {
+      "id": "API-W-PDELTA-INERTIA",
+      "exitCode": 1,
+      "outcome": "warning",
+      "description": "P-Delta block inertia stability diagnostics require review.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.API-W-PDELTA-INERTIA"
+    },
+    {
+      "id": "CLI-E-CANCELLED",
+      "exitCode": 5,
+      "outcome": "cancelled",
+      "description": "Execution was cancelled.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.CLI-E-CANCELLED"
+    },
+    {
+      "id": "CLI-E-DOCUMENT",
+      "exitCode": 2,
+      "outcome": "invalid_input",
+      "description": "Input document could not be read or parsed.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.CLI-E-DOCUMENT"
+    },
+    {
+      "id": "CLI-E-INTERNAL",
+      "exitCode": 70,
+      "outcome": "internal",
+      "description": "Execution or output I/O could not be completed.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.CLI-E-INTERNAL"
+    },
+    {
+      "id": "CLI-E-METHOD",
+      "exitCode": 70,
+      "outcome": "internal",
+      "description": "Method failed without a semantic classification.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.CLI-E-METHOD"
+    },
+    {
+      "id": "CLI-E-NOT-CONVERGED",
+      "exitCode": 4,
+      "outcome": "not_converged",
+      "description": "Execution did not converge or is unstable.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.CLI-E-NOT-CONVERGED"
+    },
+    {
+      "id": "CLI-E-TIMEOUT",
+      "exitCode": 6,
+      "outcome": "timeout",
+      "description": "Execution timed out.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.CLI-E-TIMEOUT"
+    },
+    {
+      "id": "CLI-E-UNSUPPORTED",
+      "exitCode": 3,
+      "outcome": "unsupported",
+      "description": "Operation is not supported.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.CLI-E-UNSUPPORTED"
+    },
+    {
+      "id": "CLI-E-USAGE",
+      "exitCode": 2,
+      "outcome": "usage",
+      "description": "Invalid command or arguments.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.CLI-E-USAGE"
+    },
+    {
+      "id": "CLI-E-VALIDATION",
+      "exitCode": 2,
+      "outcome": "invalid_input",
+      "description": "Input does not satisfy the operation contract.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.CLI-E-VALIDATION"
+    },
+    {
+      "id": "ENG-E-0001",
+      "exitCode": 2,
+      "outcome": "invalid_input",
+      "description": "Unknown unit.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.ENG-E-0001"
+    },
+    {
+      "id": "ENG-E-0002",
+      "exitCode": 2,
+      "outcome": "invalid_input",
+      "description": "Duplicate entity identifier.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.ENG-E-0002"
+    },
+    {
+      "id": "ENG-E-0003",
+      "exitCode": 2,
+      "outcome": "invalid_input",
+      "description": "Missing entity reference.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.ENG-E-0003"
+    },
+    {
+      "id": "ENG-E-0004",
+      "exitCode": 2,
+      "outcome": "invalid_input",
+      "description": "Node is not connected to any member.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.ENG-E-0004"
+    },
+    {
+      "id": "ENG-E-0005",
+      "exitCode": 2,
+      "outcome": "invalid_input",
+      "description": "Member has zero length.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.ENG-E-0005"
+    },
+    {
+      "id": "ENG-E-0006",
+      "exitCode": 4,
+      "outcome": "not_converged",
+      "description": "System is singular or unstable.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.ENG-E-0006"
+    },
+    {
+      "id": "ENG-E-0007",
+      "exitCode": 4,
+      "outcome": "not_converged",
+      "description": "Numerical procedure did not converge.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.ENG-E-0007"
+    },
+    {
+      "id": "ENG-E-0008",
+      "exitCode": 2,
+      "outcome": "invalid_input",
+      "description": "Non-finite input or arithmetic result.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.ENG-E-0008"
+    },
+    {
+      "id": "ENG-E-0009",
+      "exitCode": 2,
+      "outcome": "invalid_input",
+      "description": "Incompatible contract name or major version.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.ENG-E-0009"
+    },
+    {
+      "id": "ENG-E-0010",
+      "exitCode": 2,
+      "outcome": "invalid_input",
+      "description": "Invalid dimensions, sizes or operation parameters.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.ENG-E-0010"
+    },
+    {
+      "id": "ENG-E-0011",
+      "exitCode": 2,
+      "outcome": "invalid_input",
+      "description": "Degree of freedom is unavailable in this context.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.ENG-E-0011"
+    },
+    {
+      "id": "ENG-E-0012",
+      "exitCode": 70,
+      "outcome": "internal",
+      "description": "Engine encountered an inconsistent internal state.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.ENG-E-0012"
+    },
+    {
+      "id": "ENG-E-0013",
+      "exitCode": 3,
+      "outcome": "unsupported",
+      "description": "Component does not support the requested capability.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.ENG-E-0013"
+    },
+    {
+      "id": "ENG-E-0014",
+      "exitCode": 4,
+      "outcome": "not_converged",
+      "description": "Massless degrees of freedom have non-positive-definite stiffness.",
+      "introduced": "1.0.0",
+      "messageKey": "errors.ENG-E-0014"
+    }
+  ]
+}

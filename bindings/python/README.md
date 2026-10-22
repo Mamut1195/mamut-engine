@@ -468,8 +468,11 @@ adjunta el perfil y la huella del modelo; no cambia el manifiesto sellado.
 Los workflows usan el modelo recibido y sus selecciones compiladas: el perfil
 en esta vía no admite `parameters`, `metrics` ni `analyses`. Los errores del CLI se mapean
 a errores públicos tipados; si hay results/1, se conservan los diagnósticos y
-el documento semántico. Sin documento Engine, se conserva el sobre en details
-y el código `SDK-EXIT-*`. La representación JSON anidada del CLI no conserva
+el documento semántico. Sin documento Engine, `cli-error/1` conserva el código
+estable y `error.message`, los diagnósticos y el sobre íntegro en
+`details["workflow_envelope"]`; `results` y `document` quedan en `None`.
+El código `SDK-EXIT-*` se mantiene para sobres anteriores del SDK.
+La representación JSON anidada del CLI no conserva
 los bytes originales de results/1; sus huellas SDK sí se conservan intactas.
 El binario debe instalarse aparte de la wheel. No se carga Python en CLI,
 WASM, MCP ni dentro del solver.
