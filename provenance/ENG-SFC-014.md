@@ -149,3 +149,27 @@ temporal se limita a ese comando; el índice real permanece sin cambios.
 
 No se modifican Cargo.toml/lock, vendor, CI, políticas clean-room, barra axial
 ni truss. No se crea commit.
+
+## Señales SIGINT/SIGTERM (decisión #203, PR #214) — 2026-10-21
+
+Implementación propia sobre la API pública y segura de `signal-hook =0.4.5`
+(`flag::register`, `low_level::unregister`; MIT OR Apache-2.0, crates.io).
+Dependencia solo `cfg(unix)` con `default-features = false`; transitivas nuevas en
+Cargo.lock: signal-hook-registry 1.4.8, errno 0.3.14, windows-sys 0.61.2 y
+windows-link 0.2.1 (las dos últimas solo en Windows vía errno). Sin `unsafe`
+propio: `#![forbid(unsafe_code)]` se mantiene en lib.rs y main.rs.
+
+`crates/engine-cli/src/signals.rs` registra un `Arc<AtomicBool>` por señal; un
+hilo `std` lo consulta cada 5 ms y cancela el mismo `CancelToken` del plazo, de
+modo que `run` termina con código 5, stdout vacío y sobre `outcome: "cancelled"`.
+La guardia de determinismo admite `thread` solo en las rutas exactas
+`timeout.rs` y `signals.rs` del CLI. No se consultó código de terceros ajeno a la
+documentación pública de signal-hook.
+
+Limitaciones documentadas en el README: señal previa a la instalación de los
+manejadores → disposición por defecto (sin código 5); una SIGINT ignorada por el
+padre queda sustituida por el manejador.
+
+Pruebas: `sigint_cancels_heavy_consolidation_with_five`,
+`sigterm_cancels_heavy_consolidation_with_five` y
+`cli_cancellation_exceptions_only_allow_threads_in_their_exact_sources`.

@@ -10,6 +10,8 @@ fn main() -> std::process::ExitCode {
     }
     let cli = engine_cli::EngineCli::new(std::env::var_os("MAMUT_ENGINE_INPUT").map(Into::into))
         .with_control(control);
+    #[cfg(unix)]
+    let cli = cli.with_signals();
     std::process::ExitCode::from(cli.run(
         &args,
         &mut std::io::stdin().lock(),

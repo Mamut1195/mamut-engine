@@ -190,6 +190,120 @@ fn timeout_flag_and_environment_cancel_heavy_consolidation_with_six() {
     }
 }
 
+#[cfg(unix)]
+fn interrupted_run(signal: &str) {
+    use std::{
+        io::{BufRead, BufReader, Read},
+        sync::mpsc,
+        thread,
+    };
+
+    let files = Files::new();
+    let directory = files.0.clone();
+    files.write("input.json", &heavy_consolidation());
+    let temporary = files.path("tmp");
+    fs::create_dir(&temporary).unwrap();
+    // Verifica también que un plazo amplio no reclasifique la señal como timeout.
+    for timeout in [false, true] {
+        let mut command = files.command();
+        command
+            .args(files.args())
+            .args(["--progress", "ndjson"])
+            .env("TMPDIR", &temporary)
+            .env("TMP", &temporary)
+            .env("TEMP", &temporary);
+        if timeout {
+            command.args(["--timeout", "60"]);
+        }
+        let mut child = command
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let mut stderr = BufReader::new(child.stderr.take().unwrap());
+        let (ready, started) = mpsc::channel();
+        let reader = thread::spawn(move || {
+            let mut first = String::new();
+            stderr.read_line(&mut first).unwrap();
+            let _ = ready.send(first.clone());
+            let mut bytes = first.into_bytes();
+            stderr.read_to_end(&mut bytes).unwrap();
+            bytes
+        });
+        write_child_stdin(&mut child, RUN);
+        // started se escribe después de instalar ambos manejadores. No enviar
+        // la señal durante exec/arranque; dejar entrar al método pesado.
+        let first = match started.recv_timeout(Duration::from_secs(5)) {
+            Ok(first) => first,
+            Err(error) => {
+                let _ = child.kill();
+                let _ = child.wait();
+                panic!("No llegó started: {error}; stderr: {:?}", reader.join());
+            }
+        };
+        assert_eq!(value(first.as_bytes())["phase"], "started");
+        thread::sleep(Duration::from_millis(100));
+        assert!(child.try_wait().unwrap().is_none());
+        let sent = Command::new("kill")
+            .arg(signal)
+            .arg(child.id().to_string())
+            .output()
+            .unwrap();
+        if !sent.status.success() {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("No se pudo enviar {signal}: {sent:?}");
+        }
+        let start = Instant::now();
+        while child.try_wait().unwrap().is_none() {
+            if start.elapsed() >= Duration::from_secs(1) {
+                let _ = child.kill();
+                let _ = child.wait();
+                panic!("{signal} no canceló el cálculo en 1 s");
+            }
+            thread::sleep(Duration::from_millis(5));
+        }
+        let mut output = child.wait_with_output().unwrap();
+        output.stderr = reader.join().unwrap();
+        assert_code(&output, 5);
+        assert!(output.stdout.is_empty());
+        assert_eq!(output.stderr.last(), Some(&b'\n'));
+        let lines: Vec<Value> = std::str::from_utf8(&output.stderr)
+            .unwrap()
+            .lines()
+            .map(|line| serde_json::from_str(line).expect("Línea JSON completa"))
+            .collect();
+        let (envelope, events) = lines.split_last().unwrap();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0]["phase"], "started");
+        assert_eq!(envelope["exitCode"], 5);
+        assert_eq!(envelope["outcome"], "cancelled");
+        assert_eq!(envelope["engineId"], "mamut-engine");
+        assert_eq!(envelope["type"], "result");
+        assert_eq!(envelope["operation"], "run");
+        assert_eq!(envelope["error"]["code"], "WF-E-0005");
+        assert_eq!(envelope["error"]["message"], "Execution was cancelled");
+        assert!(envelope.get("data").is_none());
+        assert_eq!(fs::read_dir(&temporary).unwrap().count(), 0);
+        assert_eq!(fs::read_dir(&directory).unwrap().count(), 3);
+    }
+    drop(files);
+    assert!(!directory.exists(), "Directorio temporal sin recoger");
+}
+
+#[cfg(unix)]
+#[test]
+fn sigint_cancels_heavy_consolidation_with_five() {
+    interrupted_run("-INT");
+}
+
+#[cfg(unix)]
+#[test]
+fn sigterm_cancels_heavy_consolidation_with_five() {
+    interrupted_run("-TERM");
+}
+
 #[test]
 fn timeout_with_ndjson_emits_only_complete_json_lines_and_timeout_last() {
     let files = Files::new();

@@ -25,6 +25,8 @@ use mamut_workflow_cli::{
 };
 use serde_json::{json, Value};
 
+#[cfg(unix)]
+mod signals;
 mod timeout;
 
 /// Catálogo propio; también disponible como archivo `catalog.json` del crate.
@@ -97,6 +99,8 @@ pub struct EngineCli {
     input: Option<PathBuf>,
     control: Control,
     progress: EngineProgress,
+    #[cfg(unix)]
+    signals: bool,
 }
 
 impl EngineCli {
@@ -106,6 +110,8 @@ impl EngineCli {
             input,
             control: Control::default(),
             progress: Rc::new(RefCell::new(Box::new(|_| {}))),
+            #[cfg(unix)]
+            signals: false,
         }
     }
 
@@ -113,6 +119,16 @@ impl EngineCli {
     #[must_use]
     pub fn with_control(mut self, control: Control) -> Self {
         self.control = control;
+        self
+    }
+
+    /// Activa SIGINT/SIGTERM durante `run` mediante manejadores globales del proceso.
+    /// Solo Unix; el binario lo activa, la biblioteca no instala señales por defecto.
+    /// Retirar los registros al salir no restaura las disposiciones previas del SO.
+    #[cfg(unix)]
+    #[must_use]
+    pub fn with_signals(mut self) -> Self {
+        self.signals = true;
         self
     }
 
@@ -189,6 +205,15 @@ impl EngineCli {
             command => command,
         };
         let is_run = matches!(command, Command::Run { .. });
+        #[cfg(unix)]
+        let _signals = if self.signals {
+            match signals::Signals::start(self.control.token()) {
+                Ok(signals) => Some(signals),
+                Err(_) => return report_failure(FailureKind::Internal, is_run, None, stderr),
+            }
+        } else {
+            None
+        };
         let timer = match timeout
             .map(|duration| timeout::Timer::start(duration, self.control.clone()))
             .transpose()
