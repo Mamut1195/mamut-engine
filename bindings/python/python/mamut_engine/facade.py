@@ -81,11 +81,18 @@ def _spec(name: str) -> dict[str, Any]:
     return cast(dict[str, Any], schema(name))
 
 
-def explain(code: str) -> str:
+def _language(lang: str) -> None:
+    """Validate language before crossing the native boundary."""
+    if not isinstance(lang, str) or lang not in ("en", "es", "pt"):
+        raise checks.invalid('lang must be "en", "es", or "pt"')
+
+
+def explain(code: str, *, lang: str = "en") -> str:
     """Explicación original del catálogo engine-api; código ausente es error."""
     if not isinstance(code, str):
         raise checks.invalid("code debe ser str")
-    return _call(_native.explain, code)
+    _language(lang)
+    return _call(_native.explain, code, lang=lang)
 
 
 @dataclass
@@ -289,22 +296,24 @@ class CancelToken:
         return self._token.is_cancelled
 
 
-def validate(model: ModelLike) -> ValidationReport:
+def validate(model: ModelLike, *, lang: str = "en") -> ValidationReport:
     """Valida argumentos antes del FFI y delega la topología en Rust.
 
     Los defectos topológicos se devuelven como diagnósticos, igual que engine-api.
     No comprueba estabilidad ni ejecuta análisis.
     """
-    return cast(ValidationReport, _call(_native.validate, _input(model)))
+    _language(lang)
+    return cast(ValidationReport, _call(_native.validate, _input(model), lang=lang))
 
 
-def run(model: ModelLike, *, cancel: CancelToken | None = None,
+def run(model: ModelLike, *, lang: str = "en", cancel: CancelToken | None = None,
         progress: Callable[[Progress], object] | None = None) -> Results:
     """Ejecuta Rust; solo ok/warning devuelven Results, con procedencia y stale.
 
     El progreso se entrega en orden al terminar Rust, también en fallos. Las
     excepciones del callback se propagan; un fallo del motor tiene prioridad.
     """
+    _language(lang)
     if cancel is not None and not isinstance(cancel, CancelToken):
         raise checks.invalid("cancel debe ser CancelToken o None")
     if progress is not None and not callable(progress):
@@ -312,7 +321,7 @@ def run(model: ModelLike, *, cancel: CancelToken | None = None,
     source = _input(model)
     fingerprint = _fingerprint(source)
     document = _call(_native.run, source, progress=progress,
-                     cancel=cancel._token if cancel is not None else None)
+                     cancel=cancel._token if cancel is not None else None, lang=lang)
     result = Results.from_json(document)
     if result.input_sha256 != fingerprint:
         raise InternalEngineError("input_sha256 no coincide con el input ejecutado",

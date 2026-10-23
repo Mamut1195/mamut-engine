@@ -10,6 +10,7 @@ const INDEX: &str = include_str!("../../../schemas/index.json");
 
 pub(crate) fn dispatch(
     args: &[String],
+    lang: engine_api::Lang,
     stdout: &mut impl Write,
 ) -> Option<Result<(), FailureKind>> {
     let args: Vec<_> = args.iter().map(String::as_str).collect();
@@ -34,10 +35,10 @@ pub(crate) fn dispatch(
                     .write_all(text.as_bytes())
                     .map_err(|_| FailureKind::Internal)
             }),
-        ["explain", code] => engine_api::explain(code)
+        ["explain", code] => engine_api::explain_in(code, lang)
             .map_err(|_| FailureKind::Usage)
             .and_then(|text| writeln!(stdout, "{text}").map_err(|_| FailureKind::Internal)),
-        ["explain", code, "--json"] => engine_api::explain(code)
+        ["explain", code, "--json"] => engine_api::explain_in(code, lang)
             .map_err(|_| FailureKind::Usage)
             .and_then(|text| write_json(stdout, &json!({"code":code,"explanation":text}))),
         ["--version" | "capabilities" | "schema" | "explain", ..] => Err(FailureKind::Usage),
@@ -127,6 +128,7 @@ fn description() -> Result<Value, FailureKind> {
             command("mcp", &[], &[], vec![catalog(true)], "mcp-stdio", "Servidor MCP de la base con el proveedor del motor y transporte de entrada de compatibilidad.")
         ],
         "globalFlags":[
+            flag("--lang","en|es|pt",false,"Idioma de mensajes de diagnóstico, errores y explain; en por defecto, independiente del locale."),
             flag("--timeout","seconds",false,"Finito, 0 < s <= 31536000; prevalece sobre MAMUT_ENGINE_TIMEOUT. Se valida para todos los comandos. Las consultas y validate --input directo no inician temporizador."),
             flag("--help","",false,"Ayuda de la base en los comandos de workflow y describe; también admite help y -h.")
         ],

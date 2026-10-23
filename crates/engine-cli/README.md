@@ -9,7 +9,7 @@ processes are required.
 SDK-WF-012 / MAM-493 resolved the original SDK blocker. The adapter uses the
 vendored `mamut-workflow-cli` and `mamut-workflow-execution` libraries at commit
 `1eeb91a1ca9128ad4a02ead2ab66b6b25aa08f3d`. `EngineCli::run` extracts `--timeout`
-with `timeout::parse_timeout_args`, handles read-only queries in `describe.rs`,
+with `timeout::parse_global_args`, handles read-only queries in `describe.rs`,
 then prepares `--input` and default documents.
 Workflow commands use the SDK's public `parse_args` and one `dispatch`, configured
 with `CliConfig`, `MethodProvider`, `CliIdentity` and `ExitCodes::engine_v1()`.
@@ -218,8 +218,10 @@ objetos admiten extensiones. El esquema comprueba su estructura mínima actual,
 los estados `Completed` y el tipo objeto de las huellas. `recordFingerprint` y
 las huellas anidadas son objetos opacos del SDK, sin enumerar sus claves.
 `recordFingerprint` cubre solo
-el manifiesto sin ese campo; las huellas de salida de los pasos cubren los
-resultados completos. No se publica una huella del sobre. La igualdad entre el
+el manifiesto sin ese campo; las huellas de salida de los pasos cubren cada
+resultado completo **sin los campos `cause` y `hint` de sus diagnósticos**
+(MAM-836, decisión de Jonathan: solo códigos y datos, nunca texto de mensajes);
+`engineResults` conserva el documento completo y localizado. No se publica una huella del sobre. La igualdad entre el
 número de pasos/resultados y las preimágenes de huellas se comprueba en tests;
 no son restricciones expresables por este subconjunto JSON Schema.
 
@@ -312,10 +314,10 @@ status determines the process exit when multiple diagnostics exist, and the firs
 error identifies the primary diagnostic. Direct model validation keeps exit 2
 for all rejected reports.
 
-[messages/en.json](messages/en.json) holds editable English base messages,
-separate from identifiers and frozen meanings. Original engine messages, causes
-and hints remain in diagnostics/engineResults; this work does not translate them
-or implement language selection.
+The shared [engine-api message catalogs](../engine-api/messages/en.json) hold
+editable base messages separately from stable identifiers and frozen meanings.
+Use `engine_api::message(lang, key)` to read a message; wrappers do not embed or
+parse separate copies. All three catalogs cover all 32 registered errors.
 
 [error-codes-1.lock](../../docs/contracts/error-codes-1.lock) freezes complete
 definitions except `status`. It is **append-only**: never remove or rewrite an
@@ -605,7 +607,8 @@ son procedencia y pueden variar con la compilación. El manifiesto registra
 la procedencia base de Linux con `git_commit:null`. Para comparar otro entorno,
 el test lleva stdout a esa procedencia: sustituye literalmente solo esos dos campos y recalcula las huellas
 JCS/SHA-256 de cada resultado y del manifiesto, después de comprobar sus
-preimágenes originales. Obtiene los metadatos de engine-api compilado, nunca
+preimágenes originales. La preimagen de cada paso es la misma proyección que usa
+el adaptador (diagnósticos sin `cause` ni `hint`, MAM-836): el test la calcula de forma independiente y exige igualdad con el hash canónico. Obtiene los metadatos de engine-api compilado, nunca
 del stdout bajo prueba. No elimina campos ni normaliza números, claves, espacios,
 arrays o diagnósticos. La comparación final usa la longitud y el SHA-256 de
 todos los bytes, incluido LF. En la compilación base se calcula directamente
@@ -635,3 +638,37 @@ La ejecución local no acredita esas dos plataformas. Transporte de entrada y
 revisión clean-room **PENDIENTE (J4)**. No se modifica `clean-room/` ni vendor.
 La evidencia de este contrato está en
 [ENG-CONT-002](../../provenance/ENG-CONT-002.md).
+
+## Explicit message language (MAM-836, phase 1)
+
+`--lang en`, `--lang es` and `--lang pt` select English, Spanish and Portuguese.
+The option is global, may precede or follow the command, and requires a separate
+value. Repetition, missing values, unsupported identifiers and `--lang=es` are
+usage errors (exit 2, CLI-E-USAGE, empty stdout). The default is English;
+LANG, LC_ALL and the system locale never select a language.
+
+```sh
+mamut-engine --lang es validate --input model.json
+mamut-engine run --input model.json --lang pt
+mamut-engine explain ENG-E-0004 --json --lang es
+```
+
+Run and embedded validation publish localized diagnostics in `engineResults`;
+direct validation publishes them in `validate-report/1`. Terminal `cli-error/1`
+uses the selected `errors.<code>` message and localized diagnostics/engineResults,
+retaining stable codes, messageKey, hints, entities, severities and exit codes.
+Only causes exactly matching the English ENG default are translated; specific or
+parameterized causes remain unchanged. `explain` uses the same API catalog.
+
+Workflow `recordFingerprint` and SDK step input/output fingerprints cover codes
+and data, **excluding diagnostic cause and hint text** (Jonathan's decision).
+The SDK receives a copy with those two fields removed from each diagnostics
+entry; the full localized document stays in `engineResults`. A sealed workflow
+therefore does not attest to message wording. The fingerprint is identical for
+en/es/pt on the same input. This intentionally changes previous fingerprints,
+including English; results data and input fingerprints are unchanged.
+
+Phase 2 will address parameterized messages, hints, ApiError/parse messages,
+Python-owned PY-E-* messages, mcp/compile/methods, and describe/help language.
+These command payloads keep their existing language in phase 1; the new global
+flag is listed by `describe --json` in the style of its existing descriptions.

@@ -33,7 +33,8 @@ sigue identificando al motor, sin duplicar la versión contractual en stdout.
 Se leyó su productor vendorizado únicamente para comprobar campos, estados y
 preimágenes: el adaptador preserva el manifiesto, que admite extensiones SDK.
 `recordFingerprint` siempre está presente en este productor, cubre data sin
-ese campo y no cubre el sobre. Las huellas de cada paso cubren su resultado.
+ese campo y no cubre el sobre. Las huellas de cada paso cubren su resultado sin los campos `cause` y `hint` de
+los diagnósticos (MAM-836: la huella cubre códigos y datos, no texto de mensajes).
 No se crea un segundo contrato de manifiesto.
 El esquema solo exige tipo objeto para `recordFingerprint` y las huellas
 anidadas: sus claves pertenecen al SDK y no se enumeran. Las partes del
@@ -77,7 +78,8 @@ La política [DETERMINISMO.md](../docs/DETERMINISMO.md) incluye `target` y
 `git_commit` en los resultados: no pueden compararse literalmente entre builds
 distintos. Para otra compilación, se lleva stdout a la procedencia del manifiesto sustituyendo
 literalmente esos dos metadatos y las huellas dependientes (resultado de paso y
-manifiesto). Se verifican primero las preimágenes del stdout real y se recalculan
+manifiesto). Las preimágenes de paso son los resultados sin `cause` ni `hint` de
+sus diagnósticos (MAM-836). Se verifican primero las preimágenes del stdout real y se recalculan
 por JCS/SHA-256 mediante la API pública existente. Los metadatos se obtienen
 de engine-api compilado, independientemente del stdout bajo prueba. No se
 proyectan campos ni se reserializa el stdout real; números, claves, arrays,

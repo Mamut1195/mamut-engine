@@ -8,7 +8,13 @@
 mod analysis_input;
 mod extensions;
 mod geo_input;
+/// Embedded translations shared by all public wrappers.
+pub mod i18n;
 mod input;
+pub use i18n::{
+    explain_in, localize_diagnostic, localize_diagnostics, localize_document, message,
+    message_keys, Lang,
+};
 mod json;
 mod limits;
 pub use geo_input::{
@@ -26,7 +32,7 @@ pub use limits::{
 pub use query::ResultQuery;
 pub use run::{exit_code, run, Outcome, Status};
 
-use engine_core::{catalog, EntityRef, Severity};
+use engine_core::{EntityRef, Severity};
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::fmt;
@@ -225,11 +231,9 @@ pub fn schema(kind: &str) -> Result<&'static str, ApiError> {
         .ok_or_else(|| ApiError::UnknownSchema(kind.into()))
 }
 
-/// Explicación española del catálogo del dominio y de códigos locales API-*.
+/// Returns the unchanged English explanation for a stable domain or API code.
 pub fn explain(code: &str) -> Result<&'static str, ApiError> {
-    run::explain(code)
-        .or_else(|| catalog::explain(code))
-        .ok_or_else(|| ApiError::UnknownCode(code.into()))
+    explain_in(code, Lang::En)
 }
 
 /// JSON compacto determinista: claves ordenadas recursivamente y -0.0 → +0.0.

@@ -27,6 +27,21 @@ fn hash(value: &Value) -> String {
     engine_api::input_sha256(&value.to_string()).unwrap()
 }
 
+// MAM-836: las huellas cubren códigos y datos, nunca texto de mensajes. La
+// proyección elimina solo `cause` y `hint` de cada diagnóstico y se calcula aquí
+// de forma independiente del adaptador; el resto del resultado queda intacto.
+fn fingerprint_view(result: &Value) -> Value {
+    let mut view = result.clone();
+    if let Some(diagnostics) = view.get_mut("diagnostics").and_then(Value::as_array_mut) {
+        for diagnostic in diagnostics {
+            let fields = diagnostic.as_object_mut().unwrap();
+            fields.remove("cause");
+            fields.remove("hint");
+        }
+    }
+    view
+}
+
 fn fixtures() -> Vec<(String, String)> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let mut fixtures = Vec::new();
@@ -109,8 +124,11 @@ fn materialize(stdout: &str, compiled: &Value, reference: &Value) -> String {
     }
     for index in 0..results.len() {
         let old = &original["data"]["steps"][index]["outputs"][0]["fingerprint"]["value"];
-        assert_eq!(old, &hash(&original["engineResults"][index]));
-        let new = hash(&expected["engineResults"][index]);
+        assert_eq!(
+            old,
+            &hash(&fingerprint_view(&original["engineResults"][index]))
+        );
+        let new = hash(&fingerprint_view(&expected["engineResults"][index]));
         replacements.push((old.to_string(), json!(new).to_string()));
         expected["data"]["steps"][index]["outputs"][0]["fingerprint"]["value"] = json!(new);
     }

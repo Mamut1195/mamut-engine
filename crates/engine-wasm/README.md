@@ -59,9 +59,9 @@ try {
 | `version()` | — | JSON canónico de engine-api |
 | `capabilities()` | — | JSON canónico de engine-api |
 | `schema(kind)` | nombre `engine-input/1` o `results/1` | documento JSON Schema publicado, sin reformatear |
-| `explain(code)` | código del catálogo | literal string JSON con la explicación |
-| `validate(input, token, progress?)` | texto `engine-input/1` | array JSON canónico de diagnósticos |
-| `run(input, token, progress?)` | texto `engine-input/1` | bytes canónicos `results/1` de engine-api, sin envoltura |
+| `explain(code, lang?)` | código del catálogo | literal string JSON con la explicación |
+| `validate(input, token, progress?, lang?)` | texto `engine-input/1` | array JSON canónico de diagnósticos |
+| `run(input, token, progress?, lang?)` | texto `engine-input/1` | bytes canónicos `results/1` de engine-api, sin envoltura |
 
 Los argumentos `kind` y `code` son texto plano. Los demás documentos y
 callbacks atraviesan la frontera como strings JSON, sin convertir números
@@ -130,3 +130,26 @@ El arnés publica PASS/FAIL en pantalla y en `documentElement.dataset.status`.
 pero el sandbox prohíbe sockets y su arranque; véase
 [provenance](../../provenance/ENG-SFC-001.md). No se declara paridad de
 navegadores a partir del adaptador Node.
+
+
+## Explicit language (MAM-836, phase 1)
+
+`explain(code, lang?)`, `validate(input, token, progress?, lang?)` and
+`run(input, token, progress?, lang?)` accept a final optional `"en"`, `"es"` or
+`"pt"`. Omitted/undefined language preserves existing English bytes. An invalid
+identifier throws the existing serialized `ApiError::InvalidInput` string.
+No locale or environment settings select a language. For example:
+
+```js
+const report = validate(inputJson, token, undefined, "es");
+const results = run(inputJson, token, undefined, "pt");
+const explanation = explain("ENG-E-0004", "es");
+```
+
+All localization delegates to engine-api: stable-code explanations and exact
+English default ENG diagnostic causes are translated. Specific/parameterized
+causes, hints and ApiError/parse messages remain unchanged for phase 2, alongside
+Python-owned PY-E-* messages, mcp/compile/methods and describe/help language.
+The CLI workflow fingerprint excludes diagnostic cause/hint text and therefore
+does not attest to message wording; this JSON binding does not create manifests.
+Translations await native-speaker review, especially Portuguese.

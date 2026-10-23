@@ -17,7 +17,7 @@ use std::{
     },
 };
 
-use engine_api::{ApiError, CancelToken, Diagnostic, Progress, Status};
+use engine_api::{ApiError, CancelToken, Diagnostic, Lang, Progress, Status};
 use mamut_workflow::{CompiledStep, MethodDescriptor, RegisteredMethod};
 use mamut_workflow_cli::{
     dispatch, parse_args, CancelFlag, Cancellation, CliConfig, CliIdentity, Command, ExitCodes,
@@ -157,11 +157,15 @@ impl EngineCli {
         stderr: &mut E,
     ) -> u8 {
         let operation = error::operation(args);
-        let (args, timeout) = match timeout::parse_timeout_args(args) {
+        let (args, timeout, lang) = match timeout::parse_global_args(args) {
             Ok(parsed) => parsed,
             Err(kind) => return report_failure(kind, operation, None, stderr),
         };
-        if let Some(result) = describe::dispatch(&args, stdout) {
+        let report_failure =
+            |kind, operation: &str, document: Option<&Value>, stderr: &mut dyn Write| {
+                error::report_failure_in(kind, operation, document, lang, &mut EventWriter(stderr))
+            };
+        if let Some(result) = describe::dispatch(&args, lang, stdout) {
             return match result {
                 Ok(()) => ExitCodes::engine_v1().ok,
                 Err(kind) => report_failure(kind, operation, None, stderr),
@@ -182,7 +186,7 @@ impl EngineCli {
                 Ok(input) => input,
                 Err(kind) => return report_failure(kind, operation, None, stderr),
             };
-            return self.validate_input(&input, stdout, stderr);
+            return self.validate_input(&input, lang, stdout, stderr);
         }
         let command = match parse_args(&prepared.args) {
             Ok(command) => command,
@@ -257,6 +261,7 @@ impl EngineCli {
             .with_progress_writer(stderr.clone())
             .with_provider(EngineProvider {
                 input,
+                lang: if is_run { lang } else { Lang::En },
                 control: self.control.clone(),
                 progress: stderr.callback(Rc::clone(&self.progress)),
                 state: Rc::clone(&state),
@@ -315,7 +320,17 @@ impl EngineCli {
         code
     }
 
-    fn validate_input(&self, input: &str, stdout: &mut impl Write, stderr: &mut impl Write) -> u8 {
+    fn validate_input(
+        &self,
+        input: &str,
+        lang: Lang,
+        stdout: &mut impl Write,
+        stderr: &mut impl Write,
+    ) -> u8 {
+        let report_failure =
+            |kind, operation: &str, document: Option<&Value>, stderr: &mut dyn Write| {
+                error::report_failure_in(kind, operation, document, lang, &mut EventWriter(stderr))
+            };
         if self.control.sync() {
             return report_failure(FailureKind::Cancelled, "validate", None, stderr);
         }
@@ -336,6 +351,7 @@ impl EngineCli {
             }
             Err(error) => return report_failure(api_failure(error), "validate", None, stderr),
         };
+        let diagnostics = engine_api::localize_diagnostics(diagnostics, lang);
         let (code, report) = validation_report(&diagnostics);
         if writeln!(stdout, "{report}").is_err() {
             return report_failure(FailureKind::Internal, "validate", None, stderr);
@@ -361,9 +377,9 @@ fn validation_report(diagnostics: &[Diagnostic]) -> (u8, Value) {
 
 // El SDK emite cada evento mediante writeln!. Materializar todo el formato
 // antes de escribir evita exponer fragmentos JSON durante la serialización.
-struct EventWriter<'a, W>(&'a mut W);
+struct EventWriter<'a, W: ?Sized>(&'a mut W);
 
-impl<W: Write> Write for EventWriter<'_, W> {
+impl<W: Write + ?Sized> Write for EventWriter<'_, W> {
     fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
         self.0.write(bytes)
     }
@@ -557,6 +573,7 @@ struct State {
 
 struct EngineProvider<'a> {
     input: EngineInput,
+    lang: Lang,
     control: Control,
     progress: EngineProgress<'a>,
     state: Rc<RefCell<State>>,
@@ -578,6 +595,7 @@ impl MethodProvider for EngineProvider<'_> {
         }
         let mut method = EngineMethod {
             input: self.input.clone(),
+            lang: self.lang,
             validation,
             control: self.control.clone(),
             progress: Rc::clone(&self.progress),
@@ -596,6 +614,7 @@ impl EngineProvider<'_> {
 
 struct EngineMethod<'a> {
     input: EngineInput,
+    lang: Lang,
     validation: bool,
     control: Control,
     progress: EngineProgress<'a>,
@@ -618,13 +637,15 @@ impl EngineMethod<'_> {
         if self.validation {
             let diagnostics = engine_api::validate_with(&input, &self.control.token, progress)
                 .map_err(api_failure)?;
+            let diagnostics = engine_api::localize_diagnostics(diagnostics, self.lang);
             let status = diagnostic_status(&diagnostics);
             Ok((
                 status,
                 json!({"operation":"validate", "status":status, "diagnostics":diagnostics}),
             ))
         } else {
-            let outcome = engine_api::run(&input, &self.control.token, progress);
+            let outcome =
+                engine_api::run(&input, &self.control.token, progress).localized(self.lang);
             let document =
                 serde_json::from_str(&outcome.document).map_err(|_| FailureKind::Internal)?;
             Ok((outcome.status, document))
@@ -648,7 +669,9 @@ impl Method for EngineMethod<'_> {
                         state.warning |= status == Status::Warning;
                         state.results.push(document.clone());
                     }
-                    Ok(document)
+                    // Workflow fingerprints cover codes and data, excluding message text.
+                    // Keep the complete localized document in state.results for engineResults.
+                    Ok(fingerprint_view(document))
                 }
             }
             Err(kind) => {
@@ -657,6 +680,21 @@ impl Method for EngineMethod<'_> {
             }
         }
     }
+}
+
+fn fingerprint_view(mut document: Value) -> Value {
+    if let Some(diagnostics) = document
+        .get_mut("diagnostics")
+        .and_then(Value::as_array_mut)
+    {
+        for diagnostic in diagnostics {
+            if let Some(fields) = diagnostic.as_object_mut() {
+                fields.remove("cause");
+                fields.remove("hint");
+            }
+        }
+    }
+    document
 }
 
 #[derive(Clone)]
@@ -723,6 +761,26 @@ fn failure_kind(status: Status) -> Option<FailureKind> {
 mod tests {
     use super::*;
     use std::io;
+
+    #[test]
+    fn fingerprint_view_excludes_only_diagnostic_text_and_keeps_all_data() {
+        let document = json!({"schema":"results/1", "status":"warning", "value":1.25, "diagnostics":[{
+            "code":"ENG-E-0004", "severity":"warning", "entities":[{"kind":"node","id":99}],
+            "cause":"English text", "hint":"Specific hint", "numericContext":2.5
+        }]});
+        let expected = json!({"schema":"results/1", "status":"warning", "value":1.25, "diagnostics":[{
+            "code":"ENG-E-0004", "severity":"warning", "entities":[{"kind":"node","id":99}], "numericContext":2.5
+        }]});
+        assert_eq!(fingerprint_view(document.clone()), expected);
+        for lang in Lang::ALL {
+            let mut translated = document.clone();
+            translated["diagnostics"][0]["cause"] =
+                json!(engine_api::message(lang, "diagnostic.ENG-E-0004").unwrap());
+            translated["diagnostics"][0]["hint"] = json!(lang.code());
+            assert_eq!(fingerprint_view(translated), expected);
+        }
+        assert_eq!(document["diagnostics"][0]["cause"], "English text");
+    }
 
     #[test]
     fn ndjson_event_and_error_are_buffered_as_complete_lines() {

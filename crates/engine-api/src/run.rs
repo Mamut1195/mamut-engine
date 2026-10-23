@@ -63,6 +63,15 @@ pub struct Outcome {
     pub document: String,
 }
 impl Outcome {
+    /// Localizes default diagnostic causes without changing the execution status.
+    pub fn localized(mut self, lang: crate::Lang) -> Self {
+        // Engine-produced documents are valid; retain the original if localization fails.
+        if let Ok(document) = crate::localize_document(&self.document, lang) {
+            self.document = document;
+        }
+        self
+    }
+
     /// Código de salida para CLI/bindings.
     pub const fn exit_code(&self) -> i32 {
         exit_code(self.status)
@@ -542,6 +551,8 @@ fn case_json(case: &CaseResults) -> Value {
             "extremes": m.extremes.iter().map(|e| json!({"field": format!("{:?}", e.field), "max": {"value": e.max.value, "at_station": e.max.at_station}, "min": {"value": e.min.value, "at_station": e.min.at_station}})).collect::<Vec<_>>() })).collect::<Vec<_>>()})
 }
 
+// Historical English reference used only to verify catalog compatibility.
+#[cfg(test)]
 pub(crate) fn explain(code: &str) -> Option<&'static str> {
     match code {
         "API-E-SFC-OPTIONS" => Some("SFC-010: nonlinearStatic, soilProfile, and consolidation1d are Experimental pending ENG-VAL-006 coverage (Jonathan's decision via J0 2026-10-20); they require options.allow_experimental = true at the job root. Check compatibility between method, spring, law, Winkler, and releases. Physical parameters and soil provenance are explicit; see docs/GUIA_METODOS.md."),

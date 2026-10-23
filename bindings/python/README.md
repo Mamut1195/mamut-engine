@@ -37,10 +37,10 @@ físicas. Las extensiones de resultados se conservan incluso si el DTO instalado
 todavía no les da nombre. `ModelDocument` representa el trabajo completo
 `engine-input/1`, incluidos casos, combinaciones y análisis.
 
-- `validate(model: ModelLike) -> ValidationReport`: informe `diagnostics` de
+- `validate(model: ModelLike, *, lang="en") -> ValidationReport`: informe `diagnostics` de
   Rust. Los defectos topológicos son diagnósticos; errores de argumento o
   contrato lanzan `InvalidInputError`/`Unsupported`. No prueba estabilidad.
-- `run(model: ModelLike, *, progress=None, cancel=None) -> Results`: ejecuta
+- `run(model: ModelLike, *, lang="en", cancel=None, progress=None) -> Results`: ejecuta
   engine-api. Solo `ok` y `warning` retornan normalmente. `Results.to_json()`
   devuelve exactamente la salida Rust, sin serialización intermedia en Python.
 - `version() -> VersionInfo`: versión y contratos reconocidos por el motor;
@@ -52,7 +52,7 @@ todavía no les da nombre. `ModelDocument` representa el trabajo completo
 - `schema(name: str, version: int | None = None) -> JSONDocument`: admite
   `schema("results/1")` o `schema("results", 1)`. Publica los cuatro schemas
   actuales: engine-input/1, results/1, method-descriptor/1 y capabilities/1.
-- `explain(code: str) -> str`: explicación del catálogo Rust; los nombres
+- `explain(code: str, *, lang="en") -> str`: explicación del catálogo Rust; los nombres
   de schemas y códigos desconocidos producen `InvalidInputError`.
 
 `ModelLike` admite `Model`, `ModelDocument` o JSON `str`. `Engine` agrupa las
@@ -502,3 +502,29 @@ incluirlas en `scripts/build-python-wheel.sh`. Para cubrir el SDK real, construi
 `cargo build -p engine-cli --offline` y exportar `MAMUT_EXPERIMENT_CLI` con la
 ruta absoluta al binario antes de ejecutar pytest o el script de wheel. Sin esa
 variable solo se omiten los tests de transporte SDK, no los de la fachada.
+
+
+## Explicit language (MAM-836, phase 1)
+
+`validate(model, *, lang="en")`, `run(model, *, lang="en", cancel=None,
+progress=None)` and `explain(code, *, lang="en")` (also through `Engine`) accept
+only `"en"`, `"es"`, `"pt"`. The facade checks type and value before FFI.
+The native signatures are `validate(input_json, lang=None)`,
+`run(input_json, progress=None, cancel=None, lang=None)` and
+`explain(code, lang=None)`; native None means English, and unsupported identifiers
+raise InvalidInputError with code API-E-INPUT. Locale settings never select a
+language. For example, `engine.validate(model, lang="es")` returns Spanish default
+ENG diagnostic causes and `engine.explain("ENG-E-0004", lang="pt")` explains the
+code in Portuguese.
+
+engine-api is the sole localization implementation. English keeps the existing
+bytes. Localized run failures carry localized `cause`, `diagnostics` and
+`document`; codes, severity, entities, status and hint stay unchanged. Successful
+results differ only in translatable `diagnostics[].cause`.
+
+Phase 2 covers specific/parameterized causes, hints, ApiError/parse messages,
+Python-owned PY-E-* and facade validation messages, mcp/compile/methods and
+describe/help language. Those messages are unchanged in phase 1. Translations
+await native-speaker review, especially Portuguese. The CLI workflow fingerprint
+excludes diagnostic cause/hint text, so a sealed record does not attest to message
+wording; Python results retain the full localized document.

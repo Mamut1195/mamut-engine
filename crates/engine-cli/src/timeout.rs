@@ -13,11 +13,12 @@ use mamut_workflow_cli::FailureKind;
 
 use crate::Control;
 
-pub(crate) fn parse_timeout_args(
+pub(crate) fn parse_global_args(
     args: &[String],
-) -> Result<(Vec<String>, Option<f64>), FailureKind> {
+) -> Result<(Vec<String>, Option<f64>, engine_api::Lang), FailureKind> {
     let mut forwarded = Vec::with_capacity(args.len());
     let mut timeout = None;
+    let mut lang = None;
     let mut args = args.iter();
     while let Some(arg) = args.next() {
         if arg == "--timeout" {
@@ -25,6 +26,16 @@ pub(crate) fn parse_timeout_args(
                 return Err(FailureKind::Usage);
             }
             timeout = Some(parse_seconds(args.next().ok_or(FailureKind::Usage)?)?);
+        } else if arg == "--lang" {
+            if lang.is_some() {
+                return Err(FailureKind::Usage);
+            }
+            lang = Some(
+                engine_api::Lang::parse(args.next().ok_or(FailureKind::Usage)?)
+                    .map_err(|_| FailureKind::Usage)?,
+            );
+        } else if arg.starts_with("--lang=") {
+            return Err(FailureKind::Usage);
         } else {
             forwarded.push(arg.clone());
             // La base consume el siguiente token de estos flags como valor,
@@ -45,7 +56,7 @@ pub(crate) fn parse_timeout_args(
             timeout = Some(parse_seconds(value.to_str().ok_or(FailureKind::Usage)?)?);
         }
     }
-    Ok((forwarded, timeout))
+    Ok((forwarded, timeout, lang.unwrap_or_default()))
 }
 
 fn parse_seconds(value: &str) -> Result<f64, FailureKind> {
@@ -147,9 +158,21 @@ mod tests {
     fn timeout_token_in_base_flag_value_is_forwarded() {
         for flag in ["--catalog", "--workflow", "--progress", "--input"] {
             let args = ["run", flag, "--timeout", "5", "--timeout", "60"].map(String::from);
-            let (forwarded, timeout) = parse_timeout_args(&args).unwrap();
+            let (forwarded, timeout, lang) = parse_global_args(&args).unwrap();
             assert_eq!(forwarded, ["run", flag, "--timeout", "5"]);
             assert_eq!(timeout, Some(60.0));
+            assert_eq!(lang, engine_api::Lang::En);
+        }
+    }
+
+    #[test]
+    fn language_tokens_in_sdk_flag_values_are_never_reinterpreted() {
+        for flag in ["--catalog", "--workflow", "--progress", "--input"] {
+            let args = ["run", flag, "--lang", "--lang", "pt", "--timeout", "60"].map(String::from);
+            let (forwarded, timeout, lang) = parse_global_args(&args).unwrap();
+            assert_eq!(forwarded, ["run", flag, "--lang"]);
+            assert_eq!(timeout, Some(60.0));
+            assert_eq!(lang, engine_api::Lang::Pt);
         }
     }
 

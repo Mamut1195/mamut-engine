@@ -157,11 +157,18 @@ mod python {
         })
     }
 
-    #[pyfunction]
-    fn explain(py: Python<'_>, code: &str) -> PyResult<&'static str> {
-        guarded(py, || match engine_api::explain(code) {
-            Ok(text) => Ok(text),
-            Err(err) => Err(api_error(py, err)?),
+    fn language(py: Python<'_>, lang: Option<&str>) -> PyResult<engine_api::Lang> {
+        lang.map_or(Ok(engine_api::Lang::En), engine_api::Lang::parse)
+            .or_else(|err| Err(api_error(py, err)?))
+    }
+
+    #[pyfunction(signature = (code, lang=None))]
+    fn explain(py: Python<'_>, code: &str, lang: Option<&str>) -> PyResult<&'static str> {
+        guarded(py, || {
+            match engine_api::explain_in(code, language(py, lang)?) {
+                Ok(text) => Ok(text),
+                Err(err) => Err(api_error(py, err)?),
+            }
         })
     }
 
@@ -185,11 +192,15 @@ mod python {
         })
     }
 
-    #[pyfunction]
-    fn validate(py: Python<'_>, input_json: &str) -> PyResult<Py<PyAny>> {
+    #[pyfunction(signature = (input_json, lang=None))]
+    fn validate(py: Python<'_>, input_json: &str, lang: Option<&str>) -> PyResult<Py<PyAny>> {
         guarded(py, || {
+            let lang = language(py, lang)?;
             match py.detach(|| engine_api::validate(input_json)) {
-                Ok(diagnostics) => object(py, &json!({"diagnostics": diagnostics})),
+                Ok(diagnostics) => object(
+                    py,
+                    &json!({"diagnostics": engine_api::localize_diagnostics(diagnostics, lang)}),
+                ),
                 Err(err) => Err(api_error(py, err)?),
             }
         })
@@ -223,14 +234,16 @@ mod python {
     }
 
     /// Ejecuta sin GIL; entrega progreso acumulado después de salir del motor.
-    #[pyfunction(signature = (input_json, progress=None, cancel=None))]
+    #[pyfunction(signature = (input_json, progress=None, cancel=None, lang=None))]
     fn run(
         py: Python<'_>,
         input_json: &str,
         progress: Option<Py<PyAny>>,
         cancel: Option<PyRef<'_, CancelToken>>,
+        lang: Option<&str>,
     ) -> PyResult<String> {
         guarded(py, || {
+            let lang = language(py, lang)?;
             if progress
                 .as_ref()
                 .is_some_and(|callback| !callback.bind(py).is_callable())
@@ -249,7 +262,7 @@ mod python {
                 (result, events)
             });
             // Un error del motor tiene prioridad frente a excepciones del callback.
-            let result = outcome(py, result);
+            let result = outcome(py, result.localized(lang));
             for event in events {
                 if let Some(callback) = &progress {
                     if let Err(err) = callback.call1(py, (object(py, &json!(event))?,)) {

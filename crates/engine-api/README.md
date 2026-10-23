@@ -445,3 +445,36 @@ Su primer polo α=π/2 da Pcr=π²EI/(4L²). Para P/Pcr=0,2 se compara A con
 1/(1−P/Pcr) al 0,4% (error de la aproximación del primer polo); con mallas de
 4/8 elementos el error decrece y la malla de 8 difiere menos de 1e−5 de la
 solución exacta. La tolerancia iterativa es 1e−10, separada del error de malla.
+
+
+## Shared message catalog (MAM-836, phase 1)
+
+`Lang::{En, Es, Pt}` and `Lang::ALL` select messages explicitly; `Lang::parse`
+accepts only exact lowercase `en`, `es`, `pt`. English is the default. The API
+never reads LANG, LC_ALL, environment settings or system locale for language.
+Invalid language values produce a fixed English `ApiError::InvalidInput`.
+
+The embedded, alphabetically ordered `messages/{en,es,pt}.json` catalogs are the
+single production source for CLI/Python/WASM translations: 32 `errors.*`, 14
+`diagnostic.*` defaults and 23 `explain.*` messages per language. `message(lang,
+key)` returns an optional static string; `message_keys(lang)` lists keys in order.
+Invalid embedded JSON returns no messages, with catalog tests enforcing validity.
+
+Use `explain_in(code, lang)` for translated explanations; `explain(code)` preserves
+the original English text. `localize_diagnostic`, `localize_diagnostics` and
+`localize_document` translate a cause only when it exactly equals the English ENG
+default. All codes, severities, entities and hints stay unchanged. Document
+localization uses the existing canonical JSON; English returns the original bytes
+without parsing or serialization. `Outcome::localized(lang)` preserves status and
+localizes its results/1 document. Existing `run`/`validate` remain English.
+
+The CLI's workflow fingerprint view excludes diagnostic `cause` and `hint` text,
+while `engineResults` retains the full localized document. Workflow
+`recordFingerprint` and SDK step input/output fingerprints attest to codes and
+data, **not message wording**; input_sha256 is unchanged.
+
+Phase 2 remains out of scope: approximately 900 parameterized causes, all hints,
+ApiError and parse errors, Python-owned PY-E-* and facade messages,
+mcp/compile/methods language, and describe/help language. These messages remain
+unchanged. Spanish and Portuguese translations await native-speaker review,
+especially Portuguese; see [ENG-I18N-001](../../provenance/ENG-I18N-001.md).

@@ -101,7 +101,7 @@ fn frozen_codes_cannot_disappear_or_change_meaning_exit_outcome_key_or_version()
         compatible(&registry, &lock),
         "Código borrado o definición congelada modificada"
     );
-    let messages: Value = serde_json::from_str(include_str!("../messages/en.json")).unwrap();
+
     for (id, definition) in index(&registry) {
         assert_eq!(definition.as_object().unwrap().len(), 7);
         let allowed_outcomes: &[&str] = match definition["exitCode"].as_u64() {
@@ -134,11 +134,14 @@ fn frozen_codes_cannot_disappear_or_change_meaning_exit_outcome_key_or_version()
             .unwrap()
             .trim()
             .is_empty());
-        assert!(!messages[definition["messageKey"].as_str().unwrap()]
-            .as_str()
-            .unwrap()
-            .trim()
-            .is_empty());
+        for lang in engine_api::Lang::ALL {
+            assert!(
+                !engine_api::message(lang, definition["messageKey"].as_str().unwrap())
+                    .unwrap()
+                    .trim()
+                    .is_empty()
+            );
+        }
     }
     // Cada alta queda congelada en este mismo cambio; ningún id queda sin lock.
     assert_eq!(

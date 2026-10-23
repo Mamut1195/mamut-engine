@@ -54,10 +54,14 @@ fn assert_registered(envelope: &Value) {
     assert_eq!(definition["outcome"], envelope["outcome"]);
     assert_eq!(definition["messageKey"], envelope["messageKey"]);
     assert_eq!(envelope["error"]["code"], envelope["code"]);
-    let messages: Value = serde_json::from_str(include_str!("../../messages/en.json")).unwrap();
+
     assert_eq!(
         envelope["error"]["message"],
-        messages[definition["messageKey"].as_str().unwrap()]
+        engine_api::message(
+            engine_api::Lang::En,
+            definition["messageKey"].as_str().unwrap()
+        )
+        .unwrap()
     );
     for diagnostic in envelope["diagnostics"].as_array().unwrap() {
         assert!(

@@ -11,8 +11,8 @@ use serde_json::{json, Value};
 pub(crate) fn operation(args: &[String]) -> &str {
     let mut args = args.iter();
     let mut command = args.next();
-    // Timeout is the only adapter option accepted before the command.
-    while command.is_some_and(|arg| arg == "--timeout") {
+    // Skip global adapter options before identifying the command.
+    while command.is_some_and(|arg| arg == "--timeout" || arg == "--lang") {
         args.next();
         command = args.next();
     }
@@ -48,6 +48,22 @@ pub(crate) fn report_failure(
     document: Option<&Value>,
     stderr: &mut impl Write,
 ) -> u8 {
+    report_failure_in(kind, operation, document, engine_api::Lang::En, stderr)
+}
+
+pub(crate) fn report_failure_in(
+    kind: FailureKind,
+    operation: &str,
+    document: Option<&Value>,
+    lang: engine_api::Lang,
+    stderr: &mut impl Write,
+) -> u8 {
+    let localized = document.and_then(|document| {
+        engine_api::localize_document(&document.to_string(), lang)
+            .ok()
+            .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+    });
+    let document = localized.as_ref().or(document);
     let exit_code = ExitCodes::engine_v1().code(kind);
     let (fallback, outcome) = classification(kind);
     let diagnostics = document
@@ -64,14 +80,10 @@ pub(crate) fn report_failure(
             .and_then(|d| d["code"].as_str())
             .map_or(fallback, |code| code)
     };
-    // Clave estable para MAM-836/MAM-841; solo texto base inglés, sin i18n.
     let message_key = format!("errors.{code}");
-    let messages = serde_json::from_str::<Value>(include_str!("../messages/en.json"));
-    let message = messages
-        .as_ref()
-        .ok()
-        .and_then(|messages| messages[&message_key].as_str())
-        .map_or("Execution could not be completed.", |message| message);
+    let message = engine_api::message(lang, &message_key)
+        .or_else(|| engine_api::message(engine_api::Lang::En, &message_key))
+        .unwrap_or("Execution could not be completed.");
     let identity = super::identity();
     let mut envelope = json!({
         "schema": "cli-error/1",

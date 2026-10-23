@@ -11,7 +11,7 @@ fn exported_wasm_run_preserves_api_bytes_for_every_sfc010_fixture() {
             "{name}: {}",
             expected.document
         );
-        let actual = engine_wasm::run(input, &engine_wasm::CancelToken::new(), None).unwrap();
+        let actual = engine_wasm::run(input, &engine_wasm::CancelToken::new(), None, None).unwrap();
         assert_eq!(actual.as_bytes(), expected.document.as_bytes(), "{name}");
     }
 }
@@ -29,7 +29,7 @@ fn exported_wasm_discovery_and_run_preserve_experimental_policy() {
             .unwrap();
         assert_eq!(descriptor["status"], "Experimental");
     }
-    assert!(engine_wasm::explain("API-E-SFC-OPTIONS")
+    assert!(engine_wasm::explain("API-E-SFC-OPTIONS", None)
         .unwrap()
         .contains("ENG-VAL-006"));
     for &(name, source) in fixtures::FIXTURES {
@@ -42,9 +42,13 @@ fn exported_wasm_discovery_and_run_preserve_experimental_policy() {
             serde_json::json!({"allow_experimental": false}),
         ] {
             input["options"] = options;
-            let actual =
-                engine_wasm::run(&input.to_string(), &engine_wasm::CancelToken::new(), None)
-                    .unwrap();
+            let actual = engine_wasm::run(
+                &input.to_string(),
+                &engine_wasm::CancelToken::new(),
+                None,
+                None,
+            )
+            .unwrap();
             let document: serde_json::Value = serde_json::from_str(&actual).unwrap();
             assert_eq!(document["status"], "invalid", "{name}: {actual}");
             assert_eq!(document["diagnostics"][0]["code"], "API-E-INPUT");
