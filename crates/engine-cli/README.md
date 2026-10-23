@@ -190,6 +190,56 @@ Without `--progress`, output retains its previous behavior. stdout remains a
 single JSON document, byte-identical to execution without progress, as described
 in [docs/DETERMINISMO.md](../../docs/DETERMINISMO.md).
 
+### Contrato publicado cli-run/1 · 1.0.0
+
+**Decisión de salida cerrada (MAM-868 / ENG-CONT-002):** `engineResults` y el
+informe de `engine.validate` forman parte del contrato de éxito/aviso del
+adaptador. Un canal estándar de resultados completos sigue siendo trabajo del SDK.
+
+El esquema [schemas/cli-run-1.json](schemas/cli-run-1.json) publica exclusivamente
+stdout de `run` con código **0 o 1**. El nombre cli-run/1 no implica un campo
+`schema`: no se añade ninguno a los bytes actuales. Son obligatorios `type`,
+`engineId`, `engineVersion`, `operation`, `outcome`, `exitCode`, `data` y
+`engineResults`; el sobre y el informe validate rechazan campos no declarados.
+`engineVersion` identifica la versión del motor, no la del contrato del sobre.
+`ok` corresponde a 0 y `warning` a 1; un aviso conserva resultados completos.
+
+`engineResults` contiene un documento por paso completado, en orden del workflow:
+results/1 para `engine.run` o `{operation:"validate",status,diagnostics}` para
+`engine.validate`. La operación exterior siempre es `run`, incluso al validar.
+Los resultados y diagnósticos referencian por `$ref` el esquema existente
+[results-1.json](../engine-api/schemas/results-1.json), con `$id`
+`urn:mamut:results:1`; el consumidor debe registrar ese recurso localmente.
+El validador de tests comparte el subconjunto Draft 2020-12 de engine-api y
+resuelve solo esos recursos conocidos, sin red ni dependencias nuevas.
+
+`data` pertenece al SDK `mamut-workflow-execution`: se conserva íntegro y sus
+objetos admiten extensiones. El esquema comprueba su estructura mínima actual,
+los estados `Completed` y el tipo objeto de las huellas. `recordFingerprint` y
+las huellas anidadas son objetos opacos del SDK, sin enumerar sus claves.
+`recordFingerprint` cubre solo
+el manifiesto sin ese campo; las huellas de salida de los pasos cubren los
+resultados completos. No se publica una huella del sobre. La igualdad entre el
+número de pasos/resultados y las preimágenes de huellas se comprueba en tests;
+no son restricciones expresables por este subconjunto JSON Schema.
+
+Política semver del contrato, independiente de la versión del crate:
+
+- **Mayor:** retirar/renombrar campos, cambiar tipos, significado, orden de
+  resultados, asociación outcome/código o formato existente es incompatible.
+  **No se admiten cambios mayores durante V1**; necesitarían otro contrato
+  mayor y una decisión posterior, conservando cli-run/1.
+- **Menor:** adiciones compatibles, como campos opcionales nuevos, requieren
+  actualizar esquema, documentación y golden, conservando los datos existentes.
+  Los consumidores deben tolerar adiciones opcionales de versiones menores;
+  el esquema estricto publicado describe la versión concreta del productor.
+- **Parche:** aclaraciones y correcciones del esquema sin cambiar la salida ni
+  reducir el conjunto de documentos publicados válidos.
+
+Los contratos engine-api referenciados mantienen su propio versionado. Cambiar
+el SDK tampoco permite romper este sobre durante V1. Esta decisión no cambia
+los sobres de error, stderr/NDJSON ni MCP.
+
 ### Terminal `cli-error/1` contract · ENG-CONT-001 / MAM-867
 
 Every adapter-controlled terminal process failure without a direct validation
@@ -527,3 +577,61 @@ The `wasm32-unknown-unknown` check compiles the whole workspace including this
 crate. It does not execute the CLI, which requires native stdio, files and an
 application environment. **Pending:** Windows/Linux/macOS CI binaries (Jonathan's
 decision), contract review and clean-room review (J4).
+
+### Schema y golden de stdout
+
+`tests/contract.rs` ejecuta el binario real para todos los JSON válidos de
+`engine-api/fixtures/input/valid` (incluidos SFC-010), todos los de determinismo
+y cada `engine_input` de E1. No consulta valores de referencia de E1.
+Añade el aviso de combinaciones ya probado por el CLI. Cada entrada se ejecuta
+con engine.run y engine.validate dos veces: schema, códigos 0/1, stderr vacío,
+orden/cantidad de resultados y bytes repetibles. Los golden se versionan en
+[tests/golden/stdout-sha256.json](tests/golden/stdout-sha256.json): manifiesto
+de versión 1 con nombre, longitud en bytes y SHA-256 por caso, sin stdout.
+El test calcula SHA-256 de los bytes crudos mediante `hashlib` de Python 3,
+requisito del entorno de pruebas, sin dependencias nuevas de Cargo.
+Se enlazan con la
+[paridad Rust/Python](../../bindings/python/README.md#construcción-y-pruebas-sin-red).
+
+El formato es UTF-8 compacto con **un único LF (`\n`) final** en todas las
+plataformas. `writeln!` sobre stdout ya emite ese byte, también en Windows.
+No se normaliza ni reserializa stdout en el test. CRLF o falta de LF hacen
+fallar la prueba; el LF entra en la longitud y en el hash. No se versionan
+archivos `.stdout.json` ni se incluyen rutas de ejecución o mensajes dependientes
+del locale.
+
+Según [DETERMINISMO.md](../../docs/DETERMINISMO.md), `target` y `git_commit`
+son procedencia y pueden variar con la compilación. El manifiesto registra
+la procedencia base de Linux con `git_commit:null`. Para comparar otro entorno,
+el test lleva stdout a esa procedencia: sustituye literalmente solo esos dos campos y recalcula las huellas
+JCS/SHA-256 de cada resultado y del manifiesto, después de comprobar sus
+preimágenes originales. Obtiene los metadatos de engine-api compilado, nunca
+del stdout bajo prueba. No elimina campos ni normaliza números, claves, espacios,
+arrays o diagnósticos. La comparación final usa la longitud y el SHA-256 de
+todos los bytes, incluido LF. En la compilación base se calcula directamente
+sobre stdout sin cambios. Ante discrepancias imprime SHA-256 y longitud
+esperados y obtenidos; guarda stdout real y la versión comparable bajo
+`env!("CARGO_TARGET_TMPDIR")/cli-contract-failure-<pid>/`, sin versionarlos.
+
+Regeneración explícita local, desde la raíz y con las dependencias offline:
+
+```sh
+# Conservar CARGO_TARGET_DIR; omitir MAMUT_ENGINE_GIT_COMMIT al compilar.
+MAMUT_UPDATE_CLI_GOLDENS=1 cargo test -p engine-cli --test contract --offline \
+  all_accepted_fixtures_match_schema_and_stdout_golden
+cargo test -p engine-cli --test contract --offline
+```
+
+Revisar el diff de los golden antes de aceptarlo. La variable solo admite `1`
+o ausencia; si está definida `CI` o `GITHUB_ACTIONS`, regenerar falla sin escribir.
+La ejecución habitual nunca actualiza archivos; detecta golden ausentes u obsoletos.
+La regeneración de la referencia base se realiza en Linux sin revisión inyectada.
+Los tests negativos comprueban cambios de campos, tipos, códigos, resultados,
+diagnósticos y tipos inválidos de huellas, y aceptan extensiones SDK.
+
+**Pendiente:** ejecutar en macOS/Windows requiere una matriz en `rust.yml`
+(**decisión de Jonathan**). No se modifica `.github/workflows` en MAM-868.
+La ejecución local no acredita esas dos plataformas. Transporte de entrada y
+revisión clean-room **PENDIENTE (J4)**. No se modifica `clean-room/` ni vendor.
+La evidencia de este contrato está en
+[ENG-CONT-002](../../provenance/ENG-CONT-002.md).

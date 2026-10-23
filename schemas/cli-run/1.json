@@ -1,0 +1,279 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mamut:cli-run:1",
+  "title": "cli-run/1 — éxito y aviso de mamut-engine",
+  "description": "Contrato publicado 1.0.0 del stdout terminal de run (códigos 0 y 1). No hay campo schema en los bytes emitidos. El adaptador publica engineResults; data es el manifiesto del SDK mamut-workflow-execution y admite extensiones del SDK. No cubre stderr, fallos ni MCP.",
+  "type": "object",
+  "required": [
+    "type",
+    "engineId",
+    "engineVersion",
+    "operation",
+    "outcome",
+    "exitCode",
+    "data",
+    "engineResults"
+  ],
+  "properties": {
+    "type": {
+      "const": "result"
+    },
+    "engineId": {
+      "const": "mamut-engine"
+    },
+    "engineVersion": {
+      "type": "string"
+    },
+    "operation": {
+      "const": "run"
+    },
+    "outcome": {
+      "enum": [
+        "ok",
+        "warning"
+      ]
+    },
+    "exitCode": {
+      "enum": [
+        0,
+        1
+      ]
+    },
+    "data": {
+      "$ref": "#/$defs/manifest"
+    },
+    "engineResults": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "allOf": [
+              {
+                "$ref": "urn:mamut:results:1"
+              },
+              {
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "ok",
+                      "warning"
+                    ]
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "$ref": "#/$defs/validate"
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false,
+  "oneOf": [
+    {
+      "properties": {
+        "outcome": {
+          "const": "ok"
+        },
+        "exitCode": {
+          "const": 0
+        }
+      }
+    },
+    {
+      "properties": {
+        "outcome": {
+          "const": "warning"
+        },
+        "exitCode": {
+          "const": 1
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "validate": {
+      "type": "object",
+      "required": [
+        "operation",
+        "status",
+        "diagnostics"
+      ],
+      "properties": {
+        "operation": {
+          "const": "validate"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "warning"
+          ]
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "urn:mamut:results:1#/$defs/diagnostic"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "description": "Informe publicado por el adaptador para engine.validate v1. Los diagnósticos pertenecen a engine-api."
+    },
+    "fingerprint": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Objeto de huella propiedad del SDK mamut-workflow-execution. Su forma y sus claves las define el SDK; este contrato no las enumera."
+    },
+    "namedFingerprint": {
+      "type": "object",
+      "required": [
+        "name",
+        "fingerprint"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "$ref": "#/$defs/fingerprint"
+        }
+      },
+      "additionalProperties": true
+    },
+    "reference": {
+      "type": "object",
+      "required": [
+        "id",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "step": {
+      "type": "object",
+      "required": [
+        "stepId",
+        "method",
+        "status",
+        "inputs",
+        "outputs"
+      ],
+      "properties": {
+        "stepId": {
+          "type": "string"
+        },
+        "method": {
+          "$ref": "#/$defs/reference"
+        },
+        "status": {
+          "const": "Completed"
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/namedFingerprint"
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/namedFingerprint"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "manifest": {
+      "type": "object",
+      "required": [
+        "id",
+        "workflow",
+        "status",
+        "inputs",
+        "outputs",
+        "steps",
+        "recordFingerprint"
+      ],
+      "properties": {
+        "id": {
+          "const": "urn:mamut:workflow:execution-manifest:1.0.0"
+        },
+        "workflow": {
+          "$ref": "#/$defs/reference"
+        },
+        "status": {
+          "const": "Completed"
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/namedFingerprint"
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/namedFingerprint"
+          }
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        },
+        "recordFingerprint": {
+          "$ref": "#/$defs/fingerprint"
+        }
+      },
+      "additionalProperties": true,
+      "description": "Datos del SDK conservados íntegros. recordFingerprint siempre está presente en este productor y cubre solo data sin ese campo; nunca engineResults. Los objetos SDK quedan abiertos para extensiones compatibles."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "const": "ok"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "engineResults": {
+            "items": {
+              "properties": {
+                "status": {
+                  "const": "ok"
+                }
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "engineResults": {
+            "contains": {
+              "properties": {
+                "status": {
+                  "const": "warning"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

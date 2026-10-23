@@ -13,8 +13,7 @@ use serde_json::{json, Value};
 
 #[path = "support/schema.rs"]
 mod error_schema;
-#[path = "../../engine-api/tests/support/schema.rs"]
-mod schema_validator;
+use error_schema::schema_validator;
 
 const DESCRIBE_SCHEMA: &str = include_str!("../schemas/cli-describe-1.json");
 const VERSION_SCHEMA: &str = include_str!("../schemas/version-1.json");

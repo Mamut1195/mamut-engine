@@ -1,7 +1,7 @@
 //! Usa el validador ya existente de engine-api contra el esquema publicado.
 use serde_json::{json, Value};
 
-use super::schema_validator::conforms;
+use crate::error_schema::schema_validator::conforms;
 
 fn schema() -> Value {
     serde_json::from_str(engine_api::schema("validate-report/1").unwrap()).unwrap()

@@ -9,6 +9,10 @@
       "source": "crates/engine-cli/schemas/cli-error-1.json"
     },
     {
+      "kind": "cli-run/1",
+      "source": "crates/engine-cli/schemas/cli-run-1.json"
+    },
+    {
       "kind": "explain/1",
       "source": "crates/engine-cli/schemas/explain-1.json"
     },

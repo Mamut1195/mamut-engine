@@ -15,7 +15,14 @@ fn audit(schema: &Value) {
         match key.as_str() {
             "$schema" | "$id" | "title" | "description" | "type" | "required" | "enum"
             | "const" | "minItems" | "maxItems" | "minimum" | "maximum" => {}
-            "$ref" => assert!(value.as_str().unwrap().starts_with("#/$defs/")),
+            "$ref" => {
+                let reference = value.as_str().unwrap();
+                assert!(
+                    reference.starts_with("#/$defs/")
+                        || reference == "urn:mamut:results:1"
+                        || reference == "urn:mamut:results:1#/$defs/diagnostic"
+                );
+            }
             "pattern" => {
                 matches_pattern(value.as_str().unwrap(), "");
             }
@@ -29,7 +36,7 @@ fn audit(schema: &Value) {
                     audit(child);
                 }
             }
-            "items" | "additionalProperties" | "if" | "then" | "else" => audit(value),
+            "items" | "contains" | "additionalProperties" | "if" | "then" | "else" => audit(value),
             _ => panic!("Keyword de schema no soportada: {key}"),
         }
     }
@@ -43,7 +50,21 @@ fn valid(root: &Value, schema: &Value, value: &Value) -> bool {
     rules.iter().all(|(key, rule)| match key.as_str() {
         "$schema" | "$id" | "$defs" | "title" | "description" | "then" | "else" => true,
         "$ref" => {
-            let reference = rule.as_str().unwrap().strip_prefix('#').unwrap();
+            let reference = rule.as_str().unwrap();
+            if let Some(fragment) = reference.strip_prefix("urn:mamut:results:1") {
+                let external: Value =
+                    serde_json::from_str(engine_api::schema("results/1").unwrap()).unwrap();
+                audit(&external);
+                let child = if fragment.is_empty() {
+                    &external
+                } else {
+                    external
+                        .pointer(fragment.strip_prefix('#').unwrap())
+                        .expect("Referencia externa local ausente")
+                };
+                return valid(&external, child, value);
+            }
+            let reference = reference.strip_prefix('#').unwrap();
             valid(
                 root,
                 root.pointer(reference).expect("Referencia local ausente"),
@@ -88,6 +109,9 @@ fn valid(root: &Value, schema: &Value, value: &Value) -> bool {
                 .map_or(0, Vec::len);
             items.iter().skip(prefix).all(|v| valid(root, rule, v))
         }),
+        "contains" => value
+            .as_array()
+            .is_none_or(|items| items.iter().any(|item| valid(root, rule, item))),
         "prefixItems" => value.as_array().is_none_or(|items| {
             items
                 .iter()
@@ -164,7 +188,8 @@ fn matches_pattern(expression: &str, value: &str) -> bool {
         "^[0-9a-fA-F]{40}([0-9a-fA-F]{24})?$" => {
             matches!(value.len(), 40 | 64) && value.bytes().all(|b| b.is_ascii_hexdigit())
         }
-        "^(ENG-E-[0-9]{4}|API-[EWI]-[A-Z-]+)$" => {
+        "^(ENG-E-[0-9]{4}|API-[EWI]-[A-Z-]+)$"
+        | "^(ENG-E-[0-9]{4}|API-[EWI]-[A-Z-]+|CLI-E-[A-Z-]+)$" => {
             if let Some(code) = value.strip_prefix("ENG-E-") {
                 code.len() == 4 && code.bytes().all(|b| b.is_ascii_digit())
             } else if let Some(code) = value.strip_prefix("API-") {
@@ -175,9 +200,28 @@ fn matches_pattern(expression: &str, value: &str) -> bool {
                     && bytes[2..]
                         .iter()
                         .all(|b| b.is_ascii_uppercase() || *b == b'-')
+            } else if let Some(code) = value.strip_prefix("CLI-E-") {
+                expression == "^(ENG-E-[0-9]{4}|API-[EWI]-[A-Z-]+|CLI-E-[A-Z-]+)$"
+                    && !code.is_empty()
+                    && code.bytes().all(|b| b.is_ascii_uppercase() || b == b'-')
             } else {
                 false
             }
+        }
+        "^(?:/(?:[^~/]|~[01])*)*$" => {
+            if value.is_empty() {
+                return true;
+            }
+            if !value.starts_with('/') {
+                return false;
+            }
+            let mut chars = value.chars();
+            while let Some(c) = chars.next() {
+                if c == '~' && !matches!(chars.next(), Some('0' | '1')) {
+                    return false;
+                }
+            }
+            true
         }
         _ => panic!("Expresión de schema no soportada: {expression}"),
     }

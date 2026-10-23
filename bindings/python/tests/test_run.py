@@ -19,6 +19,8 @@ CANTILEVER = (FIXTURES / "valid/cantilever-linear-static.json").read_text()
 class RunTest(unittest.TestCase):
     def test_cantilever_matches_rust_bytes_and_sha256(self):
         # La referencia se genera con cargo run, nunca mediante el binding.
+        # Conformidad CLI relacionada (MAM-868): crates/engine-cli/tests/contract.rs
+        # y crates/engine-cli/tests/golden/stdout-sha256.json; véase README.md.
         reference_path = os.environ.get("MAMUT_RUST_REFERENCE")
         self.assertTrue(reference_path, "Defina MAMUT_RUST_REFERENCE (véase README)")
         reference = Path(reference_path).read_bytes()

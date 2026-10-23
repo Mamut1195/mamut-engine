@@ -222,6 +222,12 @@ SI/ejes, validación estructural, stale, errores, callbacks y cancelación.
 También contrastan el voladizo con `u=-PL³/(3EI)`, `R=P`, `M=PL` para P=12,
 L=4, E=200 e I=3, con tolerancias absoluta/relativa `1e-12` por redondeo f64.
 Son fixtures propios; las referencias nunca se generan mediante el binding.
+La conformidad de transporte del CLI usa además los
+[manifiesto SHA-256 de stdout cli-run/1](../../crates/engine-cli/tests/golden/stdout-sha256.json) (MAM-868),
+verificados por [tests/contract.rs](../../crates/engine-cli/tests/contract.rs).
+`tests/test_run.py::RunTest.test_cantilever_matches_rust_bytes_and_sha256`
+conserva la referencia directa de results/1; los golden del CLI añaden el sobre
+publicado y contemplan explícitamente la procedencia de compilación.
 
 Si se dispone de mypy o pyright offline se ejecuta el checker. En su ausencia,
 `test_typing.py` verifica los exports/reexports `.pyi`, firmas nativas instaladas

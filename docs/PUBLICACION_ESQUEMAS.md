@@ -41,6 +41,7 @@ entrada del índice; por ejemplo:
 | `urn:mamut:results:1` | `https://schemas.mamut.systems/results/1.json` |
 | `urn:mamut:validate-report:1` | `https://schemas.mamut.systems/validate-report/1.json` |
 | `urn:mamut:cli-error:1` | `https://schemas.mamut.systems/cli-error/1.json` |
+| `urn:mamut:cli-run:1` | `https://schemas.mamut.systems/cli-run/1.json` |
 | `urn:mamut:capabilities:1` | `https://schemas.mamut.systems/capabilities/1.json` |
 | `urn:mamut:method-descriptor:1` | `https://schemas.mamut.systems/method-descriptor/1.json` |
 | `urn:mamut:progress:1` | `https://schemas.mamut.systems/progress/1.json` |

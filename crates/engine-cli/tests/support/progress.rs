@@ -2,7 +2,7 @@
 
 use super::*;
 
-use super::schema_validator as schema;
+use super::error_schema::schema_validator as schema;
 
 fn progress_schema() -> Value {
     value(include_bytes!("../../schemas/progress-1.json"))

@@ -15,9 +15,6 @@ use engine_cli::{Control, EngineCli, CATALOG};
 use mamut_workflow_cli::{Cancellation, ExitCodes};
 use serde_json::{json, Value};
 
-#[path = "../../engine-api/tests/support/schema.rs"]
-mod schema_validator;
-
 #[path = "support/validate_report.rs"]
 mod validate_report_schema;
 use validate_report_schema::assert_validate_report;
