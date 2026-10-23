@@ -1206,10 +1206,8 @@ fn usage_document_workflow_and_engine_input_errors_exit_two() {
     let files = Files::new();
     for args in [
         vec!["version"],
-        vec!["capabilities"],
         vec!["schema"],
         vec!["explain"],
-        vec!["--version"],
         vec!["run", "--catalog", "missing.json"],
         vec!["run", "--catalog", "-", "--workflow", "-"],
     ] {

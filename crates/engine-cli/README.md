@@ -9,7 +9,8 @@ processes are required.
 SDK-WF-012 / MAM-493 resolved the original SDK blocker. The adapter uses the
 vendored `mamut-workflow-cli` and `mamut-workflow-execution` libraries at commit
 `1eeb91a1ca9128ad4a02ead2ab66b6b25aa08f3d`. `EngineCli::run` extracts `--timeout`
-with `timeout::parse_timeout_args`, then prepares `--input` and default documents.
+with `timeout::parse_timeout_args`, handles read-only queries in `describe.rs`,
+then prepares `--input` and default documents.
 Workflow commands use the SDK's public `parse_args` and one `dispatch`, configured
 with `CliConfig`, `MethodProvider`, `CliIdentity` and `ExitCodes::engine_v1()`.
 Workflow parsing, compilation and execution remain in the SDK. Direct
@@ -92,7 +93,8 @@ Identity is `engineId: "mamut-engine"`, with `engineVersion` from
 `engine_api::version().engine_version`. Successful workflow execution has
 `operation: "run"`; a validation method has `operation: "validate"` inside its
 own result. Terminal errors identify the invoked command: `run`, `validate`,
-`compile`, `methods`, `describe`, `help` or `mcp`; unknown commands use `cli`.
+`compile`, `methods`, `describe`, `help` or `mcp`; the other API queries and
+unknown commands use `cli`.
 A leading `--timeout <s>` does not change the command identity.
 
 The SDK's successful cli-run/1 envelope contains the execution manifest in
@@ -350,8 +352,9 @@ obtained from dispatch keeps its result even if the deadline expires before the
 subsequent check. Only cancellation caused by the timer becomes exit 6;
 previously observed external cancellation retains 5. The timer is woken and
 joined on completion without waiting for its deadline. Without timeout no thread
-is created. `describe` retains the SDK's complete table, including historical
-`reserved_exit_code_categories` metadata.
+is created. `describe` without `--json` retains the SDK's complete table,
+including historical `reserved_exit_code_categories` metadata.
+`describe --json` advertises the active timeout category with code 6.
 
 Cancellation is cooperative: analysis loops check between iterations, rows,
 members and substeps; LDLᵀ also checks during factorization and substitution.
@@ -394,22 +397,85 @@ dependency is compiled, and `with_signals()` is unavailable; signals retain the
 host's behavior and do not guarantee cooperative code 5. Timeout and the marker remain
 available.
 
-## Engine-api coverage
+## Agent discovery and API queries
 
-| API operation | CLI coverage | Remaining gap |
-| --- | --- | --- |
-| version | `describe.version` uses engine-api's version; run includes engineVersion | No version().contracts, version command or --version flag |
-| capabilities | `describe` exposes identity, commands and engine_v1 exits; `methods --catalog …` lists engine.run/engine.validate | No complete API capabilities document |
-| schema | Method descriptors reference contracts and parameters | No schema command for API JSON Schemas |
-| explain | Results retain engine diagnostics | No engine_api::explain command |
-| validate | Direct model validation and validate-report/1 with `validate --input …`; workflow compilation with explicit catalog/workflow | SDK adoption of input transport |
-| run | Embedded engine.run workflow with `run --input …`; explicit catalog/workflow also supported | SDK adoption of transport/result extensions |
+```sh
+mamut-engine describe --json
+mamut-engine --help --json
+mamut-engine --version
+mamut-engine --version --json
+mamut-engine capabilities
+mamut-engine schema engine-input/1
+mamut-engine explain ENG-E-0009
+mamut-engine explain ENG-E-0009 --json
+```
 
-`capabilities`, `schema`, `explain`, `version` and `--version` are rejected by the
-SDK parser with 2. `compile` retains the standard workflow plan. MCP injects the
-provider, identity, cancellation and engine_v1 exit table, but its tools still
-return fingerprint manifests and unclassified method failures (70). Full MCP
-results and semantic-code parity remain open; warnings retain generic behavior.
+`describe --json` emits one deterministic `cli-describe/1` document with the
+engine identity, commands, aliases, positional arguments, flags, empty subcommand
+lists, environment variables, inputs, outputs, the actual `ExitCodes::engine_v1()`
+table, public API limits and schema inventory. Commands currently have no nested
+subcommands. It describes only functionality present in this tree. `--help --json`
+(and `help --json`, `-h --json`) emits the same bytes. JSON queries use sorted keys
+and a final newline, with no timestamps or host paths.
+
+**Compatibility decision:** the base already provides `describe` as JSON with a
+different shape. Without `--json` it remains byte-for-byte unchanged, including
+its legacy reserved timeout metadata. The versioned opt-in document lists timeout
+as active. Text help still comes from the base; `CliConfig::with_identity` already
+sets its name to `mamut-engine`, including nested workflow help. No vendor edit or
+text substitution is needed. New queries are isolated in `src/describe.rs`, before
+workflow preparation, so they do not read input, create temporary documents,
+install signal handlers or start timers. Timeout syntax/environment validation
+still runs first, as it does for every existing command.
+
+| API operation | Command and output |
+| --- | --- |
+| version | `--version` prints `mamut-engine <engine_version>`; `--version --json` serializes `engine_api::version()` unchanged, including `contracts` |
+| capabilities | `capabilities` serializes `engine_api::capabilities()` unchanged, conforming to capabilities/1 |
+| schema | `schema <id>` writes the exact UTF-8 bytes returned by `engine_api::schema(id)`, without an additional newline |
+| explain | `explain <code>` prints the API explanation plus newline; `--json` emits exactly `{code, explanation}` |
+| validate | `validate --input …` validates the model directly and emits validate-report/1; explicit catalog/workflow arguments retain workflow validation/compilation |
+| run | `run --input …` executes engine.run with embedded documents; explicit catalog/workflow arguments remain supported |
+
+The base does not implement version, capabilities, schema or explain commands;
+these queries are provided by the adapter. There is no `version` subcommand.
+Queries succeed with code 0. Unknown schema ids or diagnostic codes, missing
+arguments and extra query arguments produce 2, empty stdout and a `cli-error/1`
+envelope on stderr with registered `CLI-E-USAGE`. `capabilities` is already JSON
+and accepts no `--json`; schema has no such flag because its output must preserve
+API bytes.
+Flags with values use the existing space-separated syntax. Write failures map to
+70 with registered `CLI-E-INTERNAL` and may leave incomplete stdout.
+
+The schema inventory merges the API registry (`schema_kinds()`/`schema()`) with
+`schemas/index.json`, embedded with `include_str!`, without filesystem access.
+Each entry has a contract `id` such as `engine-input/1`, `$id`, the SHA-256 of the
+original published bytes and `availableViaSchema`. The inventory includes
+`cli-error/1`, also listed as the terminal stderr output contract.
+`availableViaSchema` is true only for API schemas: the additional CLI schemas are
+published static documents and `schema <id>` deliberately accepts only ids from
+the API. The index supplies
+precomputed digests; publication checks and binary tests compare them against the
+actual schema bytes. Updating a schema requires regenerating the index and
+rebuilding the binary.
+
+New output schemas are
+[`cli-describe/1`](schemas/cli-describe-1.json),
+[`version/1`](schemas/version-1.json) and
+[`explain/1`](schemas/explain-1.json). They are registered in
+`scripts/schema-sources.json` and copied into the static `schemas/` publication
+by `python3 scripts/generate-schemas.py --write`. Capabilities reuses its API
+schema. The discovery snapshot stores the SHA-256 of the complete stdout,
+including its final newline, rather than copying the output into source files.
+Tests reuse the API's schema validator and Python's standard-library SHA-256;
+no Rust dependencies are added.
+
+The base also retains `mcp --catalog …`: it injects the provider, identity,
+cancellation and engine_v1 table, but its tools still return fingerprint
+manifests and unclassified method errors (70). The run terminal extension
+does not apply to MCP frames; warnings there retain generic behavior.
+MCP parity for complete data and semantic codes is an open decision
+outside this ticket's describe/methods/validate/run mapping.
 
 ## Verification and platform
 

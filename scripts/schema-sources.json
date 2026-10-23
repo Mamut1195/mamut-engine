@@ -1,8 +1,20 @@
 {
   "additional_schemas": [
     {
+      "kind": "cli-describe/1",
+      "source": "crates/engine-cli/schemas/cli-describe-1.json"
+    },
+    {
       "kind": "cli-error/1",
       "source": "crates/engine-cli/schemas/cli-error-1.json"
+    },
+    {
+      "kind": "explain/1",
+      "source": "crates/engine-cli/schemas/explain-1.json"
+    },
+    {
+      "kind": "version/1",
+      "source": "crates/engine-cli/schemas/version-1.json"
     },
     {
       "kind": "progress/1",

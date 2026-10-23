@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mamut:explain:1",
+  "title": "explain/1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "code",
+    "explanation"
+  ],
+  "properties": {
+    "code": {
+      "type": "string"
+    },
+    "explanation": {
+      "type": "string"
+    }
+  }
+}

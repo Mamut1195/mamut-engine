@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mamut:version:1",
+  "title": "version/1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "engine_version",
+    "contracts"
+  ],
+  "properties": {
+    "engine_version": {
+      "type": "string"
+    },
+    "contracts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

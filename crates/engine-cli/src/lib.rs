@@ -25,6 +25,7 @@ use mamut_workflow_cli::{
 };
 use serde_json::{json, Value};
 
+mod describe;
 mod error;
 #[cfg(unix)]
 mod signals;
@@ -160,6 +161,12 @@ impl EngineCli {
             Ok(parsed) => parsed,
             Err(kind) => return report_failure(kind, operation, None, stderr),
         };
+        if let Some(result) = describe::dispatch(&args, stdout) {
+            return match result {
+                Ok(()) => ExitCodes::engine_v1().ok,
+                Err(kind) => report_failure(kind, operation, None, stderr),
+            };
+        }
         let prepared = match PreparedArgs::new(&args) {
             Ok(prepared) => prepared,
             Err(kind) => return report_failure(kind, operation, None, stderr),
