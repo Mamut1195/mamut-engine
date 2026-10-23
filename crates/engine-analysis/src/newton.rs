@@ -88,7 +88,7 @@ impl NewtonElement {
             || element.n_nodes().checked_mul(width) != Some(location.len())
             || ctx.coords.len() != element.n_nodes()
         {
-            return Err(invalid("Elemento Newton: contrato o tamaños inválidos."));
+            return Err(invalid("Newton element: invalid contract or sizes."));
         }
         for xyz in ctx.coords {
             finite(xyz)?;
@@ -118,9 +118,7 @@ impl NewtonElement {
             state,
         )?;
         if response.trial_state.len() != self.element.state_len() {
-            return Err(invalid(
-                "Elemento Newton: tamaño de historia de prueba inválido.",
-            ));
+            return Err(invalid("Newton element: invalid trial history size."));
         }
         finite(&response.trial_state)?;
         finite(response.tangent.values())?;
@@ -158,17 +156,17 @@ impl<B: LinAlgBackend> NewtonSystem<B> {
             for (node_position, indices) in e.location.chunks_exact(width).enumerate() {
                 let (node, _) = linear.dof_map().label(indices[0])?;
                 if linear.dof_map().coordinates(node)? != e.coords[node_position] {
-                    return Err(invalid("Elemento Newton: coordenadas distintas del mapa."));
+                    return Err(invalid("Newton element: coordinates differ from the map."));
                 }
                 for (&index, &dof) in indices.iter().zip(e.element.dofs_per_node()) {
                     if linear.dof_map().label(index)? != (node, dof) {
-                        return Err(invalid("Elemento Newton: orden nodo/GDL inválido."));
+                        return Err(invalid("Newton element: invalid node/DOF order."));
                     }
                 }
             }
             let state = e.element.initial_state();
             if state.len() != e.element.state_len() {
-                return Err(invalid("Historia inicial elemental inválida."));
+                return Err(invalid("Invalid initial element history."));
             }
             finite(&state)?;
             states.push(state);
@@ -286,7 +284,7 @@ impl NewtonOptions {
             || scales.iter().any(|s| *s <= 0.0)
             || tolerances.into_iter().flatten().any(|t| t <= 0.0)
         {
-            return Err(invalid("Newton: máximo, criterios o escalas inválidos."));
+            return Err(invalid("Newton: invalid maximum, criteria, or scales."));
         }
         Ok(())
     }
@@ -383,7 +381,7 @@ impl StaticNewton {
     ) -> EResult<NewtonResults> {
         options.validate()?;
         if factors.is_empty() {
-            return Err(invalid("Newton: lista de factores vacía."));
+            return Err(invalid("Newton: empty factor list."));
         }
         finite(factors)?;
         // Valida también los productos λF antes del primer commit.

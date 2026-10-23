@@ -14,22 +14,22 @@ pub(crate) fn output(
     let n = stiffness::axial(bar, g, u, committed)?;
     let mut q = 0.0;
     for load in member_loads {
-        q = finite(q + loads::axial(g, load)?, "Suma q axial (N/m)")?;
+        q = finite(q + loads::axial(g, load)?, "Sum of axial q (N/m)")?;
     }
     let half = finite(q * (g.length / 2.0), "qL/2 (N)")?;
     let mut end_forces_local = vec![0.0; 2 * g.axes];
-    end_forces_local[0] = finite(-n - half, "Acción i (N)")?;
-    end_forces_local[g.axes] = finite(n - half, "Acción j (N)")?;
+    end_forces_local[0] = finite(-n - half, "Action i (N)")?;
+    end_forces_local[g.axes] = finite(n - half, "Action j (N)")?;
     let mut out = Vec::new();
     out.try_reserve_exact(stations.len())
-        .map_err(|_| invalid("No se pudo reservar memoria para las estaciones de resultados."))?;
+        .map_err(|_| invalid("Could not allocate memory for result stations."))?;
     for &position in stations {
-        finite(position, "Estación x/L")?;
+        finite(position, "Station x/L")?;
         if !(0.0..=1.0).contains(&position) {
-            return Err(invalid("Estación fuera de [0,1]."));
+            return Err(invalid("Station is outside [0,1]."));
         }
         // Esta forma evita desbordar qL cuando ambas acciones de extremo caben.
-        let axial = finite(n + half * (1.0 - 2.0 * position), "N de estación (N)")?;
+        let axial = finite(n + half * (1.0 - 2.0 * position), "Station N (N)")?;
         out.push(StationResult {
             position,
             forces_local: [axial, 0.0, 0.0, 0.0, 0.0, 0.0],

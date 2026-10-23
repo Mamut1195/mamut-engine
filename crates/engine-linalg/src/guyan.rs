@@ -98,7 +98,7 @@ pub fn guyan_condense_with_check<B: LinAlgBackend + ?Sized>(
     for i in 0..n {
         check()?;
         if m.dense().values()[i * n + i] < 0.0 {
-            return Err(singular("Guyan: masa negativa", i));
+            return Err(singular("Guyan: negative mass", i));
         }
         has_massless |= m.dense().values()[i * n..(i + 1) * n]
             .iter()
@@ -122,7 +122,7 @@ pub fn guyan_condense_with_check<B: LinAlgBackend + ?Sized>(
     }
     if massive.is_empty() {
         return Err(singular(
-            "Guyan: no quedan GDL libres con masa",
+            "Guyan: no free DOFs with mass remain",
             massless[0],
         ));
     }
@@ -155,7 +155,7 @@ pub fn guyan_condense_with_check<B: LinAlgBackend + ?Sized>(
         })
     })?;
     let inertia = factor.info().inertia.ok_or_else(|| {
-        crate::unsupported("Guyan requiere inercia del factor Kss para comprobar positividad.")
+        crate::unsupported("Guyan requires Kss factor inertia to check positivity.")
     })?;
     if inertia != (massless.len(), 0, 0) {
         return Err(massless_mechanism(massless[0]));
@@ -191,7 +191,7 @@ pub fn guyan_condense_with_check<B: LinAlgBackend + ?Sized>(
 fn massless_mechanism(index: usize) -> EngineError {
     let mut error = EngineError::new(
         "ENG-E-0014",
-        format!("Guyan: mecanismo sin masa; Kss singular o no definida positiva, bloque del GDL {index}."),
+        format!("Guyan: massless mechanism; Kss is singular or not positive definite, DOF block {index}."),
     );
     if let Ok(index) = u32::try_from(index) {
         error.entities.push(EntityRef::Dof(DofIndex(index)));

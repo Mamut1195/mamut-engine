@@ -25,13 +25,13 @@ pub fn geometric_producer(
     crate::geometry::Geometry::new(ctx, element.orientation())?;
     if location.len() != 2 * element.dofs_per_node().len() {
         return Err(invalid(
-            "Productor de viga espacial: tamaño de location incompatible.",
+            "Spatial beam producer: incompatible location size.",
         ));
     }
     if location.iter().collect::<BTreeSet<_>>().len() != location.len() {
         return Err(engine_core::EngineError::new(
             "ENG-E-0002",
-            "Productor de viga espacial: GDL duplicado.",
+            "Spatial beam producer: duplicate DOF.",
         ));
     }
     let dim = ctx.dim;
@@ -46,7 +46,7 @@ pub fn geometric_producer(
                 params: &params,
             };
             element.geometric_stiffness(&ctx, u_e, &[])?.ok_or_else(|| {
-                engine_core::EngineError::new("ENG-E-0013", "La viga espacial no proporcionó Kg.")
+                engine_core::EngineError::new("ENG-E-0013", "Spatial beam did not provide Kg.")
             })
         }),
     })

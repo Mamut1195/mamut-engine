@@ -240,13 +240,13 @@ fn execute(
     let schema = value
         .get("schema")
         .and_then(Value::as_str)
-        .ok_or_else(|| ApiError::InvalidInput("schema obligatorio".into()))?;
+        .ok_or_else(|| ApiError::InvalidInput("schema is required".into()))?;
     if schema != "engine-input/1" {
         return Err(ApiError::UnsupportedSchema(schema.into()).into());
     }
     let execution = input::decode(value)?;
     if execution.methods.len() != 1 {
-        return Err(ApiError::InvalidInput("Se requiere exactamente un análisis".into()).into());
+        return Err(ApiError::InvalidInput("Exactly one analysis is required".into()).into());
     }
     let method = crate::methods::resolve(
         execution.methods[0],
@@ -340,14 +340,11 @@ fn build_members(execution: &input::Execution) -> Result<Vec<Member>, Failure> {
                     .iter()
                     .find(|n| n.id == id)
                     .map(|n| n.dim)
-                    .ok_or_else(|| EngineError::new("ENG-E-0003", "Nodo ausente"))
+                    .ok_or_else(|| EngineError::new("ENG-E-0003", "Missing node"))
             };
             let dim = dimension(m.nodes[0])?;
             if dimension(m.nodes[1])? != dim {
-                return Err(EngineError::new(
-                    "ENG-E-0010",
-                    "Dimensiones de extremos distintas",
-                ));
+                return Err(EngineError::new("ENG-E-0010", "End dimensions differ"));
             }
             let kind = if kind.is_empty() {
                 match dim {
@@ -367,7 +364,7 @@ fn build_members(execution: &input::Execution) -> Result<Vec<Member>, Failure> {
                 _ => {
                     return Err(EngineError::new(
                         "ENG-E-0013",
-                        format!("Elemento {kind} no soportado"),
+                        format!("Unsupported element {kind}"),
                     ))
                 }
             };
@@ -375,12 +372,12 @@ fn build_members(execution: &input::Execution) -> Result<Vec<Member>, Failure> {
                 .sections
                 .iter()
                 .find(|s| s.id == m.section)
-                .ok_or_else(|| EngineError::new("ENG-E-0003", "Sección ausente"))?;
+                .ok_or_else(|| EngineError::new("ENG-E-0003", "Missing section"))?;
             let law = model
                 .laws
                 .iter()
                 .find(|l| l.name == m.law)
-                .ok_or_else(|| EngineError::new("ENG-E-0003", "Ley ausente"))?;
+                .ok_or_else(|| EngineError::new("ENG-E-0003", "Missing law"))?;
             let mut fields = BTreeMap::new();
             let mut params = ElementParams::default();
             for p in section.properties.iter().chain(&law.parameters) {
@@ -390,7 +387,7 @@ fn build_members(execution: &input::Execution) -> Result<Vec<Member>, Failure> {
                 {
                     return Err(EngineError::new(
                         "ENG-E-0002",
-                        format!("Parámetro {} duplicado", p.name),
+                        format!("Duplicate parameter {}", p.name),
                     ));
                 }
                 params.scalars.insert(p.name.clone(), p.value);
@@ -422,7 +419,7 @@ fn build_members(execution: &input::Execution) -> Result<Vec<Member>, Failure> {
                             .insert(key.into(), JsonValue::Number(value))
                             .is_some()
                         {
-                            return Err(crate::extensions::invalid("Propiedad Winkler duplicada."));
+                            return Err(crate::extensions::invalid("Duplicate Winkler property."));
                         }
                     }
                 }
@@ -547,15 +544,15 @@ fn case_json(case: &CaseResults) -> Value {
 
 pub(crate) fn explain(code: &str) -> Option<&'static str> {
     match code {
-        "API-E-SFC-OPTIONS" => Some("SFC-010: nonlinearStatic, soilProfile y consolidation1d son Experimental hasta la cobertura de ENG-VAL-006 (decisión de Jonathan vía J0 2026-10-20); requieren options.allow_experimental = true en la raíz del job. Revise compatibilidad entre método, resorte, ley, Winkler y liberaciones. Parámetros físicos y procedencia de suelo son explícitos; consulte docs/GUIA_METODOS.md."),
-        "API-E-CONSOLIDATION-WORK" => Some("consolidation1d supera MAX_CONSOLIDATION_WORK = 50000000: suma de subpasos de toda la historia, partida en quiebres de carga y tiempos de salida, multiplicada por el número total de elementos. Reduzca historia/malla o aumente max_step_s. Se rechaza durante la validación, antes de integrar; consulte docs/GUIA_METODOS.md."),
-        "API-E-CONSOLIDATION-COST" => Some("consolidation1d supera MAX_CONSOLIDATION_COST = 500000000 (Σ intervalos n³ + Σ subpasos n², n nodos libres: elementos con drenaje simple, elementos−1 con drenaje doble), MAX_CONSOLIDATION_SEGMENTS = 256 o MAX_CONSOLIDATION_SUBSTEPS = 100000. Los intervalos unen quiebres de carga y tiempos de salida de toda la historia, incluso después de la última salida; cada uno aporta max(1, ceil(intervalo/max_step_s)) subpasos. Aritmética u128 saturante, sin descontar factores reutilizados. Se rechaza en validación con invalid / salida 2; reduzca historia/malla/salidas o aumente max_step_s. Presupuesto calibrado en release con objetivo ≤5 s, sin garantía de plazo en otras máquinas; consulte docs/GUIA_METODOS.md y provenance/ENG-SFC-010.md, r3."),
-        "API-E-INPUT" => Some("JSON o estructura engine-input/1 inválida. Revise campos, tipos y referencias de cargas de miembro. nonlinearStatic, soilProfile y consolidation1d son Experimental hasta ENG-VAL-006: requieren options.allow_experimental = true en la raíz del job."),
-        "API-I-CANCELLED" => Some("Cancelación cooperativa solicitada entre etapas, antes de combine/factorize de cada intervalo de consolidación, entre bloques de hasta 16 columnas de su factorización de referencia o antes de cada subpaso. No se emiten respuestas parciales."),
-        "API-W-COMBINED-PRESCRIBED" => Some("Seguimiento #85: los prescritos de una combinación son suma factor·δ, incluido el asentamiento único ponderado. Revise el factor explícito; varios casos de asentamiento no nulo se rechazan."),
-        "API-W-DIAPHRAGM-RECOVERY" => Some("Seguimiento #84: la recuperación con diafragmas no tiene cobertura de pruebas del dominio. Revise equilibrio y resultados antes de usarlos."),
-        "API-W-MASS-PROJECTION" => Some("#86: la conversión de cargas a masa rechaza cualquier proyección negativa, sin tolerancia; con gravedad no alineada a ejes puede rechazar por redondeo."),
-        "API-W-PDELTA-INERTIA" => Some("#78: inercia LDLᵀ con bloques 2×2 usa copysign sin prueba confirmada; revisar el diagnóstico de estabilidad."),
+        "API-E-SFC-OPTIONS" => Some("SFC-010: nonlinearStatic, soilProfile, and consolidation1d are Experimental pending ENG-VAL-006 coverage (Jonathan's decision via J0 2026-10-20); they require options.allow_experimental = true at the job root. Check compatibility between method, spring, law, Winkler, and releases. Physical parameters and soil provenance are explicit; see docs/GUIA_METODOS.md."),
+        "API-E-CONSOLIDATION-WORK" => Some("consolidation1d exceeds MAX_CONSOLIDATION_WORK = 50000000: the sum of substeps across the entire history, split at load breakpoints and output times, multiplied by the total element count. Reduce the history/mesh or increase max_step_s. Rejected during validation, before integration; see docs/GUIA_METODOS.md."),
+        "API-E-CONSOLIDATION-COST" => Some("consolidation1d exceeds MAX_CONSOLIDATION_COST = 500000000 (Σ intervals n³ + Σ substeps n², n free nodes: elements for single drainage, elements−1 for double drainage), MAX_CONSOLIDATION_SEGMENTS = 256, or MAX_CONSOLIDATION_SUBSTEPS = 100000. Intervals join load breakpoints and output times across the entire history, including after the last output; each contributes max(1, ceil(interval/max_step_s)) substeps. Saturating u128 arithmetic, without deducting reused factors. Rejected during validation with invalid / exit 2; reduce the history/mesh/outputs or increase max_step_s. Budget calibrated in release mode with a target of ≤5 s, without a deadline guarantee on other machines; see docs/GUIA_METODOS.md and provenance/ENG-SFC-010.md, r3."),
+        "API-E-INPUT" => Some("Invalid JSON or engine-input/1 structure. Check fields, types, and member load references. nonlinearStatic, soilProfile, and consolidation1d are Experimental pending ENG-VAL-006: they require options.allow_experimental = true at the job root."),
+        "API-I-CANCELLED" => Some("Cooperative cancellation requested between stages, before combine/factorize for each consolidation interval, between blocks of up to 16 columns in its reference factorization, or before each substep. Partial responses are not emitted."),
+        "API-W-COMBINED-PRESCRIBED" => Some("Follow-up #85: prescribed displacements in a combination are the sum of factor·δ, including a single weighted settlement. Check the explicit factor; multiple nonzero settlement cases are rejected."),
+        "API-W-DIAPHRAGM-RECOVERY" => Some("Follow-up #84: recovery with diaphragms lacks domain test coverage. Check equilibrium and results before using them."),
+        "API-W-MASS-PROJECTION" => Some("#86: load-to-mass conversion rejects any negative projection, without tolerance; gravity not aligned with the axes may cause rejection due to rounding."),
+        "API-W-PDELTA-INERTIA" => Some("#78: LDLᵀ inertia with 2×2 blocks uses copysign without a confirmed test; review the stability diagnostic."),
         _ => None,
     }
 }

@@ -387,7 +387,7 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
     let mut seen = BTreeSet::new();
     for node in &model.nodes {
         let entity = EntityRef::Node(node.id);
-        let context = format!("Nodo {}", node.id.0);
+        let context = format!("Node {}", node.id.0);
         duplicate(
             &mut seen,
             node.id,
@@ -400,7 +400,7 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
                 &mut out,
                 *value,
                 entity.clone(),
-                format!("{context}, coordenada {}", ["X", "Y", "Z"][axis]),
+                format!("{context}, coordinate {}", ["X", "Y", "Z"][axis]),
             );
         }
         for dof in &node.dofs {
@@ -409,7 +409,7 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
                 Some(&node),
                 *dof,
                 entity.clone(),
-                format!("{context}, GDL {dof}"),
+                format!("{context}, DOF {dof}"),
             );
         }
         if !connected.contains(&node.id) {
@@ -419,7 +419,7 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
     let mut seen = BTreeSet::new();
     for member in &model.members {
         let entity = EntityRef::Member(member.id);
-        let context = format!("Miembro {}", member.id.0);
+        let context = format!("Member {}", member.id.0);
         duplicate(
             &mut seen,
             member.id,
@@ -433,11 +433,7 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
                     &mut out,
                     "ENG-E-0003",
                     entity.clone(),
-                    format!(
-                        "{context}, extremo {}: nodo {} ausente",
-                        ["i", "j"][end],
-                        id.0
-                    ),
+                    format!("{context}, end {}: missing node {}", ["i", "j"][end], id.0),
                 );
             }
         }
@@ -446,7 +442,7 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
                 &mut out,
                 "ENG-E-0003",
                 entity.clone(),
-                format!("{context}, sección {:?} ausente", member.section),
+                format!("{context}, missing section {:?}", member.section),
             );
         }
         if !laws.contains(member.law.as_str()) {
@@ -454,7 +450,7 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
                 &mut out,
                 "ENG-E-0003",
                 entity.clone(),
-                format!("{context}, ley {:?} ausente", member.law),
+                format!("{context}, missing law {:?}", member.law),
             );
         }
         if let (Some(a), Some(b)) = (nodes.get(&member.nodes[0]), nodes.get(&member.nodes[1])) {
@@ -473,7 +469,7 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
                         &mut out,
                         "ENG-E-0005",
                         entity,
-                        format!("{context}, longitud {distance} <= tolerancia {LENGTH_TOLERANCE}"),
+                        format!("{context}, length {distance} <= tolerance {LENGTH_TOLERANCE}"),
                     );
                 }
             }
@@ -489,7 +485,7 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
                 || EntityRef::Law(section.id.clone()),
                 |m| EntityRef::Member(m.id),
             );
-        let context = format!("Sección {:?}", section.id);
+        let context = format!("Section {:?}", section.id);
         duplicate(
             &mut seen,
             &section.id,
@@ -502,14 +498,14 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
                 &mut out,
                 parameter.value,
                 entity.clone(),
-                format!("{context}, propiedad {:?}", parameter.name),
+                format!("{context}, property {:?}", parameter.name),
             );
         }
     }
     let mut seen = BTreeSet::new();
     for law in &model.laws {
         let entity = EntityRef::Law(law.name.clone());
-        let context = format!("Ley {:?}", law.name);
+        let context = format!("Law {:?}", law.name);
         duplicate(
             &mut seen,
             &law.name,
@@ -522,14 +518,14 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
                 &mut out,
                 parameter.value,
                 entity.clone(),
-                format!("{context}, parámetro {:?}", parameter.name),
+                format!("{context}, parameter {:?}", parameter.name),
             );
         }
     }
     let mut seen = BTreeSet::new();
     for support in &model.supports {
         let entity = EntityRef::Node(support.node);
-        let context = format!("Apoyo {:?}, nodo {}", support.id, support.node.0);
+        let context = format!("Support {:?}, node {}", support.id, support.node.0);
         duplicate(
             &mut seen,
             &support.id,
@@ -546,14 +542,14 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
                 nodes.get(&support.node),
                 *dof,
                 entity.clone(),
-                format!("{context}, GDL {dof}"),
+                format!("{context}, DOF {dof}"),
             );
         }
     }
     let mut seen = BTreeSet::new();
     for case in &model.cases {
         let entity = EntityRef::Case(case.name.clone());
-        let context = format!("Caso {:?}", case.name);
+        let context = format!("Case {:?}", case.name);
         duplicate(
             &mut seen,
             &case.name,
@@ -562,12 +558,12 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
             context.clone(),
         );
         for (index, load) in case.loads.iter().enumerate() {
-            let context = format!("{context}, carga {index}, nodo {}", load.node.0);
+            let context = format!("{context}, load {index}, node {}", load.node.0);
             if !nodes.contains_key(&load.node) {
                 report(&mut out, "ENG-E-0003", entity.clone(), context.clone());
             }
             for value in &load.values {
-                let context = format!("{context}, GDL {}", value.dof);
+                let context = format!("{context}, DOF {}", value.dof);
                 finite(&mut out, value.value, entity.clone(), context.clone());
                 component(
                     &mut out,
@@ -581,7 +577,7 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
     }
     let mut seen = BTreeSet::new();
     for combination in &model.combinations {
-        let context = format!("Combinación {:?}", combination.id);
+        let context = format!("Combination {:?}", combination.id);
         let entity = EntityRef::Case(
             combination
                 .terms
@@ -598,7 +594,7 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
         );
         for (index, term) in combination.terms.iter().enumerate() {
             let entity = EntityRef::Case(term.case.clone());
-            let context = format!("{context}, término {index}, caso {:?}", term.case);
+            let context = format!("{context}, term {index}, case {:?}", term.case);
             if !cases.contains(term.case.as_str()) {
                 report(&mut out, "ENG-E-0003", entity.clone(), context.clone());
             }
@@ -608,7 +604,7 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
     let mut seen = BTreeSet::new();
     for mass in &model.masses {
         let entity = EntityRef::Node(mass.node);
-        let context = format!("Masa {:?}, nodo {}", mass.id, mass.node.0);
+        let context = format!("Mass {:?}, node {}", mass.id, mass.node.0);
         duplicate(
             &mut seen,
             &mass.id,
@@ -620,7 +616,7 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
             report(&mut out, "ENG-E-0003", entity.clone(), context.clone());
         }
         for value in &mass.values {
-            let context = format!("{context}, GDL {}", value.dof);
+            let context = format!("{context}, DOF {}", value.dof);
             finite(&mut out, value.value, entity.clone(), context.clone());
             component(
                 &mut out,

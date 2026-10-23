@@ -24,14 +24,12 @@ pub fn geometric_producer(
 ) -> EResult<GeometricProducer> {
     element.geometry(ctx)?;
     if location.len() != 2 * element.dofs_per_node().len() {
-        return Err(invalid(
-            "Productor de barra: tamaño de location incompatible.",
-        ));
+        return Err(invalid("Truss producer: incompatible location size."));
     }
     if location.iter().collect::<BTreeSet<_>>().len() != location.len() {
         return Err(engine_core::EngineError::new(
             "ENG-E-0002",
-            "Productor de barra: GDL duplicado.",
+            "Truss producer: duplicate DOF.",
         ));
     }
     let dim = ctx.dim;
@@ -46,7 +44,7 @@ pub fn geometric_producer(
                 params: &params,
             };
             element.geometric_stiffness(&ctx, u_e, &[])?.ok_or_else(|| {
-                engine_core::EngineError::new("ENG-E-0013", "La barra no proporcionó Kg.")
+                engine_core::EngineError::new("ENG-E-0013", "Truss did not provide Kg.")
             })
         }),
     })

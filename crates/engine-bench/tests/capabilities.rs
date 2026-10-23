@@ -149,7 +149,7 @@ fn pdelta_passes_the_declared_options_through() {
     let error = translate(&without, AnalysisKind::PDelta)
         .unwrap_err()
         .to_string();
-    assert!(error.contains("no tiene opciones por defecto"), "{error}");
+    assert!(error.contains("has no default options"), "{error}");
 }
 
 #[test]

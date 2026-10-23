@@ -42,13 +42,13 @@ use engine_core::{DofIndex, EResult, EngineError, Real};
 use engine_linalg::{LinAlgBackend, SparseMatrix};
 
 fn invalid(message: &str) -> EngineError {
-    EngineError::new("ENG-E-0010", format!("Espectro: {message}"))
+    EngineError::new("ENG-E-0010", format!("Spectrum: {message}"))
 }
 
 fn validate_damping(zeta: Real) -> EResult<()> {
     finite(&[zeta])?;
     if !(0.0..1.0).contains(&zeta) {
-        return Err(invalid("El amortiguamiento ζ debe pertenecer a [0,1)."));
+        return Err(invalid("Damping ζ must be in [0,1)."));
     }
     Ok(())
 }
@@ -175,7 +175,7 @@ impl Spectrum {
     ) -> EResult<SpectrumResults> {
         check()?;
         if options.mode_count == 0 || directions.is_empty() {
-            return Err(invalid("Se requieren modos y direcciones no vacíos."));
+            return Err(invalid("Nonempty modes and directions are required."));
         }
         // Valida factores incluso si todas las respuestas son cero.
         combine_directions(
@@ -185,7 +185,7 @@ impl Spectrum {
         )?;
         for input in directions {
             if input.spectra.len() != 1 && input.spectra.len() != options.mode_count {
-                return Err(invalid("Declarar una tabla común o una tabla por modo."));
+                return Err(invalid("Declare one shared table or one table per mode."));
             }
         }
         let input_directions: Vec<_> = directions.iter().map(|d| d.direction).collect();
@@ -217,7 +217,7 @@ impl Spectrum {
                 let table = &input.spectra[if input.spectra.len() == 1 { 0 } else { n }];
                 let period = mode
                     .period
-                    .ok_or_else(|| invalid("Modo rígido sin periodo finito."))?;
+                    .ok_or_else(|| invalid("Rigid mode has no finite period."))?;
                 let sa = table.acceleration(period)?;
                 let acceleration = mode.participation[d].factor * sa;
                 let q = acceleration / mode.eigenvalue;
@@ -299,7 +299,7 @@ fn unit(direction: [Real; 3]) -> EResult<[Real; 3]> {
     finite(&direction)?;
     let scale = direction.iter().fold(0.0_f64, |s, v| s.max(v.abs()));
     if scale == 0.0 {
-        return Err(invalid("Dirección de excitación nula."));
+        return Err(invalid("Zero excitation direction."));
     }
     let d = direction.map(|v| v / scale);
     let norm = math::hypot(math::hypot(d[0], d[1]), d[2]);
@@ -310,7 +310,7 @@ fn multiply(matrix: &SparseMatrix, vector: &[Real]) -> EResult<Vec<Real>> {
     if matrix.cols() != vector.len() {
         return Err(EngineError::new(
             "ENG-E-0012",
-            "Producto matricial incompatible.",
+            "Incompatible matrix product.",
         ));
     }
     finite(vector)?;
@@ -332,7 +332,7 @@ fn combine_responses(
 ) -> EResult<SpectrumResponse> {
     let first = responses
         .first()
-        .ok_or_else(|| invalid("Respuestas vacías."))?;
+        .ok_or_else(|| invalid("Empty responses."))?;
     let mut global = Vec::new();
     for i in 0..first.global_displacements.len() {
         global.push(combine(

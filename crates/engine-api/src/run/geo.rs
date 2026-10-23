@@ -54,7 +54,11 @@ pub(crate) fn execute(
                 "states": result.states.iter().map(|s| json!({"time_s": s.time_s, "delta_stress_kpa": s.delta_stress_kpa,
                     "excess_pore_pressure_kpa": s.excess_pore_pressure_kpa, "settlement_m": s.settlement_m, "mean_degree": s.mean_degree})).collect::<Vec<_>>()})
         }
-        _ => return Err(EngineError::new("ENG-E-0012", "Despacho geotécnico incoherente.").into()),
+        _ => {
+            return Err(
+                EngineError::new("ENG-E-0012", "Inconsistent geotechnical dispatch.").into(),
+            )
+        }
     };
     step(cancel, progress, "geotechnical", total - 1, total)?;
     document["geotechnical"] = result;

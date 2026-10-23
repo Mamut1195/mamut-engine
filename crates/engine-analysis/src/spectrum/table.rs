@@ -58,22 +58,22 @@ impl TabulatedSpectrum {
     ) -> EResult<Self> {
         validate_damping(damping)?;
         if pairs.len() < 2 {
-            return Err(invalid("Se requieren al menos dos pares espectrales."));
+            return Err(invalid("At least two spectral pairs are required."));
         }
         for &(x, sa) in pairs {
             finite(&[x, sa])?;
             if x < 0.0 || sa < 0.0 {
-                return Err(invalid("Periodo/frecuencia y Sa deben ser no negativos."));
+                return Err(invalid("Period/frequency and Sa must be nonnegative."));
             }
         }
         if pairs.windows(2).any(|p| p[0].0 >= p[1].0) {
-            return Err(invalid("Las abscisas deben ser estrictamente crecientes."));
+            return Err(invalid("Abscissas must be strictly increasing."));
         }
         let mut points = pairs.to_vec();
         if units == SpectrumUnits::FrequencyHertzAccelerationMetersPerSecondSquared {
             for (x, _) in &mut points {
                 if *x == 0.0 {
-                    return Err(invalid("La frecuencia tabulada debe ser positiva."));
+                    return Err(invalid("Tabulated frequency must be positive."));
                 }
                 *x = 1.0 / *x;
                 finite(&[*x])?;
@@ -81,12 +81,12 @@ impl TabulatedSpectrum {
             points.reverse();
         }
         if points.windows(2).any(|p| p[0].0 >= p[1].0) {
-            return Err(invalid("Periodos convertidos no distinguibles."));
+            return Err(invalid("Converted periods are indistinguishable."));
         }
         if interpolation == Interpolation::LogLog
             && points.iter().any(|&(t, sa)| t <= 0.0 || sa <= 0.0)
         {
-            return Err(invalid("Log-log exige periodos y Sa positivos."));
+            return Err(invalid("Log-log requires positive periods and Sa."));
         }
         Ok(Self {
             points,
@@ -128,14 +128,14 @@ impl TabulatedSpectrum {
     pub fn acceleration(&self, period: Real) -> EResult<Real> {
         finite(&[period])?;
         if period < 0.0 {
-            return Err(invalid("El periodo de consulta debe ser no negativo."));
+            return Err(invalid("Query period must be nonnegative."));
         }
         // El constructor garantiza dos puntos y la tabla no permite mutaciones.
         let first = self.points[0];
         let last = self.points[self.points.len() - 1];
         if period < first.0 || period > last.0 {
             return match self.extrapolation {
-                Extrapolation::Error => Err(invalid("Periodo fuera del espectro tabulado.")),
+                Extrapolation::Error => Err(invalid("Period is outside the tabulated spectrum.")),
                 Extrapolation::Plateau => Ok(if period < first.0 { first.1 } else { last.1 }),
             };
         }

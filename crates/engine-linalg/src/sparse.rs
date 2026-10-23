@@ -30,11 +30,11 @@ impl SparseMatrix {
     pub fn from_triplets(rows: usize, cols: usize, entries: &[Triplet]) -> EResult<Self> {
         let len = rows
             .checked_add(1)
-            .ok_or_else(|| invalid("Número de filas desbordado."))?;
+            .ok_or_else(|| invalid("Row count overflow."))?;
         let mut sums = BTreeMap::new();
         for t in entries {
             if t.row >= rows || t.col >= cols {
-                return Err(invalid("Tripleta fuera de las dimensiones de ensamblaje."));
+                return Err(invalid("Triplet is outside assembly dimensions."));
             }
             finite(&[t.value])?;
             let sum = sums.entry((t.row, t.col)).or_insert(0.0);

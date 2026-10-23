@@ -124,7 +124,7 @@ fn rejects_singular_and_indefinite_massless_block() {
         assert!(
             matches!(error.entities.as_slice(), [EntityRef::Dof(DofIndex(index))] if *index == dof)
         );
-        assert!(error.message.contains(&format!("bloque del GDL {dof}.")));
+        assert!(error.message.contains(&format!("DOF block {dof}.")));
     }
 }
 

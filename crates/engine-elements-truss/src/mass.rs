@@ -9,7 +9,7 @@ pub(crate) fn matrix(bar: &LinearTruss, g: &Geometry, kind: MassKind) -> EResult
         return Ok(None);
     }
     let per_length = positive(bar.density * bar.area, "rho A (kg/m)")?;
-    let total = positive(per_length * g.length, "Masa total (kg)")?;
+    let total = positive(per_length * g.length, "Total mass (kg)")?;
     let n = 2 * g.axes;
     let mut values = vec![0.0; n * n];
     for axis in 0..g.axes {
@@ -18,8 +18,8 @@ pub(crate) fn matrix(bar: &LinearTruss, g: &Geometry, kind: MassKind) -> EResult
         let (diagonal, off) = match kind {
             MassKind::Lumped => (positive(total / 2.0, "Masa nodal (kg)")?, 0.0),
             MassKind::Consistent => (
-                positive(total / 3.0, "Masa diagonal (kg)")?,
-                positive(total / 6.0, "Masa acoplada (kg)")?,
+                positive(total / 3.0, "Diagonal mass (kg)")?,
+                positive(total / 6.0, "Coupled mass (kg)")?,
             ),
         };
         values[i * n + i] = diagonal;

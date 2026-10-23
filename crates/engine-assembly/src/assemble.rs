@@ -46,15 +46,15 @@ pub struct ElementContribution {
 
 pub(crate) fn location(order: usize, indices: &[DofIndex]) -> EResult<()> {
     if indices.is_empty() {
-        return Err(error("ENG-E-0010", "Aporte sin GDL."));
+        return Err(error("ENG-E-0010", "Contribution has no DOFs."));
     }
     let mut seen = BTreeSet::new();
     for &d in indices {
         if d.0 as usize >= order {
-            return Err(error("ENG-E-0010", "Ubicación elemental fuera de rango."));
+            return Err(error("ENG-E-0010", "Element location is out of range."));
         }
         if !seen.insert(d) {
-            return Err(error("ENG-E-0002", "GDL duplicado en ubicación elemental."));
+            return Err(error("ENG-E-0002", "Duplicate DOF in element location."));
         }
     }
     Ok(())
@@ -97,7 +97,7 @@ pub fn assemble_matrix_with_tolerance<B: LinAlgBackend>(
     if !symmetry_tolerance.is_finite() || symmetry_tolerance < 0.0 {
         return Err(error(
             "ENG-E-0010",
-            "Tolerancia de simetría negativa o no finita.",
+            "Negative or non-finite symmetry tolerance.",
         ));
     }
     let mut entries = Vec::new();
@@ -124,7 +124,7 @@ pub fn assemble_matrix_with_tolerance<B: LinAlgBackend>(
                             (a / 2.0 - b / 2.0).abs() <= 0.5 * symmetry_tolerance * scale
                         });
                 if !symmetric {
-                    return Err(error("ENG-E-0010", "Matriz no simétrica."));
+                    return Err(error("ENG-E-0010", "Nonsymmetric matrix."));
                 }
             }
         }
@@ -205,19 +205,19 @@ pub(crate) fn assemble_model<B: LinAlgBackend>(
     let mut forces = BTreeMap::new();
     for case in &model.cases {
         if forces.insert(case.name.clone(), vec![0.0; n]).is_some() {
-            let mut e = error("ENG-E-0002", "Caso duplicado.");
+            let mut e = error("ENG-E-0002", "Duplicate case.");
             e.entities.push(EntityRef::Case(case.name.clone()));
             return Err(e);
         }
     }
     let mut nodal_forces = forces.clone();
     for element in elements {
-        non_negative_diagonal(&element.stiffness, "Rigidez elemental negativa.")?;
+        non_negative_diagonal(&element.stiffness, "Negative element stiffness.")?;
         for mass in [&element.mass_lumped, &element.mass_consistent]
             .into_iter()
             .flatten()
         {
-            non_negative_diagonal(mass, "Masa elemental negativa.")?;
+            non_negative_diagonal(mass, "Negative element mass.")?;
         }
     }
     let blocks: Vec<_> = elements
@@ -290,7 +290,7 @@ pub(crate) fn assemble_model<B: LinAlgBackend>(
     for mass in &model.masses {
         check_node(map, mass.node)?;
         if !mass_ids.insert(&mass.id) {
-            return Err(error("ENG-E-0002", "Identificador de masa duplicado."));
+            return Err(error("ENG-E-0002", "Duplicate mass identifier."));
         }
         for value in &mass.values {
             if value.value < 0.0 {
@@ -335,7 +335,7 @@ fn check_node(map: &DofMap, node: NodeId) -> EResult<()> {
     if map.contains_node(node) {
         Ok(())
     } else {
-        let mut e = error("ENG-E-0003", "Nodo de acción/masa inexistente.");
+        let mut e = error("ENG-E-0003", "Action/mass node does not exist.");
         e.entities.push(EntityRef::Node(node));
         Err(e)
     }
@@ -354,7 +354,7 @@ pub(crate) fn triplets(matrix: &SparseMatrix) -> Vec<Triplet> {
 }
 
 pub(crate) fn missing_case(case: &CaseRef) -> EngineError {
-    let mut e = error("ENG-E-0003", format!("Caso {} ausente.", case.0));
+    let mut e = error("ENG-E-0003", format!("Missing case {}.", case.0));
     e.entities.push(EntityRef::Case(case.0.clone()));
     e
 }

@@ -310,7 +310,7 @@ impl EngineError {
     /// ```
     /// use engine_core::EngineError;
     /// let error = EngineError::from_code("ENG-E-0005").unwrap();
-    /// assert_eq!(error.to_string(), "ENG-E-0005: La longitud del miembro es nula.");
+    /// assert_eq!(error.to_string(), "ENG-E-0005: The member length is zero.");
     /// assert!(EngineError::from_code("desconocido").is_none());
     /// ```
     pub fn from_code(code: &str) -> Option<Self> {

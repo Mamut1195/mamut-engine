@@ -84,7 +84,7 @@ fn guyan_massless_mechanism_returns_unstable_with_node_and_dof() {
     assert_eq!(outcome.status, Status::Unstable);
     assert_eq!(document["diagnostics"][0]["code"], "ENG-E-0014");
     let cause = document["diagnostics"][0]["cause"].as_str().unwrap();
-    assert!(cause.contains("Nodo 2, GDL Uy (global 3)."), "{cause}");
+    assert!(cause.contains("Node 2, DOF Uy (global 3)."), "{cause}");
     assert_eq!(
         document["diagnostics"][0]["entities"],
         json!([{"kind":"node","id":2},{"kind":"dof","id":3}])
@@ -359,7 +359,7 @@ fn mass_projection_off_axis_warns_and_ambiguous_sources_are_invalid() {
     assert!(d["diagnostics"][0]["cause"]
         .as_str()
         .unwrap()
-        .contains("redondeo"));
+        .contains("rounding"));
     v["analyses"][0]["options"]["mass_source"] = Value::Null;
     assert_eq!(solve(&v).0.exit_code(), 2);
     let mut p = column(2, 0.2);

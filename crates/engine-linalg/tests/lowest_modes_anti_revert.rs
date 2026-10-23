@@ -85,7 +85,7 @@ fn anti_revert_rejects_unsorted_eigenpairs() {
     // would pass, so only the ordering guard can reject the result.
     let error = backend.lowest_modes(&k, &m, 3).unwrap_err();
     assert_eq!(error.code, "ENG-E-0007");
-    assert!(error.message.contains("sin ordenar"), "{error:?}");
+    assert!(error.message.contains("unordered"), "{error:?}");
 }
 
 #[test]
@@ -124,7 +124,7 @@ fn anti_revert_rejects_inertia_whose_sum_differs_from_order() {
         ];
         for error in errors {
             assert_eq!(error.code, "ENG-E-0007");
-            assert!(error.message.contains("inercia incompatible"), "{error:?}");
+            assert!(error.message.contains("inertia incompatible"), "{error:?}");
         }
     }
 }
@@ -144,10 +144,7 @@ fn anti_revert_relative_shift_includes_nearby_distinct_root() {
         );
         let error = ReferenceBackend.lowest_modes(&k, &m, 1).unwrap_err();
         assert_eq!(error.code, "ENG-E-0007");
-        assert!(
-            error.message.contains("corte de multiplicidad"),
-            "{error:?}"
-        );
+        assert!(error.message.contains("multiplicity cutoff"), "{error:?}");
         assert!(error.message.contains(")=2"), "{error:?}");
         let modes = ReferenceBackend.lowest_modes(&k, &m, 2).unwrap();
         for (&value, expected) in modes.eigenvalues.iter().zip(exact) {

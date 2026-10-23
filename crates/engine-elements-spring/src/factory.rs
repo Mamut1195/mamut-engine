@@ -38,7 +38,7 @@ impl ElementFactory for SpringFactory {
     }
     fn build(&self, params: &JsonValue, model: &ModelView<'_>) -> EResult<Box<dyn Element>> {
         if self.dim != model.dim {
-            return Err(invalid("Fábrica de resorte: dimensión incompatible."));
+            return Err(invalid("Spring factory: incompatible dimension."));
         }
         let mut ids = BTreeSet::new();
         for (id, p) in model.nodes {
@@ -49,40 +49,40 @@ impl ElementFactory for SpringFactory {
                 ));
             }
             for &value in p {
-                finite(value, "Coordenada ModelView")?;
+                finite(value, "ModelView coordinate")?;
             }
             if self.dim == Dim::D2 && p[2] != 0.0 {
-                return Err(invalid("ModelView D2 requiere Z=0."));
+                return Err(invalid("ModelView D2 requires Z=0."));
             }
         }
         let JsonValue::Object(fields) = params else {
-            return Err(invalid("Resorte: se esperaba objeto SI."));
+            return Err(invalid("Spring: expected an SI object."));
         };
         if fields
             .keys()
             .any(|key| !["k", "dofs", "ground", "direction", "rotation"].contains(&key.as_str()))
         {
-            return Err(invalid("Resorte: propiedad desconocida."));
+            return Err(invalid("Spring: unknown property."));
         }
         let k = match fields.get("k") {
             Some(JsonValue::Number(v)) => *v,
-            _ => return Err(invalid("Resorte: k numérica requerida.")),
+            _ => return Err(invalid("Spring: numeric k is required.")),
         };
         let JsonValue::Array(values) = fields
             .get("dofs")
-            .ok_or_else(|| invalid("Resorte: dofs requerido."))?
+            .ok_or_else(|| invalid("Spring: dofs is required."))?
         else {
-            return Err(invalid("Resorte: dofs debe ser una lista."));
+            return Err(invalid("Spring: dofs must be a list."));
         };
         if values.is_empty() || values.len() > 6 {
             return Err(invalid(
-                "Resorte: la fábrica requiere exactamente un GDL de la dimensión seleccionada.",
+                "Spring: factory requires exactly one DOF of the selected dimension.",
             ));
         }
         let mut dofs = Vec::with_capacity(values.len());
         for value in values {
             let JsonValue::String(label) = value else {
-                return Err(invalid("GDL debe ser texto."));
+                return Err(invalid("DOF must be text."));
             };
             let dof = self
                 .dim
@@ -90,11 +90,11 @@ impl ElementFactory for SpringFactory {
                 .iter()
                 .find(|dof| dof.label() == label)
                 .copied()
-                .ok_or_else(|| invalid("GDL desconocido o ajeno a dimensión."))?;
+                .ok_or_else(|| invalid("Unknown DOF or DOF outside the dimension."))?;
             dofs.push(dof);
         }
         if dofs.iter().enumerate().any(|(i, d)| dofs[..i].contains(d)) {
-            return Err(invalid("Resorte: GDL repetido."));
+            return Err(invalid("Spring: duplicate DOF."));
         }
         if dofs.len() > 1 {
             // Varios GDL en un mismo elemento forman un resorte de rango uno que
@@ -102,13 +102,13 @@ impl ElementFactory for SpringFactory {
             // rechaza para evitar rigideces acopladas no pedidas (J4 r7).
             return Err(EngineError::new(
                 "ENG-E-0013",
-                "Resorte: un elemento admite un solo GDL; para resortes independientes use un elemento por GDL.",
+                "Spring: an element supports a single DOF; for independent springs, use one element per DOF.",
             ));
         }
         let connection = match fields.get("ground") {
             None | Some(JsonValue::Bool(false)) => SpringConnection::BetweenNodes,
             Some(JsonValue::Bool(true)) => SpringConnection::Ground,
-            _ => return Err(invalid("ground debe ser booleano.")),
+            _ => return Err(invalid("ground must be boolean.")),
         };
         let axes = match (fields.get("direction"), fields.get("rotation")) {
             (None, None) => SpringAxes::Global,
@@ -118,7 +118,7 @@ impl ElementFactory for SpringFactory {
             }
             _ => {
                 return Err(invalid(
-                    "Resorte: orientación incompatible o matriz de tamaño inválido.",
+                    "Spring: incompatible orientation or invalid matrix size.",
                 ))
             }
         };
@@ -130,17 +130,17 @@ impl ElementFactory for SpringFactory {
 
 fn array(value: &JsonValue) -> EResult<[Real; 3]> {
     let JsonValue::Array(values) = value else {
-        return Err(invalid("Orientación requiere una lista numérica."));
+        return Err(invalid("Orientation requires a numeric list."));
     };
     if values.len() != 3 {
-        return Err(invalid("Orientación requiere tres componentes."));
+        return Err(invalid("Orientation requires three components."));
     }
     let mut out = [0.0; 3];
     for (target, value) in out.iter_mut().zip(values) {
         let JsonValue::Number(v) = value else {
-            return Err(invalid("Orientación requiere números."));
+            return Err(invalid("Orientation requires numbers."));
         };
-        *target = finite(*v, "Orientación")?;
+        *target = finite(*v, "Orientation")?;
     }
     Ok(out)
 }

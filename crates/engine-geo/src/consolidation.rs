@@ -123,10 +123,10 @@ impl ConsolidationResult {
         let state = self
             .states
             .get(state_index)
-            .ok_or_else(|| invalid("Índice de salida fuera de rango."))?;
+            .ok_or_else(|| invalid("Output index is out of range."))?;
         // También valida los campos públicos si el llamador modifica el resultado.
         if self.depths_m.len() < 2 || state.excess_pore_pressure_kpa.len() != self.depths_m.len() {
-            return Err(invalid("Dimensiones del resultado modificadas."));
+            return Err(invalid("Result dimensions have changed."));
         }
         for (i, pair) in self.depths_m.windows(2).enumerate() {
             if depth_m >= pair[0] && depth_m <= pair[1] && pair[1] > pair[0] {
@@ -138,7 +138,7 @@ impl ConsolidationResult {
                 );
             }
         }
-        Err(invalid("Profundidad fuera del perfil."))
+        Err(invalid("Depth is outside the profile."))
     }
 }
 
@@ -163,7 +163,7 @@ fn diagnostic(code: &'static str, hint: impl Into<String>) -> Diagnostic {
         None => Diagnostic::new(
             "ENG-E-0012",
             Severity::Error,
-            "Código de diagnóstico no registrado.",
+            "Unregistered diagnostic code.",
         ),
     };
     d.hint = Some(hint.into());
@@ -186,7 +186,7 @@ fn finite(v: Real, field: &str) -> GeoResult<Real> {
     } else {
         Err(diagnostic(
             "ENG-E-0008",
-            format!("{field}: dato o resultado no finito."),
+            format!("{field}: non-finite data or result."),
         ))
     }
 }
@@ -196,7 +196,7 @@ fn positive(v: Real, field: &str) -> GeoResult<Real> {
         Ok(v)
     } else {
         Err(invalid(&format!(
-            "{field}: debe ser positivo y representable."
+            "{field}: must be positive and representable."
         )))
     }
 }
@@ -204,7 +204,9 @@ fn parameter(p: Option<Parameter>, field: &str, assumed: &mut Vec<String>) -> Ge
     let p = p.ok_or_else(|| {
         diagnostic(
             "ENG-E-0003",
-            format!("Falta {field}; aporte valor y Provenance, sin sustitución implícita."),
+            format!(
+                "Missing {field}; provide a value and Provenance, with no implicit substitution."
+            ),
         )
     })?;
     finite(p.value, field)?;
@@ -233,15 +235,15 @@ impl ConsolidationProfile {
         let count = layers
             .iter()
             .try_fold(0usize, |n, l| n.checked_add(l.elements))
-            .ok_or_else(|| invalid("Número de elementos desbordado."))?;
+            .ok_or_else(|| invalid("Element count overflow."))?;
         if layers.is_empty() || count > 2048 || count == 0 {
             return Err(invalid(
-                "Se requieren capas y entre 1 y 2048 elementos en total.",
+                "Layers and between 1 and 2048 elements in total are required.",
             ));
         }
         if count == 1 && drainage == Drainage::Double {
             return Err(invalid(
-                "Doble drenaje requiere al menos dos elementos (un nodo libre).",
+                "Double drainage requires at least two elements (one free node).",
             ));
         }
         let mut depths = Vec::with_capacity(count + 1);
@@ -275,16 +277,16 @@ impl ConsolidationProfile {
                 "k",
             )?;
             if layer.elements == 0 {
-                return Err(invalid("Cada capa requiere al menos un elemento."));
+                return Err(invalid("Each layer requires at least one element."));
             }
             let conductivity = positive(k / water, "k/γw")?;
             let derived_cv = positive(conductivity / mv, "k/(γw mv)")?;
-            if (finite(cv / derived_cv, "cv / cv derivado")? - 1.0).abs() > 1e-10 {
+            if (finite(cv / derived_cv, "cv / derived cv")? - 1.0).abs() > 1e-10 {
                 return Err(invalid(&format!(
-                    "{prefix}: cv incompatible con k/(γw mv); discrepancia relativa máxima 1e-10."
+                    "{prefix}: cv is incompatible with k/(γw mv); maximum relative discrepancy is 1e-10."
                 )));
             }
-            let bottom = finite(top + thickness, "profundidad acumulada")?;
+            let bottom = finite(top + thickness, "accumulated depth")?;
             for e in 1..=layer.elements {
                 let z = if e == layer.elements {
                     bottom
@@ -295,9 +297,9 @@ impl ConsolidationProfile {
                     )?
                 };
                 let previous = depths[depths.len() - 1];
-                let h = positive(z - previous, "longitud elemental")?;
-                positive(mv * h / 6.0, "masa elemental")?;
-                positive(conductivity / h, "difusión elemental")?;
+                let h = positive(z - previous, "element length")?;
+                positive(mv * h / 6.0, "element mass")?;
+                positive(conductivity / h, "element diffusion")?;
                 elements.push(Element {
                     h,
                     mv,
@@ -341,7 +343,7 @@ impl ConsolidationProfile {
                 }
                 source[row - first] = finite(
                     source[row - first] + el.mv * el.h / 2.0,
-                    "carga elemental acumulada",
+                    "accumulated element load",
                 )?;
                 for b in 0..2 {
                     let col = e + b;
@@ -427,7 +429,7 @@ impl ConsolidationProfile {
         finite(options.theta, "theta")?;
         positive(options.max_step_s, "max_step_s")?;
         if !(0.0..=1.0).contains(&options.theta) {
-            return Err(invalid("theta debe pertenecer a [0,1]."));
+            return Err(invalid("theta must be in [0,1]."));
         }
         if history.len() < 2
             || history.len() > 100000
@@ -435,7 +437,7 @@ impl ConsolidationProfile {
             || output_times_s.len() > 100000
         {
             return Err(invalid(
-                "Se requieren 2..100000 puntos de carga y 1..100000 tiempos de salida.",
+                "2..100000 load points and 1..100000 output times are required.",
             ));
         }
         if output_times_s
@@ -443,18 +445,16 @@ impl ConsolidationProfile {
             .checked_mul(self.depths.len())
             .is_none_or(|n| n > 8000000)
         {
-            return Err(invalid(
-                "La salida supera el límite de 8000000 valores nodales.",
-            ));
+            return Err(invalid("Output exceeds the limit of 8000000 nodal values."));
         }
         let mut assumed = self.assumed.clone();
         let mut loads = Vec::with_capacity(history.len());
         for (i, point) in history.iter().enumerate() {
             check_cancelled(cancelled).map_err(algebra)?;
-            finite(point.time_s, "tiempo de carga")?;
+            finite(point.time_s, "load time")?;
             if (i == 0 && point.time_s != 0.0) || (i > 0 && point.time_s <= history[i - 1].time_s) {
                 return Err(invalid(
-                    "La historia debe empezar en 0 y tener tiempos estrictamente crecientes.",
+                    "History must start at 0 and have strictly increasing times.",
                 ));
             }
             loads.push(parameter(
@@ -465,13 +465,13 @@ impl ConsolidationProfile {
         }
         for (i, &t) in output_times_s.iter().enumerate() {
             check_cancelled(cancelled).map_err(algebra)?;
-            finite(t, "tiempo de salida")?;
+            finite(t, "output time")?;
             if t < 0.0
                 || t > history[history.len() - 1].time_s
                 || (i > 0 && t <= output_times_s[i - 1])
             {
                 return Err(invalid(
-                    "Salidas estrictamente crecientes dentro de la historia, sin extrapolar.",
+                    "Output times must be strictly increasing within the history, without extrapolation.",
                 ));
             }
         }
@@ -491,11 +491,11 @@ impl ConsolidationProfile {
                     segment += 1;
                 }
                 let stop = target.min(history[segment + 1].time_s);
-                let span = positive(stop - time, "intervalo temporal")?;
+                let span = positive(stop - time, "time interval")?;
                 let steps_real =
-                    finite((span / options.max_step_s).ceil(), "número de subpasos")?.max(1.0);
+                    finite((span / options.max_step_s).ceil(), "substep count")?.max(1.0);
                 if steps_real > 1000000.0 {
-                    return Err(invalid("Más de 1000000 subpasos en un intervalo."));
+                    return Err(invalid("More than 1000000 substeps in an interval."));
                 }
                 let steps = steps_real as usize;
                 let dt = positive(span / steps as Real, "dt")?;
@@ -517,11 +517,11 @@ impl ConsolidationProfile {
                 }
                 let factor = &cached_factor
                     .as_ref()
-                    .ok_or_else(|| invalid("Falta la factorización temporal."))?
+                    .ok_or_else(|| invalid("Missing time factorization."))?
                     .1;
                 let load_span = positive(
                     history[segment + 1].time_s - history[segment].time_s,
-                    "intervalo de carga",
+                    "load interval",
                 )?;
                 let mut previous_time = time;
                 for step in 1..=steps {
@@ -529,7 +529,7 @@ impl ConsolidationProfile {
                         return Err(Diagnostic::new(
                             "API-I-CANCELLED",
                             Severity::Info,
-                            "Consolidación cancelada en un subpaso.",
+                            "Consolidation cancelled at a substep.",
                         ));
                     }
                     let next_time = if step == steps {
@@ -538,16 +538,14 @@ impl ConsolidationProfile {
                         time + dt * step as Real
                     };
                     if next_time <= previous_time {
-                        return Err(invalid(
-                            "El paso temporal se pierde en f64; revise las escalas.",
-                        ));
+                        return Err(invalid("Time step is lost in f64; check the scales."));
                     }
                     let r = (next_time - history[segment].time_s) / load_span;
                     let next_stress = finite(
                         (1.0 - r) * loads[segment] + r * loads[segment + 1],
-                        "Δσ interpolada",
+                        "interpolated Δσ",
                     )?;
-                    let increment = finite(next_stress - stress, "incremento Δσ")?;
+                    let increment = finite(next_stress - stress, "Δσ increment")?;
                     let mut rhs = vec![0.0; n];
                     for row in 0..n {
                         let mut value = source[row] * increment;
@@ -555,7 +553,7 @@ impl ConsolidationProfile {
                             value += (m.values()[p] - (1.0 - options.theta) * dt * k.values()[p])
                                 * u[m.column_indices()[p]];
                         }
-                        rhs[row] = finite(value, "RHS temporal")?;
+                        rhs[row] = finite(value, "Time RHS")?;
                     }
                     let solution = factor
                         .solve_with_check(&DMat::new(n, 1, rhs).map_err(algebra)?, &mut || {
@@ -586,7 +584,7 @@ impl ConsolidationProfile {
             } else {
                 let ultimate = finite(stress * compliance, "s∞")?;
                 if ultimate == 0.0 {
-                    return Err(invalid("s∞ subdesbordado; revise las escalas."));
+                    return Err(invalid("s∞ underflow; check the scales."));
                 }
                 Some(finite(settlement / ultimate, "U(t)")?)
             };
@@ -610,7 +608,7 @@ fn check_cancelled(cancelled: &mut dyn FnMut() -> bool) -> Result<(), EngineErro
     if cancelled() {
         Err(EngineError::new(
             "API-I-CANCELLED",
-            "Consolidación cancelada antes o durante la factorización.",
+            "Consolidation cancelled before or during factorization.",
         ))
     } else {
         Ok(())
@@ -658,14 +656,14 @@ fn check_stability(m: &SparseMatrix, k: &SparseMatrix, theta: Real, dt: Real) ->
         lower = lower.min(margin);
         upper = upper.max(ksum);
     }
-    positive(lower, "cota inferior de M")?;
-    positive(upper, "cota superior de K")?;
+    positive(lower, "lower bound of M")?;
+    positive(upper, "upper bound of K")?;
     let limit = positive(
         (2.0 / (1.0 - 2.0 * theta)) * (lower / upper),
-        "límite dt estable",
+        "stable dt limit",
     )?;
     if dt > limit {
-        return Err(invalid(&format!("θ={theta}: dt={dt} s supera cota suficiente de estabilidad {limit} s; reduzca max_step_s.")));
+        return Err(invalid(&format!("θ={theta}: dt={dt} s exceeds the sufficient stability bound {limit} s; reduce max_step_s.")));
     }
     Ok(())
 }

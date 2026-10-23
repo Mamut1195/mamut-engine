@@ -141,7 +141,7 @@ fn local_load(beam: &Beam2D, load: &SpanLoad) -> EResult<LocalLoad> {
             let qi = beam.local(q_i, axes)?;
             let qj = beam.local(q_j, axes)?;
             if a < 0.0 || a >= b || b > l {
-                return Err(error("ENG-E-0010", "Intervalo de carga: 0 ≤ a < b ≤ L."));
+                return Err(error("ENG-E-0010", "Load interval: 0 ≤ a < b ≤ L."));
             }
             Ok(LocalLoad::Distributed { qi, qj, a, b })
         }
@@ -149,7 +149,7 @@ fn local_load(beam: &Beam2D, load: &SpanLoad) -> EResult<LocalLoad> {
             finite(&[x])?;
             let p = beam.local(p, axes)?;
             if x < 0.0 || x > l {
-                return Err(error("ENG-E-0010", "Posición puntual fuera de [0,L]."));
+                return Err(error("ENG-E-0010", "Point position is outside [0,L]."));
             }
             Ok(LocalLoad::Point { x, p })
         }
@@ -242,7 +242,7 @@ pub fn to_member_load(beam: &Beam2D, load: &SpanLoad) -> EResult<MemberLoad> {
         _ => {
             return Err(error(
                 "ENG-E-0013",
-                "MemberLoad requiere una carga uniforme completa.",
+                "MemberLoad requires a full uniform load.",
             ))
         }
     };

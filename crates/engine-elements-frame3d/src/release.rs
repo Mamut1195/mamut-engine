@@ -23,7 +23,7 @@ impl MomentReleases {
         }
         for ((ids, sign), axis) in PLANES.into_iter().zip([2, 1]) {
             let both = self.i[axis] && self.j[axis];
-            let coefficient = finite(if both { 1.0 / l } else { 1.5 / l }, "Condensación 1/L")?;
+            let coefficient = finite(if both { 1.0 / l } else { 1.5 / l }, "Condensation 1/L")?;
             for (released, r, other) in [
                 (self.i[axis], ids[1], ids[3]),
                 (self.j[axis], ids[3], ids[1]),
@@ -50,7 +50,7 @@ impl MomentReleases {
     }
 }
 fn torsion_equilibrium(beam: &EulerFrame3D, length: Real, f: &[Real; 12]) -> EResult<()> {
-    let net = finite(f[3] + f[9], "Torsor neto")?.abs();
+    let net = finite(f[3] + f[9], "Net torque")?.abs();
     // La escala sólo se usa con torsión liberada en ambos extremos; su guarda
     // no debe rechazar cargas finitas en elementos sin esa doble liberación.
     if !(beam.releases.i[0] && beam.releases.j[0]) {
@@ -67,12 +67,12 @@ fn torsion_equilibrium(beam: &EulerFrame3D, length: Real, f: &[Real; 12]) -> ERe
     let forces = [0, 1, 2, 6, 7, 8]
         .iter()
         .fold(0.0_f64, |a, &i| a.max(f[i].abs()));
-    let force_scale = finite(length * forces, "Escala L·fuerzas")?;
-    let scale = finite(moments.max(force_scale), "Escala torsional")?;
+    let force_scale = finite(length * forces, "L·forces scale")?;
+    let scale = finite(moments.max(force_scale), "Torsional scale")?;
     if net > 1e-12 * scale {
         return Err(EngineError::new(
             "ENG-E-0006",
-            "Torsión liberada en ambos extremos: carga torsional neta sin equilibrio.",
+            "Torsion released at both ends: net torsional load is unbalanced.",
         ));
     }
     Ok(())
@@ -100,13 +100,13 @@ pub(crate) fn displacements(
         if ri && rj {
             let fi = finite(f[ids[1]] / b, "fi/(EI/L)")?;
             let fj = finite(f[ids[3]] / b, "fj/(EI/L)")?;
-            d[ids[1]] = finite(d[ids[1]] + fi / 3.0 - fj / 6.0, "Giro i recuperado")?;
-            d[ids[3]] = finite(d[ids[3]] + fj / 3.0 - fi / 6.0, "Giro j recuperado")?;
+            d[ids[1]] = finite(d[ids[1]] + fi / 3.0 - fj / 6.0, "Recovered rotation i")?;
+            d[ids[3]] = finite(d[ids[3]] + fj / 3.0 - fi / 6.0, "Recovered rotation j")?;
         } else {
             let r = if ri { ids[1] } else { ids[3] };
             d[r] = finite(
                 d[r] + f[r] / positive(4.0 * b, "4EI/L")?,
-                "Giro liberado recuperado",
+                "Recovered released rotation",
             )?;
         }
     }
@@ -116,11 +116,11 @@ pub(crate) fn displacements(
         let a = positive(beam.gj / g.length, "GJ/L")?;
         if ri && rj {
             // Pseudoinversa en el subespacio de giro medio nulo.
-            d[3] = finite((f[3] / a) / 2.0, "Giro torsional i")?;
+            d[3] = finite((f[3] / a) / 2.0, "Torsional rotation i")?;
             d[9] = -d[3];
         } else {
             let r = if ri { 3 } else { 9 };
-            d[r] = finite(d[r] + f[r] / a, "Giro torsional liberado")?;
+            d[r] = finite(d[r] + f[r] / a, "Released torsional rotation")?;
         }
     }
     Ok(d)
@@ -128,7 +128,7 @@ pub(crate) fn displacements(
 pub(crate) fn force(f: &[Real; 12], h: &Matrix) -> EResult<[Real; 12]> {
     let mut out = [0.0; 12];
     for (i, v) in out.iter_mut().enumerate() {
-        *v = finite((0..12).map(|r| h[r][i] * f[r]).sum(), "Carga transformada")?;
+        *v = finite((0..12).map(|r| h[r][i] * f[r]).sum(), "Transformed load")?;
     }
     Ok(out)
 }

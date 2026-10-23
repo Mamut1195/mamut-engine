@@ -114,7 +114,7 @@ impl EulerFrame3D {
         positive(iz, "Iz (m⁴)")?;
         finite(density, "rho (kg/m³)")?;
         if density < 0.0 {
-            return Err(invalid("rho debe ser no negativa."));
+            return Err(invalid("rho must be nonnegative."));
         }
         geometry::unit(orientation)?;
         Ok(Self {
@@ -175,7 +175,7 @@ impl EulerFrame3D {
         };
         let mut force_per_length = [0.0; 3];
         for (q, g) in force_per_length.iter_mut().zip(acceleration) {
-            *q = finite(line_mass * g, "Peso propio")?;
+            *q = finite(line_mass * g, "Self-weight")?;
         }
         Ok(MemberLoad {
             force_per_length,
@@ -283,7 +283,7 @@ fn finite(value: Real, name: &str) -> EResult<Real> {
     if !value.is_finite() {
         return Err(EngineError::new(
             "ENG-E-0008",
-            format!("{name}: entrada o resultado no finito."),
+            format!("{name}: non-finite input or result."),
         ));
     }
     Ok(value)
@@ -291,14 +291,14 @@ fn finite(value: Real, name: &str) -> EResult<Real> {
 fn positive(value: Real, name: &str) -> EResult<Real> {
     finite(value, name)?;
     if value <= 0.0 {
-        return Err(invalid(&format!("{name}: debe ser positivo.")));
+        return Err(invalid(&format!("{name}: must be positive.")));
     }
     Ok(value)
 }
 fn vector(values: &[Real], size: usize, name: &str) -> EResult<()> {
     if values.len() != size {
         return Err(invalid(&format!(
-            "{name}: tamaño {}, esperado {size}.",
+            "{name}: size {}, expected {size}.",
             values.len()
         )));
     }

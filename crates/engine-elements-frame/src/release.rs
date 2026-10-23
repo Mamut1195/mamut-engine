@@ -23,7 +23,7 @@ impl MomentReleases {
         }
         let coefficient = finite(
             if self.i && self.j { 1.0 / l } else { 1.5 / l },
-            "Condensación 1/L",
+            "Condensation 1/L",
         )?;
         for (released, r, other) in [(self.i, 2, 5), (self.j, 5, 2)] {
             if released {
@@ -54,18 +54,18 @@ pub(crate) fn displacements(
         // Inversa normalizada de [[4,2],[2,4]]: [[1/3,-1/6],[-1/6,1/3]].
         let ri = finite(f[2] / b, "f_i/(EI/L)")?;
         let rj = finite(f[5] / b, "f_j/(EI/L)")?;
-        internal[2] = finite(internal[2] + ri / 3.0 - rj / 6.0, "theta_i recuperado")?;
-        internal[5] = finite(internal[5] + rj / 3.0 - ri / 6.0, "theta_j recuperado")?;
+        internal[2] = finite(internal[2] + ri / 3.0 - rj / 6.0, "Recovered theta_i")?;
+        internal[5] = finite(internal[5] + rj / 3.0 - ri / 6.0, "Recovered theta_j")?;
     } else {
         let r = if beam.releases.i { 2 } else { 5 };
-        internal[r] = finite(internal[r] + f[r] / b4, "theta liberado recuperado")?;
+        internal[r] = finite(internal[r] + f[r] / b4, "Recovered released theta")?;
     }
     Ok(internal)
 }
 pub(crate) fn force(f: &[Real; 6], h: &Matrix) -> EResult<[Real; 6]> {
     let mut out = [0.0; 6];
     for (i, value) in out.iter_mut().enumerate() {
-        *value = finite((0..6).map(|r| h[r][i] * f[r]).sum(), "Carga transformada")?;
+        *value = finite((0..6).map(|r| h[r][i] * f[r]).sum(), "Transformed load")?;
     }
     Ok(out)
 }

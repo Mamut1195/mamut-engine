@@ -50,7 +50,7 @@ pub const USER: &str = "py.user";
 fn invalid(field: &str) -> EngineError {
     EngineError::new(
         "ENG-E-0010",
-        format!("p-y: {field}: fuera de dominio o geometría numérica no representable."),
+        format!("p-y: {field}: outside the domain or numerically unrepresentable geometry."),
     )
 }
 fn finite(value: Real, field: &str) -> EResult<Real> {
@@ -59,7 +59,7 @@ fn finite(value: Real, field: &str) -> EResult<Real> {
     } else {
         Err(EngineError::new(
             "ENG-E-0008",
-            format!("p-y: {field}: valor no finito o desbordamiento."),
+            format!("p-y: {field}: non-finite value or overflow."),
         ))
     }
 }
@@ -83,7 +83,7 @@ fn required(value: Option<Real>, field: &str) -> EResult<Real> {
     value.ok_or_else(|| {
         EngineError::new(
             "ENG-E-0003",
-            format!("p-y: falta {field}; aporte el parámetro explícitamente."),
+            format!("p-y: missing {field}; provide the parameter explicitly."),
         )
     })
 }
@@ -128,16 +128,16 @@ impl PyCurve {
     /// ENG-E-0010 fuera de tabla; ENG-E-0008 por consulta/resultado no finito.
     pub fn at(&self, y_m: Real) -> EResult<Real> {
         finite(y_m, "y")?;
-        let first = self.points.first().ok_or_else(|| invalid("tabla vacía"))?;
-        let last = self.points.last().ok_or_else(|| invalid("tabla vacía"))?;
+        let first = self.points.first().ok_or_else(|| invalid("empty table"))?;
+        let last = self.points.last().ok_or_else(|| invalid("empty table"))?;
         if y_m < first.0 || y_m > last.0 {
-            return Err(invalid("y fuera de tabla"));
+            return Err(invalid("y is outside the table"));
         }
         let i = self.points.partition_point(|&(y, _)| y < y_m);
         let &(y1, p1) = self
             .points
             .get(i)
-            .ok_or_else(|| invalid("y fuera de tabla"))?;
+            .ok_or_else(|| invalid("y is outside the table"))?;
         if y1 == y_m {
             return Ok(p1);
         }
@@ -145,31 +145,33 @@ impl PyCurve {
             .points
             .get(i.saturating_sub(1))
             .ok_or_else(|| invalid("tramo"))?;
-        finite(p0 + (p1 - p0) * ((y_m - y0) / (y1 - y0)), "p interpolada")
+        finite(p0 + (p1 - p0) * ((y_m - y0) / (y1 - y0)), "interpolated p")
     }
 }
 
 /// Valida la rama positiva, luego refleja sin duplicar el origen.
 fn curve(kind: &'static str, points: Vec<(Real, Real)>) -> EResult<PyCurve> {
     if points.len() < 2 || points.first() != Some(&(0.0, 0.0)) {
-        return Err(invalid("se requieren origen y al menos un punto positivo"));
+        return Err(invalid(
+            "origin and at least one positive point are required",
+        ));
     }
     for &(y, p) in &points {
-        nonnegative(y, "y tabulada")?;
-        nonnegative(p, "p tabulada")?;
+        nonnegative(y, "tabulated y")?;
+        nonnegative(p, "tabulated p")?;
     }
     for pair in points.windows(2) {
-        let dy = positive(pair[1].0 - pair[0].0, "Δy estrictamente positivo")?;
-        let dp = nonnegative(pair[1].1 - pair[0].1, "Δp no decreciente")?;
-        let slope = finite(dp / dy, "pendiente secante")?;
+        let dy = positive(pair[1].0 - pair[0].0, "strictly positive Δy")?;
+        let dp = nonnegative(pair[1].1 - pair[0].1, "nondecreasing Δp")?;
+        let slope = finite(dp / dy, "secant slope")?;
         if dp > 0.0 && slope == 0.0 {
-            return Err(invalid("pendiente subdesbordada"));
+            return Err(invalid("slope underflow"));
         }
     }
     // También deben ser representables las diferencias de la tabla bilateral.
     if let Some(&(y, p)) = points.last() {
-        finite(2.0 * y, "rango bilateral y")?;
-        finite(2.0 * p, "rango bilateral p")?;
+        finite(2.0 * y, "bilateral y range")?;
+        finite(2.0 * p, "bilateral p range")?;
     }
     let mut both: Vec<_> = points
         .iter()
@@ -205,24 +207,24 @@ fn sample(
     kind: &'static str,
     evaluate: impl Fn(Real) -> EResult<Real>,
 ) -> EResult<PyCurve> {
-    let plateau = pos(sampling.plateau_y_m, "y de meseta")?;
+    let plateau = pos(sampling.plateau_y_m, "plateau y")?;
     if plateau <= end {
-        return Err(invalid("meseta debe superar el inicio de fluencia"));
+        return Err(invalid("plateau must exceed the onset of yielding"));
     }
     let mut prev = 0.0;
     for &y in &sampling.positive_y_m {
-        positive(y, "y de muestreo")?;
+        positive(y, "sampling y")?;
         if y <= prev || y > plateau {
-            return Err(invalid("orden/rango del muestreo"));
+            return Err(invalid("sampling order/range"));
         }
         prev = y;
     }
     let mut ys = vec![0.0, plateau];
     ys.extend_from_slice(&sampling.positive_y_m);
     for &y in landmarks {
-        positive(y, "vértice de muestreo")?;
+        positive(y, "sampling vertex")?;
         if y > plateau {
-            return Err(invalid("vértice fuera de muestreo"));
+            return Err(invalid("vertex is outside the sampling range"));
         }
         ys.push(y);
     }
@@ -278,7 +280,7 @@ pub fn matlock_soft_clay(params: &MatlockParams, sampling: &Sampling) -> EResult
     let stress = nonnegative(required(params.effective_vertical_stress_pa, "σ'v")?, "σ'v")?;
     let j = pos(params.j, "J")?;
     let epsilon = pos(params.epsilon_50, "ε50")?;
-    let np = finite(3.0 + stress / c + j * (x / d), "Np sin limitar")?.min(9.0);
+    let np = finite(3.0 + stress / c + j * (x / d), "uncapped Np")?.min(9.0);
     let pu = positive(np * c * d, "pu")?;
     let yc = positive(2.5 * epsilon * d, "yc")?;
     let end = positive(8.0 * yc, "8yc")?;
@@ -361,11 +363,11 @@ pub struct ReeseCurve {
 /// ENG-E-0008 no finitos/desbordamientos. Solo carga estática.
 pub fn reese_sand(params: &ReeseParams, sampling: &Sampling) -> EResult<ReeseCurve> {
     let x = nonnegative(required(params.depth_m, "x")?, "x")?;
-    let diameter = pos(params.diameter_m, "b diámetro")?;
+    let diameter = pos(params.diameter_m, "b diameter")?;
     let phi = pos(params.friction_angle_rad, "φ")?;
     let alpha = pos(params.alpha_rad, "α")?;
     if phi >= std::f64::consts::FRAC_PI_2 || alpha >= std::f64::consts::FRAC_PI_2 {
-        return Err(invalid("φ y α deben ser menores que π/2"));
+        return Err(invalid("φ and α must be less than π/2"));
     }
     let gamma = pos(params.effective_unit_weight_n_m3, "γ'")?;
     let k0 = pos(params.k0, "K0")?;
@@ -373,13 +375,13 @@ pub fn reese_sand(params: &ReeseParams, sampling: &Sampling) -> EResult<ReeseCur
     let b = pos(params.b, "B")?;
     let k = pos(params.subgrade_modulus_n_m3, "k")?;
     if a <= b {
-        return Err(invalid("A debe superar B"));
+        return Err(invalid("A must exceed B"));
     }
     let ym = positive(diameter / 60.0, "ym")?;
     let yu = positive(3.0 * diameter / 80.0, "yu")?;
     let n = positive((b / (a - b)) * ((yu - ym) / ym), "n")?;
     if n <= 1.0 {
-        return Err(invalid("n debe superar 1"));
+        return Err(invalid("n must exceed 1"));
     }
     let beta = std::f64::consts::FRAC_PI_4 + phi / 2.0;
     let tb = math::tan(beta);
@@ -392,15 +394,15 @@ pub fn reese_sand(params: &ReeseParams, sampling: &Sampling) -> EResult<ReeseCur
         k0 * tf * math::sin(beta) / (divisor * math::cos(alpha))
             + tb * tb * ta / divisor
             + k0 * tb * (tf * math::sin(beta) - ta),
-        "coeficiente lineal pct",
+        "linear pct coefficient",
     )?;
-    let q0 = positive(diameter * (tb / divisor - ka), "coeficiente constante pct")?;
+    let q0 = positive(diameter * (tb / divisor - ka), "constant pct coefficient")?;
     let deep = positive(
         ka * diameter * (math::powi(tb, 8) - 1.0) + k0 * diameter * tf * math::powi(tb, 4),
-        "coeficiente pcd",
+        "pcd coefficient",
     )?;
-    let offset = positive(deep - q0, "intersección positiva pct/pcd")?;
-    let residual = |h: Real| finite(q1 * h - offset, "residuo Xt");
+    let offset = positive(deep - q0, "positive pct/pcd intersection")?;
+    let residual = |h: Real| finite(q1 * h - offset, "Xt residual");
     let mut hi = diameter;
     let mut bracketed = false;
     for _ in 0..128 {
@@ -408,10 +410,10 @@ pub fn reese_sand(params: &ReeseParams, sampling: &Sampling) -> EResult<ReeseCur
             bracketed = true;
             break;
         }
-        hi = positive(hi * 2.0, "cota Xt")?;
+        hi = positive(hi * 2.0, "Xt bound")?;
     }
     if !bracketed {
-        return Err(invalid("Xt sin cota en 128 duplicaciones"));
+        return Err(invalid("Xt has no bound after 128 doublings"));
     }
     let mut lo = 0.0;
     for _ in 0..96 {
@@ -424,7 +426,7 @@ pub fn reese_sand(params: &ReeseParams, sampling: &Sampling) -> EResult<ReeseCur
     }
     if hi - lo > 8.0 * Real::EPSILON * hi {
         return Err(invalid(
-            "Xt no resuelta a precisión relativa binary64 en 96 bisecciones",
+            "Xt was not resolved to binary64 relative precision in 96 bisections",
         ));
     }
     let xt = positive(lo + (hi - lo) * 0.5, "Xt")?;
@@ -444,7 +446,7 @@ pub fn reese_sand(params: &ReeseParams, sampling: &Sampling) -> EResult<ReeseCur
         let ratio = positive(pm / positive(initial * ym, "k·x·ym")?, "pm/(k·x·ym)")?;
         let yk = positive(ym * math::powf(ratio, n / (n - 1.0)), "yk")?;
         if yk >= ym {
-            return Err(invalid("yk debe ser menor que ym; aumente k o revise A/B"));
+            return Err(invalid("yk must be less than ym; increase k or check A/B"));
         }
         landmarks.push(yk);
         (Some(yk), initial)
@@ -457,12 +459,12 @@ pub fn reese_sand(params: &ReeseParams, sampling: &Sampling) -> EResult<ReeseCur
             return Ok(pu);
         }
         if y >= ym {
-            return finite(pm + (pu - pm) * ((y - ym) / (yu - ym)), "recta m-u");
+            return finite(pm + (pu - pm) * ((y - ym) / (yu - ym)), "m-u line");
         }
         if yk.is_some_and(|yk| y <= yk) {
-            return finite(initial * y, "recta inicial");
+            return finite(initial * y, "initial line");
         }
-        finite(pm * math::powf(y / ym, 1.0 / n), "parábola Reese")
+        finite(pm * math::powf(y / ym, 1.0 / n), "Reese parabola")
     })?;
     Ok(ReeseCurve {
         curve,

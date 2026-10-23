@@ -128,7 +128,7 @@ impl Unit {
             "1" => Ok(Self::Dimensionless),
             _ => Err(EngineError::new(
                 "ENG-E-0001",
-                format!("La unidad indicada no está reconocida: «{text}»."),
+                format!("The specified unit is not recognized: «{text}»."),
             )),
         }
     }
@@ -246,14 +246,14 @@ pub fn convert(value: Real, from: Unit, to: Unit) -> EResult<Real> {
     if !value.is_finite() {
         return Err(EngineError::new(
             "ENG-E-0008",
-            format!("La magnitud de entrada no es finita: {value}."),
+            format!("The input quantity is not finite: {value}."),
         ));
     }
     if from.kind() != to.kind() {
         return Err(EngineError::new(
             "ENG-E-0010",
             format!(
-                "Las dimensiones físicas de las unidades «{}» y «{}» son incompatibles.",
+                "The physical dimensions of units «{}» and «{}» are incompatible.",
                 from.symbol(),
                 to.symbol()
             ),
@@ -264,7 +264,7 @@ pub fn convert(value: Real, from: Unit, to: Unit) -> EResult<Real> {
         return Err(EngineError::new(
             "ENG-E-0008",
             format!(
-                "La conversión de «{}» a «{}» produce una magnitud no finita.",
+                "Conversion from «{}» to «{}» produces a non-finite quantity.",
                 from.symbol(),
                 to.symbol()
             ),

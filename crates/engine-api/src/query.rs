@@ -33,7 +33,7 @@ impl Outcome {
         let mut value: Value = serde_json::from_str(&self.document)
             .map_err(|e| ApiError::InvalidInput(format!("results/1: {e}")))?;
         if value.get("schema").and_then(Value::as_str) != Some("results/1") {
-            return Err(ApiError::UnsupportedSchema("Se requiere results/1".into()));
+            return Err(ApiError::UnsupportedSchema("results/1 is required".into()));
         }
         let node_ids = query
             .node_ids
@@ -54,7 +54,7 @@ impl Outcome {
                     || !bytes.all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
                 {
                     return Err(ApiError::InvalidInput(format!(
-                        "Ruta de campo inválida: {field}"
+                        "Invalid field path: {field}"
                     )));
                 }
                 branch = branch.children.entry(part.to_owned()).or_default();

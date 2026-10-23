@@ -52,11 +52,11 @@ pub(crate) fn relations(map: &DofMap, diaphragms: &[RigidDiaphragm]) -> EResult<
     let mut slaves = BTreeSet::new();
     for d in diaphragms {
         if d.slaves.is_empty() || !masters.insert(d.master) {
-            return Err(error("ENG-E-0010", "Diafragma vacío o maestro repetido."));
+            return Err(error("ENG-E-0010", "Empty diaphragm or duplicate master."));
         }
         for &slave in &d.slaves {
             if slave == d.master || !slaves.insert(slave) {
-                let mut e = error("ENG-E-0010", "Esclavo igual al maestro o esclavo repetido.");
+                let mut e = error("ENG-E-0010", "Slave equals master or duplicate slave.");
                 e.entities.push(EntityRef::Node(slave));
                 return Err(e);
             }
@@ -65,7 +65,7 @@ pub(crate) fn relations(map: &DofMap, diaphragms: &[RigidDiaphragm]) -> EResult<
     if let Some(&node) = masters.intersection(&slaves).next() {
         let mut e = error(
             "ENG-E-0013",
-            "No se admiten ciclos ni maestros esclavos de otro diafragma.",
+            "Cycles and masters that are slaves of another diaphragm are not allowed.",
         );
         e.entities.push(EntityRef::Node(node));
         return Err(e);
@@ -76,7 +76,7 @@ pub(crate) fn relations(map: &DofMap, diaphragms: &[RigidDiaphragm]) -> EResult<
     for d in diaphragms {
         let (dim, master) = map.geometry(d.master)?;
         if dim != Dim::D3 {
-            return Err(error("ENG-E-0013", "El diafragma XY solo admite D3."));
+            return Err(error("ENG-E-0013", "XY diaphragm supports only D3."));
         }
         let mx = map.global_index(d.master, Dof::Ux)?;
         let my = map.global_index(d.master, Dof::Uy)?;
@@ -84,14 +84,14 @@ pub(crate) fn relations(map: &DofMap, diaphragms: &[RigidDiaphragm]) -> EResult<
         for &slave in &d.slaves {
             let (dim, coords) = map.geometry(slave)?;
             if dim != Dim::D3 {
-                return Err(error("ENG-E-0013", "El diafragma XY solo admite D3."));
+                return Err(error("ENG-E-0013", "XY diaphragm supports only D3."));
             }
             let [rx, ry, rz] = std::array::from_fn(|i| coords[i] - master[i]);
             finite(&[rx, ry, rz])?;
             if rz.abs() > 1e-9 {
                 return Err(error(
                     "ENG-E-0010",
-                    "Los nodos del diafragma no están en una planta XY.",
+                    "Diaphragm nodes are not on an XY floor.",
                 ));
             }
             for (dof, terms) in [

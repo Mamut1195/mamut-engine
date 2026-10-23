@@ -140,8 +140,8 @@ fn singular_mass_error_is_independent_of_dof_order() {
     let (c2, m2) = mass_error(&[0.0, -1.0]);
     assert_eq!(c1, "ENG-E-0006");
     assert_eq!(c1, c2);
-    assert!(m1.contains("GDL 1"), "{m1}");
-    assert!(m2.contains("GDL 0"), "{m2}");
+    assert!(m1.contains("DOF 1"), "{m1}");
+    assert!(m2.contains("DOF 0"), "{m2}");
     // All permutations of {1, 0, -1}: always singular, zero DOF.
     let base = [1.0, 0.0, -1.0];
     for p in [
@@ -156,14 +156,14 @@ fn singular_mass_error_is_independent_of_dof_order() {
         let zero = d.iter().position(|&x| x == 0.0).unwrap();
         let (c, m) = mass_error(&d);
         assert_eq!(c, "ENG-E-0006", "{d:?}");
-        assert!(m.contains(&format!("GDL {zero}")), "{d:?}: {m}");
+        assert!(m.contains(&format!("DOF {zero}")), "{d:?}: {m}");
     }
     // Several zero DOFs: the smallest index is reported, regardless of order.
     for d in [[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]] {
         let first = d.iter().position(|&x| x == 0.0).unwrap();
         let (c, m) = mass_error(&d);
         assert_eq!(c, "ENG-E-0006");
-        assert!(m.contains(&format!("GDL {first}")), "{d:?}: {m}");
+        assert!(m.contains(&format!("DOF {first}")), "{d:?}: {m}");
     }
     // Indefinite but nonsingular: ENG-E-0010 in any order.
     assert_eq!(mass_error(&[-1.0, 1.0]).0, "ENG-E-0010");

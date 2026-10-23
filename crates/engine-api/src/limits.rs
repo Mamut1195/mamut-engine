@@ -41,7 +41,7 @@ struct Frame {
 }
 
 fn exceeded(name: &str, limit: usize) -> ApiError {
-    ApiError::InvalidInput(format!("Límite {name} superado (máximo {limit})"))
+    ApiError::InvalidInput(format!("Limit {name} exceeded (maximum {limit})"))
 }
 
 fn child_role(parent: Option<&Frame>, array: bool) -> Role {
@@ -116,11 +116,15 @@ pub(crate) fn preflight(input: &str) -> Result<(), ApiError> {
                 index += 1;
             }
             b'}' | b']' => {
-                let frame = frames
-                    .pop()
-                    .ok_or_else(|| ApiError::InvalidInput("Cierre JSON sin apertura".into()))?;
+                let frame = frames.pop().ok_or_else(|| {
+                    ApiError::InvalidInput(
+                        "JSON closing delimiter without opening delimiter".into(),
+                    )
+                })?;
                 if frame.array != (byte == b']') {
-                    return Err(ApiError::InvalidInput("Cierre JSON incompatible".into()));
+                    return Err(ApiError::InvalidInput(
+                        "Mismatched JSON closing delimiter".into(),
+                    ));
                 }
                 index += 1;
             }
@@ -145,7 +149,7 @@ pub(crate) fn preflight(input: &str) -> Result<(), ApiError> {
                         Some(b'\\') => index += 2,
                         Some(_) => index += 1,
                         None => {
-                            return Err(ApiError::InvalidInput("Cadena JSON sin cierre".into()));
+                            return Err(ApiError::InvalidInput("Unterminated JSON string".into()));
                         }
                     }
                 }
@@ -178,7 +182,7 @@ fn check_number(token: &str) -> Result<(), ApiError> {
             return Ok(());
         }
         return Err(ApiError::InvalidInput(
-            "Número JSON fuera del rango finito f64".into(),
+            "JSON number is outside the finite f64 range".into(),
         ));
     }
     // JCS convierte a binary64: impedir pérdida de identidad antes de serde,
@@ -191,7 +195,7 @@ fn check_number(token: &str) -> Result<(), ApiError> {
         Ok(())
     } else {
         Err(ApiError::InvalidInput(
-            "Entero JSON fuera de rango seguro JCS: se requiere |n| <= 9007199254740991 (2^53-1)"
+            "JSON integer is outside the JCS safe range: |n| <= 9007199254740991 (2^53-1) is required"
                 .into(),
         ))
     }

@@ -29,7 +29,7 @@ pub fn write_fixtures(repo_root: &Path) -> Result<(), BenchError> {
             .models
             .iter()
             .find(|item| item.id == model.id)
-            .ok_or_else(|| BenchError::new("Índice sin el modelo oficial."))?;
+            .ok_or_else(|| BenchError::new("Index is missing the official model."))?;
         write_bytes(repo_root, &entry.path, &render(&model)?)?;
         for kind in [
             AnalysisKind::Static,
@@ -75,7 +75,7 @@ fn index_model(model: &BenchModel) -> Result<IndexModel, BenchError> {
     let bench_bytes = render(model)?;
     let roof = roof_node(model)?;
     if roof == 0 {
-        return Err(BenchError::new("El nudo de techo no puede ser 0."));
+        return Err(BenchError::new("Roof node cannot be 0."));
     }
     let node_index = (roof - 1) as usize;
     Ok(IndexModel {
@@ -113,7 +113,7 @@ pub fn roof_node(model: &BenchModel) -> Result<u32, BenchError> {
         .iter()
         .max_by_key(|diaphragm| diaphragm.level)
         .map(|diaphragm| diaphragm.master)
-        .ok_or_else(|| BenchError::new("El modelo no tiene diafragma de techo."))
+        .ok_or_else(|| BenchError::new("Model has no roof diaphragm."))
 }
 
 fn pointers(roof: u32, node_index: usize) -> Pointers {
@@ -161,7 +161,7 @@ fn engine_file(entry: &IndexModel, kind: AnalysisKind) -> Result<&HashedFile, Be
         AnalysisKind::Spectrum => &entry.engine_input.spectrum,
         AnalysisKind::PDelta => {
             return Err(BenchError::new(
-                "El índice de los rc3d no versiona pDelta. Traduzca ese análisis aparte.",
+                "The rc3d index does not version pDelta. Translate that analysis separately.",
             ));
         }
     })
@@ -169,12 +169,12 @@ fn engine_file(entry: &IndexModel, kind: AnalysisKind) -> Result<&HashedFile, Be
 
 fn write_bytes(repo_root: &Path, relative: &str, text: &str) -> Result<(), BenchError> {
     if relative.contains('\\') {
-        return Err(BenchError::new("Las rutas del índice usan barras `/`."));
+        return Err(BenchError::new("Index paths use forward slashes `/`."));
     }
     let path = repo_root.join(relative);
     let parent = path
         .parent()
-        .ok_or_else(|| BenchError::new("Ruta de fixture sin directorio."))?;
+        .ok_or_else(|| BenchError::new("Fixture path has no directory."))?;
     fs::create_dir_all(parent).map_err(|error| BenchError::new(error.to_string()))?;
     fs::write(&path, text).map_err(|error| BenchError::new(error.to_string()))?;
     Ok(())
@@ -316,17 +316,18 @@ pub fn cli(args: &[String]) -> Result<(), BenchError> {
         }
         Some("translate") => translate_cli(args),
         _ => Err(BenchError::new(
-            "Uso: bench-prepare generate --root DIR | translate --model FILE --analysis static|modal|spectrum|pdelta [--variant ID] --output FILE",
+            "Usage: bench-prepare generate --root DIR | translate --model FILE --analysis static|modal|spectrum|pdelta [--variant ID] --output FILE",
         )),
     }
 }
 
 fn translate_cli(args: &[String]) -> Result<(), BenchError> {
-    let model_path = flag(args, "--model")?.ok_or_else(|| BenchError::new("Falta --model."))?;
-    let analysis = flag(args, "--analysis")?.ok_or_else(|| BenchError::new("Falta --analysis."))?;
-    let output = flag(args, "--output")?.ok_or_else(|| BenchError::new("Falta --output."))?;
+    let model_path = flag(args, "--model")?.ok_or_else(|| BenchError::new("Missing --model."))?;
+    let analysis =
+        flag(args, "--analysis")?.ok_or_else(|| BenchError::new("Missing --analysis."))?;
+    let output = flag(args, "--output")?.ok_or_else(|| BenchError::new("Missing --output."))?;
     let kind = AnalysisKind::parse(analysis)
-        .ok_or_else(|| BenchError::new("El análisis debe ser static, modal, spectrum o pdelta."))?;
+        .ok_or_else(|| BenchError::new("Analysis must be static, modal, spectrum, or pdelta."))?;
     let variant = flag(args, "--variant")?;
     let text =
         fs::read_to_string(model_path).map_err(|error| BenchError::new(error.to_string()))?;
@@ -343,7 +344,7 @@ fn flag<'a>(args: &'a [String], name: &str) -> Result<Option<&'a str>, BenchErro
     let mut values = args.windows(2).filter(|pair| pair[0] == name);
     let found = values.next().map(|pair| pair[1].as_str());
     if values.next().is_some() {
-        return Err(BenchError::new(format!("{name} está repetido.")));
+        return Err(BenchError::new(format!("{name} is duplicated.")));
     }
     Ok(found)
 }

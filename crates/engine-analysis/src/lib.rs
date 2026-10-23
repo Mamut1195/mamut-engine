@@ -149,7 +149,7 @@ fn finite(values: &[Real]) -> EResult<()> {
     if values.iter().any(|v| !v.is_finite()) {
         return Err(EngineError::new(
             "ENG-E-0008",
-            "Análisis: entrada o resultado no finito.",
+            "Analysis: non-finite input or result.",
         ));
     }
     Ok(())

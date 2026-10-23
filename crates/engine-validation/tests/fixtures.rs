@@ -119,7 +119,11 @@ fn forbidden_source_or_nested_provenance_never_reaches_any_target() {
             let text = value.to_string();
             let report = fixtures::run(&[("invalid", &text)], &[&target]);
             assert!(!report.passed(), "{text}");
-            assert!(report.rows[0].error.as_ref().unwrap().contains("prohibida"));
+            assert!(report.rows[0]
+                .error
+                .as_ref()
+                .unwrap()
+                .contains("prohibited"));
         }
     }
     // Tampoco se admite una cadena de procedencia contaminada en la cita de libro.
@@ -219,8 +223,8 @@ fn reports_continue_after_failures_and_are_deterministic_for_each_target() {
         assert!(pair[1].passed);
         assert_eq!(pair[0].fixture, pair[1].fixture);
     }
-    assert!(first.text().contains("FALLO"));
-    assert!(first.text().contains("esperado="));
+    assert!(first.text().contains("FAILED"));
+    assert!(first.text().contains("expected="));
 }
 
 #[test]

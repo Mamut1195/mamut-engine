@@ -119,7 +119,7 @@ pub fn api_sand(params: ApiTzParams) -> EResult<TzCurve> {
 pub fn api_clay(params: ApiTzParams, residual_ratio: Option<Real>) -> EResult<TzCurve> {
     let ratio = positive(residual_ratio, "tres/tmax")?;
     if ratio > 1.0 {
-        return Err(domain("tres/tmax debe ser ≤ 1."));
+        return Err(domain("tres/tmax must be ≤ 1."));
     }
     api_tz(params, Some(ratio))
 }
@@ -151,13 +151,11 @@ fn api_tz(params: ApiTzParams, residual: Option<Real>) -> EResult<TzCurve> {
     let plateau = positive(params.plateau_z_m, "plateau_z_m")?;
     let last_z = finite(peak * if residual.is_some() { 2.0 } else { 1.0 }, "zres_m")?;
     if plateau <= last_z {
-        return Err(domain(
-            "plateau_z_m debe superar el último vértice normativo.",
-        ));
+        return Err(domain("plateau_z_m must exceed the last standard vertex."));
     }
     let mut shape: Vec<_> = ASCENDING
         .iter()
-        .map(|&(z, t)| Ok((product(z, peak, "z del vértice")?, t)))
+        .map(|&(z, t)| Ok((product(z, peak, "vertex z")?, t)))
         .collect::<EResult<_>>()?;
     let end_ratio = match residual {
         Some(ratio) => {
@@ -171,10 +169,10 @@ fn api_tz(params: ApiTzParams, residual: Option<Real>) -> EResult<TzCurve> {
         .iter()
         .skip(1)
         .rev()
-        .map(|&(z, t)| Ok((-z, -product(t, tension, "t de tracción")?)))
+        .map(|&(z, t)| Ok((-z, -product(t, tension, "t in tension")?)))
         .collect::<EResult<_>>()?;
     for &(z, t) in &shape {
-        points.push((z, product(t, compression, "t de compresión")?));
+        points.push((z, product(t, compression, "t in compression")?));
     }
     Ok(TzCurve(Table::new(points)?))
 }
@@ -241,7 +239,7 @@ pub mod qz {
         let plateau = positive(params.plateau_z_m, "plateau_z_m")?;
         let last = finite(0.1 * diameter, "0.10·D")?;
         if plateau <= last {
-            return Err(domain("plateau_z_m debe superar 0.10·D."));
+            return Err(domain("plateau_z_m must exceed 0.10·D."));
         }
         // Vértices numéricos de §8.4.3 figura 3, suministrados por J2.
         let normalized = [
@@ -255,8 +253,8 @@ pub mod qz {
         let mut points = vec![(-plateau, 0.0)];
         for (z, q) in normalized {
             points.push((
-                product(z, diameter, "z del vértice q-z")?,
-                product(q, qp, "Q del vértice")?,
+                product(z, diameter, "q-z vertex z")?,
+                product(q, qp, "vertex Q")?,
             ));
         }
         points.push((plateau, qp));
@@ -280,35 +278,31 @@ struct Table {
 impl Table {
     fn new(points: Vec<(Real, Real)>) -> EResult<Self> {
         for &(z, value) in &points {
-            finite(z, "z del vértice (m)")?;
-            finite(value, "resistencia del vértice")?;
+            finite(z, "vertex z (m)")?;
+            finite(value, "vertex resistance")?;
         }
         if points.len() < 2 || !points.contains(&(0.0, 0.0)) {
             return Err(domain(
-                "La tabla requiere al menos dos puntos y el origen (0, 0).",
+                "The table requires at least two points and the origin (0, 0).",
             ));
         }
         for pair in points.windows(2) {
             let ((z0, v0), (z1, v1)) = (pair[0], pair[1]);
             if z1 <= z0 {
-                return Err(domain(
-                    "z debe ser estrictamente creciente; no se ordenan los datos.",
-                ));
+                return Err(domain("z must be strictly increasing; data is not sorted."));
             }
-            let dz = finite(z1 - z0, "Δz del tramo")?;
-            let dv = finite(v1 - v0, "Δresistencia del tramo")?;
-            let slope = finite(dv / dz, "pendiente del tramo")?;
+            let dz = finite(z1 - z0, "span Δz")?;
+            let dv = finite(v1 - v0, "span Δresistance")?;
+            let slope = finite(dv / dz, "span slope")?;
             if dv != 0.0 && slope == 0.0 {
-                return Err(domain(
-                    "Pendiente no nula reducida a cero por subdesbordamiento.",
-                ));
+                return Err(domain("Nonzero slope reduced to zero by underflow."));
             }
         }
         Ok(Self { points })
     }
 
     fn at(&self, z: Real) -> EResult<Real> {
-        finite(z, "z de evaluación (m)")?;
+        finite(z, "evaluation z (m)")?;
         let upper = self.points.partition_point(|&(x, _)| x <= z);
         let i = upper.saturating_sub(1).min(self.points.len() - 2);
         let ((z0, v0), (z1, v1)) = (self.points[i], self.points[i + 1]);
@@ -318,21 +312,21 @@ impl Table {
         if z == z1 {
             return Ok(v1);
         }
-        let slope = finite((v1 - v0) / (z1 - z0), "pendiente de evaluación")?;
+        let slope = finite((v1 - v0) / (z1 - z0), "evaluation slope")?;
         let (anchor_z, anchor_v) = if z <= z0 * 0.5 + z1 * 0.5 {
             (z0, v0)
         } else {
             (z1, v1)
         };
-        let dz = finite(z - anchor_z, "Δz de evaluación")?;
-        let dv = finite(slope * dz, "incremento de resistencia")?;
-        finite(anchor_v + dv, "resistencia interpolada/extrapolada")
+        let dz = finite(z - anchor_z, "evaluation Δz")?;
+        let dv = finite(slope * dz, "resistance increment")?;
+        finite(anchor_v + dv, "interpolated/extrapolated resistance")
     }
 
     fn multilinear_points(&self, length: Option<Real>, area: Real) -> EResult<Vec<(Real, Real)>> {
         let length = positive(length, "reference_length_m")?;
         if self.points.windows(2).any(|p| p[1].1 < p[0].1) {
-            return Err(domain("La ley multilineal elástica ENG-MAT-002 no admite ablandamiento (pendiente negativa)."));
+            return Err(domain("The ENG-MAT-002 elastic multilinear law does not support softening (negative slope)."));
         }
         let points: Vec<_> = self
             .points
@@ -344,7 +338,7 @@ impl Table {
         let table = Self::new(points)?;
         for (&(_, v), &(_, scaled)) in self.points.iter().rev().zip(&table.points) {
             if v != 0.0 && scaled == 0.0 {
-                return Err(domain("Resistencia reducida a cero al adaptar unidades."));
+                return Err(domain("Resistance reduced to zero when adapting units."));
             }
         }
         Ok(table.points)
@@ -359,7 +353,7 @@ fn user_table(points: Option<Vec<(Real, Real)>>, traction: UserTraction) -> ERes
                 || !table.points.iter().any(|&(z, _)| z > 0.0)
             {
                 return Err(domain(
-                    "La opción Explicit requiere puntos negativos y positivos.",
+                    "The Explicit option requires negative and positive points.",
                 ));
             }
             if table
@@ -368,14 +362,14 @@ fn user_table(points: Option<Vec<(Real, Real)>>, traction: UserTraction) -> ERes
                 .any(|&(z, v)| (z < 0.0 && v > 0.0) || (z > 0.0 && v < 0.0))
             {
                 return Err(domain(
-                    "La opción Explicit requiere resistencia ≤ 0 para z < 0 y ≥ 0 para z > 0.",
+                    "The Explicit option requires resistance ≤ 0 for z < 0 and ≥ 0 for z > 0.",
                 ));
             }
         }
         UserTraction::Symmetric => {
             if table.points[0] != (0.0, 0.0) {
                 return Err(domain(
-                    "La opción Symmetric requiere solo origen y puntos positivos.",
+                    "The Symmetric option requires only the origin and positive points.",
                 ));
             }
             let mut reflected: Vec<_> = table
@@ -393,10 +387,7 @@ fn user_table(points: Option<Vec<(Real, Real)>>, traction: UserTraction) -> ERes
 }
 
 fn missing(name: &str) -> EngineError {
-    EngineError::new(
-        "ENG-E-0003",
-        format!("Falta el parámetro obligatorio {name}."),
-    )
+    EngineError::new("ENG-E-0003", format!("Missing required parameter {name}."))
 }
 
 fn domain(message: &str) -> EngineError {
@@ -409,7 +400,7 @@ fn finite(value: Real, name: &str) -> EResult<Real> {
     } else {
         Err(EngineError::new(
             "ENG-E-0008",
-            format!("{name}: entrada o resultado no finito."),
+            format!("{name}: non-finite input or result."),
         ))
     }
 }
@@ -417,7 +408,7 @@ fn finite(value: Real, name: &str) -> EResult<Real> {
 fn positive(value: Option<Real>, name: &str) -> EResult<Real> {
     let value = finite(value.ok_or_else(|| missing(name))?, name)?;
     if value <= 0.0 {
-        return Err(domain(&format!("{name} debe ser estrictamente positivo.")));
+        return Err(domain(&format!("{name} must be strictly positive.")));
     }
     Ok(value)
 }
@@ -425,9 +416,7 @@ fn positive(value: Option<Real>, name: &str) -> EResult<Real> {
 fn product(a: Real, b: Real, name: &str) -> EResult<Real> {
     let result = finite(a * b, name)?;
     if a != 0.0 && b != 0.0 && result == 0.0 {
-        return Err(domain(&format!(
-            "{name}: producto no nulo reducido a cero."
-        )));
+        return Err(domain(&format!("{name}: nonzero product reduced to zero.")));
     }
     Ok(result)
 }

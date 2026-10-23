@@ -22,7 +22,7 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
         ..
     } = context;
     let Some(Analysis::Nonlinear { options: Object(o) }) = e.analyses.first() else {
-        return Err(EngineError::new("ENG-E-0012", "Despacho Newton incoherente.").into());
+        return Err(EngineError::new("ENG-E-0012", "Inconsistent Newton dispatch.").into());
     };
     let options = o.options()?;
     let linear =
@@ -76,7 +76,7 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
             options,
             || {
                 cancel.check().map_err(|_| {
-                    EngineError::new("ENG-E-0012", "Cancelación solicitada por la fachada")
+                    EngineError::new("ENG-E-0012", "Cancellation requested by the facade")
                 })
             },
         );
@@ -94,7 +94,7 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
         let report = result
             .steps
             .first()
-            .ok_or_else(|| EngineError::new("ENG-E-0012", "Newton sin informe de paso."))?;
+            .ok_or_else(|| EngineError::new("ENG-E-0012", "Newton has no step report."))?;
         let response = if report.converged {
             snapshot(&system, members, e, &result)?
         } else {
@@ -115,7 +115,7 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
         if !report.converged {
             return Err(EngineError::new(
                 "ENG-E-0007",
-                "Newton: no convergió el paso; no se intentan pasos posteriores.",
+                "Newton: step did not converge; subsequent steps are not attempted.",
             )
             .into());
         }
@@ -123,7 +123,7 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
             .last()
             .and_then(|s| s.get("results"))
             .cloned()
-            .ok_or_else(|| EngineError::new("ENG-E-0012", "Paso Newton sin resultados."))?]);
+            .ok_or_else(|| EngineError::new("ENG-E-0012", "Newton step has no results."))?]);
     }
     Ok(())
 }
@@ -139,21 +139,21 @@ fn snapshot(
     let mut internal = linear.global_internal_force(&result.free_displacements)?;
     let factor = result
         .accepted_factor
-        .ok_or_else(|| EngineError::new("ENG-E-0012", "Newton sin factor aceptado."))?;
+        .ok_or_else(|| EngineError::new("ENG-E-0012", "Newton has no accepted factor."))?;
     let force = linear.global_force(&result.case, factor)?;
     let case_index = e
         .model
         .cases
         .iter()
         .position(|c| c.name == result.case.0)
-        .ok_or_else(|| EngineError::new("ENG-E-0003", "Caso Newton ausente."))?;
+        .ok_or_else(|| EngineError::new("ENG-E-0003", "Missing Newton case."))?;
     let mut states = result.element_states.iter();
     let mut recovered = Vec::new();
     for m in members {
         let state: &[f64] = if m.variable {
             states
                 .next()
-                .ok_or_else(|| EngineError::new("ENG-E-0012", "Falta historia Newton."))?
+                .ok_or_else(|| EngineError::new("ENG-E-0012", "Missing Newton history."))?
         } else {
             &[]
         };
@@ -231,7 +231,7 @@ fn snapshot(
         if n.1[dof.index()].is_some() {
             let reaction = internal[index] - force[index];
             if !reaction.is_finite() {
-                return Err(EngineError::new("ENG-E-0008", "Reacción Newton no finita.").into());
+                return Err(EngineError::new("ENG-E-0008", "Non-finite Newton reaction.").into());
             }
             n.2[dof.index()] = reaction;
         }

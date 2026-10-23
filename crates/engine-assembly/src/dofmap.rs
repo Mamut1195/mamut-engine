@@ -26,25 +26,25 @@ impl DofMap {
     /// nonfinite coordinates. Does not validate members or element properties.
     pub fn new(nodes: &[Node]) -> EResult<Self> {
         if nodes.is_empty() {
-            return Err(error("ENG-E-0010", "No hay nodos que numerar."));
+            return Err(error("ENG-E-0010", "No nodes to number."));
         }
         let mut ordered = BTreeMap::new();
         for node in nodes {
             let result = (|| {
                 if ordered.insert(node.id, node).is_some() {
-                    return Err(error("ENG-E-0002", "Nodo duplicado en numeración."));
+                    return Err(error("ENG-E-0002", "Duplicate node in numbering."));
                 }
                 finite(&node.coordinates)?;
                 if node.dofs.is_empty() {
-                    return Err(error("ENG-E-0010", "Nodo sin GDL declarados."));
+                    return Err(error("ENG-E-0010", "Node has no declared DOFs."));
                 }
                 let mut seen = BTreeSet::new();
                 for &dof in &node.dofs {
                     if !node.dim.dofs().contains(&dof) {
-                        return Err(error("ENG-E-0011", format!("GDL {dof} incompatible.")));
+                        return Err(error("ENG-E-0011", format!("Incompatible DOF {dof}.")));
                     }
                     if !seen.insert(dof.index()) {
-                        return Err(error("ENG-E-0002", format!("GDL {dof} duplicado.")));
+                        return Err(error("ENG-E-0002", format!("Duplicate DOF {dof}.")));
                     }
                 }
                 Ok(())
@@ -67,7 +67,7 @@ impl DofMap {
             for &dof in node.dim.dofs() {
                 if node.dofs.contains(&dof) {
                     let index = u32::try_from(result.labels.len())
-                        .map_err(|_| error("ENG-E-0010", "Numeración excede u32."))?;
+                        .map_err(|_| error("ENG-E-0010", "Numbering exceeds u32."))?;
                     result.indices.insert((id, dof.index()), DofIndex(index));
                     result.labels.push((id, dof));
                 }
@@ -94,7 +94,7 @@ impl DofMap {
             .get(&node)
             .map(|&(_, coordinates)| coordinates)
             .ok_or_else(|| {
-                let mut e = error("ENG-E-0003", "Nodo sin coordenadas en el mapa.");
+                let mut e = error("ENG-E-0003", "Node has no coordinates in the map.");
                 e.entities.push(EntityRef::Node(node));
                 e
             })
@@ -106,7 +106,7 @@ impl DofMap {
 
     pub(crate) fn geometry(&self, node: NodeId) -> EResult<(Dim, [Real; 3])> {
         self.geometry.get(&node).copied().ok_or_else(|| {
-            let mut e = error("ENG-E-0003", "Nodo de diafragma inexistente.");
+            let mut e = error("ENG-E-0003", "Diaphragm node does not exist.");
             e.entities.push(EntityRef::Node(node));
             e
         })
@@ -124,7 +124,7 @@ impl DofMap {
                     } else {
                         "ENG-E-0003"
                     },
-                    format!("Nodo {}, GDL {dof}.", node.0),
+                    format!("Node {}, DOF {dof}.", node.0),
                 );
                 e.entities.push(EntityRef::Node(node));
                 e
@@ -134,7 +134,7 @@ impl DofMap {
     /// Physical label of a global index; ENG-E-0010 if out of range.
     pub fn label(&self, index: DofIndex) -> EResult<(NodeId, Dof)> {
         self.labels.get(index.0 as usize).copied().ok_or_else(|| {
-            let mut e = error("ENG-E-0010", "Índice global fuera de rango.");
+            let mut e = error("ENG-E-0010", "Global index is out of range.");
             e.entities.push(EntityRef::Dof(index));
             e
         })

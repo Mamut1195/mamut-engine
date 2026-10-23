@@ -102,36 +102,32 @@ impl MultilinearElastic {
     /// subdesbordamiento. Las mesetas exactas (σᵢ₊₁ = σᵢ) son válidas.
     pub fn new(points: Vec<(Real, Real)>, mode: MultilinearMode) -> EResult<Self> {
         if points.len() < 2 {
-            return Err(invalid("La curva requiere al menos dos puntos."));
+            return Err(invalid("The curve requires at least two points."));
         }
         let mut has_origin = false;
         for (i, &(strain, stress)) in points.iter().enumerate() {
-            finite(strain, &format!("ε del punto {i}"))?;
-            finite(stress, &format!("σ del punto {i} (Pa)"))?;
+            finite(strain, &format!("ε at point {i}"))?;
+            finite(stress, &format!("σ at point {i} (Pa)"))?;
             has_origin |= strain == 0.0 && stress == 0.0;
         }
         if !has_origin {
-            return Err(invalid("La curva debe contener el punto (0, 0)."));
+            return Err(invalid("The curve must contain the point (0, 0)."));
         }
         let mut slopes = Vec::with_capacity(points.len() - 1);
         for (i, pair) in points.windows(2).enumerate() {
             let ((e0, s0), (e1, s1)) = (pair[0], pair[1]);
             if e1 <= e0 {
-                return Err(invalid(format!(
-                    "Tramo {i}: ε debe ser estrictamente creciente."
-                )));
+                return Err(invalid(format!("Span {i}: ε must be strictly increasing.")));
             }
-            let de = finite(e1 - e0, &format!("Δε del tramo {i}"))?;
-            let ds = finite(s1 - s0, &format!("Δσ del tramo {i} (Pa)"))?;
+            let de = finite(e1 - e0, &format!("Δε of span {i}"))?;
+            let ds = finite(s1 - s0, &format!("Δσ of span {i} (Pa)"))?;
             if ds < 0.0 {
-                return Err(invalid(format!(
-                    "Tramo {i}: pendiente negativa no admitida."
-                )));
+                return Err(invalid(format!("Span {i}: negative slope is not allowed.")));
             }
-            let slope = finite(ds / de, &format!("Pendiente del tramo {i} (Pa)"))?;
+            let slope = finite(ds / de, &format!("Slope of span {i} (Pa)"))?;
             if ds > 0.0 && slope == 0.0 {
                 return Err(invalid(format!(
-                    "Tramo {i}: pendiente positiva reducida a cero por subdesbordamiento."
+                    "Span {i}: positive slope reduced to zero by underflow."
                 )));
             }
             slopes.push(slope);
@@ -187,7 +183,7 @@ impl UniaxialLaw for MultilinearElastic {
     /// de interpolación/extrapolación. Se usa el extremo más cercano para
     /// reducir cancelación. Se validan ε e historia incluso en el gap.
     fn respond(&self, strain: Real, committed: &[Real]) -> EResult<UniaxialResponse> {
-        vector(committed, 0, "Historia aceptada")?;
+        vector(committed, 0, "Accepted history")?;
         finite(strain, "ε")?;
         if (self.params.mode == MultilinearMode::CompressionOnly && strain > 0.0)
             || (self.params.mode == MultilinearMode::TensionOnly && strain < 0.0)
@@ -213,9 +209,12 @@ impl UniaxialLaw for MultilinearElastic {
             } else {
                 (e1, s1)
             };
-            let delta = finite(strain - anchor_strain, "Δε de evaluación")?;
-            let increment = finite(tangent * delta, "Incremento de σ (Pa)")?;
-            finite(anchor_stress + increment, "σ interpolada/extrapolada (Pa)")?
+            let delta = finite(strain - anchor_strain, "Evaluation Δε")?;
+            let increment = finite(tangent * delta, "Increment of σ (Pa)")?;
+            finite(
+                anchor_stress + increment,
+                "Interpolated/extrapolated σ (Pa)",
+            )?
         };
         Ok(UniaxialResponse {
             stress,

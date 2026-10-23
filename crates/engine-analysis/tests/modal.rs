@@ -414,7 +414,7 @@ fn massless_mechanism_names_node_and_global_dof() {
     let mut system = LinearSystem::from_model(ReferenceBackend, &model, &[element], &[]).unwrap();
     let error = Modal::run(&mut system, 1, MassKind::Lumped, &[[0.0, 1.0, 0.0]]).unwrap_err();
     assert_eq!(error.code, "ENG-E-0014");
-    assert!(error.message.contains("Nodo 2, GDL Rz (global 2)."));
+    assert!(error.message.contains("Node 2, DOF Rz (global 2)."));
     assert!(error
         .entities
         .iter()
@@ -505,7 +505,7 @@ fn invalid_requests_zero_count_and_rigid_period() {
     let mut multiple = shear(2, 0.0, 2.0);
     let error = Modal::run(&mut multiple, 1, MassKind::Lumped, &[[1.0, 0.0, 0.0]]).unwrap_err();
     assert_eq!(error.code, "ENG-E-0007");
-    assert!(error.message.contains("multiplicidad"));
+    assert!(error.message.contains("multiplicity"));
 }
 
 #[test]

@@ -248,7 +248,7 @@ impl CaseResults {
         finite(&[solution.factor])?;
         for (&value, prescribed) in global.iter().zip(system.constraints().prescribed_values()) {
             if prescribed.is_some_and(|p| p != value) {
-                return Err(error("ENG-E-0010", "Desplazamiento prescrito incoherente."));
+                return Err(error("ENG-E-0010", "Inconsistent prescribed displacement."));
             }
         }
         let free: Vec<_> = system
@@ -287,7 +287,7 @@ impl CaseResults {
         for (i, &value) in global.iter().enumerate() {
             check()?;
             let index =
-                u32::try_from(i).map_err(|_| error("ENG-E-0010", "Índice global excede u32."))?;
+                u32::try_from(i).map_err(|_| error("ENG-E-0010", "Global index exceeds u32."))?;
             let (id, dof) = map.label(DofIndex(index))?;
             let node = nodes.entry(id).or_insert(NodeResult {
                 id,
@@ -302,7 +302,7 @@ impl CaseResults {
         for r in reactions {
             let node = nodes
                 .get_mut(&r.node)
-                .ok_or_else(|| error("ENG-E-0012", "Reacción sin nodo."))?;
+                .ok_or_else(|| error("ENG-E-0012", "Reaction has no node."))?;
             node.reactions[r.dof.index()] = r.value;
         }
         let mut recovered = BTreeMap::new();
@@ -310,7 +310,7 @@ impl CaseResults {
             check()?;
             if recovered.contains_key(&member.id) {
                 return Err(with_member(
-                    error("ENG-E-0002", "Miembro duplicado."),
+                    error("ENG-E-0002", "Duplicate member."),
                     member.id,
                 ));
             }
@@ -340,7 +340,7 @@ impl CaseResults {
         if let Some(ids) = nodes {
             for &id in ids {
                 if !self.nodes.iter().any(|n| n.id == id) {
-                    let mut e = error("ENG-E-0003", "Nodo ausente en consulta.");
+                    let mut e = error("ENG-E-0003", "Missing node in query.");
                     e.entities.push(EntityRef::Node(id));
                     return Err(e);
                 }
@@ -350,7 +350,7 @@ impl CaseResults {
             for &id in ids {
                 if !self.members.iter().any(|m| m.id == id) {
                     return Err(with_member(
-                        error("ENG-E-0003", "Miembro ausente en consulta."),
+                        error("ENG-E-0003", "Missing member in query."),
                         id,
                     ));
                 }
@@ -423,7 +423,7 @@ fn recover_member(
     size(m.committed.len(), m.element.state_len())?;
     finite(m.committed)?;
     if m.nodes.is_empty() || m.element.dofs_per_node().is_empty() {
-        return Err(error("ENG-E-0010", "Miembro sin nodos o GDL."));
+        return Err(error("ENG-E-0010", "Member has no nodes or DOFs."));
     }
     let mut coords = Vec::new();
     let mut u = Vec::new();
@@ -435,12 +435,12 @@ fn recover_member(
             if !seen.insert(index) {
                 return Err(error(
                     "ENG-E-0002",
-                    "Conectividad o GDL elemental duplicado.",
+                    "Duplicate connectivity or element DOF.",
                 ));
             }
             let value = global
                 .get(index.0 as usize)
-                .ok_or_else(|| error("ENG-E-0010", "GDL elemental fuera del vector global."))?;
+                .ok_or_else(|| error("ENG-E-0010", "Element DOF is outside the global vector."))?;
             u.push(*value);
         }
     }
@@ -464,7 +464,7 @@ fn recover_member(
     let mut stations = m.stations.unwrap_or(&DEFAULT_STATIONS).to_vec();
     finite(&stations)?;
     if stations.iter().any(|s| !(0.0..=1.0).contains(s)) {
-        return Err(error("ENG-E-0010", "Estación fuera de [0,1]."));
+        return Err(error("ENG-E-0010", "Station is outside [0,1]."));
     }
     stations.extend([0.0, 1.0]);
     sort_stations(&mut stations);
@@ -473,17 +473,17 @@ fn recover_member(
         let first = output
             .stations
             .first()
-            .ok_or_else(|| error("ENG-E-0012", "Recuperación sin extremos."))?;
+            .ok_or_else(|| error("ENG-E-0012", "Recovery has no ends."))?;
         let v_i = first.forces_local[1];
         let [a, b] = coords.as_slice() else {
-            return Err(error("ENG-E-0012", "Frame2d debe tener dos nodos."));
+            return Err(error("ENG-E-0012", "Frame2d must have two nodes."));
         };
         let dx = b[0] - a[0];
         let dy = b[1] - a[1];
         let length = math::hypot(dx, dy);
         finite(&[dx, dy, length])?;
         if length <= 0.0 {
-            return Err(error("ENG-E-0005", "Miembro de longitud nula."));
+            return Err(error("ENG-E-0005", "Zero-length member."));
         }
         let mut qy = 0.0;
         let mut mz = 0.0;
@@ -498,10 +498,7 @@ fn recover_member(
             let denominator = qy * length;
             finite(&[denominator, v_i + mz])?;
             if denominator == 0.0 {
-                return Err(error(
-                    "ENG-E-0010",
-                    "Carga transversal por longitud subdesbordada.",
-                ));
+                return Err(error("ENG-E-0010", "Transverse load per length underflow."));
             }
             for numerator in [v_i, v_i + mz] {
                 // Comprobar interior antes de dividir evita desbordar una raíz exterior.
@@ -589,13 +586,13 @@ impl NodalBalance {
             if relative > 1e-9 {
                 let index = DofIndex(
                     u32::try_from(i)
-                        .map_err(|_| error("ENG-E-0010", "Índice global excede u32."))?,
+                        .map_err(|_| error("ENG-E-0010", "Global index exceeds u32."))?,
                 );
                 let (node, dof) = map.label(index)?;
                 let mut e = error(
                     "ENG-E-0010",
                     &format!(
-                        "Recuperación incoherente en nodo {} / {dof:?}: residual relativo {relative:e} > 1e-9.",
+                        "Inconsistent recovery at node {} / {dof:?}: relative residual {relative:e} > 1e-9.",
                         node.0
                     ),
                 );
@@ -621,7 +618,7 @@ impl NodalBalance {
 pub(crate) fn station_extremes(stations: &[StationResult]) -> EResult<Vec<FieldExtremes>> {
     let first = stations
         .first()
-        .ok_or_else(|| error("ENG-E-0010", "Miembro sin estaciones."))?;
+        .ok_or_else(|| error("ENG-E-0010", "Member has no stations."))?;
     Ok(FORCE_FIELDS
         .iter()
         .enumerate()
@@ -658,10 +655,7 @@ fn recover_output(
 ) -> EResult<ElementOutput> {
     let output = m.element.recover(ctx, u, m.committed, loads, stations)?;
     if output.end_forces_local.len() != u.len() || output.stations.len() != stations.len() {
-        return Err(error(
-            "ENG-E-0012",
-            "Tamaño de recuperación elemental incoherente.",
-        ));
+        return Err(error("ENG-E-0012", "Inconsistent element recovery size."));
     }
     finite(&output.end_forces_local)?;
     for (s, &position) in output.stations.iter().zip(stations) {
@@ -670,7 +664,7 @@ fn recover_output(
         if s.position != position {
             return Err(error(
                 "ENG-E-0012",
-                "Estación recuperada distinta de la solicitada.",
+                "Recovered station differs from the requested station.",
             ));
         }
     }
@@ -695,17 +689,14 @@ fn canonical_station(position: Real) -> Real {
 
 fn output_size(actual: usize, expected: usize) -> EResult<()> {
     if actual != expected {
-        return Err(error(
-            "ENG-E-0012",
-            "Tamaño de salida elemental incoherente.",
-        ));
+        return Err(error("ENG-E-0012", "Inconsistent element output size."));
     }
     Ok(())
 }
 
 fn size(actual: usize, expected: usize) -> EResult<()> {
     if actual != expected {
-        return Err(error("ENG-E-0010", "Tamaño incompatible en postproceso."));
+        return Err(error("ENG-E-0010", "Incompatible size in postprocessing."));
     }
     Ok(())
 }

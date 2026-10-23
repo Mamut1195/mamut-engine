@@ -56,7 +56,7 @@ fn zeros(n: usize) -> EResult<Vec<Real>> {
     let mut values = Vec::new();
     values
         .try_reserve_exact(n)
-        .map_err(|_| error("ENG-E-0010", "No se puede reservar el vector de masas."))?;
+        .map_err(|_| error("ENG-E-0010", "Cannot allocate the mass vector."))?;
     values.resize(n, 0.0);
     Ok(values)
 }
@@ -64,7 +64,7 @@ fn zeros(n: usize) -> EResult<Vec<Real>> {
 fn nonnegative(value: Real) -> EResult<()> {
     finite(&[value])?;
     if value < 0.0 {
-        return Err(error("ENG-E-0010", "Masa o factor negativo."));
+        return Err(error("ENG-E-0010", "Negative mass or factor."));
     }
     Ok(())
 }
@@ -73,7 +73,7 @@ fn unit(direction: [Real; 3]) -> EResult<[Real; 3]> {
     finite(&direction)?;
     let scale = direction.iter().fold(0.0_f64, |a, b| a.max(b.abs()));
     if scale == 0.0 {
-        return Err(error("ENG-E-0010", "La dirección debe ser no nula."));
+        return Err(error("ENG-E-0010", "Direction must be nonzero."));
     }
     let scaled = direction.map(|v| v / scale);
     let norm = math::hypot(math::hypot(scaled[0], scaled[1]), scaled[2]);
@@ -99,10 +99,10 @@ pub fn assemble_nodal_masses(map: &DofMap, masses: &[NodalMass]) -> EResult<Vec<
     for mass in masses {
         (|| {
             if !nodes.contains(&mass.node) {
-                return Err(error("ENG-E-0003", "Nodo de masa inexistente."));
+                return Err(error("ENG-E-0003", "Mass node does not exist."));
             }
             if !ids.insert(&mass.id) {
-                return Err(error("ENG-E-0002", "Identificador de masa duplicado."));
+                return Err(error("ENG-E-0002", "Duplicate mass identifier."));
             }
             for value in &mass.values {
                 nonnegative(value.value)?;
@@ -173,7 +173,7 @@ pub fn total_mass(map: &DofMap, matrix: &SparseMatrix, direction: [Real; 3]) -> 
     if matrix.rows() != map.len() || matrix.cols() != map.len() {
         return Err(error(
             "ENG-E-0010",
-            "Matriz de masa incompatible con los GDL.",
+            "Mass matrix is incompatible with DOFs.",
         ));
     }
     let r = rigid_translation(map, direction)?;
@@ -206,7 +206,7 @@ fn conversion(factor: Real, gravity: Real) -> EResult<()> {
     nonnegative(factor)?;
     finite(&[gravity])?;
     if gravity <= 0.0 {
-        return Err(error("ENG-E-0010", "g_usuario debe ser positiva (m/s²)."));
+        return Err(error("ENG-E-0010", "g_usuario must be positive (m/s²)."));
     }
     Ok(())
 }
@@ -218,7 +218,7 @@ fn projected_mass(force: [Real; 3], factor: Real, d: [Real; 3], gravity: Real) -
     if projection < 0.0 {
         return Err(error(
             "ENG-E-0010",
-            "La fuerza neta tiene proyección opuesta a la dirección de gravedad.",
+            "Net force has a projection opposite to the gravity direction.",
         ));
     }
     if factor == 0.0 {
@@ -228,10 +228,7 @@ fn projected_mass(force: [Real; 3], factor: Real, d: [Real; 3], gravity: Real) -
     let mass = weighted / gravity;
     finite(&[projection, weighted, mass])?;
     if projection > 0.0 && (weighted == 0.0 || mass == 0.0) {
-        return Err(error(
-            "ENG-E-0010",
-            "Masa positiva perdida por subdesbordamiento.",
-        ));
+        return Err(error("ENG-E-0010", "Positive mass lost to underflow."));
     }
     Ok(mass)
 }
@@ -273,7 +270,7 @@ pub fn masses_from_load_vector(
     if forces.len() != map.len() {
         return Err(error(
             "ENG-E-0010",
-            "Vector de fuerza incompatible con los GDL.",
+            "Force vector is incompatible with DOFs.",
         ));
     }
     finite(forces)?;

@@ -165,10 +165,7 @@ impl PDelta {
             || options.displacement_scale <= 0.0
             || options.rotation_scale <= 0.0
         {
-            return Err(EngineError::new(
-                "ENG-E-0010",
-                "P-Delta: ajustes inválidos.",
-            ));
+            return Err(EngineError::new("ENG-E-0010", "P-Delta: invalid settings."));
         }
         // Validar también el caso lateral antes de cualquier factorización.
         let force = system.global_force(&lateral.0, lateral.1)?;
@@ -182,14 +179,17 @@ impl PDelta {
         .cases
         .into_iter()
         .next()
-        .ok_or_else(|| EngineError::new("ENG-E-0012", "P-Delta: falta solución de gravedad."))?;
+        .ok_or_else(|| EngineError::new("ENG-E-0012", "P-Delta: missing gravity solution."))?;
         checkpoint(0)?;
         let kg = system.geometric_at(&gravity.free_displacements)?;
         let total = sum(system.stiffness(), &kg)?;
         let total_free = reduce(system, &total)?;
         let total_factor = system.factorize_reduced_with_check(&total_free, &mut check)?;
         let inertia = total_factor.info().inertia.ok_or_else(|| {
-            EngineError::new("ENG-E-0013", "P-Delta: el backend no ofrece inercia LDLᵀ.")
+            EngineError::new(
+                "ENG-E-0013",
+                "P-Delta: backend does not provide LDLᵀ inertia.",
+            )
         })?;
         if inertia
             .0
@@ -199,7 +199,7 @@ impl PDelta {
         {
             return Err(EngineError::new(
                 "ENG-E-0012",
-                "P-Delta: inercia incoherente.",
+                "P-Delta: inconsistent inertia.",
             ));
         }
         if inertia.2 != 0 {
@@ -260,7 +260,7 @@ impl PDelta {
             if solution.rows() != n || solution.cols() != 1 {
                 return Err(EngineError::new(
                     "ENG-E-0012",
-                    "P-Delta: tamaño de solución inválido.",
+                    "P-Delta: invalid solution size.",
                 ));
             }
             finite(solution.values())?;
@@ -315,22 +315,20 @@ pub fn geometric_producer(
     {
         return Err(EngineError::new(
             "ENG-E-0010",
-            "P-Delta: tamaños elementales inválidos.",
+            "P-Delta: invalid element sizes.",
         ));
     }
     if location.iter().collect::<BTreeSet<_>>().len() != location.len() {
         return Err(EngineError::new(
             "ENG-E-0002",
-            "P-Delta: GDL elemental repetido.",
+            "P-Delta: duplicate element DOF.",
         ));
     }
     finite(&committed)?;
     let evaluate = |ctx: &ElementCtx<'_>, u: &[Real]| {
         element
             .geometric_stiffness(ctx, u, &committed)?
-            .ok_or_else(|| {
-                EngineError::new("ENG-E-0013", "P-Delta: el elemento no proporciona Kg.")
-            })
+            .ok_or_else(|| EngineError::new("ENG-E-0013", "P-Delta: element does not provide Kg."))
     };
     evaluate(ctx, &vec![0.0; location.len()])?;
     let dim = ctx.dim;
@@ -347,7 +345,7 @@ pub fn geometric_producer(
             element
                 .geometric_stiffness(&ctx, u, &committed)?
                 .ok_or_else(|| {
-                    EngineError::new("ENG-E-0013", "P-Delta: el elemento no proporciona Kg.")
+                    EngineError::new("ENG-E-0013", "P-Delta: element does not provide Kg.")
                 })
         }),
     })

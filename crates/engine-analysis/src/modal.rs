@@ -136,7 +136,7 @@ impl Modal {
         if directions.is_empty() {
             return Err(EngineError::new(
                 "ENG-E-0010",
-                "Análisis modal: faltan direcciones.",
+                "Modal analysis: missing directions.",
             ));
         }
         let free = system.constraints().free_dofs();
@@ -171,7 +171,7 @@ impl Modal {
         {
             return Err(EngineError::new(
                 "ENG-E-0012",
-                "Análisis modal: dimensiones del espectro incompatibles.",
+                "Modal analysis: incompatible spectrum dimensions.",
             ));
         }
         super::finite(&spectrum.eigenvalues)?;
@@ -181,7 +181,7 @@ impl Modal {
         {
             return Err(EngineError::new(
                 "ENG-E-0012",
-                "Análisis modal: espectro negativo o sin ordenar.",
+                "Modal analysis: negative or unordered spectrum.",
             ));
         }
         let free = system.constraints().free_dofs();
@@ -215,7 +215,7 @@ impl Modal {
             if norm <= 0.0 {
                 return Err(EngineError::new(
                     "ENG-E-0012",
-                    "Análisis modal: forma modal sin norma de masa positiva.",
+                    "Modal analysis: mode shape has no positive mass norm.",
                 ));
             }
             for value in &mut global {
@@ -226,7 +226,7 @@ impl Modal {
             if denominator <= 0.0 {
                 return Err(EngineError::new(
                     "ENG-E-0012",
-                    "Análisis modal: norma de masa normalizada no positiva.",
+                    "Modal analysis: nonpositive normalized mass norm.",
                 ));
             }
             let mut participation = Vec::new();

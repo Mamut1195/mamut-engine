@@ -21,7 +21,7 @@ impl FaerBackend {
     pub fn new() -> EResult<Self> {
         Err(EngineError::new(
             "ENG-E-0009",
-            "Backend faer pendiente: verificar el alcance de COPYING.EIGEN.MPL2 en faer 0.24.4 antes de incorporar una dependencia exclusivamente permisiva.",
+            "faer backend pending: verify the scope of COPYING.EIGEN.MPL2 in faer 0.24.4 before adding a dependency with exclusively permissive licensing.",
         ))
     }
 }

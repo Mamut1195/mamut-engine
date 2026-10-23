@@ -24,7 +24,7 @@ use std::sync::{
 fn positive(value: Real) -> EResult<Real> {
     finite(&[value])?; // Rejects NaN and infinities before comparing.
     if value <= 0.0 {
-        return Err(invalid("Se requiere un parámetro positivo."));
+        return Err(invalid("A positive parameter is required."));
     } // Requires physical stiffness.
     Ok(value) // Preserves the validated SI magnitude.
 }
@@ -134,7 +134,7 @@ impl LinearBar2D {
     pub fn new(modulus: Real, area: Real, density: Real) -> EResult<Self> {
         finite(&[density])?; // Valida la masa volumétrica.
         if density < 0.0 {
-            return Err(invalid("Densidad negativa."));
+            return Err(invalid("Negative density."));
         } // Rechaza masa negativa.
         Ok(Self {
             modulus: positive(modulus)?,
@@ -144,13 +144,13 @@ impl LinearBar2D {
     }
     fn geometry(&self, ctx: &ElementCtx<'_>) -> EResult<(Real, [Real; 2])> {
         if ctx.dim != Dim::D2 {
-            return Err(invalid("La barra de ejemplo requiere D2."));
+            return Err(invalid("Example truss requires D2."));
         } // Limita plano.
         size(ctx.coords.len(), 2)?; // Exige los dos extremos.
         for p in ctx.coords {
             finite(p)?; // Valida las tres coordenadas.
             if p[2] != 0.0 {
-                return Err(invalid("D2 requiere Z=0."));
+                return Err(invalid("D2 requires Z=0."));
             } // Respeta el plano aprobado.
         }
         let dx = ctx.coords[1][0] - ctx.coords[0][0]; // Diferencia X de i a j.
@@ -158,7 +158,7 @@ impl LinearBar2D {
         let length = math::hypot(dx, dy); // Longitud sin elevar coordenadas grandes al cuadrado.
         finite(&[length])?; // Rechaza geometría desbordada.
         if length <= 1e-12 {
-            return Err(EngineError::new("ENG-E-0005", "Barra de longitud nula."));
+            return Err(EngineError::new("ENG-E-0005", "Zero-length truss."));
         } // Detecta degeneración.
         Ok((length, [dx / length, dy / length])) // Devuelve L y dirección local x.
     }
@@ -174,7 +174,7 @@ impl LinearBar2D {
             || load.moment_per_length != [0.0; 3]
         {
             return Err(invalid(
-                "La barra solo admite carga uniforme axial sin momentos.",
+                "Truss supports only uniform axial load without moments.",
             )); // Evita omitir cargas.
         }
         Ok(q) // Intensidad axial SI con signo.
@@ -281,7 +281,7 @@ impl Element for LinearBar2D {
         let (length, n) = self.geometry(ctx)?; // Eje local y longitud.
         finite(stations)?; // Rechaza posiciones no finitas.
         if stations.iter().any(|x| !(0.0..=1.0).contains(x)) {
-            return Err(invalid("Estación fuera de [0,1]."));
+            return Err(invalid("Station is outside [0,1]."));
         } // Limita tramo.
         let axial = n[0] * response.internal_force[3] + n[1] * response.internal_force[4]; // N elástico por cara j.
         let mut q = 0.0; // Acumula únicamente cargas admitidas.
@@ -326,16 +326,16 @@ impl ElementFactory for BarFactory {
     }
     fn build(&self, params: &JsonValue, model: &ModelView<'_>) -> EResult<Box<dyn Element>> {
         if model.dim != Dim::D2 {
-            return Err(invalid("La fábrica requiere D2."));
+            return Err(invalid("Factory requires D2."));
         } // Valida capacidad geométrica.
         let JsonValue::Object(fields) = params else {
-            return Err(invalid("Se esperaba objeto de propiedades."));
+            return Err(invalid("Expected a properties object."));
         }; // Comprueba tipo JSON.
         size(fields.len(), 3)?; // Rechaza propiedades adicionales.
         let number = |key| -> EResult<Real> {
             match fields.get(key) {
                 Some(JsonValue::Number(v)) => Ok(*v),
-                _ => Err(invalid("Propiedad numérica requerida ausente.")),
+                _ => Err(invalid("Missing required numeric property.")),
             }
         }; // Extrae solo números.
         Ok(Box::new(LinearBar2D::new(
@@ -403,7 +403,7 @@ impl SystemView for SpringSystem {
         size(out.len(), 1)?; // Checks output.
         finite(&[factor])?; // Checks dimensionless factor.
         if case.0 != "example.case" {
-            return Err(EngineError::new("ENG-E-0003", "Caso ausente."));
+            return Err(EngineError::new("ENG-E-0003", "Missing case."));
         } // Rejects unknown case.
         out[0] = factor; // Base force of 1 N times factor.
         Ok(()) // No effect on history.
@@ -499,18 +499,18 @@ impl AnalysisMethod for PrescribedStep {
                     return Ok(cancelled());
                 } // Handles cancellation before evaluating.
                 let JsonValue::Array(values) = settings else {
-                    return Err(invalid("Se esperaba array de desplazamientos."));
+                    return Err(invalid("Expected a displacement array."));
                 }; // Validates type.
                 let u: EResult<Vec<_>> = values
                     .iter()
                     .map(|v| match v {
                         JsonValue::Number(x) => Ok(*x),
-                        _ => Err(invalid("Desplazamiento no numérico.")),
+                        _ => Err(invalid("Nonnumeric displacement.")),
                     })
                     .collect(); // Extracts SI numbers.
                 let u = u?; // Propagates invalid fields.
                 vector(&u, sys.n_free_dofs())?; // Checks length and finiteness.
-                ctl.progress(0.0, "Evaluando desplazamientos prescritos"); // Initial progress.
+                ctl.progress(0.0, "Evaluating prescribed displacements"); // Initial progress.
                 let mut force = vec![0.0; u.len()]; // Prepares force output.
                 sys.internal_force(&u, &mut force)?; // Evaluates a trial without committing it.
                 finite(&force)?; // Rejects faulty system output.
@@ -542,7 +542,7 @@ impl AnalysisMethod for PrescribedStep {
                         },
                     }],
                 }; // Declares mock norms and criteria.
-                ctl.progress(1.0, "Paso prescrito aceptado"); // Completes monotonic progress.
+                ctl.progress(1.0, "Prescribed step accepted"); // Completes monotonic progress.
                 Ok(AnalysisOutcome {
                     status: Status::Completed,
                     report,

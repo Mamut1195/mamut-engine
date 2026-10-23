@@ -93,10 +93,7 @@ impl SteelBilinearKinematic {
         positive(fy, "fy (Pa)")?;
         finite(b, "b")?;
         if !(0.0..1.0).contains(&b) {
-            return Err(EngineError::new(
-                "ENG-E-0010",
-                "b debe pertenecer a [0, 1).",
-            ));
+            return Err(EngineError::new("ENG-E-0010", "b must be in [0, 1)."));
         }
         Ok(Self {
             params: SteelBilinearKinematicParams { e, fy, b },
@@ -135,7 +132,7 @@ impl UniaxialLaw for SteelBilinearKinematic {
     /// `ENG-E-0010` por longitud distinta de dos; `ENG-E-0008` por ε o historia
     /// no finitas, o desbordamiento de diferencias, incrementos o resultados.
     fn respond(&self, strain: Real, committed: &[Real]) -> EResult<UniaxialResponse> {
-        vector(committed, 2, "Historia aceptada [ε_p, α]")?;
+        vector(committed, 2, "Accepted history [ε_p, α]")?;
         finite(strain, "ε")?;
         let SteelBilinearKinematicParams { e, fy, b } = self.params;
         // La longitud se ha validado antes de acceder a ambos componentes.
@@ -154,8 +151,8 @@ impl UniaxialLaw for SteelBilinearKinematic {
         let sign = xi.signum();
         let stress_correction = (1.0 - b) * f;
         let gamma = finite(stress_correction / e, "Δγ")?;
-        let plastic_trial = finite(plastic_strain + sign * gamma, "ε_p de prueba")?;
-        let alpha_trial = finite(alpha + sign * (b * f), "α de prueba (Pa)")?;
+        let plastic_trial = finite(plastic_strain + sign * gamma, "Trial ε_p")?;
+        let alpha_trial = finite(alpha + sign * (b * f), "Trial α (Pa)")?;
         let stress = finite(alpha_trial + sign * fy, "σ (Pa)")?;
         Ok(UniaxialResponse {
             stress,

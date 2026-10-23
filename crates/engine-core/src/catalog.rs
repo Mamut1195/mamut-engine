@@ -2,7 +2,7 @@
 //!
 //! ```
 //! use engine_core::catalog::{explain, lookup};
-//! assert_eq!(lookup("ENG-E-0001").unwrap().title, "Unidad desconocida");
+//! assert_eq!(lookup("ENG-E-0001").unwrap().title, "Unknown unit");
 //! assert!(explain("ENG-E-0001").is_some());
 //! assert_eq!(explain("ENG-E-9999"), None);
 //! ```
@@ -32,100 +32,100 @@ pub static CODES: &[CodeInfo] = &[
     CodeInfo {
         code: "ENG-E-0001",
         severity: Severity::Error,
-        title: "Unidad desconocida",
-        message: "La unidad indicada no está reconocida.",
-        explanation: "La entrada utiliza una unidad que el motor no conoce. Revise su nombre y convierta la magnitud a una unidad admitida.",
+        title: "Unknown unit",
+        message: "The specified unit is not recognized.",
+        explanation: "The input uses a unit the engine does not recognize. Check its name and convert the quantity to a supported unit.",
     },
     CodeInfo {
         code: "ENG-E-0002",
         severity: Severity::Error,
-        title: "Identificador duplicado",
-        message: "El identificador ya está asignado a otra entidad.",
-        explanation: "Dos entidades de la misma clase comparten un identificador. Asigne identificadores únicos y actualice las referencias correspondientes.",
+        title: "Duplicate identifier",
+        message: "The identifier is already assigned to another entity.",
+        explanation: "Two entities of the same class share an identifier. Assign unique identifiers and update the corresponding references.",
     },
     CodeInfo {
         code: "ENG-E-0003",
         severity: Severity::Error,
-        title: "Referencia rota",
-        message: "La entidad referenciada no existe.",
-        explanation: "Una relación apunta a una entidad ausente del modelo. Revise el identificador y cree la entidad necesaria o corrija la referencia.",
+        title: "Broken reference",
+        message: "The referenced entity does not exist.",
+        explanation: "A relationship points to an entity missing from the model. Check the identifier and create the required entity or correct the reference.",
     },
     CodeInfo {
         code: "ENG-E-0004",
         severity: Severity::Error,
-        title: "Nodo huérfano",
-        message: "El nodo no está conectado a ningún miembro.",
-        explanation: "El nodo queda aislado de los miembros del modelo. Revise la conectividad y conecte el nodo o retire la entidad que no participa en el cálculo.",
+        title: "Orphan node",
+        message: "The node is not connected to any member.",
+        explanation: "The node is isolated from the model members. Check connectivity and connect the node or remove the entity that does not participate in the calculation.",
     },
     CodeInfo {
         code: "ENG-E-0005",
         severity: Severity::Error,
-        title: "Longitud nula",
-        message: "La longitud del miembro es nula.",
-        explanation: "Los extremos del miembro coinciden y no definen una longitud utilizable. Revise las coordenadas y las referencias a sus nodos extremos.",
+        title: "Zero length",
+        message: "The member length is zero.",
+        explanation: "The member ends coincide and do not define a usable length. Check the coordinates and references to its end nodes.",
     },
     CodeInfo {
         code: "ENG-E-0006",
         severity: Severity::Error,
-        title: "Matriz singular o mecanismo",
-        message: "El sistema presenta una matriz singular o un mecanismo.",
-        explanation: "Las ecuaciones no determinan una solución única. Revise los apoyos, la conectividad, las liberaciones y la rigidez para detectar movimientos sin resistencia.",
+        title: "Singular matrix or mechanism",
+        message: "The system has a singular matrix or a mechanism.",
+        explanation: "The equations do not determine a unique solution. Check supports, connectivity, releases, and stiffness for unresisted movement.",
     },
     CodeInfo {
         code: "ENG-E-0007",
         severity: Severity::Error,
-        title: "Falta de convergencia",
-        message: "El cálculo no alcanzó la convergencia requerida.",
-        explanation: "El procedimiento agotó sus pasos sin satisfacer las tolerancias. Revise los datos, las tolerancias y el tamaño de los incrementos del cálculo.",
+        title: "Failure to converge",
+        message: "The calculation did not reach the required convergence.",
+        explanation: "The procedure exhausted its steps without meeting the tolerances. Check the data, tolerances, and calculation increment sizes.",
     },
     CodeInfo {
         code: "ENG-E-0008",
         severity: Severity::Error,
-        title: "Entrada no finita",
-        message: "Una magnitud de entrada no es un número finito.",
-        explanation: "Se recibió un valor indefinido o infinito. Revise las conversiones, las operaciones previas y los datos originales antes de iniciar el cálculo.",
+        title: "Non-finite input",
+        message: "An input quantity is not a finite number.",
+        explanation: "An undefined or infinite value was received. Check conversions, prior operations, and original data before starting the calculation.",
     },
     CodeInfo {
         code: "ENG-E-0009",
         severity: Severity::Error,
-        title: "Contrato incompatible",
-        message: "Los contratos tienen nombres o versiones mayores incompatibles.",
-        explanation: "Las partes requieren contratos con distinto nombre o distinta versión mayor. Utilice componentes que compartan ambos valores; la versión menor no afecta esta comprobación.",
+        title: "Incompatible contract",
+        message: "The contracts have incompatible names or major versions.",
+        explanation: "The parties require contracts with different names or major versions. Use components that share both values; the minor version does not affect this check.",
     },
     CodeInfo {
         code: "ENG-E-0010",
         severity: Severity::Error,
-        title: "Dimensión inválida",
-        message: "La dimensión indicada no es válida para la operación.",
-        explanation: "La operación recibió una dimensión no admitida o incompatible con el modelo. Revise si el modelo es plano o espacial y adapte los datos a esa dimensión.",
+        title: "Invalid dimension",
+        message: "The specified dimension is not valid for the operation.",
+        explanation: "The operation received an unsupported dimension or one incompatible with the model. Check whether the model is planar or spatial and adapt the data to that dimension.",
     },
     CodeInfo {
         code: "ENG-E-0011",
         severity: Severity::Error,
-        title: "Grado de libertad inválido",
-        message: "El grado de libertad no está disponible en el contexto indicado.",
-        explanation: "La componente o su posición global no pertenece al conjunto disponible. Revise la dimensión del modelo y la numeración de los grados de libertad.",
+        title: "Invalid degree of freedom",
+        message: "The degree of freedom is not available in the specified context.",
+        explanation: "The component or its global position is outside the available set. Check the model dimension and degree of freedom numbering.",
     },
     CodeInfo {
         code: "ENG-E-0012",
         severity: Severity::Error,
-        title: "Error interno",
-        message: "El motor encontró un estado interno inesperado.",
-        explanation: "Una condición interna impide completar la operación. Conserve los datos de entrada y el código del diagnóstico para reproducir la situación y revisar su causa.",
+        title: "Internal error",
+        message: "The engine encountered an unexpected internal state.",
+        explanation: "An internal condition prevents completion of the operation. Keep the input data and diagnostic code to reproduce the situation and investigate its cause.",
     },
     CodeInfo {
         code: "ENG-E-0013",
         severity: Severity::Error,
-        title: "Capacidad no soportada",
-        message: "La operación solicitada no está soportada por este componente.",
-        explanation: "La entrada es válida, pero el componente no implementa la capacidad pedida (por ejemplo, evaluar la rigidez geométrica en un estado distinto del de referencia). Use un componente que la soporte o limite la solicitud a lo admitido; no reintente con los mismos datos.",
+        title: "Unsupported capability",
+        message: "The requested operation is not supported by this component.",
+        explanation: "The input is valid, but the component does not implement the requested capability (for example, evaluating geometric stiffness in a state other than the reference state). Use a component that supports it or limit the request to supported operations; do not retry with the same data.",
     },
     CodeInfo {
         code: "ENG-E-0014",
         severity: Severity::Error,
-        title: "Mecanismo sin masa",
-        message: "La rigidez de los grados de libertad sin masa no es definida positiva.",
-        explanation: "La condensación de Guyan requiere Kss definida positiva. Un pivote singular o una dirección de rigidez negativa impide recuperar los GDL sin masa. Revise los apoyos, la conectividad y las liberaciones del nodo/GDL indicado; no se añade masa ni rigidez artificial.",
+        title: "Massless mechanism",
+        message: "The stiffness of the massless degrees of freedom is not positive definite.",
+        explanation: "Guyan condensation requires positive definite Kss. A singular pivot or a negative stiffness direction prevents recovery of the massless DOFs. Check supports, connectivity, and releases at the specified node/DOF; no artificial mass or stiffness is added.",
     },
 ];
 
@@ -171,7 +171,7 @@ mod tests {
     #[test]
     fn unsupported_capability_code_is_stable() {
         let info = lookup("ENG-E-0013").unwrap();
-        assert_eq!(info.title, "Capacidad no soportada");
+        assert_eq!(info.title, "Unsupported capability");
         assert_eq!(info.severity, Severity::Error);
         // Ordering and uniqueness are required by `unique_ordered_codes_with_valid_format`; the
         // "last" code is not pinned: adding ENG-E-0014 must not break this test.

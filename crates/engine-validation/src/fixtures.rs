@@ -146,34 +146,30 @@ impl Fixture {
         let value: Value = serde_json::from_str(&canonical).map_err(|e| e.to_string())?;
         for field in ["source", "provenance"] {
             if value.get(field).is_some_and(forbidden_provenance) {
-                return Err(format!("{field}: procedencia de motor prohibida"));
+                return Err(format!("{field}: prohibited engine provenance"));
             }
         }
-        let source: Source = serde_json::from_value(
-            value
-                .get("source")
-                .cloned()
-                .ok_or("source es obligatorio")?,
-        )
-        .map_err(|e| format!("source: {e}"))?;
+        let source: Source =
+            serde_json::from_value(value.get("source").cloned().ok_or("source is required")?)
+                .map_err(|e| format!("source: {e}"))?;
         if source.fields().iter().any(|s| s.trim().is_empty()) {
-            return Err("Todos los campos de source deben tener contenido".into());
+            return Err("All source fields must be nonempty".into());
         }
         if value.get("tolerance").is_some_and(Value::is_null) {
-            return Err("tolerance debe ser un objeto cuando se declara".into());
+            return Err("tolerance must be an object when declared".into());
         }
         let fixture: Self = serde_json::from_value(value).map_err(|e| e.to_string())?;
         if fixture.schema != "fixture/1" {
-            return Err("Se requiere schema fixture/1".into());
+            return Err("schema fixture/1 is required".into());
         }
         if fixture.id.trim().is_empty() {
-            return Err("id debe tener contenido".into());
+            return Err("id must be nonempty".into());
         }
         if fixture.input.get("schema").and_then(Value::as_str) != Some("engine-input/1") {
-            return Err("input debe ser una entrada engine-input/1 embebida".into());
+            return Err("input must be an embedded engine-input/1 input".into());
         }
         if fixture.expected.is_empty() {
-            return Err("expected debe contener al menos una comprobación".into());
+            return Err("expected must contain at least one check".into());
         }
         let mut pointers = BTreeSet::new();
         for expected in &fixture.expected {
@@ -188,7 +184,7 @@ impl Fixture {
                 || !expected.value.is_finite()
             {
                 return Err(
-                    "expected requiere JSON Pointers únicos válidos y valores finitos".into(),
+                    "expected requires unique valid JSON Pointers and finite values".into(),
                 );
             }
         }
@@ -200,7 +196,7 @@ impl Fixture {
                 || tolerance.absolute <= 0.0
             {
                 return Err(
-                    "tolerance requiere relative >= 0, absolute > 0 y justification no vacía"
+                    "tolerance requires relative >= 0, absolute > 0, and nonempty justification"
                         .into(),
                 );
             }
@@ -328,21 +324,21 @@ impl Report {
                 "{} / {}: {}\n",
                 row.fixture,
                 row.target,
-                if row.passed { "OK" } else { "FALLO" }
+                if row.passed { "OK" } else { "FAILED" }
             ));
             if let Some(error) = &row.error {
                 text.push_str(&format!("  {error}\n"));
             }
             for c in &row.comparisons {
                 text.push_str(&format!(
-                    "  {}: esperado={}, actual={}, error={}, límite={} [{}]\n",
+                    "  {}: expected={}, actual={}, error={}, limit={} [{}]\n",
                     c.pointer,
                     c.expected,
-                    c.actual.map_or_else(|| "ausente".into(), |v| v.to_string()),
+                    c.actual.map_or_else(|| "missing".into(), |v| v.to_string()),
                     c.absolute_error
-                        .map_or_else(|| "no disponible".into(), |v| v.to_string()),
+                        .map_or_else(|| "unavailable".into(), |v| v.to_string()),
                     c.allowed_error,
-                    if c.passed { "OK" } else { "FALLO" }
+                    if c.passed { "OK" } else { "FAILED" }
                 ));
             }
         }
@@ -353,10 +349,10 @@ impl Report {
 fn compare(fixture: &Fixture, target: &dyn Target) -> Result<Vec<Comparison>, String> {
     let input = canonical_json(&fixture.input.to_string()).map_err(|e| e.to_string())?;
     let output = target.execute(&input)?;
-    let output = canonical_json(&output).map_err(|e| format!("results/1 inválido: {e}"))?;
+    let output = canonical_json(&output).map_err(|e| format!("Invalid results/1: {e}"))?;
     let value: Value = serde_json::from_str(&output).map_err(|e| e.to_string())?;
     if value["schema"] != "results/1" || value["status"] != "ok" {
-        return Err(format!("Se requiere results/1 con status ok: {output}"));
+        return Err(format!("results/1 with status ok is required: {output}"));
     }
     let tolerance = fixture.tolerance();
     fixture
@@ -367,7 +363,7 @@ fn compare(fixture: &Fixture, target: &dyn Target) -> Result<Vec<Comparison>, St
                 .absolute
                 .max(tolerance.relative * expected.value.abs());
             if !allowed.is_finite() {
-                return Err("La tolerancia efectiva desborda f64".into());
+                return Err("Effective tolerance overflows f64".into());
             }
             let actual = value
                 .pointer(&expected.pointer)
@@ -399,10 +395,10 @@ pub fn run(documents: &[(&str, &str)], targets: &[&dyn Target]) -> Report {
     for &(name, document) in documents {
         let fixture = Fixture::parse(document).and_then(|fixture| {
             if !ids.insert(fixture.id.clone()) {
-                return Err("id de fixture duplicado".into());
+                return Err("Duplicate fixture id".into());
             }
             if !valid_targets {
-                return Err("Nombres de target vacíos o duplicados".into());
+                return Err("Empty or duplicate target names".into());
             }
             Ok(fixture)
         });

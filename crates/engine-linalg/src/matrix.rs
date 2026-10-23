@@ -18,7 +18,7 @@ impl DMat {
     pub fn new(rows: usize, cols: usize, values: Vec<Real>) -> EResult<Self> {
         let len = rows
             .checked_mul(cols)
-            .ok_or_else(|| invalid("Tamaño matricial desbordado."))?;
+            .ok_or_else(|| invalid("Matrix size overflow."))?;
         size(values.len(), len)?;
         finite(&values)?;
         Ok(Self { rows, cols, values })
@@ -28,7 +28,7 @@ impl DMat {
     pub fn zeros(rows: usize, cols: usize) -> EResult<Self> {
         let len = rows
             .checked_mul(cols)
-            .ok_or_else(|| invalid("Tamaño matricial desbordado."))?;
+            .ok_or_else(|| invalid("Matrix size overflow."))?;
         Self::new(rows, cols, alloc_vec(len, 0.0)?)
     }
     /// Number of rows.
@@ -66,7 +66,7 @@ impl SymMatrix {
         for i in 0..matrix.rows() {
             for j in 0..i {
                 if matrix.get(i, j) != matrix.get(j, i) {
-                    return Err(invalid("Matriz no simétrica."));
+                    return Err(invalid("Nonsymmetric matrix."));
                 }
             }
         }
@@ -103,12 +103,12 @@ impl SparsityPattern {
             entries.len(),
             order
                 .checked_mul(order)
-                .ok_or_else(|| invalid("Patrón desbordado."))?,
+                .ok_or_else(|| invalid("Pattern overflow."))?,
         )?;
         for i in 0..order {
             for j in 0..i {
                 if entries[i * order + j] != entries[j * order + i] {
-                    return Err(invalid("Patrón no simétrico."));
+                    return Err(invalid("Nonsymmetric pattern."));
                 }
             }
         }
@@ -127,12 +127,14 @@ impl SparsityPattern {
     pub fn from_coordinates(order: usize, mut coordinates: Vec<(usize, usize)>) -> EResult<Self> {
         order
             .checked_mul(order)
-            .ok_or_else(|| invalid("Patrón desbordado."))?;
+            .ok_or_else(|| invalid("Pattern overflow."))?;
         coordinates.sort_unstable();
         coordinates.dedup();
         for &(row, col) in &coordinates {
             if row >= order || col >= order || coordinates.binary_search(&(col, row)).is_err() {
-                return Err(invalid("Coordenadas fuera de rango o patrón no simétrico."));
+                return Err(invalid(
+                    "Coordinates are out of range or pattern is nonsymmetric.",
+                ));
             }
         }
         Ok(Self {
@@ -186,10 +188,10 @@ impl SparsityPattern {
         let len = self
             .order
             .checked_mul(self.order)
-            .ok_or_else(|| unsupported("Patrón sin máscara densa: orden² desborda usize."))?;
+            .ok_or_else(|| unsupported("Pattern has no dense mask: order² overflows usize."))?;
         if len > crate::MAX_ALLOC_BYTES {
             return Err(unsupported(&format!(
-                "Patrón sin máscara densa: orden {} requiere {len} bytes, sobre el límite de {} bytes; use coordinates(), contains() o mask_iter().",
+                "Pattern has no dense mask: order {} requires {len} bytes, exceeding the limit of {} bytes; use coordinates(), contains(), or mask_iter().",
                 self.order,
                 crate::MAX_ALLOC_BYTES
             )));

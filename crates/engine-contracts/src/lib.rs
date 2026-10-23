@@ -35,7 +35,7 @@ pub(crate) fn finite(values: &[Real]) -> EResult<()> {
     } else {
         Err(EngineError::new(
             "ENG-E-0008",
-            "Magnitud no finita en el contrato.",
+            "Non-finite quantity in contract.",
         ))
     }
 }
@@ -45,7 +45,7 @@ pub(crate) fn size(actual: usize, expected: usize) -> EResult<()> {
     } else {
         Err(EngineError::new(
             "ENG-E-0010",
-            format!("Longitud {actual}; se esperaba {expected}."),
+            format!("Length {actual}; expected {expected}."),
         ))
     }
 }

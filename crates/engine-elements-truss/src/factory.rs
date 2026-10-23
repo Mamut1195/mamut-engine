@@ -31,7 +31,7 @@ impl ElementFactory for TrussFactory {
     }
     fn build(&self, params: &JsonValue, model: &ModelView<'_>) -> EResult<Box<dyn Element>> {
         if self.dim != model.dim {
-            return Err(invalid("Fábrica de barra: dimensión incompatible."));
+            return Err(invalid("Truss factory: incompatible dimension."));
         }
         let mut ids = BTreeSet::new();
         for (id, p) in model.nodes {
@@ -42,22 +42,22 @@ impl ElementFactory for TrussFactory {
                 ));
             }
             for &v in p {
-                finite(v, "Coordenada de ModelView (m)")?;
+                finite(v, "ModelView coordinate (m)")?;
             }
             if model.dim == Dim::D2 && p[2] != 0.0 {
-                return Err(invalid("ModelView D2 requiere Z=0."));
+                return Err(invalid("ModelView D2 requires Z=0."));
             }
         }
         let JsonValue::Object(fields) = params else {
-            return Err(invalid("Barra: se esperaba objeto E, A, rho."));
+            return Err(invalid("Truss: expected an E, A, rho object."));
         };
         if fields.len() != 3 {
-            return Err(invalid("Barra: se requieren únicamente E, A, rho."));
+            return Err(invalid("Truss: only E, A, rho are required."));
         }
         let number = |key| match fields.get(key) {
             Some(JsonValue::Number(value)) => Ok(*value),
             _ => Err(invalid(&format!(
-                "Barra: {key} debe ser un número SI explícito."
+                "Truss: {key} must be an explicit SI number."
             ))),
         };
         Ok(Box::new(LinearTruss::new(

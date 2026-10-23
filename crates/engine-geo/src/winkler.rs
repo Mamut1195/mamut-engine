@@ -8,7 +8,7 @@ fn finite(v: Real) -> EResult<Real> {
     } else {
         Err(EngineError::new(
             "ENG-E-0008",
-            "Winkler: entrada o resultado no finito.",
+            "Winkler: non-finite input or result.",
         ))
     }
 }
@@ -19,7 +19,7 @@ pub fn validate(k: Real) -> EResult<()> {
     if k < 0.0 {
         return Err(EngineError::new(
             "ENG-E-0010",
-            "Winkler: k debe ser no negativo (N/m²).",
+            "Winkler: k must be nonnegative (N/m²).",
         ));
     }
     Ok(())
@@ -29,7 +29,7 @@ fn length(l: Real) -> EResult<()> {
     if l <= 1e-12 {
         return Err(EngineError::new(
             "ENG-E-0005",
-            "Winkler: L debe superar 1e-12 m.",
+            "Winkler: L must exceed 1e-12 m.",
         ));
     }
     Ok(())
@@ -50,7 +50,7 @@ pub fn matrix(k: Real, l: Real) -> EResult<[[Real; 4]; 4]> {
     if a == 0.0 || b == 0.0 || c == 0.0 {
         return Err(EngineError::new(
             "ENG-E-0010",
-            "Winkler: coeficiente positivo subdesbordado.",
+            "Winkler: positive coefficient underflow.",
         ));
     }
     let out = [
@@ -80,7 +80,7 @@ pub fn integrals(k: Real, l: Real, d: [Real; 4], position: Real) -> EResult<[Rea
     if !(0.0..=1.0).contains(&position) {
         return Err(EngineError::new(
             "ENG-E-0010",
-            "Winkler: posición fuera de [0,1].",
+            "Winkler: position is outside [0,1].",
         ));
     }
     if k == 0.0 {

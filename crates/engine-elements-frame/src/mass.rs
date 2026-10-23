@@ -10,7 +10,7 @@ pub(crate) fn matrix(beam: &EulerFrame2D, g: &Geometry, kind: MassKind) -> EResu
     }
     let total = positive(
         positive(beam.density * beam.area, "rho A")? * g.length,
-        "Masa (kg)",
+        "Mass (kg)",
     )?;
     let mut m: Matrix = [[0.0; 6]; 6];
     match kind {
@@ -21,14 +21,14 @@ pub(crate) fn matrix(beam: &EulerFrame2D, g: &Geometry, kind: MassKind) -> EResu
             }
         }
         MassKind::Consistent => {
-            let third = positive(total / 3.0, "Masa axial")?;
-            let sixth = positive(total / 6.0, "Masa axial acoplada")?;
+            let third = positive(total / 3.0, "Axial mass")?;
+            let sixth = positive(total / 6.0, "Coupled axial mass")?;
             m[0][0] = third;
             m[3][3] = third;
             m[0][3] = sixth;
             m[3][0] = sixth;
-            let a = positive(total / 420.0, "Escala masa Hermite")?;
-            let b = positive(a * g.length, "Masa acoplada giro")?;
+            let a = positive(total / 420.0, "Hermite mass scale")?;
+            let b = positive(a * g.length, "Coupled rotational mass")?;
             let c = positive(b * g.length, "Inercia nodal")?;
             let bending = [
                 [156.0 * a, 22.0 * b, 54.0 * a, -13.0 * b],

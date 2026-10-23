@@ -53,10 +53,7 @@ fn error(code: &'static str, context: &str) -> EngineError {
 
 fn finite(values: &[Real]) -> EResult<()> {
     if values.iter().any(|v| !v.is_finite()) {
-        return Err(error(
-            "ENG-E-0008",
-            "Entrada o resultado de carga no finito.",
-        ));
+        return Err(error("ENG-E-0008", "Non-finite load input or result."));
     }
     Ok(())
 }
@@ -64,7 +61,7 @@ fn finite(values: &[Real]) -> EResult<()> {
 fn length(value: Real) -> EResult<()> {
     finite(&[value])?;
     if value <= 0.0 {
-        return Err(error("ENG-E-0010", "La longitud debe ser positiva."));
+        return Err(error("ENG-E-0010", "Length must be positive."));
     }
     Ok(())
 }

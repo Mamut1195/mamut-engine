@@ -75,7 +75,7 @@ impl CubicElastic {
         if c < 0.0 {
             return Err(EngineError::new(
                 "ENG-E-0010",
-                "C (Pa) debe ser no negativo.",
+                "C (Pa) must be nonnegative.",
             ));
         }
         Ok(Self {
@@ -115,7 +115,7 @@ impl UniaxialLaw for CubicElastic {
     /// `ENG-E-0010` por historia no vacía; `ENG-E-0008` por ε no finita
     /// o desbordamiento en productos/sumas de tensión o tangente.
     fn respond(&self, strain: Real, committed: &[Real]) -> EResult<UniaxialResponse> {
-        vector(committed, 0, "Historia aceptada")?;
+        vector(committed, 0, "Accepted history")?;
         finite(strain, "ε total")?;
         let CubicElasticParams { e, c } = self.params;
         let linear_factor = finite(c * strain, "Cε (Pa)")?;

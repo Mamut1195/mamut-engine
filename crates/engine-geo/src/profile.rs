@@ -35,23 +35,23 @@ fn finite(value: Real, field: &str) -> GeoResult<()> {
     if value.is_finite() {
         Ok(())
     } else {
-        Err(diagnostic("ENG-E-0008", format!("{field} = {value}: se requiere un número finito; revise los datos o el desbordamiento aritmético. El catálogo no distingue entradas de resultados no finitos.")))
+        Err(diagnostic("ENG-E-0008", format!("{field} = {value}: a finite number is required; check the data or arithmetic overflow. The catalog does not distinguish non-finite inputs from non-finite results.")))
     }
 }
 
 fn invalid(hint: String) -> Diagnostic {
-    diagnostic("ENG-E-0010", format!("{hint} El catálogo no tiene código geotécnico de rango/geometría; se reutiliza Dimensión inválida."))
+    diagnostic("ENG-E-0010", format!("{hint} The catalog has no geotechnical range/geometry code; Invalid dimension is reused."))
 }
 
 fn required<T>(parameter: Option<T>, field: &str) -> GeoResult<T> {
-    parameter.ok_or_else(|| diagnostic("ENG-E-0003", format!("Falta {field}: aporte valor y origen Measured/Assumed explícitos. No se sustituye por otro parámetro. El catálogo no tiene código de dato geotécnico ausente; se reutiliza Referencia rota.")))
+    parameter.ok_or_else(|| diagnostic("ENG-E-0003", format!("Missing {field}: provide an explicit value and Measured/Assumed origin. No other parameter is substituted. The catalog has no code for missing geotechnical data; Broken reference is reused.")))
 }
 
 fn positive(value: Real, field: &str) -> GeoResult<()> {
     finite(value, field)?;
     if value <= 0.0 {
         return Err(invalid(format!(
-            "{field} = {value}: debe ser estrictamente positivo; corrija el dato."
+            "{field} = {value}: must be strictly positive; correct the data."
         )));
     }
     Ok(())
@@ -109,7 +109,7 @@ impl StratifiedProfile {
         let groundwater = required(groundwater_depth_m, "groundwater_depth_m (zw, m)")?;
         finite(groundwater.value, "groundwater_depth_m (zw, m)")?;
         if groundwater.value < 0.0 {
-            return Err(invalid(format!("groundwater_depth_m = {} m: zw < 0 (agua sobre el terreno) no está soportado; use zw >= 0 o un modelo con agua embalsada explícita.", groundwater.value)));
+            return Err(invalid(format!("groundwater_depth_m = {} m: zw < 0 (water above ground) is not supported; use zw >= 0 or a model with explicit ponded water.", groundwater.value)));
         }
         let water = required(
             water_unit_weight_kn_m3,
@@ -118,7 +118,7 @@ impl StratifiedProfile {
         positive(water.value, "water_unit_weight_kn_m3 (γw, kN/m³)")?;
         if layers.is_empty() {
             return Err(invalid(
-                "layers: el perfil está vacío; aporte al menos una capa.".into(),
+                "layers: profile is empty; provide at least one layer.".into(),
             ));
         }
 
@@ -129,16 +129,16 @@ impl StratifiedProfile {
             let prefix = format!("layers[{layer_index}]");
             positive(layer.thickness_m, &format!("{prefix}.thickness_m (m)"))?;
             let bottom = top + layer.thickness_m;
-            finite(bottom, &format!("{prefix}.bottom_m acumulado (m)"))?;
+            finite(bottom, &format!("{prefix}.bottom_m accumulated (m)"))?;
             if bottom <= top {
-                return Err(invalid(format!("{prefix}.thickness_m: el espesor se pierde al acumular en f64; revise la escala de los espesores.")));
+                return Err(invalid(format!("{prefix}.thickness_m: thickness is lost when accumulating in f64; check the thickness scale.")));
             }
             let gamma = required(layer.gamma_kn_m3, &format!("{prefix}.gamma_kn_m3 (γ)"))?;
             positive(gamma.value, &format!("{prefix}.gamma_kn_m3 (kN/m³)"))?;
             let gamma_sat = if bottom > groundwater.value {
                 Some(required(
                     layer.gamma_sat_kn_m3,
-                    &format!("{prefix}.gamma_sat_kn_m3 (γsat, tramo bajo zw)"),
+                    &format!("{prefix}.gamma_sat_kn_m3 (γsat, span below zw)"),
                 )?)
             } else {
                 layer.gamma_sat_kn_m3
@@ -201,7 +201,7 @@ impl StressProfile for StratifiedProfile {
     fn stresses_at(&self, depth_m: Real) -> GeoResult<StressResult> {
         finite(depth_m, "depth_m (m)")?;
         if depth_m < 0.0 || depth_m > self.total_depth_m {
-            return Err(invalid(format!("depth_m = {depth_m} m: profundidad fuera de [0, {}] m; consulte dentro del perfil, sin extrapolar.", self.total_depth_m)));
+            return Err(invalid(format!("depth_m = {depth_m} m: depth is outside [0, {}] m; query within the profile, without extrapolation.", self.total_depth_m)));
         }
         let mut total = 0.0;
         for (layer_index, layer) in self.layers.iter().enumerate() {
@@ -222,7 +222,7 @@ impl StressProfile for StratifiedProfile {
             }
             finite(
                 total,
-                &format!("σv acumulada tras layers[{layer_index}] (kPa)"),
+                &format!("Accumulated σv after layers[{layer_index}] (kPa)"),
             )?;
         }
         let pore = self.water_unit_weight_kn_m3 * (depth_m - self.groundwater_depth_m).max(0.0);

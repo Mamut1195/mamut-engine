@@ -18,7 +18,7 @@ pub(crate) fn matrix(beam: &EulerFrame3D, g: &Geometry, kind: MassKind) -> EResu
         beam.density * positive(finite(beam.iy + beam.iz, "Iy+Iz")?, "Iy+Iz")?,
         "rho Ip",
     )?;
-    let polar = positive(polar * g.length, "Inercia polar total")?;
+    let polar = positive(polar * g.length, "Total polar inertia")?;
     let mut m: Matrix = [[0.0; 12]; 12];
     match kind {
         MassKind::Lumped => {
@@ -32,15 +32,15 @@ pub(crate) fn matrix(beam: &EulerFrame3D, g: &Geometry, kind: MassKind) -> EResu
         }
         MassKind::Consistent => {
             for (ids, total) in [([0, 6], total), ([3, 9], polar)] {
-                let third = positive(total / 3.0, "Masa lineal diagonal")?;
-                let sixth = positive(total / 6.0, "Masa lineal acoplada")?;
+                let third = positive(total / 3.0, "Diagonal linear mass")?;
+                let sixth = positive(total / 6.0, "Coupled linear mass")?;
                 m[ids[0]][ids[0]] = third;
                 m[ids[1]][ids[1]] = third;
                 m[ids[0]][ids[1]] = sixth;
                 m[ids[1]][ids[0]] = sixth;
             }
-            let a = positive(total / 420.0, "Escala masa Hermite")?;
-            let b = positive(a * g.length, "Masa acoplada giro")?;
+            let a = positive(total / 420.0, "Hermite mass scale")?;
+            let b = positive(a * g.length, "Coupled rotational mass")?;
             let c = positive(b * g.length, "Inercia nodal")?;
             let bending = [
                 [156.0 * a, 22.0 * b, 54.0 * a, -13.0 * b],

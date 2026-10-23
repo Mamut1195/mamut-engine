@@ -11,7 +11,7 @@ pub(crate) fn components(g: &Geometry, load: &MemberLoad) -> EResult<[Real; 3]> 
         || load.moment_per_length[1] != 0.0
     {
         return Err(unsupported(
-            "Viga D2: cargas fuera del plano no soportadas.",
+            "D2 beam: out-of-plane loads are not supported.",
         ));
     }
     let [qx, qy, _] = load.force_per_length;
@@ -25,7 +25,7 @@ pub(crate) fn sum(g: &Geometry, loads: &[MemberLoad]) -> EResult<[Real; 3]> {
     let mut q = [0.0; 3];
     for load in loads {
         for (sum, value) in q.iter_mut().zip(components(g, load)?) {
-            *sum = finite(*sum + value, "Suma cargas uniformes")?;
+            *sum = finite(*sum + value, "Sum of uniform loads")?;
         }
     }
     Ok(q)

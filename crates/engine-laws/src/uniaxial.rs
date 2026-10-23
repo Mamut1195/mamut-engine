@@ -116,7 +116,7 @@ impl UniaxialLaw for Elastic {
     /// Devuelve σ y tangente en Pa, e historia vacía. `ENG-E-0010` por
     /// historia no vacía; `ENG-E-0008` por ε no finita o producto desbordado.
     fn respond(&self, strain: Real, committed: &[Real]) -> EResult<UniaxialResponse> {
-        vector(committed, 0, "Historia aceptada")?;
+        vector(committed, 0, "Accepted history")?;
         finite(strain, "ε")?;
         Ok(UniaxialResponse {
             stress: finite(self.e * strain, "σ (Pa)")?,

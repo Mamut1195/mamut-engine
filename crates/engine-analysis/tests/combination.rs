@@ -347,7 +347,7 @@ fn repeated_settlement_rejected_against_fixed_end_beam_oracle() -> EResult<()> {
             assert!(
                 matches!(error.entities.as_slice(), [EntityRef::Case(d), EntityRef::Case(l)] if d == "D" && l == "L")
             );
-            assert!(error.message.contains("caso propio de asentamiento"));
+            assert!(error.message.contains("separate settlement case"));
         }
     }
     Ok(())
@@ -425,6 +425,12 @@ fn incoherent_prescribed_metadata_rejected_with_case_entity() -> EResult<()> {
             "ENG-E-0010"
         };
         assert_eq!(error.code, code);
+        if prescribed == Some(0.25) {
+            assert_eq!(
+                error.message,
+                "Prescribed displacement is inconsistent with the nodal result."
+            );
+        }
         assert!(error
             .entities
             .iter()

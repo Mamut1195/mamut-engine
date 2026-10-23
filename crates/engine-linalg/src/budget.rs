@@ -113,7 +113,7 @@ impl MemoryBudget {
                 Ok(())
             }
             _ => Err(unsupported(&format!(
-                "Presupuesto de memoria excedido: {} usados + {bytes} solicitados > límite {} bytes.",
+                "Memory budget exceeded: {} used + {bytes} requested > limit {} bytes.",
                 self.used, self.limit
             ))),
         }
@@ -141,7 +141,7 @@ impl MemoryBudget {
         backend: &mut B,
         a: &SymMatrix,
     ) -> EResult<Box<dyn SymFactorization>> {
-        let overflow = || invalid("Tamaño matricial desbordado.");
+        let overflow = || invalid("Matrix size overflow.");
         let n = a.order();
         let retained = factor_bytes(n).ok_or_else(overflow)?;
         let total = retained
@@ -173,7 +173,7 @@ impl MemoryBudget {
         if k.order() != m.order() {
             return backend.generalized_eigen(k, m);
         }
-        let overflow = || invalid("Tamaño matricial desbordado.");
+        let overflow = || invalid("Matrix size overflow.");
         let n = k.order();
         let work = eigen_working_bytes(n).ok_or_else(overflow)?;
         let result_bytes = eigen_result_bytes(n).ok_or_else(overflow)?;
@@ -193,8 +193,7 @@ impl MemoryBudget {
     /// Creates a zero matrix and charges it; the caller frees it with `release_dense`.
     /// ENG-E-0013 if it does not fit the budget; ENG-E-0010 for overflow/allocation.
     pub fn zeros(&mut self, rows: usize, cols: usize) -> EResult<DMat> {
-        let bytes =
-            dense_bytes(rows, cols).ok_or_else(|| invalid("Tamaño matricial desbordado."))?;
+        let bytes = dense_bytes(rows, cols).ok_or_else(|| invalid("Matrix size overflow."))?;
         self.charge(bytes)?;
         DMat::zeros(rows, cols).inspect_err(|_| self.release(bytes))
     }
@@ -217,7 +216,7 @@ impl MemoryBudget {
         if a.rows() != a.cols() || b.rows() != a.rows() {
             return backend.solve_dense(a, b);
         }
-        let overflow = || invalid("Tamaño matricial desbordado.");
+        let overflow = || invalid("Matrix size overflow.");
         let a_bytes = dense_bytes(a.rows(), a.cols()).ok_or_else(overflow)?;
         let b_bytes = dense_bytes(b.rows(), b.cols()).ok_or_else(overflow)?;
         let transient = a_bytes.checked_add(b_bytes).ok_or_else(overflow)?;

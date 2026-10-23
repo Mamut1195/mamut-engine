@@ -13,19 +13,19 @@ pub(crate) struct Geometry {
 impl Geometry {
     pub fn new(ctx: &ElementCtx<'_>) -> EResult<Self> {
         if ctx.dim != Dim::D2 || ctx.coords.len() != 2 {
-            return Err(invalid("Viga: requiere D2 y dos coordenadas."));
+            return Err(invalid("Beam: requires D2 and two coordinates."));
         }
         for p in ctx.coords {
-            vector(p, 3, "Coordenada (m)")?;
+            vector(p, 3, "Coordinate (m)")?;
             if p[2] != 0.0 {
-                return Err(invalid("D2 requiere Z=0."));
+                return Err(invalid("D2 requires Z=0."));
             }
         }
         let dx = finite(ctx.coords[1][0] - ctx.coords[0][0], "dx (m)")?;
         let dy = finite(ctx.coords[1][1] - ctx.coords[0][1], "dy (m)")?;
         let length = finite(math::hypot(dx, dy), "L (m)")?;
         if length <= 1e-12 {
-            return Err(EngineError::new("ENG-E-0005", "Viga: L≤1e-12 m."));
+            return Err(EngineError::new("ENG-E-0005", "Beam: L≤1e-12 m."));
         }
         Ok(Self {
             length,
@@ -61,7 +61,7 @@ pub(crate) fn multiply(m: &Matrix, u: &[Real]) -> EResult<[Real; 6]> {
     for (value, row) in f.iter_mut().zip(m) {
         *value = finite(
             row.iter().zip(u).map(|(k, u)| k * u).sum(),
-            "Producto matriz/vector",
+            "Matrix/vector product",
         )?;
     }
     Ok(f)

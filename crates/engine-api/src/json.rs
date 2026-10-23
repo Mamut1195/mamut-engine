@@ -15,7 +15,7 @@ impl<'de> Deserialize<'de> for Strict {
             type Value = Strict;
 
             fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                f.write_str("JSON finito sin claves duplicadas")
+                f.write_str("Finite JSON without duplicate keys")
             }
             fn visit_bool<E: de::Error>(self, v: bool) -> Result<Strict, E> {
                 Ok(Strict(Value::Bool(v)))
@@ -31,7 +31,7 @@ impl<'de> Deserialize<'de> for Strict {
                 let v = if v == 0.0 { 0.0 } else { v };
                 Number::from_f64(v)
                     .map(|n| Strict(Value::Number(n)))
-                    .ok_or_else(|| E::custom("Número no finito"))
+                    .ok_or_else(|| E::custom("Non-finite number"))
             }
             fn visit_str<E: de::Error>(self, v: &str) -> Result<Strict, E> {
                 Ok(Strict(Value::String(v.into())))
@@ -50,7 +50,7 @@ impl<'de> Deserialize<'de> for Strict {
                 let mut values = Map::new();
                 while let Some(key) = map.next_key::<String>()? {
                     if values.contains_key(&key) {
-                        return Err(de::Error::custom(format!("Clave duplicada: {key}")));
+                        return Err(de::Error::custom(format!("Duplicate key: {key}")));
                     }
                     let Strict(v) = map.next_value()?;
                     values.insert(key, v);

@@ -25,7 +25,7 @@ impl WinklerFrame3D {
         winkler::validate(ky)?;
         winkler::validate(kz)?;
         if beam.releases != crate::MomentReleases::default() {
-            return Err(invalid("Winkler: liberaciones de extremo no admitidas."));
+            return Err(invalid("Winkler: end releases are not allowed."));
         }
         Ok(Self { beam, ky, kz })
     }
@@ -120,7 +120,7 @@ impl Element for WinklerFrame3D {
         let u = g.local_vector(u)?;
         let bed = geometry::multiply(&self.local_matrix(g.length)?, &u)?;
         for (f, b) in out.end_forces_local.iter_mut().zip(bed) {
-            *f = finite(*f + b, "Extremo Winkler")?;
+            *f = finite(*f + b, "Winkler end")?;
         }
         for (ids, sign, k) in [
             (crate::PLANES[0].0, 1.0, self.ky),
@@ -134,11 +134,11 @@ impl Element for WinklerFrame3D {
                 let [force, torque] = winkler::integrals(k, g.length, d, station.position)?;
                 station.forces_local[shear] = finite(
                     station.forces_local[shear] - bed[ids[0]] + force,
-                    "Cortante Winkler",
+                    "Winkler shear",
                 )?;
                 station.forces_local[moment] = finite(
                     station.forces_local[moment] - bed[ids[1]] + sign * (bed[ids[0]] * x - torque),
-                    "Momento Winkler",
+                    "Winkler moment",
                 )?;
             }
         }

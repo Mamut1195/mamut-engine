@@ -369,7 +369,7 @@ fn dense_cost_rejects_large_meshes_below_the_r2_work_limit_in_under_two_seconds(
         assert!(start.elapsed() < Duration::from_secs(2));
     }
     let description = explain("API-E-CONSOLIDATION-COST").unwrap();
-    for text in ["500000000", "256", "100000", "nodos libres", "u128"] {
+    for text in ["500000000", "256", "100000", "free nodes", "u128"] {
         assert!(description.contains(text), "{description}");
     }
 }

@@ -82,7 +82,7 @@ use engine_core::{EResult, EngineError, Real};
 fn error(code: &'static str, message: impl Into<String>) -> EngineError {
     let mut result = match EngineError::from_code(code) {
         Some(e) => e,
-        None => EngineError::new("ENG-E-0012", "Código de error no registrado."),
+        None => EngineError::new("ENG-E-0012", "Unregistered error code."),
     };
     result.message.push(' ');
     result.message.push_str(&message.into());
@@ -93,7 +93,7 @@ fn size(actual: usize, expected: usize) -> EResult<()> {
     if actual != expected {
         return Err(error(
             "ENG-E-0010",
-            format!("Tamaño {actual}; esperado {expected}."),
+            format!("Size {actual}; expected {expected}."),
         ));
     }
     Ok(())
@@ -101,10 +101,7 @@ fn size(actual: usize, expected: usize) -> EResult<()> {
 
 fn finite(values: &[Real]) -> EResult<()> {
     if values.iter().any(|v| !v.is_finite()) {
-        return Err(error(
-            "ENG-E-0008",
-            "Entrada o resultado de ensamblaje no finito.",
-        ));
+        return Err(error("ENG-E-0008", "Non-finite assembly input or result."));
     }
     Ok(())
 }

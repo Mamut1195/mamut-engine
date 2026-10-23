@@ -225,22 +225,22 @@ impl UniaxialLaw for BadUniaxial {
 fn kit_detects_wrong_derivative_nonfinite_and_accepted_history() {
     detected(
         check_uniaxial_law(&BadUniaxial(0), &[0.1], 1e-5),
-        "error relativo",
+        "relative error",
     );
     for mode in [1, 2] {
         detected(
             check_uniaxial_law(&BadUniaxial(mode), &[0.1], 1e-5),
-            "finitos",
+            "finite",
         );
     }
     detected(
         check_uniaxial_law(&BadUniaxial(3), &[0.1], 1e-5),
-        "Tensión aceptada",
+        "Accepted stress",
     );
     for mode in [4, 5] {
         detected(
             check_uniaxial_law(&BadUniaxial(mode), &[0.1], 1e-5),
-            "Longitud esperada",
+            "Expected length",
         );
     }
 }
@@ -315,15 +315,15 @@ impl SectionLaw for BadSection {
 fn section_kit_detects_asymmetry_shape_and_contract_version() {
     detected(
         check_section_law(&BadSection(0), &[vec![0.1, 0.2]], 1e-5),
-        "Simetría",
+        "Symmetry",
     );
     detected(
         check_section_law(&BadSection(1), &[vec![0.1, 0.2]], 1e-5),
-        "Longitud esperada",
+        "Expected length",
     );
     detected(
         check_section_law(&BadSection(2), &[vec![0.1, 0.2]], 1e-5),
-        "Contrato",
+        "Contract",
     );
 }
 
@@ -401,11 +401,11 @@ fn element_kit_detects_rigid_derivative_rotation_mass_and_shape_defects() {
         params: &params,
     };
     for (mode, message) in [
-        (0, "Modo rígido"),
-        (1, "Tangente inconsistente"),
-        (2, "Covarianza"),
-        (3, "Simetría masa"),
-        (4, "Longitud esperada"),
+        (0, "Rigid mode"),
+        (1, "Inconsistent tangent"),
+        (2, "covariance"),
+        (3, "Symmetry mass"),
+        (4, "Expected length"),
     ] {
         let bad = BadElement {
             bar: LinearBar2D::new(200.0, 3.0, 2.0).unwrap(),
@@ -419,15 +419,15 @@ fn element_kit_detects_rigid_derivative_rotation_mass_and_shape_defects() {
 fn empty_samples_invalid_steps_and_wrong_inputs_never_pass() {
     let law = LinearElastic::new(2.0).unwrap();
     for h in [0.0, -1.0, Real::NAN, Real::INFINITY] {
-        detected(check_uniaxial_law(&law, &[0.0], h), "incremento");
+        detected(check_uniaxial_law(&law, &[0.0], h), "increment");
     }
-    detected(check_uniaxial_law(&law, &[], 1e-6), "muestras");
+    detected(check_uniaxial_law(&law, &[], 1e-6), "samples");
     // T2 (J4): finite but absurd h (rounding or truncation) also fails.
     for h in [1e-12, 1e-10, 0.1, 1.0, 1e6] {
-        detected(check_uniaxial_law(&law, &[0.0], h), "fuera de");
+        detected(check_uniaxial_law(&law, &[0.0], h), "outside");
         detected(
             check_section_law(&SpatialSection, &[vec![0.0; 4]], h),
-            "fuera de",
+            "outside",
         );
     }
     for h in [
@@ -443,7 +443,7 @@ fn empty_samples_invalid_steps_and_wrong_inputs_never_pass() {
             &[vec![0.0]],
             1e-6,
         ),
-        "Longitud",
+        "length",
     );
     let params = ElementParams::default();
     let ctx = ElementCtx {
@@ -458,7 +458,7 @@ fn empty_samples_invalid_steps_and_wrong_inputs_never_pass() {
             &samples(),
             1e-6,
         ),
-        "Contexto",
+        "context",
     );
 }
 
@@ -564,7 +564,7 @@ impl ResultSink for BadSink {
 }
 #[test]
 fn sink_and_progress_kits_detect_defective_implementations() {
-    detected(check_result_sink(&mut BadSink), "no rechazada");
+    detected(check_result_sink(&mut BadSink), "was not rejected");
     for events in [
         vec![],
         vec![(Real::NAN, "nota".into())],
@@ -738,7 +738,7 @@ fn spatial_kit_checks_each_of_six_rigid_modes_and_three_rotation_axes() {
                 &samples,
                 1e-6,
             ),
-            &format!("Modo rígido {component}"),
+            &format!("Rigid mode {component}"),
         );
     }
 }
@@ -829,7 +829,7 @@ impl SystemView for BadSystem {
 }
 #[test]
 fn system_kit_detects_wrong_tangent_and_incomplete_output_overwrite() {
-    for (omit_force, message) in [(false, "error relativo"), (true, "finitos")] {
+    for (omit_force, message) in [(false, "relative error"), (true, "finite")] {
         let mut sys = BadSystem {
             inner: SpringSystem::new(12.0).unwrap(),
             omit_force,
@@ -921,7 +921,7 @@ fn system_kit_detects_accumulation_in_matrix_outputs() {
                     &CaseRef("example.case".into()),
                     1e-6,
                 ),
-                "sobrescribir",
+                "overwrite",
             );
         }
     }
@@ -937,7 +937,7 @@ fn system_kit_detects_accumulation_in_matrix_outputs() {
             &CaseRef("example.case".into()),
             1e-6,
         ),
-        "cambió de dimensión",
+        "changed dimensions",
     );
     // Control: without accumulation the kit remains clean.
     let mut ok = AccumSystem {
@@ -1021,7 +1021,7 @@ fn analysis_kit_detects_missing_norms_false_convergence_and_ignored_cancel() {
     ctl.cancel();
     detected(
         check_analysis_method(&BadAnalysis(3), &mut sys, &JsonValue::Null, &mut sink, &ctl),
-        "cancelación",
+        "cancellation",
     );
 }
 

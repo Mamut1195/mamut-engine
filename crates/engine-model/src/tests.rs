@@ -106,8 +106,8 @@ fn duplicate_ids_in_every_collection_are_preserved() {
     model.insert_mass(model.masses[0].clone());
     let diagnostics = validate(&model);
     let expected = [
-        ("nodo:1", "Nodo 1"),
-        ("miembro:10", "Miembro 10"),
+        ("nodo:1", "Node 1"),
+        ("miembro:10", "Member 10"),
         ("miembro:10", "sección-a"),
         ("ley:ley-a", "ley-a"),
         ("nodo:1", "apoyo-a"),
@@ -168,7 +168,7 @@ fn supports_loads_and_masses_do_not_connect_an_orphan() {
     model.masses[0].node = NodeId(3);
     let diagnostics = validate(&model);
     assert_eq!(diagnostics.len(), 1);
-    check(&diagnostics[0], "ENG-E-0004", "nodo:3", "Nodo 3");
+    check(&diagnostics[0], "ENG-E-0004", "nodo:3", "Node 3");
 }
 
 #[test]
@@ -184,7 +184,7 @@ fn length_tolerance_has_an_inclusive_absolute_boundary() {
         let diagnostics = validate(&model);
         if length <= LENGTH_TOLERANCE {
             assert_eq!(diagnostics.len(), 1);
-            check(&diagnostics[0], "ENG-E-0005", "miembro:10", "tolerancia");
+            check(&diagnostics[0], "ENG-E-0005", "miembro:10", "tolerance");
         } else {
             assert!(diagnostics.is_empty());
         }
@@ -193,7 +193,7 @@ fn length_tolerance_has_an_inclusive_absolute_boundary() {
     model.members[0].nodes[1] = NodeId(1);
     let diagnostics = validate(&model);
     assert_eq!(diagnostics.len(), 2); // Orphan node 2 and member with identical endpoints.
-    check(&diagnostics[1], "ENG-E-0005", "miembro:10", "Miembro 10");
+    check(&diagnostics[1], "ENG-E-0005", "miembro:10", "Member 10");
 }
 
 #[test]
@@ -213,7 +213,7 @@ fn all_numeric_fields_reject_nan_and_both_infinities() {
             ("nodo:1", "Z"),
             ("miembro:10", "sección-a"),
             ("ley:ley-a", "módulo"),
-            ("caso:caso-a", "carga 0"),
+            ("caso:caso-a", "load 0"),
             ("caso:caso-a", "combinación-a"),
             ("nodo:2", "masa-a"),
         ];
@@ -234,7 +234,7 @@ fn invalid_dofs_in_nodes_supports_loads_and_masses() {
         model.masses[0].values[0].dof = dof;
         let diagnostics = validate(&model);
         let expected = [
-            ("nodo:1", "Nodo 1"),
+            ("nodo:1", "Node 1"),
             ("nodo:1", "apoyo-a"),
             ("caso:caso-a", "caso-a"),
             ("nodo:2", "masa-a"),
@@ -331,7 +331,7 @@ fn repeated_validation_is_deterministic_and_uses_first_duplicate_node() {
         first.iter().map(|d| d.code).collect::<Vec<_>>(),
         ["ENG-E-0002", "ENG-E-0011", "ENG-E-0003", "ENG-E-0008"]
     );
-    check(&first[0], "ENG-E-0002", "nodo:2", "Nodo 2");
+    check(&first[0], "ENG-E-0002", "nodo:2", "Node 2");
     check(&first[1], "ENG-E-0011", "nodo:2", "Uz");
     check(
         &first[2],
@@ -361,5 +361,5 @@ fn huge_and_tiny_finite_coordinates_do_not_create_false_zero_lengths() {
     model.nodes[1].coordinates = [1e-200; 3];
     let diagnostics = validate(&model);
     assert_eq!(diagnostics.len(), 1);
-    check(&diagnostics[0], "ENG-E-0005", "miembro:10", "Miembro 10");
+    check(&diagnostics[0], "ENG-E-0005", "miembro:10", "Member 10");
 }

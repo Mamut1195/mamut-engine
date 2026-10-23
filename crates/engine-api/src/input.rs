@@ -12,7 +12,7 @@ impl<'de, T: DeserializeOwned> Deserialize<'de> for Object<T> {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         let value = Value::deserialize(d)?;
         if !value.is_object() {
-            return Err(serde::de::Error::custom("Se requiere un objeto JSON"));
+            return Err(serde::de::Error::custom("A JSON object is required"));
         }
         serde_json::from_value(value)
             .map(Self)
@@ -29,7 +29,7 @@ macro_rules! string_enum {
             fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
                 match String::deserialize(d)?.as_str() {
                     $($label => Ok(Self::$variant),)+
-                    _ => Err(serde::de::Error::custom(concat!("Etiqueta inválida: ", stringify!($name)))),
+                    _ => Err(serde::de::Error::custom(concat!("Invalid tag: ", stringify!($name)))),
                 }
             }
         }
@@ -337,7 +337,7 @@ pub(crate) fn decode(value: Value) -> Result<Execution, ApiError> {
         };
         if dim == Dim::D2 && n.coordinates[2] != 0.0 {
             return Err(ApiError::InvalidInput(format!(
-                "Nodo {}: D2 requiere Z = 0",
+                "Node {}: D2 requires Z = 0",
                 n.id
             )));
         }
@@ -434,7 +434,7 @@ pub(crate) fn decode(value: Value) -> Result<Execution, ApiError> {
         for (id, _) in case_loads {
             if !model.members.iter().any(|m| m.id == *id) {
                 return Err(ApiError::InvalidInput(format!(
-                    "Carga: miembro {} ausente",
+                    "Load: missing member {}",
                     id.0
                 )));
             }

@@ -4,7 +4,7 @@ use engine_contracts::UniaxialLaw;
 use engine_core::{EResult, Real};
 
 pub(crate) fn axial(beam: &EulerFrame2D, g: &Geometry, u: &[Real; 6]) -> EResult<Real> {
-    let strain = finite(finite(u[3] - u[0], "Elongación (m)")? / g.length, "ε")?;
+    let strain = finite(finite(u[3] - u[0], "Elongation (m)")? / g.length, "ε")?;
     finite(
         beam.area * beam.material.respond(strain, &[])?.stress,
         "N (N)",

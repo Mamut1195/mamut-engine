@@ -87,9 +87,9 @@ impl LinAlgBackend for ReferenceBackend {
             check()?;
             let pivot = (k..n)
                 .max_by(|&i, &j| u[i * n + k].abs().total_cmp(&u[j * n + k].abs()))
-                .ok_or_else(|| invalid("Referencia solve: no hay candidato a pivote."))?;
+                .ok_or_else(|| invalid("Reference solve: no pivot candidate."))?;
             if u[pivot * n + k].abs() <= cutoff(n) {
-                return Err(singular("Referencia solve denso", k));
+                return Err(singular("Reference dense solve", k));
             }
             for j in 0..n {
                 u.swap(k * n + j, pivot * n + j);
@@ -145,7 +145,7 @@ impl LinAlgBackend for ReferenceBackend {
         Ldlt::build_with_check(a, true, check)?
             .info
             .inertia
-            .ok_or_else(|| unsupported("Referencia LDLᵀ: inercia no disponible."))
+            .ok_or_else(|| unsupported("Reference LDLᵀ: inertia is unavailable."))
     }
     fn generalized_eigen(&mut self, k: &SymMatrix, m: &SymMatrix) -> EResult<GeneralizedEigen> {
         self.generalized_eigen_with_check(k, m, &mut || Ok(()))
@@ -340,7 +340,7 @@ impl Ldlt {
             }
             let diag = (k..n)
                 .max_by(|&i, &j| a[i * n + i].abs().total_cmp(&a[j * n + j].abs()))
-                .ok_or_else(|| invalid("LDLᵀ: bloque activo vacío."))?;
+                .ok_or_else(|| invalid("LDLᵀ: empty active block."))?;
             let mut pair = (k, k);
             let mut offmax = 0.0;
             for i in k..n {
@@ -353,7 +353,7 @@ impl Ldlt {
             }
             if allow_null && a[diag * n + diag].abs().max(offmax) <= cutoff(n) {
                 let inertia = f.info.inertia.as_mut().ok_or_else(|| {
-                    EngineError::new("ENG-E-0012", "LDLᵀ: falta acumulador de inercia.")
+                    EngineError::new("ENG-E-0012", "LDLᵀ: missing inertia accumulator.")
                 })?;
                 inertia.2 += n - k;
                 smallest = 0.0;
@@ -375,8 +375,8 @@ impl Ldlt {
                         .iter()
                         .copied()
                         .min()
-                        .ok_or_else(|| invalid("LDLᵀ: permutación activa vacía."))?;
-                    return Err(singular("Referencia LDLᵀ", culprit));
+                        .ok_or_else(|| invalid("LDLᵀ: empty active permutation."))?;
+                    return Err(singular("Reference LDLᵀ", culprit));
                 }
                 f.d[k] = d;
                 f.count(d, &mut smallest, &mut largest)?;
@@ -391,7 +391,7 @@ impl Ldlt {
                 if det.abs() <= cutoff(n) * offmax {
                     // Smallest original index of the pair, independent of pivoting order.
                     let culprit = f.permutation[k].min(f.permutation[k + 1]);
-                    return Err(singular("Referencia LDLᵀ bloque", culprit));
+                    return Err(singular("Reference LDLᵀ block", culprit));
                 }
                 f.d[k] = d;
                 f.d[k + 1] = g;
@@ -452,7 +452,7 @@ impl Ldlt {
         finite(&[value])?;
         let inertia =
             self.info.inertia.as_mut().ok_or_else(|| {
-                EngineError::new("ENG-E-0012", "LDLᵀ: falta acumulador de inercia.")
+                EngineError::new("ENG-E-0012", "LDLᵀ: missing inertia accumulator.")
             })?;
         if value > 0.0 {
             inertia.0 += 1;
@@ -577,13 +577,10 @@ pub(crate) fn cholesky_with_check(
                                 .inertia
                                 .is_some_and(|(_, negative, _)| negative == 0) =>
                         {
-                            Err(singular(
-                                "Cholesky de masa: pivote numéricamente insuficiente",
-                                i,
-                            ))
+                            Err(singular("Mass Cholesky: numerically insufficient pivot", i))
                         }
                         Ok(_) => Err(invalid(&format!(
-                            "Cholesky de masa: masa no definida positiva, GDL {i}."
+                            "Mass Cholesky: mass is not positive definite, DOF {i}."
                         ))),
                     };
                 }
@@ -614,7 +611,7 @@ fn jacobi(
     let iterations = 100usize
         .checked_mul(n)
         .and_then(|v| v.checked_mul(n))
-        .ok_or_else(|| invalid("Iteraciones Jacobi desbordadas."))?;
+        .ok_or_else(|| invalid("Jacobi iteration count overflow."))?;
     let mut converged = n < 2;
     for _ in 0..iterations {
         check()?;
@@ -661,7 +658,7 @@ fn jacobi(
     if !converged {
         return Err(EngineError::new(
             "ENG-E-0007",
-            "Referencia Jacobi: límite de rotaciones agotado.",
+            "Reference Jacobi: rotation limit exhausted.",
         ));
     }
     let mut order: Vec<_> = (0..n).collect();
@@ -703,7 +700,7 @@ pub(crate) fn normalize_modes_with_check(
         if norm <= 0.0 || !norm.is_finite() {
             return Err(EngineError::new(
                 "ENG-E-0008",
-                "Normalización modal: norma de masa inválida.",
+                "Modal normalization: invalid mass norm.",
             ));
         }
         let pivot = (0..n)
@@ -712,7 +709,7 @@ pub(crate) fn normalize_modes_with_check(
                     .abs()
                     .total_cmp(&vectors.values[j * n + col].abs())
             })
-            .ok_or_else(|| invalid("Normalización modal: vector vacío."))?;
+            .ok_or_else(|| invalid("Modal normalization: empty vector."))?;
         let divisor = math::sqrt(norm)
             * if vectors.values[pivot * n + col] < 0.0 {
                 -1.0

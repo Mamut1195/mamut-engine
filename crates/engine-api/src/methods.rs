@@ -81,7 +81,7 @@ fn registry() -> Result<MethodRegistry<EngineMethod>, ApiError> {
         let method = factory(&NumericParameters::new()).map_err(ApiError::InvalidInput)?;
         registry
             .register(method.descriptor.workflow, factory)
-            .map_err(|e| ApiError::InvalidInput(format!("Registro Engine: {e}")))?;
+            .map_err(|e| ApiError::InvalidInput(format!("Engine registry: {e}")))?;
     }
     Ok(registry)
 }
@@ -140,12 +140,12 @@ pub(crate) fn resolve(
     };
     let plan = WorkflowCompiler::new(&registry, profile)
         .compile(&definition)
-        .map_err(|e| ApiError::InvalidInput(format!("Método {method_id}: {e}")))?;
+        .map_err(|e| ApiError::InvalidInput(format!("Method {method_id}: {e}")))?;
     let method = plan
         .steps
         .into_iter()
         .next()
-        .ok_or_else(|| ApiError::InvalidInput("Plan Engine sin método".into()))?
+        .ok_or_else(|| ApiError::InvalidInput("Engine plan has no method".into()))?
         .instance;
     enforce_policy(&method.descriptor, allow_experimental)?;
     Ok(method)
@@ -155,7 +155,7 @@ fn enforce_policy(descriptor: &MethodDescriptor, allow_experimental: bool) -> Re
     if descriptor.status == MethodStatus::Experimental && !allow_experimental {
         let method_id = &descriptor.workflow.method_id;
         return Err(ApiError::InvalidInput(format!(
-            "Método {method_id} Experimental: requiere options.allow_experimental = true"
+            "Experimental method {method_id}: requires options.allow_experimental = true"
         )));
     }
     Ok(())

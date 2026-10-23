@@ -74,7 +74,7 @@ fn count_with_valid_mass<B: LinAlgBackend + ?Sized>(
         != Some(n)
     {
         return Err(incomplete(
-            "El backend devolvió una inercia incompatible con el orden.",
+            "Backend returned inertia incompatible with the order.",
         ));
     }
     Ok(negative)
@@ -126,7 +126,7 @@ pub(crate) fn lowest_modes_with_check<B: LinAlgBackend + ?Sized>(
     size(n, m.order())?;
     if count > n {
         return Err(invalid(&format!(
-            "Modos: count={count} excede el orden n={n}."
+            "Modes: count={count} exceeds order n={n}."
         )));
     }
     if count == 0 {
@@ -140,20 +140,18 @@ pub(crate) fn lowest_modes_with_check<B: LinAlgBackend + ?Sized>(
     let all = backend.generalized_eigen_with_check(k, m, check)?;
     if all.eigenvalues.len() != n || all.vectors.rows() != n || all.vectors.cols() != n {
         return Err(incomplete(
-            "MODOS FALTANTES: el backend no devolvió el espectro denso completo.",
+            "MISSING MODES: backend did not return the complete dense spectrum.",
         ));
     }
     finite(&all.eigenvalues)?;
     if all.eigenvalues.windows(2).any(|pair| pair[0] > pair[1]) {
-        return Err(incomplete(
-            "Modos: el backend devolvió autovalores sin ordenar.",
-        ));
+        return Err(incomplete("Modes: backend returned unordered eigenvalues."));
     }
     let scale = all.eigenvalues.iter().fold(0.0_f64, |s, v| s.max(v.abs()));
     let zero_tol = 128.0 * Real::EPSILON * (n as Real) * scale;
     if let Some(&value) = all.eigenvalues.iter().find(|&&v| v < -zero_tol) {
         return Err(invalid(&format!(
-            "Modos: λ negativo {value}; K indefinida, posible inestabilidad. No es un modo rígido (tolerancia {zero_tol})."
+            "Modes: negative λ {value}; indefinite K, possible instability. This is not a rigid mode (tolerance {zero_tol})."
         )));
     }
     let last = all.eigenvalues[count - 1].max(0.0);
@@ -166,7 +164,7 @@ pub(crate) fn lowest_modes_with_check<B: LinAlgBackend + ?Sized>(
     let found = count_with_valid_mass(backend, k, m, sigma, check)?;
     if found != count {
         return Err(incomplete(&format!(
-            "MODOS FALTANTES / corte de multiplicidad: Sturm(σ={sigma})={found}, modos solicitados/devueltos={count}. Solicite el grupo completo o revise la convergencia del backend."
+            "MISSING MODES / multiplicity cutoff: Sturm(σ={sigma})={found}, requested/returned modes={count}. Request the complete group or check backend convergence."
         )));
     }
     // Reapplies the backend normalization contract before selecting.

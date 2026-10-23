@@ -234,12 +234,12 @@ fn explicit_user_tables_reject_resistance_with_opposite_sign() {
         error(
             tz::user(Some(points.clone()), tz::UserTraction::Explicit),
             "ENG-E-0010",
-            "Explicit requiere resistencia ≤ 0 para z < 0 y ≥ 0 para z > 0",
+            "Explicit option requires resistance ≤ 0 for z < 0 and ≥ 0 for z > 0",
         );
         error(
             qz::user(Some(points), tz::UserTraction::Explicit),
             "ENG-E-0010",
-            "Explicit requiere resistencia ≤ 0 para z < 0 y ≥ 0 para z > 0",
+            "Explicit option requires resistance ≤ 0 for z < 0 and ≥ 0 for z > 0",
         );
     }
 }
@@ -334,14 +334,14 @@ fn adapter_rejects_softening_without_changing_the_curve() {
                 .unwrap()
                 .multilinear_points(Some(1.0)),
             "ENG-E-0010",
-            "ablandamiento",
+            "softening",
         );
         error(
             qz::user(Some(input), make)
                 .unwrap()
                 .multilinear_points(Some(1.0), Some(1.0)),
             "ENG-E-0010",
-            "ablandamiento",
+            "softening",
         );
     }
 }
@@ -405,7 +405,7 @@ fn adapter_rejects_resistance_reduced_to_zero_by_area() {
     error(
         tip.multilinear_points(Some(1.0), Some(1e300)),
         "ENG-E-0010",
-        "Resistencia reducida a cero al adaptar unidades",
+        "Resistance reduced to zero when adapting units",
     );
 }
 
@@ -425,26 +425,26 @@ fn nonfinite_queries_overflow_and_underflow_are_typed() {
     error(tz::api_clay(p, Some(0.8)), "ENG-E-0008", "zres_m");
     let mut p = params();
     p.tmax_compression_pa = Some(f64::from_bits(1));
-    error(tz::api_sand(p), "ENG-E-0010", "producto");
+    error(tz::api_sand(p), "ENG-E-0010", "product");
     let mut p = tip_params();
     p.qp_n = Some(f64::from_bits(1));
-    error(qz::api(p), "ENG-E-0010", "producto");
+    error(qz::api(p), "ENG-E-0010", "product");
     let mut p = params();
     p.zpeak_m = Some(f64::from_bits(1));
-    error(tz::api_sand(p), "ENG-E-0010", "producto");
+    error(tz::api_sand(p), "ENG-E-0010", "product");
     let linear = tz::user(
         Some(vec![(0.0, 0.0), (1.0, 2.0)]),
         tz::UserTraction::Symmetric,
     )
     .unwrap();
-    error(linear.at(f64::MAX), "ENG-E-0008", "incremento");
+    error(linear.at(f64::MAX), "ENG-E-0008", "increment");
     error(
         tz::user(
             Some(vec![(0.0, 0.0), (f64::from_bits(1), 1.0)]),
             tz::UserTraction::Symmetric,
         ),
         "ENG-E-0008",
-        "pendiente",
+        "slope",
     );
     error(
         tz::user(
@@ -452,6 +452,6 @@ fn nonfinite_queries_overflow_and_underflow_are_typed() {
             tz::UserTraction::Symmetric,
         ),
         "ENG-E-0010",
-        "subdesbordamiento",
+        "underflow",
     );
 }

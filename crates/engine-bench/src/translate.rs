@@ -48,13 +48,13 @@ pub fn translate_variant(
 fn check_limits(model: &BenchModel) -> Result<(), BenchError> {
     if model.nodes.len() > MAX_NODES {
         return Err(BenchError::new(format!(
-            "Límite MAX_NODES de engine-input/1 superado: {} nudos, máximo {MAX_NODES}.",
+            "engine-input/1 MAX_NODES limit exceeded: {} nodes, maximum {MAX_NODES}.",
             model.nodes.len()
         )));
     }
     if model.members.len() > MAX_MEMBERS {
         return Err(BenchError::new(format!(
-            "Límite MAX_MEMBERS de engine-input/1 superado: {} barras, máximo {MAX_MEMBERS}.",
+            "engine-input/1 MAX_MEMBERS limit exceeded: {} members, maximum {MAX_MEMBERS}.",
             model.members.len()
         )));
     }
@@ -64,24 +64,24 @@ fn check_limits(model: &BenchModel) -> Result<(), BenchError> {
 fn check_model(model: &BenchModel) -> Result<(), BenchError> {
     if model.schema != SCHEMA || model.units != "SI" {
         return Err(BenchError::new(
-            "El documento debe declarar schema bench-model/1 y units SI.",
+            "Document must declare schema bench-model/1 and units SI.",
         ));
     }
     if !(1..=16_384).contains(&model.modal.n) {
         return Err(BenchError::new(
-            "modal.n debe estar entre 1 y 16384. El traductor no lo recorta.",
+            "modal.n must be between 1 and 16384. The translator does not truncate it.",
         ));
     }
     if model.combination.method != "cqc" && model.combination.method != "srss" {
-        return Err(BenchError::new("combination.method debe ser cqc o srss."));
+        return Err(BenchError::new("combination.method must be cqc or srss."));
     }
     if model.combination.zeta != model.spectrum.zeta {
         return Err(BenchError::new(
-            "combination.zeta y spectrum.zeta deben ser el mismo ζ.",
+            "combination.zeta and spectrum.zeta must be the same ζ.",
         ));
     }
     if !(0.0..1.0).contains(&model.spectrum.zeta) {
-        return Err(BenchError::new("ζ debe pertenecer a [0, 1)."));
+        return Err(BenchError::new("ζ must be in [0, 1)."));
     }
     check_direction(&model.spectrum)?;
     check_sa(&model.spectrum)?;
@@ -102,18 +102,18 @@ fn check_direction(spectrum: &Spectrum) -> Result<(), BenchError> {
     for variant in &spectrum.variants {
         if variant.id.is_empty() || !seen.iter().all(|id: &String| id != &variant.id) {
             return Err(BenchError::new(
-                "Cada spectrum.variants[].id debe existir y no repetirse.",
+                "Each spectrum.variants[].id must exist and be unique.",
             ));
         }
         seen.push(variant.id.clone());
         if variant.method != "cqc" && variant.method != "srss" {
             return Err(BenchError::new(
-                "spectrum.variants[].method debe ser cqc o srss.",
+                "spectrum.variants[].method must be cqc or srss.",
             ));
         }
         if variant.directions.is_empty() {
             return Err(BenchError::new(
-                "spectrum.variants[].directions necesita al menos una dirección.",
+                "spectrum.variants[].directions requires at least one direction.",
             ));
         }
         check_axis_directions(&variant.directions)?;
@@ -131,10 +131,10 @@ fn active_directions(spectrum: &Spectrum) -> Result<Vec<SpectrumDirection>, Benc
         (Some(direction), true) => Ok(vec![direction]),
         (None, false) => Ok(spectrum.directions.clone()),
         (Some(_), false) => Err(BenchError::new(
-            "spectrum.direction y spectrum.directions no se usan juntos. Declare uno.",
+            "spectrum.direction and spectrum.directions cannot be used together. Declare one.",
         )),
         (None, true) => Err(BenchError::new(
-            "Falta spectrum.direction o spectrum.directions.",
+            "Missing spectrum.direction or spectrum.directions.",
         )),
     }
 }
@@ -143,7 +143,7 @@ fn check_axis_directions(directions: &[SpectrumDirection]) -> Result<(), BenchEr
     for direction in directions {
         if direction.vector != direction.axis.vector() {
             return Err(BenchError::new(
-                "El vector de cada dirección espectral debe ser el unitario de su eje global.",
+                "Each spectral direction vector must be the unit vector of its global axis.",
             ));
         }
     }
@@ -153,12 +153,12 @@ fn check_axis_directions(directions: &[SpectrumDirection]) -> Result<(), BenchEr
 fn check_directional(method: &str, factors: usize, directions: usize) -> Result<(), BenchError> {
     if method != "srss" && method != "weightedSum" {
         return Err(BenchError::new(
-            "directional_combination.method debe ser srss o weightedSum.",
+            "directional_combination.method must be srss or weightedSum.",
         ));
     }
     if factors != directions {
         return Err(BenchError::new(
-            "directional_combination.factors debe tener un factor por dirección, en el mismo orden.",
+            "directional_combination.factors must have one factor per direction, in the same order.",
         ));
     }
     Ok(())
@@ -167,17 +167,15 @@ fn check_directional(method: &str, factors: usize, directions: usize) -> Result<
 fn check_sa(spectrum: &Spectrum) -> Result<(), BenchError> {
     if spectrum.sa.unit != SA_UNIT {
         return Err(BenchError::new(
-            "spectrum.Sa.unit debe ser m/s^2. La ordenada no se acepta en g.",
+            "spectrum.Sa.unit must be m/s^2. The ordinate is not accepted in g.",
         ));
     }
     if spectrum.sa.pairs.len() < 2 {
-        return Err(BenchError::new("La tabla Sa necesita al menos dos pares."));
+        return Err(BenchError::new("Sa table requires at least two pairs."));
     }
     for window in spectrum.sa.pairs.windows(2) {
         if window[0][0] >= window[1][0] {
-            return Err(BenchError::new(
-                "Los periodos de Sa deben ser estrictamente crecientes.",
-            ));
+            return Err(BenchError::new("Sa periods must be strictly increasing."));
         }
     }
     if spectrum
@@ -186,7 +184,7 @@ fn check_sa(spectrum: &Spectrum) -> Result<(), BenchError> {
         .iter()
         .any(|pair| pair[0] < 0.0 || pair[1] < 0.0)
     {
-        return Err(BenchError::new("T y Sa deben ser no negativos."));
+        return Err(BenchError::new("T and Sa must be nonnegative."));
     }
     Ok(())
 }
@@ -195,22 +193,22 @@ fn check_ids(model: &BenchModel) -> Result<(), BenchError> {
     for (expected, node) in (1_u32..).zip(model.nodes.iter()) {
         if node.id != expected {
             return Err(BenchError::new(
-                "Los nudos oficiales y traducibles usan ids contiguos desde 1. \
-                 results/1 los lista en ese orden y el puntero del índice depende de ello.",
+                "Official and translatable nodes use contiguous ids starting at 1. \
+                 results/1 lists them in that order and the index pointer depends on it.",
             ));
         }
     }
     for (member_id, member) in (1_u32..).zip(model.members.iter()) {
         if member.id != member_id {
             return Err(BenchError::new(
-                "Las barras deben usar ids contiguos desde 1.",
+                "Members must use contiguous ids starting at 1.",
             ));
         }
         if model.nodes.iter().all(|node| node.id != member.nodes[0])
             || model.nodes.iter().all(|node| node.id != member.nodes[1])
         {
             return Err(BenchError::new(format!(
-                "La barra {} cita un nudo ausente.",
+                "Member {} references a missing node.",
                 member.id
             )));
         }
@@ -219,7 +217,10 @@ fn check_ids(model: &BenchModel) -> Result<(), BenchError> {
             .iter()
             .find(|section| section.id == member.section)
             .ok_or_else(|| {
-                BenchError::new(format!("La barra {} cita una sección ausente.", member.id))
+                BenchError::new(format!(
+                    "Member {} references a missing section.",
+                    member.id
+                ))
             })?;
         check_member_section(member.kind, member.orientation.as_ref(), section)?;
     }
@@ -236,29 +237,29 @@ fn check_member_section(
         MemberKind::Column | MemberKind::Beam => {
             let orientation = orientation.ok_or_else(|| {
                 BenchError::new(
-                    "Una columna o una viga exige orientation.kind local_z_vector. No es un ángulo.",
+                    "A column or beam requires orientation.kind local_z_vector. It is not an angle.",
                 )
             })?;
             if orientation.kind != crate::model::ORIENTATION_KIND {
                 return Err(BenchError::new(
-                    "orientation.kind debe ser local_z_vector. No es un ángulo.",
+                    "orientation.kind must be local_z_vector. It is not an angle.",
                 ));
             }
             if !flexure {
                 return Err(BenchError::new(
-                    "Una columna o una viga exige G, Iy, Iz y J en la sección.",
+                    "A column or beam requires G, Iy, Iz, and J in the section.",
                 ));
             }
         }
         MemberKind::Truss => {
             if orientation.is_some() {
                 return Err(BenchError::new(
-                    "truss3d.linear no admite orientation. El Engine la mezcla con los parámetros y la fábrica solo acepta E, A y rho.",
+                    "truss3d.linear does not support orientation. The Engine mixes it with the parameters and the factory accepts only E, A, and rho.",
                 ));
             }
             if flexure {
                 return Err(BenchError::new(
-                    "Una celosía solo admite E y A. G, Iy, Iz y J no caben en truss3d.linear.",
+                    "A truss supports only E and A. G, Iy, Iz, and J are not supported in truss3d.linear.",
                 ));
             }
         }
@@ -280,37 +281,37 @@ fn section_flexure(section: &Section) -> Result<bool, BenchError> {
         4 => Ok(true),
         0 => Ok(false),
         _ => Err(BenchError::new(
-            "La sección declara G, Iy, Iz y J todos juntos, o ninguno. No se completa una sección a medias.",
+            "Section must declare all of G, Iy, Iz, and J, or none of them. A partially specified section is not completed.",
         )),
     }
 }
 
 fn check_stories(model: &BenchModel) -> Result<(), BenchError> {
     if model.stories.is_empty() {
-        return Err(BenchError::new("El modelo necesita al menos un piso."));
+        return Err(BenchError::new("Model requires at least one floor."));
     }
     if model.nodal_masses.is_none() && !model.diaphragms.is_empty() {
         if model.stories.len() != model.diaphragms.len() {
             return Err(BenchError::new(
-                "Sin nodal_masses, cada piso tiene un diafragma y la base no tiene diafragma.",
+                "Without nodal_masses, each floor has one diaphragm and the base has none.",
             ));
         }
         let mut elevation = 0.0;
         for (story, diaphragm) in model.stories.iter().zip(&model.diaphragms) {
             if story.level != diaphragm.level || story.mass.m <= 0.0 || story.mass.izz <= 0.0 {
                 return Err(BenchError::new(
-                    "Cada piso necesita level coincidente, m > 0 e Izz > 0.",
+                    "Each floor requires a matching level, m > 0, and Izz > 0.",
                 ));
             }
             elevation += story.h;
             if (diaphragm.z - elevation).abs() > 1e-9 {
                 return Err(BenchError::new(
-                    "La cota del diafragma debe ser la suma de las alturas hasta ese piso.",
+                    "Diaphragm elevation must be the sum of heights up to that floor.",
                 ));
             }
             if diaphragm.slaves.is_empty() || diaphragm.slaves.contains(&diaphragm.master) {
                 return Err(BenchError::new(
-                    "El diafragma necesita esclavos distintos del maestro.",
+                    "Diaphragm requires slaves distinct from the master.",
                 ));
             }
         }
@@ -323,13 +324,13 @@ fn check_stories(model: &BenchModel) -> Result<(), BenchError> {
             .any(|story| story.mass.m != 0.0 || story.mass.izz != 0.0)
     {
         return Err(BenchError::new(
-            "Hay masa de piso y no hay diafragma ni nodal_masses. Declare la masa nodal o un diafragma. El traductor no reparte esa masa por su cuenta.",
+            "Floor mass is present without a diaphragm or nodal_masses. Declare nodal mass or a diaphragm. The translator does not distribute that mass on its own.",
         ));
     }
     for story in &model.stories {
         if story.h <= 0.0 || story.mass.m < 0.0 || story.mass.izz < 0.0 {
             return Err(BenchError::new(
-                "Cada piso necesita h > 0, m >= 0 e Izz >= 0.",
+                "Each floor requires h > 0, m >= 0, and Izz >= 0.",
             ));
         }
     }
@@ -346,7 +347,7 @@ fn check_stories(model: &BenchModel) -> Result<(), BenchError> {
                 || diaphragm.slaves.contains(&diaphragm.master)
             {
                 return Err(BenchError::new(
-                    "El diafragma necesita la cota acumulada del piso y esclavos distintos del maestro.",
+                    "Diaphragm requires the accumulated floor elevation and slaves distinct from the master.",
                 ));
             }
         }
@@ -359,7 +360,9 @@ fn check_stories(model: &BenchModel) -> Result<(), BenchError> {
             .collect::<BTreeSet<_>>()
             .len()
     {
-        return Err(BenchError::new("Hay dos diafragmas en el mismo piso."));
+        return Err(BenchError::new(
+            "There are two diaphragms on the same floor.",
+        ));
     }
     Ok(())
 }
@@ -526,7 +529,7 @@ fn masses(model: &BenchModel, bay: f64) -> Result<Vec<Value>, BenchError> {
             .stories
             .iter()
             .find(|story| story.level == diaphragm.level)
-            .ok_or_else(|| BenchError::new("Diafragma sin piso."))?;
+            .ok_or_else(|| BenchError::new("Diaphragm has no floor."))?;
         let count = diaphragm.slaves.len() + 1;
         let share = story.mass.m / count as f64;
         let rotary = story.mass.m * bay * bay / (12.0 * count as f64);
@@ -560,19 +563,19 @@ fn declared_masses(
     for mass in declared {
         if !seen.insert(mass.node) {
             return Err(BenchError::new(format!(
-                "La masa nodal del nudo {} está repetida.",
+                "Duplicate nodal mass at node {}.",
                 mass.node
             )));
         }
         if model.nodes.iter().all(|node| node.id != mass.node) {
             return Err(BenchError::new(format!(
-                "La masa nodal cita el nudo ausente {}.",
+                "Nodal mass references missing node {}.",
                 mass.node
             )));
         }
         if mass.values.is_empty() {
             return Err(BenchError::new(
-                "Cada masa nodal declara al menos un componente. No se inventan los demás.",
+                "Each nodal mass declares at least one component. The others are not invented.",
             ));
         }
         let mut dofs = [false; 6];
@@ -580,7 +583,7 @@ fn declared_masses(
             let index = value.dof.index();
             if dofs[index] || !value.value.is_finite() || value.value < 0.0 {
                 return Err(BenchError::new(
-                    "Cada componente de masa nodal es único, finito y no negativo.",
+                    "Each nodal mass component must be unique, finite, and nonnegative.",
                 ));
             }
             dofs[index] = true;
@@ -618,16 +621,14 @@ fn load_cases(model: &BenchModel) -> Result<Vec<Value>, BenchError> {
     }
     if !model.load_patterns.gravity.is_empty() || !model.load_patterns.lateral.is_empty() {
         return Err(BenchError::new(
-            "load_patterns.patterns reemplaza a gravity y lateral. Deje esos dos vacíos; el traductor no los mezcla.",
+            "load_patterns.patterns replaces gravity and lateral. Leave both empty; the translator does not mix them.",
         ));
     }
     let mut names = BTreeSet::new();
     let mut cases = Vec::new();
     for pattern in &model.load_patterns.patterns {
         if pattern.name.is_empty() || !names.insert(pattern.name.clone()) {
-            return Err(BenchError::new(
-                "Cada patrón de carga necesita un nombre propio, sin repetirlo.",
-            ));
+            return Err(BenchError::new("Each load pattern requires a unique name."));
         }
         cases.push(case(&pattern.name, &pattern.actions));
     }
@@ -647,18 +648,18 @@ fn static_combinations(model: &BenchModel, kind: AnalysisKind) -> Result<Vec<Val
             for combination in &model.static_combinations {
                 if combination.id.is_empty() || !ids.insert(combination.id.clone()) {
                     return Err(BenchError::new(
-                        "Cada combinación estática necesita un id propio.",
+                        "Each static combination requires a unique id.",
                     ));
                 }
                 if combination.terms.is_empty() {
                     return Err(BenchError::new(
-                        "Una combinación estática necesita al menos un término.",
+                        "A static combination requires at least one term.",
                     ));
                 }
                 for term in &combination.terms {
                     if !names.contains(&term.case) || !term.factor.is_finite() {
                         return Err(BenchError::new(format!(
-                            "La combinación {} cita un caso ausente o un factor no finito.",
+                            "Combination {} references a missing case or a non-finite factor.",
                             combination.id
                         )));
                     }
@@ -731,7 +732,7 @@ fn analysis(
         AnalysisKind::PDelta => {
             let options = model.p_delta.as_ref().ok_or_else(|| {
                 BenchError::new(
-                    "pDelta no tiene opciones por defecto. Declare p_delta.gravity, p_delta.lateral, tolerance, max_iterations, displacement_scale y rotation_scale. El traductor no elige esos valores.",
+                    "pDelta has no default options. Declare p_delta.gravity, p_delta.lateral, tolerance, max_iterations, displacement_scale, and rotation_scale. The translator does not choose these values.",
                 )
             })?;
             if !(0.0..1.0).contains(&options.tolerance)
@@ -745,7 +746,7 @@ fn analysis(
                 || !options.lateral.factor.is_finite()
             {
                 return Err(BenchError::new(
-                    "p_delta exige tolerance en (0, 1), max_iterations entre 1 y 16384, y escalas positivas finitas. No se sustituyen.",
+                    "p_delta requires tolerance in (0, 1), max_iterations between 1 and 16384, and positive finite scales. They are not substituted.",
                 ));
             }
             let names = load_cases(model)?
@@ -754,7 +755,7 @@ fn analysis(
                 .collect::<BTreeSet<_>>();
             if !names.contains(&options.gravity.case) || !names.contains(&options.lateral.case) {
                 return Err(BenchError::new(
-                    "p_delta.gravity.case y p_delta.lateral.case deben ser casos declarados en el modelo.",
+                    "p_delta.gravity.case and p_delta.lateral.case must be cases declared in the model.",
                 ));
             }
             json!({
@@ -789,7 +790,7 @@ fn spectrum_choice(
             .variants
             .iter()
             .find(|item| item.id == name)
-            .ok_or_else(|| BenchError::new(format!("No existe la variante espectral {name}.")))?;
+            .ok_or_else(|| BenchError::new(format!("Spectral variant {name} does not exist.")))?;
         return Ok(SpectrumChoice {
             method: found.method.clone(),
             directions: found.directions.clone(),
@@ -813,15 +814,13 @@ fn min_bay(grid: &crate::model::Grid) -> Result<f64, BenchError> {
 
 fn min_step(axis: &[f64]) -> Result<f64, BenchError> {
     if axis.len() < 2 {
-        return Err(BenchError::new(
-            "Cada eje de la retícula necesita dos cotas.",
-        ));
+        return Err(BenchError::new("Each grid axis requires two coordinates."));
     }
     let mut spacing = f64::MAX;
     for window in axis.windows(2) {
         let step = window[1] - window[0];
         if step <= 0.0 {
-            return Err(BenchError::new("Las cotas de la retícula deben crecer."));
+            return Err(BenchError::new("Grid coordinates must increase."));
         }
         spacing = spacing.min(step);
     }

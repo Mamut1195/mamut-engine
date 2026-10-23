@@ -45,7 +45,7 @@ pub(crate) fn coupling(
     axes: SpringAxes,
 ) -> EResult<([Real; 6], [Real; 6], usize)> {
     let Some(first) = dofs.first() else {
-        return Err(invalid("Resorte: GDL vacíos."));
+        return Err(invalid("Spring: empty DOFs."));
     };
     let rotation = first.index() >= 3;
     let mut local = [0.0; 6];
@@ -54,7 +54,7 @@ pub(crate) fn coupling(
         let i = dof.index();
         if !dim.dofs().contains(&dof) || local[i] != 0.0 || (i >= 3) != rotation {
             return Err(invalid(
-                "Resorte: GDL ajeno a dimensión, duplicado o familias mezcladas.",
+                "Spring: DOF outside the dimension, duplicate DOF, or mixed families.",
             ));
         }
         local[i] = 1.0;
@@ -65,21 +65,21 @@ pub(crate) fn coupling(
         SpringAxes::Global => global = local,
         SpringAxes::Direction(d) => {
             if dofs != [Dof::Ux] {
-                return Err(invalid("Dirección requiere solo Ux local."));
+                return Err(invalid("Direction requires only local Ux."));
             }
-            vector(&d, 3, "Dirección")?;
+            vector(&d, 3, "Direction")?;
             if dim == Dim::D2 && d[2] != 0.0 {
-                return Err(invalid("Dirección D2 requiere Z=0."));
+                return Err(invalid("D2 direction requires Z=0."));
             }
             let scale = d.iter().fold(0.0_f64, |m, v| m.max(v.abs()));
             if scale == 0.0 {
-                return Err(invalid("Dirección nula."));
+                return Err(invalid("Zero direction."));
             }
             // Escalado previo: normaliza incluso MAX o subnormales sin overflow.
             let scaled = d.map(|v| v / scale);
             let norm = scaled.iter().fold(0.0_f64, |m, &v| math::hypot(m, v));
             for i in 0..3 {
-                global[i] = finite(scaled[i] / norm, "Dirección unitaria")?;
+                global[i] = finite(scaled[i] / norm, "Unit direction")?;
             }
         }
         SpringAxes::Rotation(q) => {
@@ -89,7 +89,7 @@ pub(crate) fn coupling(
                 for i in 0..3 {
                     global[start + j] = finite(
                         global[start + j] + local[start + i] * q[i][j],
-                        "Acoplamiento global",
+                        "Global coupling",
                     )?;
                 }
             }
@@ -108,20 +108,17 @@ pub(crate) fn coupling(
 
 fn validate_rotation(dim: Dim, q: &[[Real; 3]; 3]) -> EResult<()> {
     for row in q {
-        vector(row, 3, "Rotación")?;
+        vector(row, 3, "Rotation")?;
     }
     for i in 0..3 {
         for j in 0..=i {
             let mut dot = 0.0;
             for (&a, &b) in q[i].iter().zip(&q[j]) {
-                dot = finite(
-                    dot + finite(a * b, "Producto de rotación")?,
-                    "Producto escalar",
-                )?;
+                dot = finite(dot + finite(a * b, "Rotation product")?, "Dot product")?;
             }
             let target = if i == j { 1.0 } else { 0.0 };
             if (dot - target).abs() > 1e-12 {
-                return Err(invalid("Rotación no ortonormal."));
+                return Err(invalid("Rotation is not orthonormal."));
             }
         }
     }
@@ -129,10 +126,10 @@ fn validate_rotation(dim: Dim, q: &[[Real; 3]; 3]) -> EResult<()> {
         - q[0][1] * (q[1][0] * q[2][2] - q[1][2] * q[2][0])
         + q[0][2] * (q[1][0] * q[2][1] - q[1][1] * q[2][0]);
     if (finite(det, "Determinante")? - 1.0).abs() > 1e-12 {
-        return Err(invalid("Rotación requiere determinante +1."));
+        return Err(invalid("Rotation requires determinant +1."));
     }
     if dim == Dim::D2 && (q[0][2] != 0.0 || q[1][2] != 0.0 || q[2] != [0.0, 0.0, 1.0]) {
-        return Err(invalid("Rotación D2 debe conservar XY y +Z."));
+        return Err(invalid("D2 rotation must preserve XY and +Z."));
     }
     Ok(())
 }
@@ -141,13 +138,13 @@ pub(crate) fn validate(spring: &LinearSpring, ctx: &ElementCtx<'_>) -> EResult<(
     use engine_contracts::Element;
     if ctx.dim != spring.dim || ctx.coords.len() != spring.n_nodes() {
         return Err(invalid(
-            "Resorte: dimensión o número de coordenadas incompatible.",
+            "Spring: incompatible dimension or coordinate count.",
         ));
     }
     for p in ctx.coords {
-        vector(p, 3, "Coordenadas (m)")?;
+        vector(p, 3, "Coordinates (m)")?;
         if ctx.dim == Dim::D2 && p[2] != 0.0 {
-            return Err(invalid("D2 requiere Z=0."));
+            return Err(invalid("D2 requires Z=0."));
         }
     }
     Ok(())

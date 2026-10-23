@@ -252,7 +252,7 @@ fn rigid_modes_are_returned_and_negative_stiffness_is_diagnosed() {
         .lowest_modes(&diagonal(&[-1.0, 3.0]), &m, 1)
         .unwrap_err();
     assert_eq!(error.code, "ENG-E-0010");
-    assert!(error.message.contains("negativo"));
+    assert!(error.message.contains("negative"));
     // Singular inertia can be queried, but not solved as a factor.
     assert_eq!(ReferenceBackend.symmetric_inertia(&k).unwrap(), (1, 0, 1));
     assert_eq!(
@@ -267,7 +267,7 @@ fn cutting_repeated_eigenvalues_reports_missing_modes() {
     let m = diagonal(&[1.0; 4]);
     let error = ReferenceBackend.lowest_modes(&k, &m, 2).unwrap_err();
     assert_eq!(error.code, "ENG-E-0007");
-    assert!(error.message.contains("MODOS FALTANTES"));
+    assert!(error.message.contains("MISSING MODES"));
     assert!(error.message.contains("=3"));
     for count in [1, 3, 4] {
         let modes = ReferenceBackend.lowest_modes(&k, &m, count).unwrap();
@@ -340,7 +340,7 @@ fn incomplete_backend_is_rejected_by_size_and_independent_sturm_count() {
         let backend: &mut dyn LinAlgBackend = &mut backend;
         let error = backend.lowest_modes(&k, &m, 2).unwrap_err();
         assert_eq!(error.code, "ENG-E-0007");
-        assert!(error.message.contains("MODOS FALTANTES"));
+        assert!(error.message.contains("MISSING MODES"));
     }
 }
 

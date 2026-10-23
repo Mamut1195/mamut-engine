@@ -11,11 +11,11 @@ pub(crate) fn axial(
     committed: &[Real],
 ) -> EResult<Real> {
     vector(u, 2 * g.axes, "u_e (m)")?;
-    vector(committed, 0, "Historia aceptada")?;
+    vector(committed, 0, "Accepted history")?;
     let mut extension = 0.0;
     for axis in 0..g.axes {
-        let relative = finite(u[g.axes + axis] - u[axis], "Desplazamiento relativo (m)")?;
-        extension = finite(extension + g.d[axis] * relative, "Elongación (m)")?;
+        let relative = finite(u[g.axes + axis] - u[axis], "Relative displacement (m)")?;
+        extension = finite(extension + g.d[axis] * relative, "Elongation (m)")?;
     }
     let strain = finite(extension / g.length, "ε")?;
     // Suposición: la tensión se evalúa con la ley uniaxial en la deformación ε,

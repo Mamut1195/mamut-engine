@@ -192,7 +192,7 @@ pub trait LinAlgBackend {
         self.factorize(a)?
             .info()
             .inertia
-            .ok_or_else(|| unsupported("El backend no ofrece inercia para el control de Sturm."))
+            .ok_or_else(|| unsupported("Backend does not provide inertia for the Sturm check."))
     }
     /// Solves the dense generalized problem with positive definite mass.
     /// ENG-E-0010 if orders differ; see the trait's mass policy.
@@ -259,13 +259,13 @@ pub(crate) fn alloc_vec<T: Clone>(len: usize, fill: T) -> EResult<Vec<T>> {
         .filter(|&b| b <= MAX_ALLOC_BYTES)
         .ok_or_else(|| {
             invalid(&format!(
-                "Álgebra lineal: la reserva de {len} elementos excede el límite de {MAX_ALLOC_BYTES} bytes."
+                "Linear algebra: allocation of {len} elements exceeds the limit of {MAX_ALLOC_BYTES} bytes."
             ))
         })?;
     let mut v = Vec::new();
     v.try_reserve_exact(len).map_err(|_| {
         invalid(&format!(
-            "Álgebra lineal: no se pudo reservar {bytes} bytes para {len} elementos."
+            "Linear algebra: could not allocate {bytes} bytes for {len} elements."
         ))
     })?;
     v.resize(len, fill);
@@ -277,7 +277,7 @@ pub(crate) fn unsupported(message: &str) -> EngineError {
 pub(crate) fn size(actual: usize, expected: usize) -> EResult<()> {
     if actual != expected {
         return Err(invalid(&format!(
-            "Álgebra lineal: tamaño {actual}, esperado {expected}."
+            "Linear algebra: size {actual}, expected {expected}."
         )));
     }
     Ok(())
@@ -286,7 +286,7 @@ pub(crate) fn finite(values: &[Real]) -> EResult<()> {
     if values.iter().any(|v| !v.is_finite()) {
         return Err(EngineError::new(
             "ENG-E-0008",
-            "Álgebra lineal: entrada o resultado no finito.",
+            "Linear algebra: non-finite input or result.",
         ));
     }
     Ok(())
@@ -294,7 +294,7 @@ pub(crate) fn finite(values: &[Real]) -> EResult<()> {
 pub(crate) fn singular(operation: &str, index: usize) -> EngineError {
     let mut error = EngineError::new(
         "ENG-E-0006",
-        format!("{operation}: pivote singular en GDL {index}."),
+        format!("{operation}: singular pivot at DOF {index}."),
     );
     if let Ok(index) = u32::try_from(index) {
         error.entities.push(EntityRef::Dof(DofIndex(index)));

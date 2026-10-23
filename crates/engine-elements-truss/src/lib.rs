@@ -77,7 +77,7 @@ impl LinearTruss {
         positive(area, "A (m²)")?;
         finite(density, "rho (kg/m³)")?;
         if density < 0.0 {
-            return Err(invalid("rho debe ser no negativa (kg/m³)."));
+            return Err(invalid("rho must be nonnegative (kg/m³)."));
         }
         let ea = positive(e * area, "EA (N)")?;
         Ok(Self {
@@ -144,7 +144,7 @@ impl Element for LinearTruss {
         let internal_force = g
             .b()
             .iter()
-            .map(|b| finite(n * b, "F interna (N)"))
+            .map(|b| finite(n * b, "Internal F (N)"))
             .collect::<EResult<_>>()?;
         Ok(ElementResponse {
             internal_force,
@@ -187,7 +187,7 @@ fn finite(value: Real, name: &str) -> EResult<Real> {
     if !value.is_finite() {
         return Err(EngineError::new(
             "ENG-E-0008",
-            format!("{name}: entrada o resultado no finito."),
+            format!("{name}: non-finite input or result."),
         ));
     }
     Ok(value)
@@ -195,14 +195,14 @@ fn finite(value: Real, name: &str) -> EResult<Real> {
 fn positive(value: Real, name: &str) -> EResult<Real> {
     finite(value, name)?;
     if value <= 0.0 {
-        return Err(invalid(&format!("{name}: debe ser positivo.")));
+        return Err(invalid(&format!("{name}: must be positive.")));
     }
     Ok(value)
 }
 fn vector(values: &[Real], size: usize, name: &str) -> EResult<()> {
     if values.len() != size {
         return Err(invalid(&format!(
-            "{name}: tamaño {}, esperado {size}.",
+            "{name}: size {}, expected {size}.",
             values.len()
         )));
     }

@@ -12,13 +12,13 @@ fn mass_kind(kind: &str) -> Result<MassKind, Failure> {
     match kind {
         "lumped" => Ok(MassKind::Lumped),
         "consistent" => Ok(MassKind::Consistent),
-        _ => Err(invalid("mass_kind requiere lumped o consistent")),
+        _ => Err(invalid("mass_kind requires lumped or consistent")),
     }
 }
 fn bounded_steps(n: usize) -> Result<(), Failure> {
     if n == 0 || n > crate::MAX_JSON_ARRAY_ITEMS {
         return Err(invalid(format!(
-            "Pasos/modos requieren 1..={}",
+            "Steps/modes require 1..={}",
             crate::MAX_JSON_ARRAY_ITEMS
         )));
     }
@@ -34,12 +34,12 @@ fn checkpoint(
     total: usize,
 ) -> engine_core::EResult<()> {
     step(cancel, progress, stage, completed, total)
-        .map_err(|_| EngineError::new("ENG-E-0012", "Cancelación solicitada por la fachada"))
+        .map_err(|_| EngineError::new("ENG-E-0012", "Cancellation requested by the facade"))
 }
 fn check_cancel(cancel: &CancelToken) -> engine_core::EResult<()> {
     cancel
         .check()
-        .map_err(|_| EngineError::new("ENG-E-0012", "Cancelación solicitada por la fachada"))
+        .map_err(|_| EngineError::new("ENG-E-0012", "Cancellation requested by the facade"))
 }
 fn prepare_mass(
     execution: &input::Execution,
@@ -51,10 +51,10 @@ fn prepare_mass(
     let Some(source) = source else { return Ok(()) };
     if !execution.model.masses.is_empty() {
         return Err(invalid(
-            "Declare masas nodales o mass_source, sin mezclar fuentes",
+            "Declare nodal masses or mass_source, without mixing sources",
         ));
     }
-    push_warning(document, "API-W-MASS-PROJECTION", "#86: masas desde cargas sin tolerancia para proyección negativa; con gravedad no alineada a ejes puede rechazar por redondeo. La succión se rechaza con ENG-E-0010.".into());
+    push_warning(document, "API-W-MASS-PROJECTION", "#86: mass from loads has no tolerance for negative projection; gravity not aligned with the axes may cause rejection due to rounding. Suction is rejected with ENG-E-0010.".into());
     let mut model = execution.model.clone();
     model.masses = match source.method.as_str() {
         "masses_from_case" => {
@@ -62,7 +62,7 @@ fn prepare_mass(
                 .cases
                 .iter()
                 .find(|c| c.name == source.case)
-                .ok_or_else(|| EngineError::new("ENG-E-0003", "Caso de masa ausente"))?;
+                .ok_or_else(|| EngineError::new("ENG-E-0003", "Missing mass case"))?;
             engine_loads::mass::masses_from_case(
                 system.dof_map(),
                 case,
@@ -80,7 +80,7 @@ fn prepare_mass(
         )?,
         _ => {
             return Err(invalid(
-                "mass_source.method requiere masses_from_case o system_case",
+                "mass_source.method requires masses_from_case or system_case",
             ))
         }
     };
@@ -96,9 +96,7 @@ fn prepare_mass(
 
 fn reject_combinations(execution: &input::Execution) -> Result<(), Failure> {
     if !execution.model.combinations.is_empty() {
-        return Err(invalid(
-            "Las combinaciones de cargas requieren linearStatic",
-        ));
+        return Err(invalid("Load combinations require linearStatic"));
     }
     Ok(())
 }
@@ -153,7 +151,7 @@ pub(crate) fn pdelta(context: MethodContext<'_>) -> Result<(), Failure> {
         options: input::Object(o),
     } = &execution.analyses[0]
     else {
-        return Err(invalid("Adaptador de análisis incoherente"));
+        return Err(invalid("Inconsistent analysis adapter"));
     };
 
     bounded_steps(o.max_iterations)?;
@@ -166,7 +164,11 @@ pub(crate) fn pdelta(context: MethodContext<'_>) -> Result<(), Failure> {
         .zip(&execution.loads)
         .any(|(c, loads)| c.name == o.gravity.0.case && !loads.is_empty())
     {
-        return Err(EngineError::new("ENG-E-0013", "P-Delta: gravedad requiere cargas nodales; Kg no admite corrección de cargas de miembro").into());
+        return Err(EngineError::new(
+            "ENG-E-0013",
+            "P-Delta: gravity requires nodal loads; Kg does not support member load correction",
+        )
+        .into());
     }
     let mut producers = Vec::new();
     for (m, contribution) in members.iter().zip(contributions) {
@@ -212,7 +214,7 @@ pub(crate) fn pdelta(context: MethodContext<'_>) -> Result<(), Failure> {
     cancel.check()?;
     let result = result?;
     if result.inertia_uses_2x2 != Some(false) {
-        push_warning(document, "API-W-PDELTA-INERTIA", "#78: inercia 2×2 usa copysign sin prueba confirmada (o backend sin metadato); revisar estabilidad.".into());
+        push_warning(document, "API-W-PDELTA-INERTIA", "#78: 2×2 inertia uses copysign without a confirmed test (or backend has no metadata); review stability.".into());
     }
     let status = match result.outcome {
         pdelta::PDeltaOutcome::Completed => Status::Ok,
@@ -248,7 +250,7 @@ pub(crate) fn pdelta(context: MethodContext<'_>) -> Result<(), Failure> {
     let global = result
         .global_displacements
         .as_ref()
-        .ok_or_else(|| EngineError::new("ENG-E-0012", "P-Delta sin desplazamientos"))?;
+        .ok_or_else(|| EngineError::new("ENG-E-0012", "P-Delta has no displacements"))?;
     document["cases"] = json!([{"case":o.lateral.0.case,"factor":o.lateral.0.factor,
         "nodes":nodes(system, global, &result.reactions, false)?,"members":[]}]);
     Ok(())
@@ -271,7 +273,7 @@ pub(crate) fn modal(context: MethodContext<'_>) -> Result<(), Failure> {
         options: input::Object(o),
     } = &execution.analyses[0]
     else {
-        return Err(invalid("Adaptador de análisis incoherente"));
+        return Err(invalid("Inconsistent analysis adapter"));
     };
 
     bounded_steps(o.mode_count)?;
@@ -314,7 +316,7 @@ pub(crate) fn spectrum(context: MethodContext<'_>) -> Result<(), Failure> {
         options: input::Object(o),
     } = &execution.analyses[0]
     else {
-        return Err(invalid("Adaptador de análisis incoherente"));
+        return Err(invalid("Inconsistent analysis adapter"));
     };
 
     bounded_steps(o.mode_count)?;
@@ -326,14 +328,14 @@ pub(crate) fn spectrum(context: MethodContext<'_>) -> Result<(), Failure> {
         modal_combination: match o.modal_combination.as_str() {
             "srss" => spectrum::ModalCombination::Srss,
             "cqc" => spectrum::ModalCombination::Cqc,
-            _ => return Err(invalid("modal_combination requiere srss o cqc")),
+            _ => return Err(invalid("modal_combination requires srss or cqc")),
         },
         directional_combination: match o.directional_combination.as_str() {
             "srss" => spectrum::DirectionalCombination::Srss,
             "weightedSum" => spectrum::DirectionalCombination::WeightedSum,
             _ => {
                 return Err(invalid(
-                    "directional_combination requiere srss o weightedSum",
+                    "directional_combination requires srss or weightedSum",
                 ))
             }
         },
@@ -409,18 +411,18 @@ fn table(t: &Table) -> Result<spectrum::TabulatedSpectrum, Failure> {
             "frequencyHertzAccelerationMetersPerSecondSquared" => {
                 spectrum::SpectrumUnits::FrequencyHertzAccelerationMetersPerSecondSquared
             }
-            _ => return Err(invalid("Unidades espectrales SI inválidas")),
+            _ => return Err(invalid("Invalid SI spectral units")),
         },
         t.damping,
         match t.interpolation.as_str() {
             "linear" => spectrum::Interpolation::Linear,
             "logLog" => spectrum::Interpolation::LogLog,
-            _ => return Err(invalid("Interpolación inválida")),
+            _ => return Err(invalid("Invalid interpolation")),
         },
         match t.extrapolation.as_str() {
             "error" => spectrum::Extrapolation::Error,
             "plateau" => spectrum::Extrapolation::Plateau,
-            _ => return Err(invalid("Extrapolación inválida")),
+            _ => return Err(invalid("Invalid extrapolation")),
         },
     )?)
 }
@@ -431,7 +433,7 @@ fn nodes(
     perturbation: bool,
 ) -> Result<Vec<Value>, Failure> {
     if global.len() != system.dof_map().len() {
-        return Err(EngineError::new("ENG-E-0012", "Tamaño global inválido").into());
+        return Err(EngineError::new("ENG-E-0012", "Invalid global size").into());
     }
     let mut by_node = BTreeMap::new();
     for (i, &value) in global.iter().enumerate() {
@@ -446,7 +448,7 @@ fn nodes(
     for r in reactions {
         let entry = by_node
             .get_mut(&r.node)
-            .ok_or_else(|| EngineError::new("ENG-E-0012", "Nodo de reacción ausente"))?;
+            .ok_or_else(|| EngineError::new("ENG-E-0012", "Missing reaction node"))?;
         entry.2[r.dof.index()] = r.value;
     }
     Ok(by_node.into_iter().map(|(id,(u,p,r))| json!({"id":id.0,"displacements":u,"prescribed_displacements":p,"reactions":r})).collect())

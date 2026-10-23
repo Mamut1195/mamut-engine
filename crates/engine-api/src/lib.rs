@@ -252,7 +252,7 @@ pub fn input_sha256(input_json: &str) -> Result<String, ApiError> {
 fn fingerprint_value(value: &Value) -> Result<String, ApiError> {
     mamut_canon::fingerprint_value(value)
         .map(|fingerprint| fingerprint.value)
-        .map_err(|e| ApiError::InvalidInput(format!("Huella RFC 8785: {e}")))
+        .map_err(|e| ApiError::InvalidInput(format!("RFC 8785 fingerprint: {e}")))
 }
 
 /// Valida el contrato, las convenciones y la topología; no comprueba estabilidad.
@@ -274,7 +274,7 @@ pub fn validate_with(
     let contract = value
         .get("schema")
         .and_then(Value::as_str)
-        .ok_or_else(|| ApiError::InvalidInput("schema es obligatorio y debe ser texto".into()))?;
+        .ok_or_else(|| ApiError::InvalidInput("schema is required and must be text".into()))?;
     if contract != "engine-input/1" {
         return Err(ApiError::UnsupportedSchema(contract.into()));
     }

@@ -19,17 +19,15 @@ pub(crate) fn force(s: &LinearSpring, u: &[Real], committed: &[Real]) -> EResult
             continue;
         }
         let relative = match s.connection {
-            SpringConnection::BetweenNodes => {
-                finite(u[width + i] - u[i], "Desplazamiento relativo")?
-            }
+            SpringConnection::BetweenNodes => finite(u[width + i] - u[i], "Relative displacement")?,
             SpringConnection::Ground => u[i],
         };
         delta = finite(
-            delta + finite(c * relative, "Proyección")?,
-            "Deformación generalizada",
+            delta + finite(c * relative, "Projection")?,
+            "Generalized deformation",
         )?;
     }
-    finite(s.k * delta, "Fuerza generalizada kδ")
+    finite(s.k * delta, "Generalized force kδ")
 }
 
 pub(crate) fn vector(s: &LinearSpring, force: Real, local: bool) -> EResult<Vec<Real>> {
@@ -44,7 +42,7 @@ pub(crate) fn vector(s: &LinearSpring, force: Real, local: bool) -> EResult<Vec<
         for dof in s.dofs_per_node() {
             values.push(finite(
                 sign * force * coefficients[dof.index()],
-                "Acción nodal",
+                "Nodal action",
             )?);
         }
     }
@@ -62,8 +60,8 @@ pub(crate) fn matrix_with_tangent(s: &LinearSpring, tangent: Real) -> EResult<DM
     for i in 0..n {
         for j in 0..=i {
             let v = finite(
-                tangent * finite(b[i] * b[j], "Acoplamiento bbᵀ")?,
-                "Rigidez tangente bbᵀ",
+                tangent * finite(b[i] * b[j], "Coupling bbᵀ")?,
+                "Tangent stiffness bbᵀ",
             )?;
             values[i * n + j] = v;
             values[j * n + i] = v;

@@ -629,7 +629,7 @@ fn factory_empty_dofs_reports_exactly_one_dof_required() {
         assert_eq!(error.code, "ENG-E-0010");
         assert_eq!(
             error.message,
-            "Resorte: la fábrica requiere exactamente un GDL de la dimensión seleccionada."
+            "Spring: factory requires exactly one DOF of the selected dimension."
         );
     }
 }

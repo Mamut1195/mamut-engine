@@ -22,19 +22,19 @@ impl ElementFactory for FrameFactory {
 
 fn build_frame(params: &JsonValue, model: &ModelView<'_>) -> EResult<EulerFrame3D> {
     if model.dim != Dim::D3 {
-        return Err(invalid("Fábrica de viga espacial: requiere D3."));
+        return Err(invalid("Spatial beam factory: requires D3."));
     }
     let mut ids = BTreeSet::new();
     for (id, p) in model.nodes {
         if !ids.insert(*id) {
-            return Err(EngineError::new("ENG-E-0002", "ModelView: id duplicado."));
+            return Err(EngineError::new("ENG-E-0002", "ModelView: duplicate id."));
         }
         for &x in p {
-            finite(x, "Coordenada ModelView")?;
+            finite(x, "ModelView coordinate")?;
         }
     }
     let JsonValue::Object(fields) = params else {
-        return Err(invalid("Viga: se esperaba objeto SI."));
+        return Err(invalid("Beam: expected an SI object."));
     };
     if fields.keys().any(|k| {
         ![
@@ -51,22 +51,22 @@ fn build_frame(params: &JsonValue, model: &ModelView<'_>) -> EResult<EulerFrame3
         ]
         .contains(&k.as_str())
     }) {
-        return Err(invalid("Viga: propiedad desconocida."));
+        return Err(invalid("Beam: unknown property."));
     }
     let number = |key| match fields.get(key) {
         Some(JsonValue::Number(v)) => Ok(*v),
-        _ => Err(invalid(&format!("Viga: {key} numérico requerido."))),
+        _ => Err(invalid(&format!("Beam: numeric {key} is required."))),
     };
     let Some(JsonValue::Array(values)) = fields.get("orientation") else {
-        return Err(invalid("orientation requiere array de tres números."));
+        return Err(invalid("orientation requires an array of three numbers."));
     };
     if values.len() != 3 {
-        return Err(invalid("orientation requiere tres componentes."));
+        return Err(invalid("orientation requires three components."));
     }
     let mut orientation = [0.0; 3];
     for (r, v) in orientation.iter_mut().zip(values) {
         let JsonValue::Number(v) = v else {
-            return Err(invalid("orientation requiere números."));
+            return Err(invalid("orientation requires numbers."));
         };
         *r = *v;
     }
@@ -74,14 +74,14 @@ fn build_frame(params: &JsonValue, model: &ModelView<'_>) -> EResult<EulerFrame3
         let mut out = [false; 3];
         if let Some(v) = fields.get(key) {
             let JsonValue::Array(v) = v else {
-                return Err(invalid("Liberación requiere array booleano."));
+                return Err(invalid("Release requires a boolean array."));
             };
             if v.len() != 3 {
-                return Err(invalid("Liberación requiere tres componentes."));
+                return Err(invalid("Release requires three components."));
             }
             for (r, v) in out.iter_mut().zip(v) {
                 let JsonValue::Bool(v) = v else {
-                    return Err(invalid("Liberación debe ser booleana."));
+                    return Err(invalid("Release must be boolean."));
                 };
                 *r = *v;
             }
@@ -117,14 +117,14 @@ impl ElementFactory for WinklerFactory {
     }
     fn build(&self, params: &JsonValue, model: &ModelView<'_>) -> EResult<Box<dyn Element>> {
         let JsonValue::Object(fields) = params else {
-            return Err(invalid("Winkler: se esperaba objeto SI."));
+            return Err(invalid("Winkler: expected an SI object."));
         };
         if fields.contains_key("release_i") || fields.contains_key("release_j") {
-            return Err(invalid("Winkler: liberaciones de extremo no admitidas."));
+            return Err(invalid("Winkler: end releases are not allowed."));
         }
         let number = |key| match fields.get(key) {
             Some(JsonValue::Number(v)) => Ok(*v),
-            _ => Err(invalid("Winkler: rigidez numérica requerida.")),
+            _ => Err(invalid("Winkler: numeric stiffness is required.")),
         };
         let mut beam_fields = fields.clone();
         beam_fields.remove("ky");

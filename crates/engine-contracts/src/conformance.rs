@@ -38,7 +38,7 @@ fn valid(out: &mut Vec<Diagnostic>, context: &str, values: &[Real], len: usize) 
             out,
             context,
             format!(
-                "Longitud esperada {len}, recibida {}; todos deben ser finitos: {values:?}",
+                "Expected length {len}, received {}; all values must be finite: {values:?}",
                 values.len()
             ),
         );
@@ -69,7 +69,7 @@ fn close(out: &mut Vec<Diagnostic>, context: &str, a: &[Real], b: &[Real], label
         issue(
             out,
             context,
-            format!("{label}: esperado {a:?}, recibido {b:?}"),
+            format!("{label}: expected {a:?}, received {b:?}"),
         );
     }
 }
@@ -78,7 +78,7 @@ fn contract(out: &mut Vec<Diagnostic>, context: &str, actual: ContractId, name: 
         issue(
             out,
             context,
-            format!("Contrato {actual}; se esperaba {name}/1"),
+            format!("Contract {actual}; expected {name}/1"),
         );
     }
 }
@@ -87,7 +87,7 @@ fn matrix(out: &mut Vec<Diagnostic>, context: &str, m: &DMat, n: usize) -> bool 
         issue(
             out,
             context,
-            format!("Matriz {}×{}, esperada {n}×{n}", m.rows(), m.cols()),
+            format!("Matrix {}×{}, expected {n}×{n}", m.rows(), m.cols()),
         );
         return false;
     }
@@ -101,7 +101,7 @@ fn symmetric(out: &mut Vec<Diagnostic>, context: &str, m: &DMat, label: &str) {
                 context,
                 &[m.get(i, j).unwrap()],
                 &[m.get(j, i).unwrap()],
-                &format!("Simetría {label} ({i},{j})"),
+                &format!("Symmetry {label} ({i},{j})"),
             );
         }
     }
@@ -117,7 +117,7 @@ fn setup(out: &mut Vec<Diagnostic>, context: &str, count: usize, h: Real) -> boo
         issue(
             out,
             context,
-            "Se requieren muestras no vacías e incremento FD finito positivo.",
+            "Nonempty samples and a positive finite FD increment are required.",
         );
         false
     } else if !(FD_STEP_MIN..=FD_STEP_MAX).contains(&h) {
@@ -125,7 +125,7 @@ fn setup(out: &mut Vec<Diagnostic>, context: &str, count: usize, h: Real) -> boo
             out,
             context,
             format!(
-                "incremento FD {h} fuera de [{FD_STEP_MIN}, {FD_STEP_MAX}]: el error de redondeo o truncamiento invalida la comparación."
+                "FD increment {h} is outside [{FD_STEP_MIN}, {FD_STEP_MAX}]: rounding or truncation error invalidates the comparison."
             ),
         );
         false
@@ -158,7 +158,7 @@ pub fn check_uniaxial_law(law: &dyn UniaxialLaw, samples: &[Real], h: Real) -> V
     }
     valid(&mut out, name, &[law.initial_tangent()], 1);
     for (i, x) in samples.iter().enumerate() {
-        let ctx = format!("{name}, muestra {i}, deformación {x}");
+        let ctx = format!("{name}, sample {i}, strain {x}");
         let Some(base) = take(&mut out, &ctx, law.respond(*x, &state)) else {
             continue;
         };
@@ -172,14 +172,14 @@ pub fn check_uniaxial_law(law: &dyn UniaxialLaw, samples: &[Real], h: Real) -> V
                 &ctx,
                 &[base.stress, base.tangent],
                 &[repeat.stress, repeat.tangent],
-                "Respuesta repetida",
+                "Repeated response",
             );
             close(
                 &mut out,
                 &ctx,
                 &base.trial_state,
                 &repeat.trial_state,
-                "Historia repetida",
+                "Repeated history",
             );
         }
         if let Some(accepted) = take(&mut out, &ctx, law.respond(*x, &base.trial_state)) {
@@ -188,7 +188,7 @@ pub fn check_uniaxial_law(law: &dyn UniaxialLaw, samples: &[Real], h: Real) -> V
                 &ctx,
                 &[base.stress],
                 &[accepted.stress],
-                "Tensión aceptada",
+                "Accepted stress",
             );
             valid(&mut out, &ctx, &[accepted.stress, accepted.tangent], 2);
             valid(&mut out, &ctx, &accepted.trial_state, law.state_len());
@@ -212,7 +212,7 @@ pub fn check_uniaxial_law(law: &dyn UniaxialLaw, samples: &[Real], h: Real) -> V
                     &mut out,
                     &ctx,
                     format!(
-                        "Tangente {}, FD {fd}, error relativo {error} >= 1e-6",
+                        "Tangent {}, FD {fd}, relative error {error} >= 1e-6",
                         base.tangent
                     ),
                 );
@@ -228,7 +228,7 @@ pub fn check_uniaxial_law(law: &dyn UniaxialLaw, samples: &[Real], h: Real) -> V
             name,
             &[law.initial_tangent()],
             &[origin.tangent],
-            "Tangente inicial",
+            "Initial tangent",
         );
     }
     out
@@ -250,7 +250,7 @@ fn check_response(
     let s = valid(out, context, &r.state, ns);
     let m = matrix(out, context, &r.tangent, n);
     if m {
-        symmetric(out, context, &r.tangent, "tangente");
+        symmetric(out, context, &r.tangent, "tangent");
     }
     f && s && m
 }
@@ -270,7 +270,7 @@ fn vector_law(
     }
     let mut state = initial;
     for (index, u) in samples.iter().enumerate() {
-        let context = format!("{name}, muestra {index}");
+        let context = format!("{name}, sample {index}");
         if !valid(out, &context, u, n) {
             continue;
         }
@@ -287,21 +287,21 @@ fn vector_law(
                     &context,
                     &base.force,
                     &repeat.force,
-                    "Respuesta repetida",
+                    "Repeated response",
                 );
                 close(
                     out,
                     &context,
                     base.tangent.values(),
                     repeat.tangent.values(),
-                    "Tangente repetida",
+                    "Repeated tangent",
                 );
                 close(
                     out,
                     &context,
                     &base.state,
                     &repeat.state,
-                    "Historia repetida",
+                    "Repeated history",
                 );
             }
         }
@@ -312,7 +312,7 @@ fn vector_law(
                     &context,
                     &base.force,
                     &accepted.force,
-                    "Respuesta aceptada",
+                    "Accepted response",
                 );
             }
         }
@@ -345,7 +345,7 @@ fn vector_law(
                 issue(
                     out,
                     &context,
-                    format!("Tangente inconsistente: error relativo {error} >= 1e-6; FD={fd:?}"),
+                    format!("Inconsistent tangent: relative error {error} >= 1e-6; FD={fd:?}"),
                 );
             }
         }
@@ -475,12 +475,16 @@ pub fn check_element(
     let dofs = element.dofs_per_node();
     contract(&mut out, name, element.contract(), "element");
     if ctx.coords.len() != element.n_nodes() || dofs.is_empty() || element.n_nodes() == 0 {
-        issue(&mut out, name, "Contexto/nodos/GDL incompatibles o vacíos.");
+        issue(&mut out, name, "Incompatible or empty context/nodes/DOFs.");
         return out;
     }
     for (i, d) in dofs.iter().enumerate() {
         if !ctx.dim.dofs().contains(d) || dofs[..i].contains(d) {
-            issue(&mut out, name, "GDL duplicado o ajeno a la dimensión.");
+            issue(
+                &mut out,
+                name,
+                "Duplicate DOF or DOF outside the dimension.",
+            );
             return out;
         }
     }
@@ -490,7 +494,7 @@ pub fn check_element(
         }
     }
     if ctx.dim == Dim::D2 && ctx.coords.iter().any(|p| p[2] != 0.0) {
-        issue(&mut out, name, "D2 requiere Z=0.");
+        issue(&mut out, name, "D2 requires Z=0.");
         return out;
     }
     let n = element.n_nodes() * dofs.len();
@@ -542,9 +546,7 @@ pub fn check_element(
                         issue(
                             &mut out,
                             name,
-                            format!(
-                                "Modo rígido {mode}: fuerza residual {residual}, escala {scale}"
-                            ),
+                            format!("Rigid mode {mode}: residual force {residual}, scale {scale}"),
                         );
                     }
                 }
@@ -565,7 +567,7 @@ pub fn check_element(
                     &mut out,
                     name,
                     format!(
-                        "Modo rígido {mode} (infinitesimal): K·u residual {residual}, escala {scale}"
+                        "Rigid mode {mode} (infinitesimal): K·u residual {residual}, scale {scale}"
                     ),
                 );
             }
@@ -579,7 +581,7 @@ pub fn check_element(
                 .flatten()
                 .filter(|m| {
                     if matrix(&mut out, name, m, n) {
-                        symmetric(&mut out, name, m, "masa");
+                        symmetric(&mut out, name, m, "mass");
                         true
                     } else {
                         false
@@ -593,7 +595,7 @@ pub fn check_element(
         }
         if let Some(Some(kg)) = take(&mut out, name, element.geometric_stiffness(ctx, u, &state)) {
             if matrix(&mut out, name, &kg, n) {
-                symmetric(&mut out, name, &kg, "rigidez geométrica");
+                symmetric(&mut out, name, &kg, "geometric stiffness");
             }
         }
     }
@@ -628,7 +630,7 @@ pub fn check_element(
                     coords: &coords,
                     params: ctx.params,
                 };
-                let context = format!("{name}, rotación eje {axis}, ángulo {angle}");
+                let context = format!("{name}, rotation about axis {axis}, angle {angle}");
                 for u in samples {
                     if u.len() != n || u.iter().any(|v| !v.is_finite()) {
                         continue;
@@ -649,14 +651,14 @@ pub fn check_element(
                                 &context,
                                 &rotated(dofs, &base.force, &q),
                                 &rot.force,
-                                "Covarianza fuerza",
+                                "Force covariance",
                             );
                             close(
                                 &mut out,
                                 &context,
                                 &transformed(dofs, &base.tangent, &q),
                                 rot.tangent.values(),
-                                "Covarianza tangente",
+                                "Tangent covariance",
                             );
                         }
                     }
@@ -670,11 +672,11 @@ pub fn check_element(
                                     &context,
                                     &transformed(dofs, base, &q),
                                     rot.values(),
-                                    "Covarianza masa",
+                                    "Mass covariance",
                                 )
                             }
                             (None, None) => (),
-                            _ => issue(&mut out, &context, "Masa incompatible tras rotación."),
+                            _ => issue(&mut out, &context, "Incompatible mass after rotation."),
                         }
                     }
                 }
@@ -686,7 +688,7 @@ pub fn check_element(
         moment_per_length: [0.0; 3],
     };
     if let Some(f) = take(&mut out, name, element.load_vector(ctx, &load)) {
-        close(&mut out, name, &zero, &f, "Carga nula");
+        close(&mut out, name, &zero, &f, "Zero load");
     }
     for u in samples {
         if u.len() != n || u.iter().any(|v| !v.is_finite()) {
@@ -699,11 +701,7 @@ pub fn check_element(
         ) {
             valid(&mut out, name, &r.end_forces_local, n);
             if r.stations.len() != 3 {
-                issue(
-                    &mut out,
-                    name,
-                    "Recuperación: número de estaciones incorrecto.",
-                );
+                issue(&mut out, name, "Recovery: incorrect station count.");
             }
             for (station, x) in r.stations.iter().zip([0.0, 0.5, 1.0]) {
                 close(
@@ -711,7 +709,7 @@ pub fn check_element(
                     name,
                     &[x],
                     &[station.position],
-                    "Posición estación",
+                    "Station position",
                 );
                 valid(&mut out, name, &station.forces_local, 6);
             }
@@ -742,7 +740,7 @@ fn validate_report(report: &ConvergenceReport) -> EResult<()> {
                 .any(|v| *v <= 0.0)
         {
             return Err(invalid(
-                "Informe con pasos desordenados, normas negativas o tolerancias no positivas.",
+                "Report has unordered steps, negative norms, or nonpositive tolerances.",
             ));
         }
         if step.converged
@@ -751,7 +749,7 @@ fn validate_report(report: &ConvergenceReport) -> EResult<()> {
                 || step.energy_norm > t.energy_rel)
         {
             return Err(invalid(
-                "Paso declarado convergente fuera de sus tolerancias.",
+                "Step declared converged is outside its tolerances.",
             ));
         }
         previous = step.step;
@@ -786,7 +784,7 @@ pub fn validate_result(key: &ResultKey, value: &ResultValue) -> EResult<()> {
         || key.field.trim().is_empty()
         || key.entity.as_ref().is_some_and(|s| s.trim().is_empty())
     {
-        return Err(invalid("Clave de resultado inválida."));
+        return Err(invalid("Invalid result key."));
     }
     match value {
         ResultValue::Scalar(v) => finite(&[*v]),
@@ -797,10 +795,7 @@ pub fn validate_result(key: &ResultKey, value: &ResultValue) -> EResult<()> {
             if d.iter()
                 .any(|d| engine_core::catalog::lookup(d.code).is_none())
             {
-                Err(EngineError::new(
-                    "ENG-E-0009",
-                    "Código de diagnóstico desconocido.",
-                ))
+                Err(EngineError::new("ENG-E-0009", "Unknown diagnostic code."))
             } else {
                 Ok(())
             }
@@ -811,7 +806,7 @@ pub fn validate_result(key: &ResultKey, value: &ResultValue) -> EResult<()> {
                 finite(&[s.position])?;
                 finite(&s.forces_local)?;
                 if !(0.0..=1.0).contains(&s.position) {
-                    return Err(invalid("Estación fuera del tramo."));
+                    return Err(invalid("Station is outside the span."));
                 }
             }
             Ok(())
@@ -835,11 +830,11 @@ pub fn check_element_factory(
     let mut out = vec![];
     let name = factory.kind();
     if factory.params_schema().trim().is_empty() {
-        issue(&mut out, name, "Esquema de parámetros vacío.");
+        issue(&mut out, name, "Empty parameter schema.");
     }
     if let Some(element) = take(&mut out, name, factory.build(params, model)) {
         if element.kind() != name {
-            issue(&mut out, name, "Kind del producto distinto de la fábrica.");
+            issue(&mut out, name, "Product kind differs from factory kind.");
         }
         out.extend(check_element(element.as_ref(), ctx, samples, h));
     }
@@ -886,7 +881,7 @@ fn overwritten(
             out,
             context,
             format!(
-                "{label}: la segunda salida cambió de dimensión ({}×{}, esperada {n}×{n}).",
+                "{label}: second output changed dimensions ({}×{}, expected {n}×{n}).",
                 dirty.dense().rows(),
                 dirty.dense().cols()
             ),
@@ -899,7 +894,7 @@ fn overwritten(
             context,
             clean.dense().values(),
             dirty.dense().values(),
-            &format!("{label}: debe sobrescribir `out` (no acumular)"),
+            &format!("{label}: must overwrite `out` (no accumulation)"),
         );
     }
     Some(clean)
@@ -926,7 +921,7 @@ pub fn check_system_view(
         return out;
     }
     if n == 0 || sys.pattern().order() != n {
-        issue(&mut out, name, "Patrón u orden vacío/incompatible.");
+        issue(&mut out, name, "Empty/incompatible pattern or order.");
         return out;
     }
     for kind in [MassKind::Lumped, MassKind::Consistent] {
@@ -946,11 +941,11 @@ pub fn check_system_view(
             name,
             &f.iter().map(|v| v * 2.0).collect::<Vec<_>>(),
             &twice,
-            "Escalado de caso",
+            "Case scaling",
         );
     }
     for (index, u) in samples.iter().enumerate() {
-        let context = format!("SystemView, muestra {index}");
+        let context = format!("SystemView, sample {index}");
         if !valid(&mut out, &context, u, n) {
             continue;
         }
@@ -997,7 +992,7 @@ pub fn check_system_view(
                 issue(
                     &mut out,
                     &context,
-                    format!("Tangente del sistema: error relativo {error}"),
+                    format!("System tangent: relative error {error}"),
                 );
             }
         }
@@ -1009,7 +1004,7 @@ pub fn check_system_view(
                     &context,
                     &base,
                     &accepted,
-                    "Respuesta aceptada del sistema",
+                    "Accepted system response",
                 );
             }
             let mut trial = u.clone();
@@ -1028,7 +1023,7 @@ pub fn check_system_view(
                     &context,
                     &accepted,
                     &rolled,
-                    "Rollback idempotente",
+                    "Idempotent rollback",
                 );
             }
         }
@@ -1036,7 +1031,11 @@ pub fn check_system_view(
             if let Ok(i) = u32::try_from(i) {
                 sys.dof_label(DofIndex(i));
             } else {
-                issue(&mut out, &context, "Índice no representable como DofIndex.");
+                issue(
+                    &mut out,
+                    &context,
+                    "Index is not representable as DofIndex.",
+                );
                 break;
             }
         }
@@ -1060,19 +1059,19 @@ pub fn check_analysis_method(
     let name = method.id();
     contract(&mut out, name, method.contract(), "analysis");
     if name.is_empty() || method.settings_schema().trim().is_empty() {
-        issue(&mut out, name, "Id o esquema vacío.");
+        issue(&mut out, name, "Empty ID or schema.");
     }
     let already_cancelled = ctl.cancelled();
     if let Some(outcome) = take(&mut out, name, method.run(sys, settings, sink, ctl)) {
         take(&mut out, name, validate_report(&outcome.report));
         if already_cancelled && outcome.status != Status::Cancelled {
-            issue(&mut out, name, "Se ignoró cancelación previa.");
+            issue(&mut out, name, "Prior cancellation was ignored.");
         }
         if outcome.status == Status::Completed
             && (outcome.report.steps.is_empty()
                 || outcome.report.steps.iter().any(|s| !s.converged))
         {
-            issue(&mut out, name, "Completed sin pasos convergentes.");
+            issue(&mut out, name, "Completed without converged steps.");
         }
         if outcome.status == Status::NotConverged
             && outcome.report.steps.last().is_none_or(|s| s.converged)
@@ -1080,12 +1079,12 @@ pub fn check_analysis_method(
             issue(
                 &mut out,
                 name,
-                "NotConverged sin intento fallido reportado.",
+                "NotConverged without a reported failed attempt.",
             );
         }
         for d in outcome.diagnostics {
             if engine_core::catalog::lookup(d.code).is_none() {
-                issue(&mut out, name, "Diagnóstico fuera del catálogo.");
+                issue(&mut out, name, "Diagnostic is outside the catalog.");
             }
         }
     }
@@ -1126,7 +1125,7 @@ pub fn check_result_sink(sink: &mut dyn ResultSink) -> Vec<Diagnostic> {
             _ => issue(
                 &mut out,
                 name,
-                format!("Entrada inválida no rechazada con {code}"),
+                format!("Invalid input was not rejected with {code}"),
             ),
         }
     }
@@ -1141,7 +1140,7 @@ pub fn check_run_control(events: &[(Real, String)]) -> Vec<Diagnostic> {
     let mut out = vec![];
     let mut previous = 0.0;
     if events.is_empty() {
-        issue(&mut out, "RunControl", "Traza de progreso vacía.");
+        issue(&mut out, "RunControl", "Empty progress trace.");
     }
     for (index, (fraction, note)) in events.iter().enumerate() {
         if !fraction.is_finite()
@@ -1152,7 +1151,7 @@ pub fn check_run_control(events: &[(Real, String)]) -> Vec<Diagnostic> {
             issue(
                 &mut out,
                 "RunControl",
-                format!("Evento {index} inválido: {fraction}, {note:?}"),
+                format!("Invalid event {index}: {fraction}, {note:?}"),
             );
         }
         previous = *fraction;

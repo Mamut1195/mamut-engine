@@ -4,7 +4,7 @@ use engine_contracts::UniaxialLaw;
 use engine_core::{EResult, Real};
 
 pub(crate) fn axial(beam: &EulerFrame3D, g: &Geometry, u: &[Real; 12]) -> EResult<Real> {
-    let strain = finite(finite(u[6] - u[0], "Elongación")? / g.length, "ε")?;
+    let strain = finite(finite(u[6] - u[0], "Elongation")? / g.length, "ε")?;
     let response = beam.material.respond(strain, &[])?;
     let n = finite(beam.area * response.stress, "N (N)")?;
     // E·ε puede subdesbordar (subnormal/0) con E diminuto y A enorme aunque A·E·ε
@@ -29,7 +29,7 @@ pub(crate) fn block(m: &mut Matrix, ids: [usize; 4], sign: Real, b: [[Real; 4]; 
     let signs = [1.0, sign, 1.0, sign];
     for (i, &r) in ids.iter().enumerate() {
         for (j, &s) in ids.iter().enumerate() {
-            m[r][s] = finite(signs[i] * signs[j] * b[i][j], "Bloque de matriz")?;
+            m[r][s] = finite(signs[i] * signs[j] * b[i][j], "Matrix block")?;
         }
     }
     Ok(())

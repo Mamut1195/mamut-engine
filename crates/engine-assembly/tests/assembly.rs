@@ -480,7 +480,7 @@ fn singular_mechanism_is_translated_to_global_node_and_dof() {
     let mut s = system(&m, &elements(&[100.0, 200.0]), &[]);
     let err = s.solve(&case(), 1.0).unwrap_err();
     assert_eq!(err.code, "ENG-E-0006");
-    assert!(err.message.contains("Nodo") && err.message.contains("Ux"));
+    assert!(err.message.contains("Node") && err.message.contains("Ux"));
     assert!(err.entities.iter().any(|e| matches!(e, EntityRef::Node(_))));
     let mut m = model(3);
     m.supports[0].restrained = vec![Dof::Ux];

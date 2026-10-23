@@ -512,7 +512,7 @@ fn singular_tangent_names_node_and_dof_and_restores_trial() {
     let mut s = NewtonSystem::new(linear, vec![binding(&m, &[1], gap)]).unwrap();
     let e = StaticNewton::run(&mut s, &case(), &[1.0], NewtonOptions::default()).unwrap_err();
     assert_eq!(e.code, "ENG-E-0006");
-    assert!(e.message.contains("Nodo 1, GDL Ux"));
+    assert!(e.message.contains("Node 1, DOF Ux"));
     assert!(e
         .entities
         .iter()

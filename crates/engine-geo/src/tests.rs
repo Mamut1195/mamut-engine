@@ -42,7 +42,7 @@ fn assert_diagnostic<T: std::fmt::Debug>(result: GeoResult<T>, code: &str, field
     let hint = diagnostic.hint.unwrap();
     assert!(hint.contains(field), "{hint} does not identify {field}");
     assert!(
-        hint.contains("catálogo"),
+        hint.contains("catalog"),
         "{hint} omits the catalog limitation"
     );
 }

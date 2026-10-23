@@ -15,7 +15,7 @@ fn nodal_indices(map: &DofMap, case: &LoadCase) -> EResult<(Vec<DofIndex>, Vec<R
                 .is_ok_and(|(node, _)| node == load.node)
         });
         if !exists {
-            let mut e = error("ENG-E-0003", "Nodo de carga inexistente.");
+            let mut e = error("ENG-E-0003", "Load node does not exist.");
             e.entities.push(EntityRef::Node(load.node));
             return Err(e);
         }
@@ -25,7 +25,7 @@ fn nodal_indices(map: &DofMap, case: &LoadCase) -> EResult<(Vec<DofIndex>, Vec<R
             if !seen.insert(index) {
                 return Err(error(
                     "ENG-E-0010",
-                    "Carga repetida sobre el mismo nodo/GDL en el caso.",
+                    "Duplicate load on the same node/DOF in the case.",
                 ));
             }
             indices.push(index);
@@ -87,7 +87,7 @@ pub fn assemble_imposed_displacements(
         finite(&[p.value])?;
         let index = map.global_index(p.node, p.dof)?.0 as usize;
         if result[index].replace(p.value).is_some() {
-            let mut e = error("ENG-E-0010", "Desplazamiento impuesto repetido en el caso.");
+            let mut e = error("ENG-E-0010", "Duplicate imposed displacement in the case.");
             e.entities.push(EntityRef::Node(p.node));
             return Err(e);
         }

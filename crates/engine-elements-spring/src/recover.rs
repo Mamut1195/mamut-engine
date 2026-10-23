@@ -27,15 +27,15 @@ pub(crate) fn output_with_force(
     }
     let mut forces_local = [0.0; 6];
     for (value, c) in forces_local.iter_mut().zip(s.local) {
-        *value = finite(c * force, "Resultante local")?;
+        *value = finite(c * force, "Local resultant")?;
     }
     let mut out = Vec::new();
     out.try_reserve_exact(stations.len())
-        .map_err(|_| invalid("No se pudo reservar memoria para estaciones."))?;
+        .map_err(|_| invalid("Could not allocate memory for stations."))?;
     for &position in stations {
-        finite(position, "Estación x/L")?;
+        finite(position, "Station x/L")?;
         if !(0.0..=1.0).contains(&position) {
-            return Err(invalid("Estación fuera de [0,1]."));
+            return Err(invalid("Station is outside [0,1]."));
         }
         out.push(StationResult {
             position,

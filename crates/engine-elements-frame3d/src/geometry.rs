@@ -13,10 +13,10 @@ pub(crate) struct Geometry {
 /// Seno mínimo del ángulo entre la orientación y el eje x local.
 pub(crate) const ORIENTATION_MIN_SIN: Real = 1e-8;
 pub(crate) fn unit(v: [Real; 3]) -> EResult<[Real; 3]> {
-    vector(&v, 3, "Orientación")?;
+    vector(&v, 3, "Orientation")?;
     let scale = v.iter().fold(0.0_f64, |a, b| a.max(b.abs()));
     if scale == 0.0 {
-        return Err(invalid("Orientación: vector nulo."));
+        return Err(invalid("Orientation: zero vector."));
     }
     let v = v.map(|x| x / scale);
     let norm = math::hypot(math::hypot(v[0], v[1]), v[2]);
@@ -32,24 +32,21 @@ fn cross(a: [Real; 3], b: [Real; 3]) -> [Real; 3] {
 impl Geometry {
     pub fn new(ctx: &ElementCtx<'_>, orientation: [Real; 3]) -> EResult<Self> {
         if ctx.dim != Dim::D3 || ctx.coords.len() != 2 {
-            return Err(invalid("Viga espacial: requiere D3 y dos coordenadas."));
+            return Err(invalid("Spatial beam: requires D3 and two coordinates."));
         }
         for p in ctx.coords {
-            vector(p, 3, "Coordenada (m)")?;
+            vector(p, 3, "Coordinate (m)")?;
         }
         let mut delta = [0.0; 3];
         for (a, d) in delta.iter_mut().enumerate() {
-            *d = finite(
-                ctx.coords[1][a] - ctx.coords[0][a],
-                "Diferencia coordenadas",
-            )?;
+            *d = finite(ctx.coords[1][a] - ctx.coords[0][a], "Coordinate difference")?;
         }
         let length = finite(
             math::hypot(math::hypot(delta[0], delta[1]), delta[2]),
             "L (m)",
         )?;
         if length <= 1e-12 {
-            return Err(EngineError::new("ENG-E-0005", "Viga: L≤1e-12 m."));
+            return Err(EngineError::new("ENG-E-0005", "Beam: L≤1e-12 m."));
         }
         let x = delta.map(|d| d / length);
         let hint = unit(orientation)?;
@@ -60,7 +57,7 @@ impl Geometry {
         let y = cross(hint, x);
         if math::hypot(math::hypot(y[0], y[1]), y[2]) <= ORIENTATION_MIN_SIN {
             return Err(invalid(
-                "Orientación paralela o casi paralela al eje local x (sen del ángulo ≤ 1e-8).",
+                "Orientation is parallel or nearly parallel to the local x axis (sine of angle ≤ 1e-8).",
             ));
         }
         let mut y = unit(y)?;
@@ -86,23 +83,23 @@ impl Geometry {
         t
     }
     pub fn local_triplet(&self, v: [Real; 3]) -> EResult<[Real; 3]> {
-        vector(&v, 3, "Intensidad global")?;
+        vector(&v, 3, "Global intensity")?;
         let mut out = [0.0; 3];
         for (r, axis) in out.iter_mut().zip(self.axes) {
             *r = finite(
                 axis.iter().zip(v).map(|(a, v)| a * v).sum(),
-                "Intensidad local",
+                "Local intensity",
             )?;
         }
         Ok(out)
     }
     pub fn global_triplet(&self, v: [Real; 3]) -> EResult<[Real; 3]> {
-        vector(&v, 3, "Intensidad local")?;
+        vector(&v, 3, "Local intensity")?;
         let mut out = [0.0; 3];
         for (i, r) in out.iter_mut().enumerate() {
             *r = finite(
                 (0..3).map(|a| self.axes[a][i] * v[a]).sum(),
-                "Intensidad global",
+                "Global intensity",
             )?;
         }
         Ok(out)
@@ -124,7 +121,7 @@ pub(crate) fn multiply(m: &Matrix, u: &[Real]) -> EResult<[Real; 12]> {
     for (v, row) in f.iter_mut().zip(m) {
         *v = finite(
             row.iter().zip(u).map(|(k, u)| k * u).sum(),
-            "Producto matriz/vector",
+            "Matrix/vector product",
         )?;
     }
     Ok(f)

@@ -179,7 +179,7 @@ impl Consolidation {
         {
             return Err(error(
                 "ENG-E-0010",
-                "Consolidación: controles, historia o salidas inválidos.",
+                "Consolidation: invalid controls, history, or outputs.",
             ));
         }
         let mut previous = -1.0;
@@ -187,13 +187,14 @@ impl Consolidation {
             if !p.time_s.is_finite() || (index == 0 && p.time_s != 0.0) || p.time_s <= previous {
                 return Err(error(
                     "ENG-E-0010",
-                    "Historia creciente desde t=0 requerida.",
+                    "Increasing history starting at t=0 is required.",
                 ));
             }
-            let stress = parameter(&p.delta_stress_kpa)
-                .ok_or_else(|| error("ENG-E-0003", "Falta delta_stress_kpa y su procedencia."))?;
+            let stress = parameter(&p.delta_stress_kpa).ok_or_else(|| {
+                error("ENG-E-0003", "Missing delta_stress_kpa and its provenance.")
+            })?;
             if !stress.value.is_finite() {
-                return Err(error("ENG-E-0008", "Carga no finita."));
+                return Err(error("ENG-E-0008", "Non-finite load."));
             }
             previous = p.time_s;
         }
@@ -203,7 +204,7 @@ impl Consolidation {
             if !time.is_finite() || time < 0.0 || time > end || time <= previous {
                 return Err(error(
                     "ENG-E-0010",
-                    "Salidas crecientes dentro de la historia requeridas.",
+                    "Increasing output times within the history are required.",
                 ));
             }
             previous = time;
@@ -234,7 +235,7 @@ impl Consolidation {
                 if substeps.saturating_mul(elements) > MAX_CONSOLIDATION_WORK {
                     return Err(error(
                         "API-E-CONSOLIDATION-WORK",
-                        "Consolidación: el trabajo total supera 50000000 subpasos por elementos; reduzca la historia/malla o aumente max_step_s.",
+                        "Consolidation: total work exceeds 50000000 substeps times elements; reduce the history/mesh or increase max_step_s.",
                     ));
                 }
                 time = stop;
@@ -252,7 +253,7 @@ impl Consolidation {
         {
             return Err(error(
                 "API-E-CONSOLIDATION-COST",
-                "Consolidación: supera el coste denso 500000000 (Σ intervalos n³ + Σ subpasos n², n nodos libres), 256 intervalos de historia/salida o 100000 subpasos totales; reduzca historia/malla/salidas o aumente max_step_s.",
+                "Consolidation: exceeds the dense cost of 500000000 (Σ intervals n³ + Σ substeps n², n free nodes), 256 history/output intervals, or 100000 total substeps; reduce the history/mesh/outputs or increase max_step_s.",
             ));
         }
         Ok(())
@@ -282,14 +283,14 @@ pub(crate) fn validate(e: &Execution) -> GeoResult<()> {
         {
             return Err(error(
                 "ENG-E-0010",
-                "Análisis de suelo requiere modelo estructural, casos y combinaciones vacíos.",
+                "Soil analysis requires an empty structural model, cases, and combinations.",
             ));
         }
     }
     match analysis {
         Some(Analysis::SoilProfile { options: Object(o) }) => {
             if o.depths_m.is_empty() {
-                return Err(error("ENG-E-0010", "Aporte profundidades de consulta."));
+                return Err(error("ENG-E-0010", "Provide query depths."));
             }
             let profile = o.profile()?;
             for &z in &o.depths_m {
@@ -308,7 +309,7 @@ impl TryFrom<String> for Origin {
         match value.as_str() {
             "measured" => Ok(Self::Measured),
             "assumed" => Ok(Self::Assumed),
-            _ => Err("Procedencia: measured o assumed requeridos."),
+            _ => Err("Provenance: measured or assumed is required."),
         }
     }
 }
@@ -319,7 +320,7 @@ impl TryFrom<String> for Drainage {
             "top" => Ok(Self::Top),
             "bottom" => Ok(Self::Bottom),
             "double" => Ok(Self::Double),
-            _ => Err("Drenaje: top, bottom o double requeridos."),
+            _ => Err("Drainage: top, bottom, or double is required."),
         }
     }
 }

@@ -374,7 +374,7 @@ fn unstable_truss_reports_node_and_global_dof() {
     let mut s = LinearSystem::from_model(ReferenceBackend, &m, &[e], &[]).unwrap();
     let err = StaticLinear::run(&mut s, &cases(&["P"])).unwrap_err();
     assert_eq!(err.code, "ENG-E-0006");
-    assert!(err.message.contains("Nodo 2") && err.message.contains("GDL Uy"));
+    assert!(err.message.contains("Node 2") && err.message.contains("DOF Uy"));
     assert!(err
         .entities
         .iter()

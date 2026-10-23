@@ -107,7 +107,7 @@ impl LinearSpring {
     ) -> EResult<Self> {
         finite(k, "k")?;
         if k < 0.0 {
-            return Err(invalid("Resorte: k debe ser no negativa."));
+            return Err(invalid("Spring: k must be nonnegative."));
         }
         let (local, global, mask) = geometry::coupling(dim, dofs, axes)?;
         Ok(Self {
@@ -203,7 +203,7 @@ fn finite(value: Real, name: &str) -> EResult<Real> {
     if !value.is_finite() {
         return Err(EngineError::new(
             "ENG-E-0008",
-            format!("{name}: entrada o resultado no finito."),
+            format!("{name}: non-finite input or result."),
         ));
     }
     Ok(value)
@@ -211,7 +211,7 @@ fn finite(value: Real, name: &str) -> EResult<Real> {
 fn vector(values: &[Real], size: usize, name: &str) -> EResult<()> {
     if values.len() != size {
         return Err(invalid(&format!(
-            "{name}: tamaño {}, esperado {size}.",
+            "{name}: size {}, expected {size}.",
             values.len()
         )));
     }

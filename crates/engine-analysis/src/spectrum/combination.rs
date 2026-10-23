@@ -72,7 +72,7 @@ pub(super) fn validate_frequency(omega: Real) -> EResult<()> {
     finite(&[omega])?;
     if omega <= 0.0 {
         return Err(invalid(
-            "Se requieren frecuencias modales positivas; sin modos rígidos.",
+            "Positive modal frequencies are required; rigid modes are not allowed.",
         ));
     }
     Ok(())
@@ -93,9 +93,7 @@ pub(super) fn correlations_with_check(
     check: &mut dyn FnMut() -> EResult<()>,
 ) -> EResult<Vec<Vec<Real>>> {
     if frequencies.is_empty() || frequencies.len() != dampings.len() {
-        return Err(invalid(
-            "Modos vacíos o dimensiones de amortiguamiento incompatibles.",
-        ));
+        return Err(invalid("Empty modes or incompatible damping dimensions."));
     }
     for (&omega, &zeta) in frequencies.iter().zip(dampings) {
         validate_frequency(omega)?;
@@ -132,7 +130,7 @@ pub fn combine_modal(
 ) -> EResult<Real> {
     let rho = correlations(frequencies, dampings, method)?;
     if values.len() != frequencies.len() {
-        return Err(invalid("Dimensiones de respuestas y modos incompatibles."));
+        return Err(invalid("Incompatible response and mode dimensions."));
     }
     quadratic(values, &rho)
 }
@@ -164,7 +162,7 @@ pub(super) fn quadratic_with_check(
     if sum < -tolerance {
         return Err(EngineError::new(
             "ENG-E-0012",
-            "CQC: forma cuadrática negativa.",
+            "CQC: negative quadratic form.",
         ));
     }
     let result = scale * math::sqrt(sum.max(0.0));
@@ -181,14 +179,12 @@ pub fn combine_directions(
     method: DirectionalCombination,
 ) -> EResult<Real> {
     if values.is_empty() || values.len() != factors.len() {
-        return Err(invalid("Direcciones vacías o factores incompatibles."));
+        return Err(invalid("Empty directions or incompatible factors."));
     }
     finite(values)?;
     finite(factors)?;
     if factors.iter().any(|&v| v < 0.0) {
-        return Err(invalid(
-            "Los factores direccionales deben ser no negativos.",
-        ));
+        return Err(invalid("Directional factors must be nonnegative."));
     }
     let mut result = 0.0_f64;
     for (&value, &factor) in values.iter().zip(factors) {

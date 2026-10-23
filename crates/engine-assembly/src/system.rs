@@ -195,7 +195,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         if pattern.order() != k_free.order() {
             return Err(error(
                 "ENG-E-0012",
-                "Patrón incompatible con matriz reducida.",
+                "Pattern is incompatible with reduced matrix.",
             ));
         }
         // Also validates the initial state's internal force with imposed u_p.
@@ -346,7 +346,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         if self.has_geometric && u != self.kg_reference.as_slice() {
             return Err(error(
                 "ENG-E-0013",
-                "Un aporte Kg estático sin productor exige su estado de referencia.",
+                "A static Kg contribution without a producer requires its reference state.",
             ));
         }
         if self.geometric_producers.is_empty() {
@@ -428,7 +428,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             {
                 return Err(error(
                     "ENG-E-0002",
-                    "Ubicación de productor geométrico ambigua.",
+                    "Ambiguous geometric producer location.",
                 ));
             }
         }
@@ -470,7 +470,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         match self.constraints.free_dofs().get(d.0 as usize) {
             Some(&global) => self.map.label(global),
             None => {
-                let mut e = error("ENG-E-0010", "Índice reducido fuera de rango.");
+                let mut e = error("ENG-E-0010", "Reduced index is out of range.");
                 e.entities.push(EntityRef::Dof(d));
                 Err(e)
             }
@@ -623,13 +623,13 @@ impl<B: LinAlgBackend> LinearSystem<B> {
     ) -> EResult<Vec<Vec<Real>>> {
         check()?;
         if cases.is_empty() {
-            return Err(error("ENG-E-0010", "Lista de casos vacía."));
+            return Err(error("ENG-E-0010", "Empty case list."));
         }
         let mut names = BTreeSet::new();
         for (case, _) in cases {
             check()?;
             if !names.insert(&case.0) {
-                return Err(error("ENG-E-0010", "Caso duplicado en análisis."));
+                return Err(error("ENG-E-0010", "Duplicate case in analysis."));
             }
         }
         let rhs = cases
@@ -737,16 +737,13 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         for entity in &e.entities {
             if let EntityRef::Dof(d) = entity {
                 let Some(&global) = self.constraints.free_dofs().get(d.0 as usize) else {
-                    return error(
-                        "ENG-E-0012",
-                        "El solver informó un GDL reducido inexistente.",
-                    );
+                    return error("ENG-E-0012", "Solver reported a nonexistent reduced DOF.");
                 };
                 let Ok((node, dof)) = self.map.label(global) else {
-                    return error("ENG-E-0012", "El solver informó un GDL global inexistente.");
+                    return error("ENG-E-0012", "Solver reported a nonexistent global DOF.");
                 };
                 e.message.push_str(&format!(
-                    " Nodo {}, GDL {dof} (global {}).",
+                    " Node {}, DOF {dof} (global {}).",
                     node.0, global.0
                 ));
                 entities.extend([EntityRef::Node(node), EntityRef::Dof(global)]);
@@ -756,7 +753,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             }
         }
         if !translated {
-            return error("ENG-E-0012", "El solver omitió el índice del mecanismo.");
+            return error("ENG-E-0012", "Solver omitted the mechanism index.");
         }
         e.entities = entities;
         e

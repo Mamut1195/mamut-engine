@@ -21,7 +21,7 @@ pub(crate) fn optional<'de, T: DeserializeOwned, D: Deserializer<'de>>(
 pub(crate) fn nonempty<'de, D: Deserializer<'de>>(d: D) -> Result<String, D::Error> {
     let value = String::deserialize(d)?;
     if value.is_empty() {
-        return Err(serde::de::Error::custom("Etiqueta vacía no admitida."));
+        return Err(serde::de::Error::custom("Empty tag is not allowed."));
     }
     Ok(value)
 }
@@ -65,25 +65,20 @@ impl Law {
             "elastic.cubic" => &["E", "C"],
             "steel.bilinear_kinematic" => &["E", "fy", "b"],
             "multilinear_elastic" => &[],
-            _ => return Err(EngineError::new("ENG-E-0013", "Tipo de ley no soportado.")),
+            _ => return Err(EngineError::new("ENG-E-0013", "Unsupported law type.")),
         };
         let mut seen = BTreeSet::new();
         for (key, _) in &self.parameters {
             if !seen.insert(key) {
-                return Err(EngineError::new(
-                    "ENG-E-0002",
-                    "Parámetro de ley duplicado.",
-                ));
+                return Err(EngineError::new("ENG-E-0002", "Duplicate law parameter."));
             }
             if !allowed.contains(&key.as_str()) {
-                return Err(invalid("Parámetro de ley no admitido."));
+                return Err(invalid("Law parameter is not allowed."));
             }
         }
         if self.kind != "multilinear_elastic" && (!self.points.is_empty() || !self.mode.is_empty())
         {
-            return Err(invalid(
-                "points/mode solo pertenecen a multilinear_elastic.",
-            ));
+            return Err(invalid("points/mode apply only to multilinear_elastic."));
         }
         let number = |key| {
             self.parameters
@@ -91,7 +86,7 @@ impl Law {
                 .find(|(k, _)| k == key)
                 .map(|(_, v)| *v)
                 .ok_or_else(|| {
-                    EngineError::new("ENG-E-0003", format!("Ley {}: falta {key}.", self.name))
+                    EngineError::new("ENG-E-0003", format!("Law {}: missing {key}.", self.name))
                 })
         };
         Ok(match self.kind.as_str() {
@@ -107,14 +102,14 @@ impl Law {
                     "" | "both" => MultilinearMode::Both,
                     "compression_only" => MultilinearMode::CompressionOnly,
                     "tension_only" => MultilinearMode::TensionOnly,
-                    _ => return Err(invalid("Modo multilineal desconocido.")),
+                    _ => return Err(invalid("Unknown multilinear mode.")),
                 };
                 Arc::new(MultilinearElastic::new(
                     self.points.iter().map(|p| (p[0], p[1])).collect(),
                     mode,
                 )?)
             }
-            _ => return Err(invalid("Ley no resuelta.")),
+            _ => return Err(invalid("Unresolved law.")),
         })
     }
 }
@@ -140,7 +135,7 @@ impl Spring {
         let connection = match self.nodes.len() {
             1 => SpringConnection::Ground,
             2 if self.nodes[0] != self.nodes[1] => SpringConnection::BetweenNodes,
-            _ => return Err(invalid("Resorte: uno o dos nodos distintos requeridos.")),
+            _ => return Err(invalid("Spring: one or two distinct nodes are required.")),
         };
         let mut dim = None;
         for &id in &self.nodes {
@@ -149,18 +144,22 @@ impl Spring {
                 .nodes
                 .iter()
                 .find(|n| n.id == NodeId(id))
-                .ok_or_else(|| EngineError::new("ENG-E-0003", "Resorte: nodo ausente."))?;
+                .ok_or_else(|| EngineError::new("ENG-E-0003", "Spring: missing node."))?;
             if dim.is_some_and(|d| d != node.dim) {
-                return Err(invalid("Resorte: dimensiones distintas."));
+                return Err(invalid("Spring: dimensions differ."));
             }
             dim = Some(node.dim);
         }
-        let dim = dim.ok_or_else(|| invalid("Resorte sin dimensión."))?;
+        let dim = dim.ok_or_else(|| invalid("Spring has no dimension."))?;
         let axes = match (self.direction, self.rotation) {
             (None, None) => SpringAxes::Global,
             (Some(d), None) => SpringAxes::Direction(d),
             (None, Some(r)) => SpringAxes::Rotation(r),
-            _ => return Err(invalid("Resorte: direction y rotation son excluyentes.")),
+            _ => {
+                return Err(invalid(
+                    "Spring: direction and rotation are mutually exclusive.",
+                ))
+            }
         };
         let dof = self.dof.dof();
         let element: Box<dyn Element> = match self.kind.as_str() {
@@ -168,7 +167,7 @@ impl Spring {
                 dim,
                 connection,
                 self.k
-                    .ok_or_else(|| EngineError::new("ENG-E-0003", "Resorte lineal: falta k."))?,
+                    .ok_or_else(|| EngineError::new("ENG-E-0003", "Linear spring: missing k."))?,
                 &[dof],
                 axes,
             )?),
@@ -177,7 +176,7 @@ impl Spring {
                     .laws
                     .iter()
                     .find(|l| Some(&l.name) == self.law.as_ref())
-                    .ok_or_else(|| EngineError::new("ENG-E-0003", "Resorte: ley ausente."))?;
+                    .ok_or_else(|| EngineError::new("ENG-E-0003", "Spring: missing law."))?;
                 Box::new(NonlinearSpring::new(
                     dim,
                     connection,
@@ -186,17 +185,10 @@ impl Spring {
                     axes,
                 )?)
             }
-            "spring.linear" | "spring.nonlinear" => {
-                return Err(invalid(
-                    "Resorte lineal requiere k sin law; no lineal requiere law sin k.",
-                ))
-            }
-            _ => {
-                return Err(EngineError::new(
-                    "ENG-E-0013",
-                    "Tipo de resorte no soportado.",
-                ))
-            }
+            "spring.linear" | "spring.nonlinear" => return Err(invalid(
+                "Linear spring requires k without law; nonlinear spring requires law without k.",
+            )),
+            _ => return Err(EngineError::new("ENG-E-0013", "Unsupported spring type.")),
         };
         for &id in &self.nodes {
             let node = execution
@@ -204,7 +196,7 @@ impl Spring {
                 .nodes
                 .iter()
                 .find(|n| n.id == NodeId(id))
-                .ok_or_else(|| EngineError::new("ENG-E-0003", "Resorte: nodo ausente."))?;
+                .ok_or_else(|| EngineError::new("ENG-E-0003", "Spring: missing node."))?;
             if element
                 .dofs_per_node()
                 .iter()
@@ -212,7 +204,7 @@ impl Spring {
             {
                 return Err(EngineError::new(
                     "ENG-E-0011",
-                    "Resorte: falta GDL global activo.",
+                    "Spring: missing active global DOF.",
                 ));
             }
         }
@@ -244,10 +236,10 @@ impl Newton {
             || self.max_iterations == 0
             || self.max_iterations > 16384
         {
-            return Err(invalid("Newton: pasos o máximo fuera de [1,16384]."));
+            return Err(invalid("Newton: steps or maximum is outside [1,16384]."));
         }
         if self.load_factors.iter().any(|v| !v.is_finite()) {
-            return Err(EngineError::new("ENG-E-0008", "Newton: factor no finito."));
+            return Err(EngineError::new("ENG-E-0008", "Newton: non-finite factor."));
         }
         for v in [
             Some(self.tolerance),
@@ -262,7 +254,7 @@ impl Newton {
         {
             if !v.is_finite() || v <= 0.0 {
                 return Err(invalid(
-                    "Newton: tolerancias/escalas positivas y finitas requeridas.",
+                    "Newton: positive finite tolerances/scales are required.",
                 ));
             }
         }
@@ -270,7 +262,7 @@ impl Newton {
             || (self.energy_tolerance.is_some() && self.energy_scale.is_none())
         {
             return Err(invalid(
-                "Newton: cada criterio adicional requiere su escala explícita.",
+                "Newton: each additional criterion requires its explicit scale.",
             ));
         }
         Ok(engine_analysis::newton::NewtonOptions {
@@ -292,12 +284,12 @@ pub(crate) fn invalid(message: &str) -> EngineError {
 pub(crate) fn validate(e: &Execution) -> EResult<()> {
     let method = e.methods.first().copied().unwrap_or("");
     if e.springs.len() + e.model.members.len() > crate::MAX_MEMBERS {
-        return Err(invalid("Máximo 1024 miembros y resortes en total."));
+        return Err(invalid("Maximum of 1024 members and springs in total."));
     }
     if !e.springs.is_empty() && !matches!(method, "linearStatic" | "nonlinearStatic") {
         return Err(EngineError::new(
             "ENG-E-0013",
-            "Resortes: análisis admitidos linearStatic/nonlinearStatic.",
+            "Springs: supported analyses are linearStatic/nonlinearStatic.",
         ));
     }
     let mut ids: BTreeSet<_> = e.model.members.iter().map(|m| m.id.0).collect();
@@ -305,13 +297,13 @@ pub(crate) fn validate(e: &Execution) -> EResult<()> {
         if !ids.insert(s.id) {
             return Err(EngineError::new(
                 "ENG-E-0002",
-                "Id de miembro/resorte duplicado.",
+                "Duplicate member/spring ID.",
             ));
         }
         if s.kind == "spring.nonlinear" && method != "nonlinearStatic" {
             return Err(EngineError::new(
                 "ENG-E-0013",
-                "spring.nonlinear requiere nonlinearStatic.",
+                "spring.nonlinear requires nonlinearStatic.",
             ));
         }
         s.build(e).map_err(|mut error| {
@@ -330,13 +322,16 @@ pub(crate) fn validate(e: &Execution) -> EResult<()> {
     for (member, beam) in e.model.members.iter().zip(&e.elements) {
         if let Some(law) = e.laws.iter().find(|l| l.name == member.law) {
             if !law.kind.is_empty() && law.kind != "elastic" {
-                return Err(EngineError::new("ENG-E-0013", "Las vigas requieren ley elastic; las leyes no lineales se conectan a resortes."));
+                return Err(EngineError::new(
+                    "ENG-E-0013",
+                    "Beams require an elastic law; nonlinear laws are connected to springs.",
+                ));
             }
         }
         if beam.winkler.is_some()
             && !matches!(beam.kind.as_str(), "frame2d.winkler" | "frame3d.winkler")
         {
-            return Err(invalid("winkler requiere kind de viga Winkler."));
+            return Err(invalid("winkler requires a Winkler beam kind."));
         }
         if (beam.release_i.is_some() || beam.release_j.is_some())
             && !matches!(
@@ -344,18 +339,18 @@ pub(crate) fn validate(e: &Execution) -> EResult<()> {
                 "" | "frame2d.euler_elastic" | "frame3d.euler_elastic"
             )
         {
-            return Err(invalid("Liberaciones solo en vigas Euler elásticas."));
+            return Err(invalid("Releases are allowed only on elastic Euler beams."));
         }
     }
     if let Some(Analysis::Nonlinear { options: Object(o) }) = e.analyses.first() {
         o.options()?;
         if !e.model.cases.iter().any(|c| c.name == o.case) {
-            return Err(EngineError::new("ENG-E-0003", "Newton: caso ausente."));
+            return Err(EngineError::new("ENG-E-0003", "Newton: missing case."));
         }
         if !e.model.combinations.is_empty() || !e.diaphragms.is_empty() {
             return Err(EngineError::new(
                 "ENG-E-0013",
-                "Newton: no admite combinaciones ni diafragmas.",
+                "Newton: combinations and diaphragms are not supported.",
             ));
         }
     }

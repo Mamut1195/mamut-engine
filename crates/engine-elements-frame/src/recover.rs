@@ -29,7 +29,7 @@ pub(crate) fn output(
     }
     let mut ends = [0.0; 6];
     for i in 0..6 {
-        ends[i] = finite(elastic[i] - f[i], "Acción de extremo")?;
+        ends[i] = finite(elastic[i] - f[i], "End action")?;
     }
     // Equilibrio de la condensación garantiza cero; imponerlo elimina solo
     // el residuo de redondeo en la acción de un giro interno equilibrado.
@@ -41,18 +41,18 @@ pub(crate) fn output(
     }
     let mut out = Vec::new();
     out.try_reserve_exact(stations.len())
-        .map_err(|_| invalid("No se pudo reservar estaciones."))?;
+        .map_err(|_| invalid("Could not allocate stations."))?;
     for &position in stations {
-        finite(position, "Estación x/L")?;
+        finite(position, "Station x/L")?;
         if !(0.0..=1.0).contains(&position) {
-            return Err(invalid("Estación fuera de [0,1]."));
+            return Err(invalid("Station is outside [0,1]."));
         }
         let x = position * g.length;
-        let n = finite(-ends[0] - q[0] * x, "N estación")?;
-        let v = finite(-ends[1] - q[1] * x, "Vy estación")?;
+        let n = finite(-ends[0] - q[0] * x, "Station N")?;
+        let v = finite(-ends[1] - q[1] * x, "Station Vy")?;
         let m = finite(
             -ends[2] + ends[1] * x + (q[1] * (x / 2.0)) * x - q[2] * x,
-            "Mz estación",
+            "Station Mz",
         )?;
         out.push(StationResult {
             position,

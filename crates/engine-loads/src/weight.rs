@@ -6,7 +6,7 @@ fn properties(density: Real, area: Real, gravity: [Real; 3]) -> EResult<()> {
     finite(&[density, area])?;
     finite(&gravity)?;
     if density < 0.0 || area <= 0.0 {
-        return Err(error("ENG-E-0010", "Se requiere rho ≥ 0 y A > 0."));
+        return Err(error("ENG-E-0010", "rho ≥ 0 and A > 0 are required."));
     }
     Ok(())
 }

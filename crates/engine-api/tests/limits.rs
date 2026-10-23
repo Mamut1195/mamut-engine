@@ -149,14 +149,14 @@ fn integers_outside_jcs_safe_range_are_never_rounded_to_float() {
         "-18446744073709551616",
         "99999999999999999999999999999999999999999999999999",
     ] {
-        invalid_before_parse(token, "Entero JSON fuera de rango");
+        invalid_before_parse(token, "JSON integer is outside");
         // También se rechaza en un campo f64 antes de la conversión del DTO.
         invalid_before_parse(
             &format!(r#"{{"model":{{"nodes":[{{"coordinates":[{token},0,0]}}]}}}}"#),
-            "Entero JSON fuera de rango",
+            "JSON integer is outside",
         );
     }
-    invalid_before_parse(&"9".repeat(10_000), "Entero JSON fuera de rango");
+    invalid_before_parse(&"9".repeat(10_000), "JSON integer is outside");
     for token in ["9007199254740991", "-9007199254740991"] {
         assert_eq!(canonical_json(token).unwrap(), token);
         assert!(input_sha256(token).is_ok());
@@ -200,7 +200,7 @@ fn safe_integer_boundaries_are_accepted_in_engine_input() {
 #[test]
 fn float_overflow_is_invalid_including_negative_exponents_out_of_range() {
     for token in ["-1e400", "1e400", "1.7976931348623159e308"] {
-        invalid_before_parse(token, "fuera del rango finito f64");
+        invalid_before_parse(token, "outside the finite f64 range");
     }
     assert!(canonical_json("18446744073709551616.0").is_ok());
     assert_eq!(canonical_json("-0e10").unwrap(), "0.0");

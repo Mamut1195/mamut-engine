@@ -181,13 +181,13 @@ pub fn combine_with_check(
 ) -> EResult<CombinationResults> {
     check()?;
     if combination.terms.is_empty() || cases.is_empty() {
-        return Err(invalid("Combinación o repositorio de casos vacío."));
+        return Err(invalid("Empty combination or case repository."));
     }
     let mut available = BTreeMap::new();
     for case in cases {
         check()?;
         if available.insert(case.case.0.as_str(), case).is_some() {
-            return Err(invalid("Caso duplicado en el repositorio."));
+            return Err(invalid("Duplicate case in repository."));
         }
     }
     let mut seen = BTreeSet::new();
@@ -197,10 +197,10 @@ pub fn combine_with_check(
         check()?;
         number(term.factor)?;
         if !seen.insert(term.case.as_str()) {
-            return Err(invalid("Caso duplicado en los términos."));
+            return Err(invalid("Duplicate case in terms."));
         }
         let case = available.get(term.case.as_str()).ok_or_else(|| {
-            let mut e = EngineError::new("ENG-E-0003", "Caso ausente en la combinación.");
+            let mut e = EngineError::new("ENG-E-0003", "Missing case in combination.");
             e.entities.push(EntityRef::Case(term.case.clone()));
             e
         })?;
@@ -212,7 +212,7 @@ pub fn combine_with_check(
         }) {
             if let Some(previous) = settlement_case {
                 let mut e = invalid(
-                    "Varios casos con desplazamientos prescritos no nulos. Resuelva las cargas con prescritos cero y use un caso propio de asentamiento con factor explícito.",
+                    "Multiple cases with nonzero prescribed displacements. Solve the loads with zero prescribed displacements and use a separate settlement case with an explicit factor.",
                 );
                 e.entities.push(EntityRef::Case(previous));
                 e.entities.push(EntityRef::Case(term.case.clone()));
@@ -224,7 +224,7 @@ pub fn combine_with_check(
     }
     let (_, first) = terms
         .first()
-        .ok_or_else(|| invalid("Combinación sin términos."))?;
+        .ok_or_else(|| invalid("Combination has no terms."))?;
     for (_, next) in &terms {
         check()?;
         compatible(first, next)?;
@@ -232,7 +232,7 @@ pub fn combine_with_check(
             if a.prescribed_displacements.map(|p| p.is_some())
                 != b.prescribed_displacements.map(|p| p.is_some())
             {
-                let mut e = invalid("Conjuntos de GDL prescritos incompatibles entre casos.");
+                let mut e = invalid("Incompatible prescribed DOF sets across cases.");
                 e.entities.push(EntityRef::Case(first.case.into()));
                 e.entities.push(EntityRef::Case(next.case.into()));
                 return Err(e);
@@ -296,18 +296,18 @@ pub fn combine_with_check(
 pub fn envelope(inputs: &[EnvelopeInput<'_>]) -> EResult<EnvelopeResults> {
     let first_input = inputs
         .first()
-        .ok_or_else(|| invalid("Envolvente sin entradas."))?;
+        .ok_or_else(|| invalid("Envelope has no entries."))?;
     let mut seen = BTreeSet::new();
     let mut layouts = Vec::new();
     for &input in inputs {
         if !seen.insert(input.id()) {
-            return Err(invalid("Entrada duplicada en la envolvente."));
+            return Err(invalid("Duplicate entry in envelope."));
         }
         layouts.push(layout(input.results())?);
     }
     let first = layouts
         .first()
-        .ok_or_else(|| invalid("Envolvente sin resultados."))?;
+        .ok_or_else(|| invalid("Envelope has no results."))?;
     for next in &layouts {
         compatible(first, next)?;
     }
@@ -400,12 +400,12 @@ struct Layout<'a> {
 fn layout(results: &CaseResults) -> EResult<Layout<'_>> {
     number(results.factor)?;
     if results.nodes.is_empty() {
-        return Err(invalid("Resultado sin nodos."));
+        return Err(invalid("Result has no nodes."));
     }
     let mut nodes = BTreeMap::new();
     for n in &results.nodes {
         if nodes.insert(n.id, n).is_some() {
-            return Err(invalid("Nodo duplicado."));
+            return Err(invalid("Duplicate node."));
         }
         numbers(&n.displacements)?;
         numbers(&n.reactions)?;
@@ -417,7 +417,7 @@ fn layout(results: &CaseResults) -> EResult<Layout<'_>> {
                 })?;
                 if *prescribed != value {
                     let mut e =
-                        invalid("Desplazamiento prescrito incoherente con el resultado nodal.");
+                        invalid("Prescribed displacement is inconsistent with the nodal result.");
                     e.entities.push(EntityRef::Case(results.case.0.clone()));
                     return Err(e);
                 }
@@ -427,10 +427,10 @@ fn layout(results: &CaseResults) -> EResult<Layout<'_>> {
     let mut members = BTreeMap::new();
     for m in &results.members {
         if members.insert(m.id, m).is_some() {
-            return Err(invalid("Miembro duplicado."));
+            return Err(invalid("Duplicate member."));
         }
         if m.end_forces_local.is_empty() || m.stations.len() < 2 {
-            return Err(invalid("Miembro sin acciones de extremo o estaciones."));
+            return Err(invalid("Member has no end actions or stations."));
         }
         numbers(&m.end_forces_local)?;
         let mut previous = None;
@@ -439,7 +439,7 @@ fn layout(results: &CaseResults) -> EResult<Layout<'_>> {
             numbers(&s.forces_local)?;
             if !(0.0..=1.0).contains(&s.position) || previous.is_some_and(|p| p >= s.position) {
                 return Err(invalid(
-                    "Estaciones fuera de rango, desordenadas o duplicadas.",
+                    "Stations are out of range, unordered, or duplicated.",
                 ));
             }
             previous = Some(s.position);
@@ -447,7 +447,7 @@ fn layout(results: &CaseResults) -> EResult<Layout<'_>> {
         if m.stations.first().is_none_or(|s| s.position != 0.0)
             || m.stations.last().is_none_or(|s| s.position != 1.0)
         {
-            return Err(invalid("Faltan estaciones de extremo 0 y 1."));
+            return Err(invalid("Missing end stations 0 and 1."));
         }
         // Los extremos públicos pueden estar desactualizados: no se usan al calcular.
         for e in &m.extremes {
@@ -463,7 +463,7 @@ fn layout(results: &CaseResults) -> EResult<Layout<'_>> {
 
 fn compatible(a: &Layout<'_>, b: &Layout<'_>) -> EResult<()> {
     if !a.nodes.keys().eq(b.nodes.keys()) || !a.members.keys().eq(b.members.keys()) {
-        return Err(invalid("Conjuntos de nodos o miembros incompatibles."));
+        return Err(invalid("Incompatible node or member sets."));
     }
     for (a, b) in a.members.values().zip(b.members.values()) {
         if a.end_forces_local.len() != b.end_forces_local.len()
@@ -474,7 +474,7 @@ fn compatible(a: &Layout<'_>, b: &Layout<'_>) -> EResult<()> {
                 .zip(&b.stations)
                 .all(|(a, b)| a.position == b.position)
         {
-            let mut e = invalid("Acciones de extremo o estaciones incompatibles.");
+            let mut e = invalid("Incompatible end actions or stations.");
             e.entities.push(EntityRef::Member(a.id));
             return Err(e);
         }
@@ -524,7 +524,7 @@ fn number(value: Real) -> EResult<()> {
     if !value.is_finite() {
         return Err(EngineError::new(
             "ENG-E-0008",
-            "Combinación/envolvente: dato o resultado no finito.",
+            "Combination/envelope: non-finite data or result.",
         ));
     }
     Ok(())

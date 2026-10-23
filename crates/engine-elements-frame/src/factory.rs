@@ -21,37 +21,37 @@ impl ElementFactory for FrameFactory {
 
 fn build_frame(params: &JsonValue, model: &ModelView<'_>) -> EResult<EulerFrame2D> {
     if model.dim != Dim::D2 {
-        return Err(invalid("Fábrica de viga: requiere D2."));
+        return Err(invalid("Beam factory: requires D2."));
     }
     let mut ids = BTreeSet::new();
     for (id, p) in model.nodes {
         if !ids.insert(*id) {
-            return Err(EngineError::new("ENG-E-0002", "ModelView: id duplicado."));
+            return Err(EngineError::new("ENG-E-0002", "ModelView: duplicate id."));
         }
         for &x in p {
-            finite(x, "Coordenada ModelView")?;
+            finite(x, "ModelView coordinate")?;
         }
         if p[2] != 0.0 {
-            return Err(invalid("ModelView D2 requiere Z=0."));
+            return Err(invalid("ModelView D2 requires Z=0."));
         }
     }
     let JsonValue::Object(fields) = params else {
-        return Err(invalid("Viga: se esperaba objeto SI."));
+        return Err(invalid("Beam: expected an SI object."));
     };
     if fields
         .keys()
         .any(|k| !["E", "A", "I", "rho", "release_i", "release_j"].contains(&k.as_str()))
     {
-        return Err(invalid("Viga: propiedad desconocida."));
+        return Err(invalid("Beam: unknown property."));
     }
     let number = |key| match fields.get(key) {
         Some(JsonValue::Number(v)) => Ok(*v),
-        _ => Err(invalid(&format!("Viga: {key} numérico requerido."))),
+        _ => Err(invalid(&format!("Beam: numeric {key} is required."))),
     };
     let boolean = |key| match fields.get(key) {
         None => Ok(false),
         Some(JsonValue::Bool(v)) => Ok(*v),
-        _ => Err(invalid("Liberación debe ser booleano.")),
+        _ => Err(invalid("Release must be boolean.")),
     };
     EulerFrame2D::new(
         number("E")?,
@@ -78,14 +78,14 @@ impl ElementFactory for WinklerFactory {
     }
     fn build(&self, params: &JsonValue, model: &ModelView<'_>) -> EResult<Box<dyn Element>> {
         let JsonValue::Object(fields) = params else {
-            return Err(invalid("Winkler: se esperaba objeto SI."));
+            return Err(invalid("Winkler: expected an SI object."));
         };
         if fields.contains_key("release_i") || fields.contains_key("release_j") {
-            return Err(invalid("Winkler: liberaciones de extremo no admitidas."));
+            return Err(invalid("Winkler: end releases are not allowed."));
         }
         let number = |key| match fields.get(key) {
             Some(JsonValue::Number(v)) => Ok(*v),
-            _ => Err(invalid("Winkler: rigidez numérica requerida.")),
+            _ => Err(invalid("Winkler: numeric stiffness is required.")),
         };
         let mut beam_fields = fields.clone();
         beam_fields.remove("k");

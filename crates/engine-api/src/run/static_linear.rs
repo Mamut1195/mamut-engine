@@ -19,7 +19,9 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
     } = context;
     let model = &execution.model;
     if model.cases.is_empty() {
-        return Err(ApiError::InvalidInput("linearStatic requiere al menos un caso".into()).into());
+        return Err(
+            ApiError::InvalidInput("linearStatic requires at least one case".into()).into(),
+        );
     }
     let mut cases = Vec::new();
     let mut solutions = Vec::new();
@@ -31,7 +33,7 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
             [0.0; 3],
             &mut || {
                 cancel.check().map_err(|_| {
-                    EngineError::new("ENG-E-0012", "Cancelación solicitada por la fachada")
+                    EngineError::new("ENG-E-0012", "Cancellation requested by the facade")
                 })
             },
         );
@@ -40,7 +42,7 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
             .cases
             .into_iter()
             .next()
-            .ok_or_else(|| EngineError::new("ENG-E-0012", "Solver sin resultado de caso"))?;
+            .ok_or_else(|| EngineError::new("ENG-E-0012", "Solver has no case result"))?;
         let views: Vec<_> = members
             .iter()
             .map(|m| MemberRecovery {
@@ -140,7 +142,7 @@ pub(crate) fn combinations(context: MethodContext<'_>) -> Result<(), Failure> {
     let model = &execution.model;
     if cases.len() != model.cases.len() {
         return Err(ApiError::InvalidInput(
-            "combinations requiere resultados de todos los casos lineales".into(),
+            "combinations requires results from all linear cases".into(),
         )
         .into());
     }
@@ -159,7 +161,7 @@ pub(crate) fn combinations(context: MethodContext<'_>) -> Result<(), Failure> {
             .iter()
             .any(|n| n.prescribed_displacements.iter().any(Option::is_some))
         {
-            let mut warning = diagnostic("API-W-COMBINED-PRESCRIBED", "warning", format!("#85: combinación {}: prescritos = suma factor·δ; un asentamiento único se pondera por su factor. Asentamientos repetidos se rechazan.", combination.id));
+            let mut warning = diagnostic("API-W-COMBINED-PRESCRIBED", "warning", format!("#85: combination {}: prescribed displacements = sum of factor·δ; a single settlement is weighted by its factor. Repeated settlements are rejected.", combination.id));
             warning
                 .entities
                 .push(json!({"kind": "case", "id": combination.id}));
@@ -174,5 +176,5 @@ pub(crate) fn combinations(context: MethodContext<'_>) -> Result<(), Failure> {
 fn check_cancel(cancel: &CancelToken) -> engine_core::EResult<()> {
     cancel
         .check()
-        .map_err(|_| EngineError::new("ENG-E-0012", "Cancelación solicitada por la fachada"))
+        .map_err(|_| EngineError::new("ENG-E-0012", "Cancellation requested by the facade"))
 }

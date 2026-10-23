@@ -72,7 +72,7 @@ impl Constraints {
             if !map.contains_node(support.node) {
                 let mut e = error(
                     "ENG-E-0003",
-                    format!("Apoyo {} sobre nodo inexistente.", support.id),
+                    format!("Support {} is on a nonexistent node.", support.id),
                 );
                 e.entities.push(engine_core::EntityRef::Node(support.node));
                 return Err(e);
@@ -80,7 +80,7 @@ impl Constraints {
             if !ids.insert(&support.id) {
                 return Err(error(
                     "ENG-E-0002",
-                    format!("Apoyo {} duplicado.", support.id),
+                    format!("Duplicate support {}.", support.id),
                 ));
             }
             for &dof in &support.restrained {
@@ -88,7 +88,7 @@ impl Constraints {
                 if values[i].replace(0.0).is_some() {
                     return Err(error(
                         "ENG-E-0002",
-                        format!("Apoyo repetido: nodo {}, GDL {dof}.", support.node.0),
+                        format!("Duplicate support: node {}, DOF {dof}.", support.node.0),
                     ));
                 }
             }
@@ -98,7 +98,7 @@ impl Constraints {
             finite(&[p.value])?;
             let i = map.global_index(p.node, p.dof)?.0 as usize;
             if !seen.insert(i) {
-                return Err(error("ENG-E-0002", "Desplazamiento impuesto duplicado."));
+                return Err(error("ENG-E-0002", "Duplicate imposed displacement."));
             }
             values[i] = Some(p.value);
         }
@@ -108,7 +108,7 @@ impl Constraints {
                 if slaves.contains(&node) {
                     let mut e = error(
                         "ENG-E-0013",
-                        "No se admite un GDL apoyado o prescrito en un esclavo.",
+                        "A supported or prescribed DOF is not allowed on a slave.",
                     );
                     e.entities.push(engine_core::EntityRef::Node(node));
                     return Err(e);
@@ -132,7 +132,7 @@ impl Constraints {
             }
         }
         if free.is_empty() {
-            return Err(error("ENG-E-0010", "Todos los GDL están restringidos."));
+            return Err(error("ENG-E-0010", "All DOFs are constrained."));
         }
         let rows = relations
             .iter()
@@ -167,12 +167,10 @@ impl Constraints {
     /// For a slave use free_transformation_row: it may depend on several DOFs.
     /// ENG-E-0010 if the global index is out of range.
     pub fn reduced_index(&self, global: DofIndex) -> EResult<Option<DofIndex>> {
-        self.reduced.get(global.0 as usize).copied().ok_or_else(|| {
-            error(
-                "ENG-E-0010",
-                "Índice global fuera de rango en restricciones.",
-            )
-        })
+        self.reduced
+            .get(global.0 as usize)
+            .copied()
+            .ok_or_else(|| error("ENG-E-0010", "Global index is out of range in constraints."))
     }
 
     /// Reconstructs global u with u_f (m/rad) and constant u_p values.
@@ -218,7 +216,7 @@ impl Constraints {
                 let c = self
                     .independent
                     .binary_search(&i)
-                    .map_err(|_| error("ENG-E-0012", "Transformación inconsistente."))?;
+                    .map_err(|_| error("ENG-E-0012", "Inconsistent transformation."))?;
                 matrix[r * self.independent.len() + c] = a;
             }
         }
@@ -232,7 +230,7 @@ impl Constraints {
         self.rows
             .get(global.0 as usize)
             .map(Vec::as_slice)
-            .ok_or_else(|| error("ENG-E-0010", "Fila de transformación fuera de rango."))
+            .ok_or_else(|| error("ENG-E-0010", "Transformation row is out of range."))
     }
 
     /// Validated diaphragms in declaration order.

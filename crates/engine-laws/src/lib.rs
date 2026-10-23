@@ -45,7 +45,7 @@ fn finite(value: Real, name: &str) -> EResult<Real> {
     } else {
         Err(EngineError::new(
             "ENG-E-0008",
-            format!("{name} debe ser finito; compruebe también desbordamientos."),
+            format!("{name} must be finite; also check for overflow."),
         ))
     }
 }
@@ -57,7 +57,7 @@ fn positive(value: Real, name: &str) -> EResult<Real> {
     } else {
         Err(EngineError::new(
             "ENG-E-0010",
-            format!("{name} debe ser estrictamente positivo."),
+            format!("{name} must be strictly positive."),
         ))
     }
 }
@@ -66,7 +66,7 @@ fn vector(values: &[Real], len: usize, name: &str) -> EResult<()> {
     if values.len() != len {
         return Err(EngineError::new(
             "ENG-E-0010",
-            format!("{name}: longitud {}; se esperaba {len}.", values.len()),
+            format!("{name}: length {}; expected {len}.", values.len()),
         ));
     }
     for &value in values {

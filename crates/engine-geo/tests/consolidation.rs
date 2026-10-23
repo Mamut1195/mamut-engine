@@ -377,7 +377,7 @@ fn middle_layer_cv_discrepancy_is_rejected_without_substitution() {
             );
         assert_eq!(error.code, "ENG-E-0010");
         let hint = error.hint.as_deref().expect("contexto de discrepancia");
-        assert!(hint.contains("layers[1]") && hint.contains("cv incompatible"));
+        assert!(hint.contains("layers[1]") && hint.contains("cv is incompatible"));
     }
 }
 
@@ -411,7 +411,7 @@ fn cv_consistency_relative_tolerance_boundary() {
             let error = result.expect_err("razón 1+2e-10 debe rechazarse");
             assert_eq!(error.code, "ENG-E-0010");
             let hint = error.hint.as_deref().expect("contexto de discrepancia");
-            assert!(hint.contains("layers[0]") && hint.contains("cv incompatible"));
+            assert!(hint.contains("layers[0]") && hint.contains("cv is incompatible"));
         }
     }
 }

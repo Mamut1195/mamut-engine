@@ -12,7 +12,7 @@ pub(crate) fn sum(g: &Geometry, loads: &[MemberLoad]) -> EResult<[Real; 6]> {
     let mut q = [0.0; 6];
     for load in loads {
         for (sum, value) in q.iter_mut().zip(components(g, load)?) {
-            *sum = finite(*sum + value, "Suma de cargas uniformes")?;
+            *sum = finite(*sum + value, "Sum of uniform loads")?;
         }
     }
     Ok(q)

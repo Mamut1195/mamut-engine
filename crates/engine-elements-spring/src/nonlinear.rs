@@ -62,11 +62,11 @@ impl NonlinearSpring {
     ) -> EResult<Self> {
         let contract = law.contract();
         if contract.name != "uniaxial" || contract.major != 1 {
-            return Err(invalid("Resorte no lineal: se requiere ley uniaxial/1."));
+            return Err(invalid("Nonlinear spring: uniaxial/1 law is required."));
         }
         let initial = law.initial_state();
-        vector(&initial, law.state_len(), "Historia inicial de la ley")?;
-        finite(law.initial_tangent(), "Tangente inicial de la ley")?;
+        vector(&initial, law.state_len(), "Initial law history")?;
+        finite(law.initial_tangent(), "Initial law tangent")?;
         Ok(Self {
             geometry: LinearSpring::new(dim, connection, 1.0, dofs, axes)?,
             law,
@@ -86,7 +86,7 @@ impl NonlinearSpring {
         let law = params
             .law
             .clone()
-            .ok_or_else(|| invalid("Resorte no lineal: falta la ley resuelta."))?;
+            .ok_or_else(|| invalid("Nonlinear spring: missing resolved law."))?;
         Self::new(dim, connection, law, dofs, axes)
     }
 
@@ -112,17 +112,13 @@ impl NonlinearSpring {
         committed: &[Real],
     ) -> EResult<UniaxialResponse> {
         geometry::validate(&self.geometry, ctx)?;
-        vector(committed, self.state_len(), "Historia aceptada")?;
+        vector(committed, self.state_len(), "Accepted history")?;
         // La geometría auxiliar tiene k=1: su fuerza generalizada es δ.
         let delta = stiffness::force(&self.geometry, u, &[])?;
         let response = self.law.respond(delta, committed)?;
-        finite(response.stress, "Fuerza de la ley")?;
-        finite(response.tangent, "Tangente de la ley")?;
-        vector(
-            &response.trial_state,
-            self.state_len(),
-            "Historia de prueba",
-        )?;
+        finite(response.stress, "Law force")?;
+        finite(response.tangent, "Law tangent")?;
+        vector(&response.trial_state, self.state_len(), "Trial history")?;
         Ok(response)
     }
 }

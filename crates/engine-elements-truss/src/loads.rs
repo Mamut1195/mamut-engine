@@ -5,10 +5,10 @@ use engine_core::{EResult, Real};
 
 pub(crate) fn axial(g: &Geometry, load: &MemberLoad) -> EResult<Real> {
     check_vector(&load.force_per_length, 3, "q (N/m)")?;
-    check_vector(&load.moment_per_length, 3, "Momento por longitud (N)")?;
+    check_vector(&load.moment_per_length, 3, "Moment per length (N)")?;
     if load.moment_per_length != [0.0; 3] || (g.axes == 2 && load.force_per_length[2] != 0.0) {
         return Err(invalid(
-            "Barra: momentos o carga fuera del plano no admitidos.",
+            "Truss: moments or out-of-plane loads are not allowed.",
         ));
     }
     let mut q = 0.0;
@@ -24,19 +24,19 @@ pub(crate) fn axial(g: &Geometry, load: &MemberLoad) -> EResult<Real> {
     for axis in 0..g.axes {
         let residual = finite(
             load.force_per_length[axis] - q * g.d[axis],
-            "q transversal (N/m)",
+            "Transverse q (N/m)",
         )?;
         if residual.abs() > 64.0 * f64::EPSILON * magnitude {
             return Err(invalid(
-                "Barra: solo carga uniforme paralela al eje, sin componente transversal.",
+                "Truss: only uniform load parallel to the axis, with no transverse component.",
             ));
         }
     }
     Ok(q)
 }
 pub(crate) fn vector(g: &Geometry, load: &MemberLoad) -> EResult<Vec<Real>> {
-    let half = finite(axial(g, load)? * (g.length / 2.0), "Carga equivalente (N)")?;
+    let half = finite(axial(g, load)? * (g.length / 2.0), "Equivalent load (N)")?;
     (0..2 * g.axes)
-        .map(|i| finite(half * g.d[i % g.axes], "F equivalente (N)"))
+        .map(|i| finite(half * g.d[i % g.axes], "Equivalent F (N)"))
         .collect()
 }

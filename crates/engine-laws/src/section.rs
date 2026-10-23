@@ -221,12 +221,12 @@ impl SectionLaw for ElasticFrame {
             Dim::D3 => &self.rigidities,
         };
         let n = diagonal.len();
-        vector(e, n, "Deformaciones generalizadas")?;
-        vector(committed, 0, "Historia aceptada")?;
+        vector(e, n, "Generalized deformations")?;
+        vector(committed, 0, "Accepted history")?;
         let mut resultants = Vec::with_capacity(n);
         let mut tangent = vec![0.0; n * n];
         for (i, (&stiffness, &strain)) in diagonal.iter().zip(e).enumerate() {
-            resultants.push(finite(stiffness * strain, "Resultante de sección")?);
+            resultants.push(finite(stiffness * strain, "Section resultant")?);
             tangent[i * n + i] = stiffness;
         }
         Ok(SectionResponse {
