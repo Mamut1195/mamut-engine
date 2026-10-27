@@ -1,4 +1,4 @@
-//! N∫(v′²+w′²)dx, segunda variación de elongación transversal.
+//! N∫(v′²+w′²)dx, second variation of transverse elongation.
 use crate::{finite, stiffness::block, Matrix, PLANES};
 use engine_core::{EResult, Real};
 

@@ -1,46 +1,46 @@
 #![forbid(unsafe_code)]
-//! Resortes `spring.linear` y `spring.nonlinear`, contrato element/1.
+//! Springs `spring.linear` and `spring.nonlinear`, contract element/1.
 //!
-//! [`NonlinearSpring`] conserva una ley `uniaxial/1` resuelta. Usa longitud y
-//! área unitarias: ε=δ, σ=F; la tabla de la ley expresa desplazamiento y fuerza,
-//! sin convertir una curva tensión-deformación de material automáticamente.
-//! Su historia es exactamente la de la ley. `respond` solo produce una prueba;
-//! el llamador hace commit sustituyendo su historia aceptada por `trial_state`
-//! tras converger, o revert descartando la prueba y conservando la aceptada.
-//! La tangente es (dF/dδ)bbᵀ, con eje fijo y sin rigidez geométrica.
-//! Los quiebres, gaps, pretensión y rango físico dependen de la ley seleccionada.
-//! Para giros la interpretación equivalente es ε=θ, σ=M, tangente N·m/rad.
+//! [`NonlinearSpring`] retains a resolved `uniaxial/1` law. Uses unit length and
+//! area: ε=δ, σ=F; the law table expresses displacement and force,
+//! without automatically converting a material stress-strain curve.
+//! Its history is exactly the law's history. `respond` only produces a trial;
+//! the caller commits by replacing its accepted history with `trial_state`
+//! after convergence, or reverts by discarding the trial and retaining the accepted history.
+//! The tangent is (dF/dδ)bbᵀ, with a fixed axis and no geometric stiffness.
+//! Breakpoints, gaps, prestress, and physical range depend on the selected law.
+//! For rotations, the equivalent interpretation is ε=θ, σ=M, tangent in N·m/rad.
 //!
-//! En `spring.linear`, la API directa [`LinearSpring::new`] admite uno o varios GDL
-//! locales de la misma familia (traslaciones o giros), que comparten una rigidez k≥0:
-//! δ es la SUMA de sus desplazamientos relativos, energía
-//! W=½kδ². Esto acopla los GDL; resortes independientes requieren elementos
-//! separados. Entre nodos δ=c·(u_j−u_i); a tierra δ=c·u_i. Para un GDL,
-//! `K=k[[1,−1],[−1,1]]` entre nodos, `K=[k]` a tierra. Fuerza interna = ∂W/∂u.
-//! Ejes fijos globales o explícitos, nunca inferidos de las coordenadas.
-//! Dirección normalizada para el GDL local Ux; una rotación usa filas como
-//! ejes locales expresados en globales. D2 está en XY, Z=0; D3 es diestra.
-//! La fábrica [`SpringFactory`] y su esquema JSON admiten exactamente un GDL
-//! local de la dimensión seleccionada. Se rechazan listas vacías o con más GDL
-//! que la dimensión; varios GDL distintos válidos producen ENG-E-0013.
+//! In `spring.linear`, the direct API [`LinearSpring::new`] accepts one or more local DOFs
+//! of the same family (translations or rotations), sharing a stiffness k≥0:
+//! δ is the SUM of their relative displacements, energy
+//! W=½kδ². This couples the DOFs; independent springs require separate
+//! elements. Between nodes δ=c·(u_j−u_i); to ground δ=c·u_i. For one DOF,
+//! `K=k[[1,−1],[−1,1]]` between nodes, `K=[k]` to ground. Internal force = ∂W/∂u.
+//! Fixed global or explicit axes, never inferred from coordinates.
+//! Normalized direction for local DOF Ux; a rotation uses rows as
+//! local axes expressed in global axes. D2 is in XY, Z=0; D3 is right-handed.
+//! Factory [`SpringFactory`] and its JSON schema accept exactly one local DOF
+//! of the selected dimension. Empty lists or lists with more DOFs than the
+//! dimension are rejected; multiple distinct valid DOFs produce ENG-E-0013.
 //!
-//! Traslaciones m, fuerzas N, k N/m; giros rad, momentos N·m, k N·m/rad.
-//! No se mezclan traslaciones y giros sin una escala dimensional explícita.
-//! Propiedades validadas en self; ctx.params no interviene. Se admiten nodos
-//! coincidentes: no hay longitud física, carga de tramo, masa ni Kg.
-//! Masa/Kg devuelven None tras validar las entradas; carga nula devuelve cero,
-//! cualquier carga de tramo no nula se rechaza. La recuperación entrega acciones
-//! locales por nodo y resultantes constantes `[N,Vy,Vz,T,My,Mz]` en estaciones.
-//! A tierra, el único nodo representa el extremo móvil j; su acción es +kδ.
+//! Translations in m, forces in N, k in N/m; rotations in rad, moments in N·m, k in N·m/rad.
+//! Translations and rotations are not mixed without an explicit dimensional scale.
+//! Validated properties in self; ctx.params is unused. Coincident nodes
+//! are allowed: no physical length, span load, mass, or Kg.
+//! Mass/Kg return None after validating inputs; zero load returns zero,
+//! any nonzero span load is rejected. Recovery returns local actions
+//! per node and constant resultants `[N,Vy,Vz,T,My,Mz]` at stations.
+//! To ground, the sole node represents the moving end j; its action is +kδ.
 //!
-//! El eje es fijo: un giro rígido que cambia su proyección puede deformar un
-//! resorte entre nodos separados. Las traslaciones uniformes sí son modos nulos.
-//! Un apoyo a tierra elimina el modo rígido correspondiente. La covarianza
-//! exige rotar también el eje propio; límites del kit general en la bitácora.
-//! ENG-E-0008: no finitos/desbordamientos; ENG-E-0010: rango, tamaño, dirección
-//! nula, rotación no ortonormal, GDL o carga no admitidos. Sin E/S, hilos,
-//! reloj ni estado mutable. Determinismo por destino, sin promesa bit a bit
-//! entre destinos ni regularización de rigideces diminutas.
+//! The axis is fixed: a rigid rotation changing its projection may deform a
+//! spring between separated nodes. Uniform translations are zero modes.
+//! A ground support removes the corresponding rigid mode. Covariance
+//! requires rotating the spring axis as well; general kit limits are in the log.
+//! ENG-E-0008: nonfinite values/overflow; ENG-E-0010: range, size, zero
+//! direction, nonorthonormal rotation, unsupported DOF or load. No I/O, threads,
+//! clock, or mutable state. Deterministic per target, without a bitwise promise
+//! across targets or regularization of tiny stiffnesses.
 //!
 //! ```
 //! use engine_elements_spring::{LinearSpring, SpringAxes, SpringConnection};
@@ -72,16 +72,16 @@ pub use factory::SpringFactory;
 pub use geometry::SpringAxes;
 pub use nonlinear::NonlinearSpring;
 
-/// Conexión del resorte; el orden nodal entre extremos es i, j.
+/// Spring connection; nodal order between ends is i, j.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SpringConnection {
-    /// Dos nodos, acciones iguales y contrarias.
+    /// Two nodes, equal and opposite actions.
     BetweenNodes,
-    /// Un nodo móvil conectado a tierra inmóvil.
+    /// One moving node connected to stationary ground.
     Ground,
 }
 
-/// Resorte lineal de rango uno con propiedades SI inmutables.
+/// Rank-one linear spring with immutable SI properties.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LinearSpring {
     dim: Dim,
@@ -93,11 +93,11 @@ pub struct LinearSpring {
 }
 
 impl LinearSpring {
-    /// Construye con k≥0 finita y GDL distintos, no vacíos, de una misma familia.
-    /// Los GDL se suman con coeficiente uno en el sistema seleccionado.
-    /// Direction exige únicamente Ux local. Rotation expande los GDL globales
-    /// activos a toda la familia para conservar la covarianza; Global conserva
-    /// el subconjunto seleccionado. Orden de salida: el canónico de engine-core.
+    /// Constructs with finite k≥0 and distinct, nonempty DOFs of the same family.
+    /// DOFs are summed with unit coefficient in the selected system.
+    /// Direction requires only local Ux. Rotation expands active global DOFs
+    /// to the entire family to preserve covariance; Global retains
+    /// the selected subset. Output order: the canonical engine-core order.
     pub fn new(
         dim: Dim,
         connection: SpringConnection,
@@ -120,15 +120,15 @@ impl LinearSpring {
         })
     }
 
-    /// Dimensión validada del resorte.
+    /// Validated spring dimension.
     pub fn dim(&self) -> Dim {
         self.dim
     }
-    /// Conexión entre nodos o a tierra.
+    /// Connection between nodes or to ground.
     pub fn connection(&self) -> SpringConnection {
         self.connection
     }
-    /// Rigidez k validada, N/m o N·m/rad según la familia.
+    /// Validated stiffness k, N/m or N·m/rad according to the family.
     pub fn stiffness(&self) -> Real {
         self.k
     }

@@ -1,4 +1,4 @@
-//! Sin tramo físico: solo se admite la carga nula del contrato.
+//! No physical span: only the contract's zero load is accepted.
 use crate::{invalid, vector};
 use engine_contracts::MemberLoad;
 use engine_core::EResult;

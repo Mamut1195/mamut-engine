@@ -1,18 +1,18 @@
 #![forbid(unsafe_code)]
-//! Leyes constitutivas puras, sin dependencias externas.
+//! Pure constitutive laws, without external dependencies.
 //!
-//! [`uniaxial::Elastic`] y [`uniaxial::MultilinearElastic`] implementan
-//! `uniaxial/1` (kinds `elastic` y `multilinear_elastic`), y
-//! [`section::ElasticFrame`] implementa `section/1` (kind `elastic_frame`).
-//! [`uniaxial::SteelBilinearKinematic`] implementa `uniaxial/1`, con historia
-//! de plasticidad y kind `steel.bilinear_kinematic`.
-//! [`uniaxial::CubicElastic`] implementa `uniaxial/1`, kind `elastic.cubic`,
-//! con una curva elástica suave derivada de una energía cuártica propia.
-//! Los parámetros y resultados usan SI; no hay conversión de unidades, cálculo
-//! geométrico ni registro global. Las fábricas tipadas permiten construir
-//! objetos de los traits de `engine-contracts` sin acoplar al consumidor a una
-//! implementación. Los descriptores distinguen versión del método y contrato;
-//! los cambios de API siguen semver, inicialmente 0.1.0.
+//! [`uniaxial::Elastic`] and [`uniaxial::MultilinearElastic`] implement
+//! `uniaxial/1` (kinds `elastic` and `multilinear_elastic`), and
+//! [`section::ElasticFrame`] implements `section/1` (kind `elastic_frame`).
+//! [`uniaxial::SteelBilinearKinematic`] implements `uniaxial/1`, with plasticity
+//! history and kind `steel.bilinear_kinematic`.
+//! [`uniaxial::CubicElastic`] implements `uniaxial/1`, kind `elastic.cubic`,
+//! with a smooth elastic curve derived from an original quartic energy.
+//! Parameters and results use SI; there is no unit conversion, geometric
+//! calculation, or global registry. Typed factories construct
+//! `engine-contracts` trait objects without coupling the consumer to an
+//! implementation. Descriptors distinguish method and contract versions;
+//! API changes follow semver, initially 0.1.0.
 //!
 //! ```
 //! use engine_contracts::UniaxialLaw;
@@ -28,14 +28,14 @@ use engine_core::{ContractId, EResult, EngineError, Real};
 pub mod section;
 pub mod uniaxial;
 
-/// Metadatos estáticos sin registro, E/S ni construcción implícita.
+/// Static metadata without a registry, I/O, or implicit construction.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LawDescriptor {
-    /// Identificador propio estable, igual a `kind()` del objeto construido.
+    /// Stable internal identifier, equal to `kind()` of the constructed object.
     pub kind: &'static str,
-    /// Contrato público implementado; su versión es independiente del método.
+    /// Implemented public contract; its version is independent of the method.
     pub contract: ContractId,
-    /// Versión semántica del método: mayor, menor, parche.
+    /// Method semantic version: major, minor, patch.
     pub version: (u16, u16, u16),
 }
 

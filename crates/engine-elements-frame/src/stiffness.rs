@@ -1,4 +1,4 @@
-//! ∫ EA B_uᵀB_u + EI B_vᵀB_v dx; Schur de los giros liberados.
+//! ∫ EA B_uᵀB_u + EI B_vᵀB_v dx; Schur complement of released rotations.
 use crate::{finite, geometry::Geometry, positive, EulerFrame2D, Matrix};
 use engine_contracts::UniaxialLaw;
 use engine_core::{EResult, Real};
@@ -31,8 +31,8 @@ pub(crate) fn condensed(beam: &EulerFrame2D, g: &Geometry) -> EResult<Matrix> {
     if !beam.releases.i && !beam.releases.j {
         return local_matrix(beam, g);
     }
-    // Schur analítico: dos liberaciones anulan flexión exactamente, sin
-    // residuos de cancelación; una deja 3EI/L³ (v_j-v_i-L theta_f)²/2.
+    // Analytical Schur complement: two releases cancel bending exactly, without
+    // cancellation residuals; one leaves 3EI/L³ (v_j-v_i-L theta_f)²/2.
     let a = positive(beam.ea / g.length, "EA/L")?;
     let mut k = [[0.0; 6]; 6];
     k[0][0] = a;

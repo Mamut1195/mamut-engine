@@ -1,4 +1,4 @@
-//! Segunda variación N ∫ v′² dx; derivación propia con formas Hermite.
+//! Second variation N ∫ v′² dx; original derivation with Hermite shapes.
 use crate::{finite, Matrix};
 use engine_core::{EResult, Real};
 

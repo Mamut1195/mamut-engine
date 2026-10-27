@@ -1,5 +1,5 @@
-//! Lecho bilateral lineal de Winkler (1867); contexto clásico: Hetényi (1946).
-//! Derivación propia en provenance/ENG-GEO-002.md; k en N/m², reacción k·v en N/m.
+//! Bilateral linear Winkler foundation (1867); classical context: Hetényi (1946).
+//! Original derivation in provenance/ENG-GEO-002.md; k in N/m², reaction k·v in N/m.
 use engine_core::{EResult, EngineError, Real};
 
 fn finite(v: Real) -> EResult<Real> {
@@ -12,8 +12,8 @@ fn finite(v: Real) -> EResult<Real> {
         ))
     }
 }
-/// Valida rigidez distribuida k≥0 finita (N/m²).
-/// ENG-E-0010 por k negativo; ENG-E-0008 por NaN/infinito.
+/// Validates finite distributed stiffness k≥0 (N/m²).
+/// ENG-E-0010 for negative k; ENG-E-0008 for NaN/infinity.
 pub fn validate(k: Real) -> EResult<()> {
     finite(k)?;
     if k < 0.0 {
@@ -34,10 +34,10 @@ fn length(l: Real) -> EResult<()> {
     }
     Ok(())
 }
-/// ∫ k NᵀN dx en `[v_i,v′_i,v_j,v′_j]`, con Hermite cúbica.
-/// Simétrica definida positiva si k>0; cero si k=0. L en m.
-/// Errores de k según [`validate`], ENG-E-0005 por L≤1e-12,
-/// ENG-E-0008 por no finitos/desbordamiento y ENG-E-0010 por subdesbordamiento.
+/// ∫ k NᵀN dx in `[v_i,v′_i,v_j,v′_j]`, with cubic Hermite interpolation.
+/// Symmetric positive definite if k>0; zero if k=0. L in m.
+/// Errors for k as in [`validate`], ENG-E-0005 for L≤1e-12,
+/// ENG-E-0008 for nonfinite values/overflow and ENG-E-0010 for underflow.
 pub fn matrix(k: Real, l: Real) -> EResult<[[Real; 4]; 4]> {
     validate(k)?;
     length(l)?;
@@ -66,10 +66,10 @@ pub fn matrix(k: Real, l: Real) -> EResult<[[Real; 4]; 4]> {
     }
     Ok(out)
 }
-/// Integrales `[∫₀ˣ k v(s) ds, ∫₀ˣ (x−s) k v(s) ds]`, N y N·m.
-/// d=`[v_i,v′_i,v_j,v′_j]` en m/rad; posición x/L en `[0,1]`.
-/// La fuerza del suelo sobre la viga es −k v; estas integrales usan k v.
-/// ENG-E-0010 por posición fuera del tramo; los demás errores como [`matrix`].
+/// Integrals `[∫₀ˣ k v(s) ds, ∫₀ˣ (x−s) k v(s) ds]`, N and N·m.
+/// d=`[v_i,v′_i,v_j,v′_j]` in m/rad; position x/L in `[0,1]`.
+/// Soil force on the beam is −k v; these integrals use k v.
+/// ENG-E-0010 for position outside the span; other errors as in [`matrix`].
 pub fn integrals(k: Real, l: Real, d: [Real; 4], position: Real) -> EResult<[Real; 2]> {
     validate(k)?;
     length(l)?;

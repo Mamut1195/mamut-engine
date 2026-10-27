@@ -1,4 +1,4 @@
-//! Adaptación de una ley uniaxial propietaria a la geometría del resorte.
+//! Adaptation of an owned uniaxial law to spring geometry.
 use crate::{finite, geometry, invalid, loads, recover, stiffness, vector, LinearSpring};
 use crate::{SpringAxes, SpringConnection};
 use engine_contracts::{
@@ -9,23 +9,23 @@ use engine_core::{ContractId, Dim, Dof, EResult, Real};
 use engine_linalg::DMat;
 use std::sync::Arc;
 
-/// Resorte de rango uno `spring.nonlinear` con ley `uniaxial/1` inmutable.
+/// Rank-one `spring.nonlinear` spring with an immutable `uniaxial/1` law.
 ///
-/// La ley se interpreta como fuerza-desplazamiento: ε=δ (m), σ=F (N),
-/// longitud/área unitarias. Para la familia de giros: θ (rad) y M (N·m).
-/// La geometría, cargas y recuperación siguen [`LinearSpring`]. El eje propio
-/// debe rotarse junto al modelo. Invertirlo cambia el lado activo de una ley
-/// asimétrica, por lo que no se presupone invariancia ante inversión de signo.
+/// The law is interpreted as force-displacement: ε=δ (m), σ=F (N),
+/// unit length/area. For the rotation family: θ (rad) and M (N·m).
+/// Geometry, loads, and recovery follow [`LinearSpring`]. The spring axis
+/// must rotate with the model. Reversing it changes the active side of an
+/// asymmetric law, so invariance under sign reversal is not assumed.
 ///
-/// La historia pertenece al llamador. No hay aceptación implícita ni memoria
-/// de pruebas en el elemento; commit y revert se describen en el crate.
+/// History belongs to the caller. There is no implicit acceptance or storage
+/// of trials in the element; commit and revert are described in the crate.
 ///
 /// ```
 /// use std::sync::Arc;
 /// use engine_contracts::{examples::LinearElastic, Element, ElementCtx, ElementParams};
 /// use engine_core::{Dim, Dof};
 /// use engine_elements_spring::{NonlinearSpring, SpringAxes, SpringConnection};
-/// // La ley de ejemplo se interpreta aquí como F=100δ, en N y m.
+/// // The example law is interpreted here as F=100δ, in N and m.
 /// let params = ElementParams {
 ///     law: Some(Arc::new(LinearElastic::new(100.0)?)),
 ///     ..ElementParams::default()
@@ -37,7 +37,7 @@ use std::sync::Arc;
 /// let mut accepted = spring.initial_state();
 /// let trial = spring.respond(&ctx, &[0.05], &accepted)?;
 /// assert_eq!(trial.internal_force, vec![5.0]);
-/// accepted = trial.trial_state; // Commit explícito tras aceptar el paso.
+/// accepted = trial.trial_state; // Explicit commit after accepting the step.
 /// assert_eq!(spring.respond(&ctx, &[0.05], &accepted)?.internal_force, vec![5.0]);
 /// # Ok::<(), engine_core::EngineError>(())
 /// ```
@@ -49,10 +49,10 @@ pub struct NonlinearSpring {
 }
 
 impl NonlinearSpring {
-    /// Construye con ley resuelta y geometría igual a [`LinearSpring::new`].
-    /// Valida `uniaxial/1`, tamaño/finitud de historia inicial y tangente inicial.
-    /// No impone signo a la tangente: el rango físico lo declara cada ley.
-    /// ENG-E-0010 por contrato/tamaños/geometría; ENG-E-0008 por no finitos.
+    /// Constructs with a resolved law and geometry as in [`LinearSpring::new`].
+    /// Validates `uniaxial/1`, initial history size/finiteness, and initial tangent.
+    /// Imposes no sign on the tangent: each law declares its physical range.
+    /// ENG-E-0010 for contract/sizes/geometry; ENG-E-0008 for nonfinite values.
     pub fn new(
         dim: Dim,
         connection: SpringConnection,
@@ -74,8 +74,8 @@ impl NonlinearSpring {
         })
     }
 
-    /// Obtiene la ley previamente resuelta de `ElementParams::law` y la conserva.
-    /// ENG-E-0010 si falta. `ctx.params` no cambia la ley tras construir.
+    /// Retrieves the previously resolved law from `ElementParams::law` and retains it.
+    /// ENG-E-0010 if missing. `ctx.params` does not change the law after construction.
     pub fn from_params(
         dim: Dim,
         connection: SpringConnection,
@@ -90,17 +90,17 @@ impl NonlinearSpring {
         Self::new(dim, connection, law, dofs, axes)
     }
 
-    /// Dimensión validada del resorte.
+    /// Validated spring dimension.
     pub fn dim(&self) -> Dim {
         self.geometry.dim()
     }
 
-    /// Conexión entre nodos o a tierra.
+    /// Connection between nodes or to ground.
     pub fn connection(&self) -> SpringConnection {
         self.geometry.connection()
     }
 
-    /// Ley constitutiva conservada, independiente de la vida del contexto.
+    /// Retained constitutive law, independent of the context lifetime.
     pub fn law(&self) -> &dyn UniaxialLaw {
         self.law.as_ref()
     }
@@ -113,7 +113,7 @@ impl NonlinearSpring {
     ) -> EResult<UniaxialResponse> {
         geometry::validate(&self.geometry, ctx)?;
         vector(committed, self.state_len(), "Accepted history")?;
-        // La geometría auxiliar tiene k=1: su fuerza generalizada es δ.
+        // Auxiliary geometry has k=1: its generalized force is δ.
         let delta = stiffness::force(&self.geometry, u, &[])?;
         let response = self.law.respond(delta, committed)?;
         finite(response.stress, "Law force")?;

@@ -1,58 +1,58 @@
 #![forbid(unsafe_code)]
-//! Geotecnia: perfiles estratificados y consolidación incremental, desde cero.
+//! Geotechnics: layered profiles and incremental consolidation, from scratch.
 //!
-//! [`consolidation`] resuelve Terzaghi 1D multicapa por elementos finitos;
-//! [`winkler`] aporta el lecho elástico. Las hipótesis que siguen describen
-//! exclusivamente el perfil de tensiones geostáticas.
-//! [`py`] genera curvas laterales estáticas en SI sin prefijos (N, m, Pa).
-//! Las curvas axiales [`tz`] y [`qz`] usan SI sin prefijos: m, Pa y N; su z es
-//! desplazamiento local.
+//! [`consolidation`] solves multilayer 1D Terzaghi consolidation by finite elements;
+//! [`winkler`] provides the elastic foundation. The following assumptions describe
+//! only the geostatic stress profile.
+//! [`py`] generates static lateral curves in unprefixed SI (N, m, Pa).
+//! Axial curves [`tz`] and [`qz`] use unprefixed SI: m, Pa, and N; their z is
+//! local displacement.
 //!
-//! # Unidades, ejes e hipótesis
+//! # Units, axes, and assumptions
 //!
-//! Espesores y profundidades en m, pesos unitarios en kN/m³ y tensiones en kPa:
-//! `(kN/m³) × m = kN/m² = kPa`. Son unidades SI con prefijos explícitos.
-//! La API de perfiles usa kPa; para integrar con los contratos estructurales en Pa, el
-//! llamador debe convertir mediante `engine_core::units::convert`. El catálogo
-//! de unidades del núcleo no representa pesos unitarios; no se amplía aquí.
+//! Thicknesses and depths in m, unit weights in kN/m³, and stresses in kPa:
+//! `(kN/m³) × m = kN/m² = kPa`. These are SI units with explicit prefixes.
+//! The profile API uses kPa; to integrate with structural contracts in Pa, the
+//! caller must convert through `engine_core::units::convert`. The core unit
+//! catalog does not represent unit weights; it is not extended here.
 //!
-//! En el perfil, la profundidad `z` es positiva hacia abajo: con Z global
-//! hacia arriba, `z = Z_superficie − Z`. La compresión geotécnica es positiva;
-//! al representar una tensión normal con tracción positiva debe invertirse su
-//! signo. No se interpreta el plano D2 horizontal como sección vertical.
+//! In the profile, depth `z` is positive downward: with global Z
+//! upward, `z = Z_superficie − Z`. Geotechnical compression is positive;
+//! when representing a normal stress with positive tension, its sign must be
+//! reversed. The horizontal D2 plane is not interpreted as a vertical section.
 //!
-//! Cada capa aporta γ por encima del nivel freático `zw` y γsat por debajo.
-//! Se integra `σv = Σ γi hi`, dividiendo las capas que cruzan `zw`.
-//! `u = γw max(z − zw, 0)` y `σ'v = σv − u`. No se vuelve a sumar el peso
-//! del agua a γsat. Sin cohesión, capilaridad, succión, sobrecargas, flujo,
-//! exceso de presión de poro, consolidación ni tensiones horizontales.
-//! Se rechaza `zw < 0` (agua sobre el terreno); `zw >= espesor_total` produce
-//! un perfil seco a efectos de este modelo. En el nivel freático, `u = 0`.
+//! Each layer contributes γ above groundwater level `zw` and γsat below it.
+//! Integrates `σv = Σ γi hi`, splitting layers that cross `zw`.
+//! `u = γw max(z − zw, 0)` and `σ'v = σv − u`. Water weight is not added
+//! again to γsat. No cohesion, capillarity, suction, surcharge, flow,
+//! excess pore pressure, consolidation, or horizontal stresses.
+//! Rejects `zw < 0` (water above ground); `zw >= espesor_total` produces
+//! a dry profile for this model. At groundwater level, `u = 0`.
 //!
-//! # Datos explícitos y diagnósticos
+//! # Explicit data and diagnostics
 //!
-//! Cada γ, γsat, γw y zw tiene [`Provenance`] obligatorio, sin valores por
-//! defecto. [`Layer`] permite representar datos ausentes; el constructor del
-//! perfil exige γ en todas las capas y γsat en cada capa con tramo bajo `zw`.
-//! También exige zw y γw, incluso en un perfil seco. Valida el perfil completo
-//! antes de cualquier consulta y nunca sustituye γsat por γ.
-//! Todos los pesos aportados deben ser positivos y finitos, sin imponer
-//! `γsat >= γ` ni `γsat >= γw`; la tensión efectiva puede ser negativa y no
-//! se recorta. Los resultados reportan todos los parámetros declarados
-//! [`Provenance::Assumed`], aunque no intervengan a la profundidad consultada.
+//! Each γ, γsat, γw, and zw has required [`Provenance`], without default
+//! values. [`Layer`] can represent missing data; the profile constructor
+//! requires γ in all layers and γsat in each layer with a portion below `zw`.
+//! Also requires zw and γw, even in a dry profile. Validates the entire profile
+//! before any query and never substitutes γ for γsat.
+//! All supplied unit weights must be positive and finite, without imposing
+//! `γsat >= γ` or `γsat >= γw`; effective stress may be negative and is not
+//! clipped. Results report all parameters declared
+//! [`Provenance::Assumed`], even if unused at the queried depth.
 //!
-//! El catálogo carece de códigos geotécnicos específicos. Se reutiliza
-//! `ENG-E-0003` para datos ausentes, `ENG-E-0010` para rangos/geometría inválidos
-//! y `ENG-E-0008` para NaN, infinitos o desbordamientos. Cada [`Diagnostic`]
-//! conserva mensaje/gravedad del catálogo y detalla dato, causa y corrección en
-//! `hint`. `entities` queda vacío porque el núcleo no tiene entidades de suelo.
+//! The catalog has no specific geotechnical codes. Reuses
+//! `ENG-E-0003` for missing data, `ENG-E-0010` for invalid ranges/geometry,
+//! and `ENG-E-0008` for NaN, infinities, or overflow. Each [`Diagnostic`]
+//! retains the catalog message/severity and details the datum, cause, and correction in
+//! `hint`. `entities` is empty because the core has no soil entities.
 //!
-//! # Compatibilidad
+//! # Compatibility
 //!
-//! Crate 0.1.0: una modificación incompatible de la API pública incrementa la
-//! versión menor según semver antes de 1.0. El contrato propio `stress-profile/1`
-//! incrementa su versión mayor si cambian unidades, signos o requisitos del
-//! trait; su versión menor admite extensiones compatibles.
+//! Crate 0.1.0: an incompatible public API change increments the
+//! minor version under semver before 1.0. The internal `stress-profile/1` contract
+//! increments its major version if units, signs, or trait requirements change;
+//! its minor version allows compatible extensions.
 //!
 //! ```
 //! use engine_geo::{Layer, Parameter, Provenance, StratifiedProfile, StressProfile};
@@ -86,47 +86,47 @@ pub mod consolidation;
 mod profile;
 pub use profile::StratifiedProfile;
 
-/// Resultado geotécnico con un diagnóstico del catálogo y `hint` contextual.
+/// Geotechnical result with a catalog diagnostic and contextual `hint`.
 pub type GeoResult<T> = Result<T, Diagnostic>;
 
-/// Origen declarado de un dato, sin clasificación implícita ni valor por defecto.
+/// Declared provenance of a datum, without implicit classification or default value.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Provenance {
-    /// Dato medido, según la declaración del llamador.
+    /// Measured datum, as declared by the caller.
     Measured,
-    /// Dato supuesto, que se reportará explícitamente en el resultado.
+    /// Assumed datum, explicitly reported in the result.
     Assumed,
 }
 
-/// Valor y origen inseparables; la unidad depende del campo que lo recibe.
+/// Inseparable value and provenance; the unit depends on the receiving field.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Parameter {
-    /// Valor en las unidades explícitas del campo que lo recibe.
+    /// Value in the explicit units of the receiving field.
     pub value: Real,
-    /// Origen explícito del valor; no certifica la calidad de una medición.
+    /// Explicit provenance of the value; does not certify measurement quality.
     pub provenance: Provenance,
 }
 
 impl Parameter {
-    /// Declara un valor y su origen; la validación ocurre al construir el perfil.
+    /// Declares a value and its provenance; validation occurs when constructing the profile.
     pub const fn new(value: Real, provenance: Provenance) -> Self {
         Self { value, provenance }
     }
 }
 
-/// Capa horizontal de espesor constante; las capas se ordenan desde el terreno.
+/// Horizontal layer of constant thickness; layers are ordered from ground level.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Layer {
-    /// Espesor en m; debe ser finito y estrictamente positivo.
+    /// Thickness in m; must be finite and strictly positive.
     pub thickness_m: Real,
-    /// γ en kN/m³ sobre el nivel freático, requerido en todas las capas.
+    /// γ in kN/m³ above groundwater level, required in all layers.
     pub gamma_kn_m3: Option<Parameter>,
-    /// γsat en kN/m³, requerido si parte de la capa está bajo el nivel freático.
+    /// γsat in kN/m³, required if part of the layer is below groundwater level.
     pub gamma_sat_kn_m3: Option<Parameter>,
 }
 
 impl Layer {
-    /// Declara una capa sin rellenar datos ausentes ni validarlos todavía.
+    /// Declares a layer without filling missing data or validating them yet.
     pub const fn new(
         thickness_m: Real,
         gamma_kn_m3: Option<Parameter>,
@@ -140,71 +140,71 @@ impl Layer {
     }
 }
 
-/// Identidad de un parámetro supuesto; índices de capa desde cero, sin duplicados.
+/// Identity of an assumed parameter; zero-based layer indices, without duplicates.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ParameterId {
-    /// γ de la capa indicada.
+    /// γ of the indicated layer.
     LayerGamma {
-        /// Posición de la capa desde el terreno, empezando en cero.
+        /// Layer position from ground level, starting at zero.
         layer_index: usize,
     },
-    /// γsat de la capa indicada.
+    /// γsat of the indicated layer.
     LayerGammaSat {
-        /// Posición de la capa desde el terreno, empezando en cero.
+        /// Layer position from ground level, starting at zero.
         layer_index: usize,
     },
-    /// Profundidad zw del nivel freático.
+    /// Groundwater depth zw.
     GroundwaterDepth,
-    /// Peso unitario γw del agua.
+    /// Water unit weight γw.
     WaterUnitWeight,
 }
 
-/// Tensiones a una profundidad, con procedencia explícita del perfil completo.
+/// Stresses at a depth, with explicit provenance of the entire profile.
 #[derive(Clone, Debug, PartialEq)]
 pub struct StressResult {
-    /// Profundidad consultada en m desde el terreno, positiva hacia abajo.
+    /// Queried depth in m from ground level, positive downward.
     pub depth_m: Real,
-    /// Tensión vertical total σv en kPa, compresión positiva.
+    /// Total vertical stress σv in kPa, positive in compression.
     pub total_vertical_kpa: Real,
-    /// Presión de poro u en kPa, hidrostática bajo zw y cero encima.
+    /// Pore pressure u in kPa, hydrostatic below zw and zero above.
     pub pore_pressure_kpa: Real,
-    /// Tensión efectiva σ'v = σv − u en kPa, sin recorte de valores negativos.
+    /// Effective stress σ'v = σv − u in kPa, without clipping negative values.
     pub effective_vertical_kpa: Real,
-    /// Todos los parámetros aportados como Assumed, incluidos los no utilizados.
+    /// All parameters supplied as Assumed, including unused ones.
     ///
-    /// Orden: γ, γsat por cada capa desde arriba, luego zw y γw.
+    /// Order: γ, γsat for each layer from the top, then zw and γw.
     pub assumed_parameters: Vec<ParameterId>,
 }
 
-/// Perfil intercambiable, puro y thread-safe, contrato propio `stress-profile/1`.
+/// Interchangeable, pure, thread-safe profile, internal contract `stress-profile/1`.
 ///
-/// Entrada: profundidad finita en m en `[0, total_depth_m()]`, sin extrapolar.
-/// Salida: tensiones finitas en kPa con compresión positiva y reporte Assumed.
-/// Errores según la documentación del crate; nunca omite un dato requerido.
-/// Los métodos escalares son atajos; use `stresses_at` para obtener procedencia.
+/// Input: finite depth in m in `[0, total_depth_m()]`, without extrapolation.
+/// Output: finite stresses in kPa with positive compression and Assumed report.
+/// Errors as documented for the crate; never omits a required datum.
+/// Scalar methods are shortcuts; use `stresses_at` to obtain provenance.
 pub trait StressProfile: Send + Sync {
-    /// Identidad del contrato; nombres o versiones mayores diferentes son incompatibles.
+    /// Contract identity; different names or major versions are incompatible.
     fn contract(&self) -> ContractId {
         ContractId::new("stress-profile", 1, 0)
     }
 
-    /// Profundidad máxima admitida en m, finita y positiva.
+    /// Maximum allowed depth in m, finite and positive.
     fn total_depth_m(&self) -> Real;
 
-    /// Calcula σv, u y σ'v, junto con los parámetros Assumed del perfil completo.
+    /// Computes σv, u, and σ'v, together with Assumed parameters of the entire profile.
     fn stresses_at(&self, depth_m: Real) -> GeoResult<StressResult>;
 
-    /// Calcula σv en kPa; propaga los diagnósticos de `stresses_at`.
+    /// Computes σv in kPa; propagates diagnostics from `stresses_at`.
     fn total_vertical_stress_at(&self, depth_m: Real) -> GeoResult<Real> {
         Ok(self.stresses_at(depth_m)?.total_vertical_kpa)
     }
 
-    /// Calcula u en kPa; propaga los diagnósticos de `stresses_at`.
+    /// Computes u in kPa; propagates diagnostics from `stresses_at`.
     fn pore_pressure_at(&self, depth_m: Real) -> GeoResult<Real> {
         Ok(self.stresses_at(depth_m)?.pore_pressure_kpa)
     }
 
-    /// Calcula σ'v en kPa; propaga los diagnósticos de `stresses_at`.
+    /// Computes σ'v in kPa; propagates diagnostics from `stresses_at`.
     fn effective_vertical_stress_at(&self, depth_m: Real) -> GeoResult<Real> {
         Ok(self.stresses_at(depth_m)?.effective_vertical_kpa)
     }

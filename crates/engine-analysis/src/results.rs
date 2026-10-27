@@ -1,18 +1,18 @@
-//! Resultados estructurales SI y consultas de un caso estático lineal.
+//! Structural results in SI and queries for a linear static case.
 //!
-//! Datos propios con campos públicos, sin referencias a elementos en la salida.
-//! Están preparados para una futura serialización: el esquema `results/1`, JSON,
-//! hashes y procedencia serializada corresponden a ENG-CORE-005, aún pendiente.
-//! Este módulo apila sobre ENG-ANL-001 y no implementa esa frontera.
+//! Owned data with public fields, without element references in the output.
+//! Prepared for future serialization: the `results/1` schema, JSON,
+//! hashes, and serialized provenance belong to ENG-CORE-005, still pending.
+//! This module builds on ENG-ANL-001 and does not implement that boundary.
 //!
-//! Las estaciones se normalizan de −0.0 a +0.0, se ordenan y deduplican,
-//! siempre incluyendo los extremos.
-//! Por defecto se usan `[0, 0.25, 0.5, 0.75, 1]`. En `frame2d.euler_elastic`
-//! se añaden raíces exactas de cortante y de la derivada del momento bajo cargas
-//! uniformes; para otros elementos los extremos son los de las estaciones
-//! recuperadas (sin prometer extremos interiores de campos arbitrarios).
-//! Los signos locales son los de `Element::recover`: extremos como acciones
-//! sobre el miembro, estaciones por cara positiva `[N,Vy,Vz,T,My,Mz]`.
+//! Stations are normalized from −0.0 to +0.0, sorted, and deduplicated,
+//! always including the ends.
+//! The default is `[0, 0.25, 0.5, 0.75, 1]`. For `frame2d.euler_elastic`,
+//! exact roots of shear and of the moment derivative under uniform loads
+//! are added; for other elements, extrema are those of the recovered
+//! stations (without promising interior extrema of arbitrary fields).
+//! Local signs are those of `Element::recover`: ends as actions
+//! on the member, stations on the positive face `[N,Vy,Vz,T,My,Mz]`.
 
 use crate::{finite, StaticCaseResult};
 use engine_assembly::LinearSystem;
@@ -22,52 +22,52 @@ use engine_core::{Dim, DofIndex, EResult, EngineError, EntityRef, MemberId, Node
 use engine_linalg::LinAlgBackend;
 use std::collections::{BTreeMap, BTreeSet};
 
-/// Estaciones adimensionales utilizadas cuando no se proporciona una lista.
+/// Dimensionless stations used when no list is provided.
 pub const DEFAULT_STATIONS: [Real; 5] = [0.0, 0.25, 0.5, 0.75, 1.0];
 
-/// Vista del miembro resuelto; debe corresponder al mismo modelo/caso del sistema.
-/// No ensambla, acepta ni modifica la historia. Las cargas se escalan una vez
-/// por `StaticCaseResult::factor`, incluidos factores nulos o negativos.
-/// La colección debe incluir todos los miembros para verificar equilibrio nodal.
+/// View of the solved member; must match the same model/case as the system.
+/// Does not assemble, accept, or modify history. Loads are scaled once
+/// by `StaticCaseResult::factor`, including zero or negative factors.
+/// The collection must include all members to check nodal equilibrium.
 pub struct MemberRecovery<'a> {
-    /// Identificador único del miembro; no se interpreta como índice de vector.
+    /// Unique member identifier; not interpreted as a vector index.
     pub id: MemberId,
-    /// Nodos en el orden exigido por el elemento.
+    /// Nodes in the order required by the element.
     pub nodes: &'a [NodeId],
-    /// Elemento que produjo el aporte ensamblado.
+    /// Element that produced the assembled contribution.
     pub element: &'a dyn Element,
-    /// Dimensión del contexto elemental.
+    /// Element context dimension.
     pub dim: Dim,
-    /// Parámetros SI resueltos del elemento.
+    /// Resolved SI parameters of the element.
     pub params: &'a ElementParams,
-    /// Historia aceptada, nunca historia de prueba.
+    /// Accepted history, never trial history.
     pub committed: &'a [Real],
-    /// Cargas uniformes de este caso y miembro, SIN escalar.
+    /// Uniform loads of this case and member, UNSCALED.
     pub loads: &'a [MemberLoad],
-    /// Estaciones x/L; `None` usa las predeterminadas, lista vacía solo extremos.
+    /// Stations x/L; `None` uses defaults, an empty list uses only the ends.
     pub stations: Option<&'a [Real]>,
 }
 
-/// Campo seleccionable; las resultantes locales mantienen ambas direcciones D3.
+/// Selectable field; local resultants retain both D3 directions.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Field {
-    /// Vector nodal global de traslaciones m y giros rad.
+    /// Global nodal vector of translations in m and rotations in rad.
     Displacements,
-    /// Vector nodal global de fuerzas N y pares N·m.
+    /// Global nodal vector of forces in N and couples in N·m.
     Reactions,
-    /// Acciones locales de extremo en el orden de GDL del elemento.
+    /// Local end actions in the element DOF order.
     EndForcesLocal,
-    /// Fuerza axial N, positiva en tracción.
+    /// Axial force N, positive in tension.
     N,
-    /// Cortante local y, N (V de frame2d).
+    /// Local y shear, N (V in frame2d).
     Vy,
-    /// Cortante local z, N.
+    /// Local z shear, N.
     Vz,
-    /// Torsión local x, N·m.
+    /// Local x torsion, N·m.
     T,
-    /// Momento local y, N·m.
+    /// Local y moment, N·m.
     My,
-    /// Momento local z, N·m (M de frame2d).
+    /// Local z moment, N·m (M in frame2d).
     Mz,
 }
 
@@ -80,151 +80,151 @@ const FORCE_FIELDS: [Field; 6] = [
     Field::Mz,
 ];
 
-/// Desplazamientos y reacciones agrupados por nodo.
+/// Displacements and reactions grouped by node.
 #[derive(Clone, Debug, PartialEq)]
 pub struct NodeResult {
-    /// Identificador del nodo.
+    /// Node identifier.
     pub id: NodeId,
-    /// `[Ux,Uy,Uz,Rx,Ry,Rz]` en m/rad; componentes ausentes valen cero.
+    /// `[Ux,Uy,Uz,Rx,Ry,Rz]` in m/rad; missing components are zero.
     pub displacements: [Real; 6],
-    /// Valores prescritos `[Ux,Uy,Uz,Rx,Ry,Rz]` en m/rad, sin factor de carga.
-    /// `None` indica un GDL libre, dependiente o ausente. Al construir resultados
-    /// manualmente se deben conservar estos datos para combinar asentamientos.
+    /// Prescribed values `[Ux,Uy,Uz,Rx,Ry,Rz]` in m/rad, without load factor.
+    /// `None` indicates a free, dependent, or missing DOF. When constructing results
+    /// manually, these data must be retained to combine settlements.
     pub prescribed_displacements: [Option<Real>; 6],
-    /// `[Fx,Fy,Fz,Mx,My,Mz]` en N/N·m; GDL libres o ausentes valen cero.
+    /// `[Fx,Fy,Fz,Mx,My,Mz]` in N/N·m; free or missing DOFs are zero.
     pub reactions: [Real; 6],
 }
 
-/// Resultantes locales exactas entregadas por el elemento en una estación.
+/// Exact local resultants returned by the element at a station.
 #[derive(Clone, Debug, PartialEq)]
 pub struct StationResult {
-    /// Posición adimensional x/L en `[0,1]`.
+    /// Dimensionless position x/L in `[0,1]`.
     pub position: Real,
-    /// `[N,Vy,Vz,T,My,Mz]` en N/N·m, por cara positiva local.
+    /// `[N,Vy,Vz,T,My,Mz]` in N/N·m, on the local positive face.
     pub forces_local: [Real; 6],
 }
 
-/// Valor extremo algebraico y ubicación (no extremo de valor absoluto).
+/// Algebraic extreme value and location (not an absolute-value extremum).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Extreme {
-    /// Valor SI del campo.
+    /// SI value of the field.
     pub value: Real,
-    /// Estación x/L donde ocurre; en empates se conserva la primera (menor x/L).
+    /// Station x/L where it occurs; ties retain the first (smallest x/L).
     pub at_station: Real,
 }
 
-/// Máximo y mínimo algebraicos de un campo de miembro.
+/// Algebraic maximum and minimum of a member field.
 #[derive(Clone, Debug, PartialEq)]
 pub struct FieldExtremes {
-    /// Uno de N, Vy, Vz, T, My, Mz.
+    /// One of N, Vy, Vz, T, My, Mz.
     pub field: Field,
-    /// Máximo y su ubicación.
+    /// Maximum and its location.
     pub max: Extreme,
-    /// Mínimo y su ubicación.
+    /// Minimum and its location.
     pub min: Extreme,
 }
 
-/// Acciones, diagramas y extremos de un miembro.
+/// Actions, diagrams, and extrema of a member.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MemberResult {
-    /// Identificador del miembro.
+    /// Member identifier.
     pub id: MemberId,
-    /// Acciones locales sobre extremos i/j, nodo y después GDL del elemento.
-    /// Frame2d: `[Ni,Vi,Mi,Nj,Vj,Mj]`; truss: traslaciones locales por nodo.
+    /// Local actions on ends i/j, node then element DOF.
+    /// Frame2d: `[Ni,Vi,Mi,Nj,Vj,Mj]`; truss: local translations per node.
     pub end_forces_local: Vec<Real>,
-    /// Estaciones pedidas más extremos y estaciones críticas, en orden creciente.
+    /// Requested stations plus ends and critical stations, in increasing order.
     pub stations: Vec<StationResult>,
-    /// Seis pares máximo/mínimo, en orden N, Vy, Vz, T, My, Mz.
+    /// Six maximum/minimum pairs, in the order N, Vy, Vz, T, My, Mz.
     pub extremes: Vec<FieldExtremes>,
 }
 
-/// Modelo de datos propio del postproceso; serialización `results/1` pendiente.
+/// Owned postprocessing data model; `results/1` serialization pending.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CaseResults {
-    /// Caso nominal del sistema.
+    /// Nominal system case.
     pub case: CaseRef,
-    /// Factor aplicado a cargas, no a asentamientos.
+    /// Factor applied to loads, not settlements.
     pub factor: Real,
-    /// Todos los nodos del mapa, por identificador ascendente.
+    /// All map nodes, by ascending identifier.
     pub nodes: Vec<NodeResult>,
-    /// Miembros recuperados, por identificador ascendente.
+    /// Recovered members, by ascending identifier.
     pub members: Vec<MemberResult>,
 }
 
-/// Proyección nodal de una consulta; `None` significa campo excluido.
+/// Nodal projection of a query; `None` means an excluded field.
 #[derive(Clone, Debug, PartialEq)]
 pub struct QueriedNode {
-    /// Nodo seleccionado.
+    /// Selected node.
     pub id: NodeId,
-    /// Desplazamientos globales en el orden de [`NodeResult`].
+    /// Global displacements in [`NodeResult`] order.
     pub displacements: Option<[Real; 6]>,
-    /// Reacciones globales en el orden de [`NodeResult`].
+    /// Global reactions in [`NodeResult`] order.
     pub reactions: Option<[Real; 6]>,
 }
 
-/// Valor de un campo local seleccionado en una estación.
+/// Value of a selected local field at a station.
 #[derive(Clone, Debug, PartialEq)]
 pub struct FieldValue {
-    /// Campo local.
+    /// Local field.
     pub field: Field,
-    /// Valor en N o N·m según el campo.
+    /// Value in N or N·m according to the field.
     pub value: Real,
 }
 
-/// Estación proyectada sobre los campos locales seleccionados.
+/// Station projected onto the selected local fields.
 #[derive(Clone, Debug, PartialEq)]
 pub struct QueriedStation {
-    /// Estación x/L.
+    /// Station x/L.
     pub position: Real,
-    /// Solo campos locales seleccionados, en orden N, Vy, Vz, T, My, Mz.
+    /// Only selected local fields, in the order N, Vy, Vz, T, My, Mz.
     pub values: Vec<FieldValue>,
 }
 
-/// Proyección de un miembro, sin valores de campos excluidos.
+/// Projection of a member, without values of excluded fields.
 #[derive(Clone, Debug, PartialEq)]
 pub struct QueriedMember {
-    /// Miembro seleccionado.
+    /// Selected member.
     pub id: MemberId,
-    /// Acciones de extremo, o `None` si se excluyó ese campo.
+    /// End actions, or `None` if that field was excluded.
     pub end_forces_local: Option<Vec<Real>>,
-    /// Vacía si no se seleccionó ningún campo local.
+    /// Empty if no local field was selected.
     pub stations: Vec<QueriedStation>,
-    /// Solo extremos de campos locales seleccionados.
+    /// Only extrema of selected local fields.
     pub extremes: Vec<FieldExtremes>,
 }
 
-/// Consulta propia serializable en el futuro, sin esquema JSON en este ticket.
+/// Owned query for future serialization, without a JSON schema in this ticket.
 #[derive(Clone, Debug, PartialEq)]
 pub struct QueryResults {
-    /// Caso consultado.
+    /// Queried case.
     pub case: CaseRef,
-    /// Factor del caso.
+    /// Case factor.
     pub factor: Real,
-    /// Nodos seleccionados.
+    /// Selected nodes.
     pub nodes: Vec<QueriedNode>,
-    /// Miembros seleccionados.
+    /// Selected members.
     pub members: Vec<QueriedMember>,
 }
 
 impl CaseResults {
-    /// Recupera un caso usando sus desplazamientos globales (incluidos prescritos).
-    /// Recalcula reacciones con K y las cargas físicas del sistema; no depende
-    /// de las copias reducidas o de reacciones guardadas en el resultado de análisis.
-    /// El llamador aporta todos los miembros del sistema y sus cargas del caso.
-    /// Verifica por GDL global `−Σ(f_int,e − f_carga,e) + F_nodal + R = 0`:
-    /// las acciones de extremo SOBRE el miembro se calculan en global mediante
-    /// `Element::respond` y `Element::load_vector`, sin inferir ejes locales.
-    /// Incluye acciones de diafragmas cuando existen. Exige residual relativo
-    /// ≤ 1e-9 respecto a la suma de módulos de los términos de ese GDL, con
-    /// piso 1 N o 1 N·m, como las verificaciones SI del análisis. La tolerancia
-    /// admite redondeo de recuperación/ensamblaje, no diferencias de cargas.
-    /// Una incoherencia devuelve ENG-E-0010 con caso, nodo, GDL y miembros
-    /// incidentes. Es una comprobación de equilibrio, no de identidad: aportes
-    /// erróneos que se cancelen nodalmente pueden ser indistinguibles.
-    /// ENG-E-0002 por ids/conectividad/GDL duplicados, ENG-E-0003 por referencias
-    /// ausentes, ENG-E-0010 por tamaños/estaciones/prescritos incoherentes,
-    /// ENG-E-0008 por no finitos y ENG-E-0012 por salida elemental incoherente.
-    /// Propaga diagnósticos de elementos con el miembro en entidades.
+    /// Recovers a case using its global displacements (including prescribed values).
+    /// Recalculates reactions with K and the system's physical loads; does not depend
+    /// on reduced copies or reactions stored in the analysis result.
+    /// The caller supplies all system members and their loads for the case.
+    /// Checks per global DOF `−Σ(f_int,e − f_carga,e) + F_nodal + R = 0`:
+    /// end actions ON the member are computed in global axes through
+    /// `Element::respond` and `Element::load_vector`, without inferring local axes.
+    /// Includes diaphragm actions when present. Requires relative residual
+    /// ≤ 1e-9 with respect to the sum of term magnitudes for that DOF, with a
+    /// floor of 1 N or 1 N·m, as in the SI analysis checks. The tolerance
+    /// allows recovery/assembly rounding, not load differences.
+    /// An inconsistency returns ENG-E-0010 with case, node, DOF, and incident
+    /// members. This checks equilibrium, not identity: erroneous contributions
+    /// that cancel nodally may be indistinguishable.
+    /// ENG-E-0002 for duplicate ids/connectivity/DOFs, ENG-E-0003 for missing
+    /// references, ENG-E-0010 for inconsistent sizes/stations/prescribed values,
+    /// ENG-E-0008 for nonfinite values, and ENG-E-0012 for inconsistent element output.
+    /// Propagates element diagnostics with the member in entities.
     pub fn recover<B: LinAlgBackend>(
         solution: &StaticCaseResult,
         system: &LinearSystem<B>,
@@ -233,7 +233,7 @@ impl CaseResults {
         Self::recover_with_check(solution, system, members, &mut || Ok(()))
     }
 
-    /// Recuperación cooperativa, consultada entre nodos y miembros.
+    /// Cooperative recovery, checked between nodes and members.
     pub fn recover_with_check<B: LinAlgBackend>(
         solution: &StaticCaseResult,
         system: &LinearSystem<B>,
@@ -327,10 +327,10 @@ impl CaseResults {
         })
     }
 
-    /// Filtra por ids y campos. `None` selecciona todos; `Some(&[])`, ninguno.
-    /// Mantiene el orden original y no duplica entidades/campos pedidos varias veces.
-    /// ENG-E-0003 si un nodo o miembro pedido no está en este resultado.
-    /// Los campos que no aplican a un bloque no añaden valores a ese bloque.
+    /// Filters by ids and fields. `None` selects all; `Some(&[])`, none.
+    /// Retains original order and does not duplicate repeatedly requested entities/fields.
+    /// ENG-E-0003 if a requested node or member is not in this result.
+    /// Fields that do not apply to a block add no values to that block.
     pub fn query(
         &self,
         nodes: Option<&[NodeId]>,
@@ -494,14 +494,14 @@ fn recover_member(
             finite(&[qy, mz])?;
         }
         if qy != 0.0 {
-            // V(x)=Vi−qy*x. M′=−V−mz: con mz=0 las dos raíces coinciden.
+            // V(x)=Vi−qy*x. M′=−V−mz: with mz=0 the two roots coincide.
             let denominator = qy * length;
             finite(&[denominator, v_i + mz])?;
             if denominator == 0.0 {
                 return Err(error("ENG-E-0010", "Transverse load per length underflow."));
             }
             for numerator in [v_i, v_i + mz] {
-                // Comprobar interior antes de dividir evita desbordar una raíz exterior.
+                // Checking the interior before dividing avoids overflow of an exterior root.
                 if (denominator > 0.0 && numerator > 0.0 && numerator < denominator)
                     || (denominator < 0.0 && numerator < 0.0 && numerator > denominator)
                 {
@@ -554,8 +554,8 @@ fn recover_member(
     })
 }
 
-// Escala por GDL: no mezcla fuerzas con momentos; conserva los términos previos
-// a cancelar f_int − f_carga, para admitir redondeo en extremos de momento nulo.
+// Scale per DOF: does not mix forces with moments; retains the terms before
+// canceling f_int − f_carga, to allow rounding at ends with zero moment.
 struct NodalBalance {
     residual: Vec<Real>,
     scale: Vec<Real>,
@@ -614,7 +614,7 @@ impl NodalBalance {
     }
 }
 
-/// Extremos algebraicos de las estaciones, conservando la primera en empates.
+/// Algebraic extrema of the stations, retaining the first on ties.
 pub(crate) fn station_extremes(stations: &[StationResult]) -> EResult<Vec<FieldExtremes>> {
     let first = stations
         .first()

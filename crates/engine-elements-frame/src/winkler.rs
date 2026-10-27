@@ -1,25 +1,25 @@
-//! Composición Euler–Bernoulli + subrasante consistente Hermite.
+//! Euler–Bernoulli + consistent Hermite subgrade composition.
 use crate::{finite, geometry, invalid, EulerFrame2D, Matrix};
 use engine_contracts::{Element, ElementCtx, ElementOutput, ElementResponse, MassKind, MemberLoad};
 use engine_core::{ContractId, Dof, EResult, Real};
 use engine_geo::winkler;
 use engine_linalg::DMat;
 
-/// Viga `frame2d.winkler`, lecho bilateral lineal fijo a tierra, sin masa propia.
-/// k en N/m² por longitud de viga: reacción local −k·desplazamiento (N/m).
-/// Dirección transversal y local.
-/// No admite liberaciones de extremo. Conserva masa, cargas y Kg del frame.
-/// El lecho elimina los modos rígidos transversales; K del lecho completo
-/// es semidefinida por sus ceros axiales.
-/// Derivación propia: provenance/ENG-GEO-002.md (Winkler 1867; Hetényi 1946).
+/// `frame2d.winkler` beam, bilateral linear foundation attached to ground, with no mass of its own.
+/// k in N/m² per beam length: local reaction −k·displacement (N/m).
+/// Local transverse y direction.
+/// Does not support end releases. Retains frame mass, loads, and Kg.
+/// The foundation removes transverse rigid modes; K of the complete foundation
+/// is semidefinite due to its axial zeros.
+/// Original derivation: provenance/ENG-GEO-002.md (Winkler 1867; Hetényi 1946).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct WinklerFrame2D {
     beam: EulerFrame2D,
     k: Real,
 }
 impl WinklerFrame2D {
-    /// Añade lecho al frame sin liberaciones; ENG-E-0010 por liberaciones o k<0,
-    /// ENG-E-0008 por k no finito. Las propiedades del frame ya están validadas.
+    /// Adds a foundation to the frame without releases; ENG-E-0010 for releases or k<0,
+    /// ENG-E-0008 for nonfinite k. Frame properties are already validated.
     pub fn new(beam: EulerFrame2D, k: Real) -> EResult<Self> {
         winkler::validate(k)?;
         if beam.releases != crate::MomentReleases::default() {
@@ -27,7 +27,7 @@ impl WinklerFrame2D {
         }
         Ok(Self { beam, k })
     }
-    /// Matriz del lecho en ejes locales y orden nodal del frame, sin EI.
+    /// Foundation matrix in local axes and frame nodal order, without EI.
     pub fn foundation_matrix(&self, ctx: &ElementCtx<'_>) -> EResult<DMat> {
         let g = geometry::Geometry::new(ctx)?;
         DMat::new(
@@ -69,7 +69,7 @@ impl Element for WinklerFrame2D {
         u_e: &[Real],
         committed: &[Real],
     ) -> EResult<ElementResponse> {
-        // Validación de historia, geometría y vector idéntica al frame base.
+        // History, geometry, and vector validation identical to the base frame.
         let mut response = self.beam.respond(ctx, u_e, committed)?;
         let g = geometry::Geometry::new(ctx)?;
         let bed = self.local_matrix(g.length)?;

@@ -1,5 +1,5 @@
-//! Leyes uniaxiales `uniaxial/1`: elásticas (`elastic`, `elastic.cubic`, `multilinear_elastic`) y
-//! de plasticidad con historia (`steel.bilinear_kinematic`).
+//! `uniaxial/1` laws: elastic (`elastic`, `elastic.cubic`, `multilinear_elastic`) and
+//! plasticity with history (`steel.bilinear_kinematic`).
 
 mod cubic_elastic;
 pub use cubic_elastic::{CubicElastic, CubicElasticFactory, CubicElasticParams, CUBIC_ELASTIC};
@@ -18,35 +18,35 @@ use crate::{finite, positive, vector, LawDescriptor};
 use engine_contracts::{UniaxialLaw, UniaxialResponse};
 use engine_core::{ContractId, EResult, Real};
 
-/// Descriptor de la ley elástica lineal, método 0.1.0.
+/// Linear elastic law descriptor, method 0.1.0.
 pub const ELASTIC: LawDescriptor = LawDescriptor {
     kind: "elastic",
     contract: ContractId::new("uniaxial", 1, 0),
     version: (0, 1, 0),
 };
 
-/// Parámetros SI de [`ElasticFactory`]; se validan al construir la ley.
+/// SI parameters of [`ElasticFactory`]; validated when constructing the law.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ElasticParams {
-    /// Módulo de Young E, en Pa, finito y estrictamente positivo.
+    /// Young's modulus E, in Pa, finite and strictly positive.
     pub e: Real,
 }
 
-/// Fábrica sustituible de leyes uniaxiales, sin estado ni registro global.
+/// Interchangeable uniaxial law factory, without state or a global registry.
 ///
-/// Implementaciones que comparten `Params` se pueden intercambiar como objetos
-/// del trait. Cada fábrica valida las unidades/rangos documentados por sus
-/// parámetros y devuelve una ley propietaria, `Send + Sync`.
+/// Implementations sharing `Params` can be interchanged as trait
+/// objects. Each factory validates the units/ranges documented by its
+/// parameters and returns an owned `Send + Sync` law.
 pub trait UniaxialFactory: Send + Sync {
-    /// Parámetros tipados SI de la implementación.
+    /// Typed SI parameters of the implementation.
     type Params;
-    /// Kind, contrato y versión semántica del método construido.
+    /// Kind, contract, and semantic version of the constructed method.
     fn descriptor(&self) -> LawDescriptor;
-    /// Construye una ley validada; errores según la implementación.
+    /// Constructs a validated law; errors depend on the implementation.
     fn build(&self, params: Self::Params) -> EResult<Box<dyn UniaxialLaw>>;
 }
 
-/// Fábrica de [`Elastic`]; no añade parámetros ni estado.
+/// Factory for [`Elastic`]; adds no parameters or state.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ElasticFactory;
 
@@ -62,29 +62,29 @@ impl UniaxialFactory for ElasticFactory {
     }
 }
 
-/// Material elástico lineal: σ = E ε, sin precarga ni historia.
+/// Linear elastic material: σ = E ε, without preload or history.
 ///
-/// E y σ en Pa; ε total adimensional, positiva en tracción. La tangente
-/// dσ/dε = E es constante. El rango admitido es cualquier ε finita cuyo
-/// producto E ε sea finito; esta idealización no representa fluencia ni daño.
-/// La historia aceptada y la historia de prueba tienen longitud cero.
+/// E and σ in Pa; total dimensionless ε, positive in tension. The tangent
+/// dσ/dε = E is constant. The allowed range is any finite ε whose
+/// product E ε is finite; this idealization does not represent yielding or damage.
+/// Accepted and trial histories have zero length.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Elastic {
     e: Real,
 }
 
 impl Elastic {
-    /// Construye con E en Pa, finito y > 0.
+    /// Constructs with E in Pa, finite and > 0.
     ///
-    /// # Errores
-    /// `ENG-E-0008` por NaN/infinito; `ENG-E-0010` por E ≤ 0.
+    /// # Errors
+    /// `ENG-E-0008` for NaN/infinity; `ENG-E-0010` for E ≤ 0.
     pub fn new(e: Real) -> EResult<Self> {
         Ok(Self {
             e: positive(e, "E (Pa)")?,
         })
     }
 
-    /// Módulo de Young validado, en Pa.
+    /// Validated Young's modulus, in Pa.
     pub fn young_modulus(&self) -> Real {
         self.e
     }
@@ -111,10 +111,10 @@ impl UniaxialLaw for Elastic {
         self.e
     }
 
-    /// Evalúa ε total sin mutar la ley ni aceptar historia.
+    /// Evaluates total ε without mutating the law or accepting history.
     ///
-    /// Devuelve σ y tangente en Pa, e historia vacía. `ENG-E-0010` por
-    /// historia no vacía; `ENG-E-0008` por ε no finita o producto desbordado.
+    /// Returns σ and tangent in Pa, and empty history. `ENG-E-0010` for
+    /// nonempty history; `ENG-E-0008` for nonfinite ε or overflowed product.
     fn respond(&self, strain: Real, committed: &[Real]) -> EResult<UniaxialResponse> {
         vector(committed, 0, "Accepted history")?;
         finite(strain, "ε")?;

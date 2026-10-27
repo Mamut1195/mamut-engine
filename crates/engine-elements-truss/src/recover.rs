@@ -1,4 +1,4 @@
-//! Equilibrio axial dN/dx=−q; N(x)=N_elástico+qL(1/2−x/L).
+//! Axial equilibrium dN/dx=−q; N(x)=N_elástico+qL(1/2−x/L).
 use crate::{finite, geometry::Geometry, invalid, loads, stiffness, LinearTruss};
 use engine_contracts::{ElementOutput, MemberLoad, StationResult};
 use engine_core::{EResult, Real};
@@ -28,7 +28,7 @@ pub(crate) fn output(
         if !(0.0..=1.0).contains(&position) {
             return Err(invalid("Station is outside [0,1]."));
         }
-        // Esta forma evita desbordar qL cuando ambas acciones de extremo caben.
+        // This form avoids overflowing qL when both end actions fit.
         let axial = finite(n + half * (1.0 - 2.0 * position), "Station N (N)")?;
         out.push(StationResult {
             position,

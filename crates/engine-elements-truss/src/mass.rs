@@ -1,4 +1,4 @@
-//! Integral rho A ∫ HᵀH dx, con H=[(1−x/L)I, (x/L)I].
+//! Integral rho A ∫ HᵀH dx, with H=[(1−x/L)I, (x/L)I].
 use crate::{geometry::Geometry, positive, LinearTruss};
 use engine_contracts::MassKind;
 use engine_core::EResult;

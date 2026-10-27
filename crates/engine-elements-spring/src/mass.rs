@@ -1,4 +1,4 @@
-//! Resorte ideal sin masa, validando el contexto incluso con salida None.
+//! Ideal massless spring, validating the context even with None output.
 use crate::{geometry, LinearSpring};
 use engine_contracts::{ElementCtx, MassKind};
 use engine_core::EResult;

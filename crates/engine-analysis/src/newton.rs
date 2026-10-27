@@ -1,20 +1,20 @@
-//! `static.newton`: Newton completo con factores de carga absolutos explícitos.
+//! `static.newton`: full Newton with explicit absolute load factors.
 //!
-//! K_total = K_lineal + Σ K_elemento(u, historia_aceptada). Los elementos
-//! variables son aportes adicionales y NO deben incluirse también en K_lineal.
-//! Cada evaluación usa u total (incluidos prescritos constantes) y la historia
-//! del último paso aceptado. Solo al converger se hace commit de trial_state.
-//! No hay búsqueda de línea, bisección, regularización ni reintentos.
+//! K_total = K_lineal + Σ K_elemento(u, historia_aceptada). Variable elements
+//! are additional contributions and must NOT also be included in K_lineal.
+//! Each evaluation uses total u (including constant prescribed displacements) and the history
+//! of the last accepted step. trial_state is committed only upon convergence.
+//! There is no line search, bisection, regularization, or retry.
 //!
-//! R = λ F − F_int se mide DESPUÉS de aplicar cada corrección. Δu es la última
-//! corrección aplicada y la energía es |ΔuᵀR| con ese residual actualizado.
-//! Todas las tolerancias activas deben cumplirse. Con fuerza sola, un sistema
-//! lineal converge en una corrección; exigir además una corrección pequeña
-//! puede requerir otra iteración. Las escalas SI son explícitas, constantes y
-//! positivas; las normas mixtas de fuerzas/momentos y traslaciones/giros son
-//! indicadores numéricos, no invariantes físicos frente a cambios de unidades.
+//! R = λ F − F_int is measured AFTER applying each correction. Δu is the last
+//! applied correction and energy is |ΔuᵀR| with that updated residual.
+//! All active tolerances must be met. With force alone, a linear system
+//! converges in one correction; also requiring a small correction
+//! may require another iteration. SI scales are explicit, constant, and
+//! positive; mixed force/moment and translation/rotation norms are
+//! numerical indicators, not physical invariants under changes of units.
 //!
-//! Ejemplo: resorte bilineal a tierra, 16 N, u final = 0.4 m.
+//! Example: bilinear spring to ground, 16 N, final u = 0.4 m.
 //! ```
 //! use engine_analysis::newton::{NewtonElement, NewtonOptions, NewtonSystem, StaticNewton};
 //! use engine_assembly::LinearSystem;
@@ -61,8 +61,8 @@ fn invalid(message: &str) -> EngineError {
     EngineError::new("ENG-E-0010", message)
 }
 
-/// Elemento variable con contexto propietario e índices globales elementales.
-/// El orden es nodo y luego dofs_per_node; se comprueba contra el mapa al unirlo.
+/// Variable element with owned context and global element indices.
+/// Order is node then dofs_per_node; checked against the map when joined.
 pub struct NewtonElement {
     element: Box<dyn Element>,
     location: Vec<DofIndex>,
@@ -72,8 +72,8 @@ pub struct NewtonElement {
 }
 
 impl NewtonElement {
-    /// Copia el contexto SI y conserva el elemento puro, sin evaluar ni aceptar.
-    /// ENG-E-0010 por contrato/tamaños vacíos; ENG-E-0008 por coordenadas no finitas.
+    /// Copies the SI context and retains the pure element, without evaluating or accepting.
+    /// ENG-E-0010 for empty contract/sizes; ENG-E-0008 for nonfinite coordinates.
     pub fn new(
         element: Box<dyn Element>,
         location: Vec<DofIndex>,
@@ -126,9 +126,9 @@ impl NewtonElement {
     }
 }
 
-/// Sistema con aportes lineales constantes y elementos variables adicionales.
-/// Posee la historia; las evaluaciones nunca la mutan. El desplazamiento inicial
-/// es el aceptado de LinearSystem y la historia inicial procede de cada elemento.
+/// System with constant linear contributions and additional variable elements.
+/// Owns the history; evaluations never mutate it. Initial displacement
+/// is the accepted LinearSystem displacement and initial history comes from each element.
 pub struct NewtonSystem<B> {
     linear: LinearSystem<B>,
     elements: Vec<NewtonElement>,
@@ -143,10 +143,10 @@ struct Evaluation {
 }
 
 impl<B: LinAlgBackend> NewtonSystem<B> {
-    /// Une los aportes sin duplicar sus fuerzas/tangentes en el sistema lineal.
-    /// Las cargas nodales y equivalentes se declaran en LinearSystem. Valida
-    /// nodos/GDL/coordenadas, historia inicial y respuesta en u aceptado.
-    /// Propaga los diagnósticos del elemento y del ensamblado sin aceptación.
+    /// Joins contributions without duplicating their forces/tangents in the linear system.
+    /// Nodal and equivalent loads are declared in LinearSystem. Validates
+    /// nodes/DOFs/coordinates, initial history, and response at accepted u.
+    /// Propagates element and assembly diagnostics without acceptance.
     pub fn new(linear: LinearSystem<B>, elements: Vec<NewtonElement>) -> EResult<Self> {
         let mut states = Vec::new();
         for e in &elements {
@@ -182,17 +182,17 @@ impl<B: LinAlgBackend> NewtonSystem<B> {
         Ok(result)
     }
 
-    /// Sistema lineal y sus desplazamientos aceptados/de prueba, solo lectura.
+    /// Linear system and its accepted/trial displacements, read-only.
     pub fn linear_system(&self) -> &LinearSystem<B> {
         &self.linear
     }
 
-    /// Historias del último paso aceptado, en orden de elementos variables.
+    /// Histories from the last accepted step, in variable-element order.
     pub fn accepted_element_states(&self) -> &[Vec<Real>] {
         &self.accepted_states
     }
 
-    /// Último factor absoluto aceptado por Newton; None antes del primer paso.
+    /// Last absolute factor accepted by Newton; None before the first step.
     pub fn accepted_factor(&self) -> Option<Real> {
         self.accepted_factor
     }
@@ -233,23 +233,23 @@ impl<B: LinAlgBackend> NewtonSystem<B> {
     }
 }
 
-/// Criterios independientes; None desactiva un criterio, nunca basta con uno
-/// de los activos. Las tolerancias son relativas, finitas y estrictamente positivas.
+/// Independent criteria; None disables a criterion, and meeting only one active
+/// criterion is never enough. Tolerances are relative, finite, and strictly positive.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct NewtonOptions {
-    /// Número máximo de correcciones/factorizaciones por paso; debe ser > 0.
+    /// Maximum number of corrections/factorizations per step; must be > 0.
     pub max_iterations: u32,
-    /// Tolerancia para ‖R_f‖∞ / force_scale.
+    /// Tolerance for ‖R_f‖∞ / force_scale.
     pub force_tolerance: Option<Real>,
-    /// Tolerancia para ‖Δu_f‖∞ / displacement_scale.
+    /// Tolerance for ‖Δu_f‖∞ / displacement_scale.
     pub displacement_tolerance: Option<Real>,
-    /// Tolerancia para |Δu_fᵀR_f| / energy_scale.
+    /// Tolerance for |Δu_fᵀR_f| / energy_scale.
     pub energy_tolerance: Option<Real>,
-    /// Escala SI positiva de fuerza/momento, elegida por el llamador.
+    /// Positive SI force/moment scale, chosen by the caller.
     pub force_scale: Real,
-    /// Escala SI positiva de traslación/giro, elegida por el llamador.
+    /// Positive SI translation/rotation scale, chosen by the caller.
     pub displacement_scale: Real,
-    /// Escala SI positiva de trabajo, elegida por el llamador.
+    /// Positive SI work scale, chosen by the caller.
     pub energy_scale: Real,
 }
 
@@ -290,64 +290,64 @@ impl NewtonOptions {
     }
 }
 
-/// Informe de un paso intentado; normas al final de su última corrección.
+/// Report of an attempted step; norms at the end of its last correction.
 #[derive(Clone, Debug, PartialEq)]
 pub struct NewtonStepReport {
-    /// Factor absoluto solicitado; no es un incremento relativo al paso anterior.
+    /// Requested absolute factor; not an increment relative to the previous step.
     pub load_factor: Real,
-    /// Correcciones ejecutadas; una factorización y resolución por corrección.
+    /// Corrections performed; one factorization and solve per correction.
     pub iterations: u32,
-    /// ‖R_f‖∞ en SI después de actualizar u.
+    /// ‖R_f‖∞ in SI after updating u.
     pub force_norm: Real,
-    /// ‖Δu_f‖∞ de la última corrección en SI.
+    /// ‖Δu_f‖∞ of the last correction in SI.
     pub displacement_norm: Real,
-    /// |Δu_fᵀR_f| en SI con residual actualizado.
+    /// |Δu_fᵀR_f| in SI with the updated residual.
     pub energy_norm: Real,
-    /// Norma de fuerza dividida por su escala.
+    /// Force norm divided by its scale.
     pub relative_force_norm: Real,
-    /// Norma de desplazamiento dividida por su escala.
+    /// Displacement norm divided by its scale.
     pub relative_displacement_norm: Real,
-    /// Norma de energía dividida por su escala.
+    /// Energy norm divided by its scale.
     pub relative_energy_norm: Real,
-    /// Todas las tolerancias activas satisfechas.
+    /// All active tolerances satisfied.
     pub converged: bool,
 }
 
-/// Resultado terminal; los vectores e historias siempre son los ACEPTADOS.
+/// Terminal result; vectors and histories are always the ACCEPTED ones.
 #[derive(Clone, Debug, PartialEq)]
 pub struct NewtonResults {
-    /// Completed o NotConverged; errores de infraestructura usan EResult.
+    /// Completed or NotConverged; infrastructure errors use EResult.
     pub status: Status,
-    /// Caso solicitado.
+    /// Requested case.
     pub case: CaseRef,
-    /// Opciones y escalas efectivamente utilizadas.
+    /// Options and scales actually used.
     pub options: NewtonOptions,
-    /// Intentos en orden, incluido el paso fallido; no se intenta ningún posterior.
+    /// Attempts in order, including the failed step; no subsequent step is attempted.
     pub steps: Vec<NewtonStepReport>,
-    /// Último factor aceptado, o None si ningún paso fue aceptado.
+    /// Last accepted factor, or None if no step was accepted.
     pub accepted_factor: Option<Real>,
-    /// Desplazamientos libres del último paso aceptado, m/rad.
+    /// Free displacements of the last accepted step, m/rad.
     pub free_displacements: Vec<Real>,
-    /// Desplazamientos globales aceptados con prescritos constantes, m/rad.
+    /// Accepted global displacements with constant prescribed values, m/rad.
     pub global_displacements: Vec<Real>,
-    /// Historias aceptadas, copia independiente en orden de elementos.
+    /// Accepted histories, independent copy in element order.
     pub element_states: Vec<Vec<Real>>,
 }
 
-/// Newton completo estático con control de carga y commit explícito por paso.
+/// Static full Newton with load control and explicit commit per step.
 pub struct StaticNewton;
 
 impl StaticNewton {
-    /// Identificador del método.
+    /// Method identifier.
     pub const KIND: &'static str = "static.newton";
 
-    /// Ejecuta exactamente la lista de factores λ_k sobre un caso. Son factores
-    /// absolutos: [0.25, 0.5, 1] termina en F_total, no en 1.75 F_total. Se
-    /// permiten descarga, factores cero/negativos y repeticiones explícitas.
-    /// Valida toda la lista antes de aceptar. ENG-E-0010 por lista vacía/opciones,
-    /// ENG-E-0008 por no finitos, ENG-E-0006 por tangente singular con nodo/GDL.
-    /// Ante no convergencia o error descarta pruebas y conserva u/historia del
-    /// último paso aceptado, sin reintentos. No implementa la fachada analysis/1.
+    /// Runs exactly the list of factors λ_k on one case. These are absolute
+    /// factors: [0.25, 0.5, 1] ends at F_total, not 1.75 F_total. Unloading,
+    /// zero/negative factors, and explicit repetitions are allowed.
+    /// Validates the entire list before acceptance. ENG-E-0010 for empty list/options,
+    /// ENG-E-0008 for nonfinite values, ENG-E-0006 for singular tangent with node/DOF.
+    /// On nonconvergence or error, discards trials and retains u/history of the
+    /// last accepted step, without retries. Does not implement the analysis/1 facade.
     pub fn run<B: LinAlgBackend>(
         system: &mut NewtonSystem<B>,
         case: &CaseRef,
@@ -357,9 +357,9 @@ impl StaticNewton {
         Self::run_with(system, case, factors, options, || Ok(()))
     }
 
-    /// Variante cooperativa: consulta antes de cada paso, evaluación e iteración
-    /// y antes de aceptar estado. Ante error conserva el último paso aceptado
-    /// y revierte el estado de prueba, igual que [`Self::run`].
+    /// Cooperative variant: checks before each step, evaluation, and iteration
+    /// and before accepting state. On error, retains the last accepted step
+    /// and reverts trial state, like [`Self::run`].
     pub fn run_with<B: LinAlgBackend>(
         system: &mut NewtonSystem<B>,
         case: &CaseRef,
@@ -384,7 +384,7 @@ impl StaticNewton {
             return Err(invalid("Newton: empty factor list."));
         }
         finite(factors)?;
-        // Valida también los productos λF antes del primer commit.
+        // Also validates λF products before the first commit.
         for &factor in factors {
             check()?;
             system.linear.global_force(case, factor)?;
@@ -413,8 +413,8 @@ impl StaticNewton {
                 let report = report(factor, iteration, &residual, &delta, options)?;
                 if report.converged {
                     check()?;
-                    // Toda la respuesta y la historia se validaron en exactamente u.
-                    // accept lineal es fallible/atómico; después solo se mueven buffers.
+                    // The entire response and history were validated at exactly u.
+                    // Linear accept is fallible/atomic; only buffers are moved afterward.
                     system.linear.accept(&u)?;
                     system.accepted_states = evaluation.states;
                     system.accepted_factor = Some(factor);

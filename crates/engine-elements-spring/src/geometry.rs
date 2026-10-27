@@ -1,23 +1,23 @@
-//! Ejes explícitos y validación del contexto, sin inferir longitud ni dirección.
+//! Explicit axes and context validation, without inferring length or direction.
 use crate::{finite, invalid, vector, LinearSpring};
 use engine_contracts::ElementCtx;
 use engine_core::math;
 use engine_core::{Dim, Dof, EResult, Real};
 
-/// Ejes fijos del resorte; se deben rotar junto con el modelo global.
+/// Fixed spring axes; must be rotated along with the global model.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum SpringAxes {
-    /// GDL en ejes globales.
+    /// DOFs in global axes.
     Global,
-    /// Dirección de Ux local, normalizada internamente; finita y no nula.
+    /// Local Ux direction, normalized internally; finite and nonzero.
     Direction([Real; 3]),
-    /// Rotación global→local, filas ortonormales y determinante +1.
-    /// D2 conserva XY y +Z; tolerancia absoluta 1e-12 en productos escalares.
+    /// Global→local rotation, orthonormal rows and determinant +1.
+    /// D2 preserves XY and +Z; absolute tolerance 1e-12 in dot products.
     Rotation([[Real; 3]; 3]),
 }
 
 const COMPONENTS: [Dof; 6] = [Dof::Ux, Dof::Uy, Dof::Uz, Dof::Rx, Dof::Ry, Dof::Rz];
-// El contrato exige &'static [Dof]; tabla finita sin fugas ni registro mutable.
+// The contract requires &'static [Dof]; finite table without leaks or a mutable registry.
 static DOFS: [[Dof; 6]; 64] = {
     let mut table = [[Dof::Ux; 6]; 64];
     let mut mask = 0;
@@ -75,7 +75,7 @@ pub(crate) fn coupling(
             if scale == 0.0 {
                 return Err(invalid("Zero direction."));
             }
-            // Escalado previo: normaliza incluso MAX o subnormales sin overflow.
+            // Prior scaling: normalizes even MAX or subnormal values without overflow.
             let scaled = d.map(|v| v / scale);
             let norm = scaled.iter().fold(0.0_f64, |m, &v| math::hypot(m, v));
             for i in 0..3 {

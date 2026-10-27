@@ -1,22 +1,22 @@
-//! Masas e inercias nodales en SI y conversión explícita de fuerzas a masa.
+//! Nodal masses and inertias in SI and explicit force-to-mass conversion.
 //!
-//! La masa nodal es diagonal por GDL: kg en traslaciones, kg·m² en giros.
-//! Los aportes de distintos identificadores se suman, como en el ensamblador.
-//! Las matrices elementales proceden de `Element::mass`; se incorporan con
-//! `ElementContribution` y se consultan con `LinearSystem::global_mass`.
-//! No se sustituyen matrices consistentes por sumas diagonales.
+//! Nodal mass is diagonal by DOF: kg for translations, kg·m² for rotations.
+//! Contributions from different identifiers are summed, as in the assembler.
+//! Element matrices come from `Element::mass`; they are incorporated through
+//! `ElementContribution` and queried through `LinearSystem::global_mass`.
+//! Consistent matrices are not replaced with diagonal sums.
 //!
-//! La dirección de conversión selecciona el peso: m=(F·d̂)·factor/g_usuario
-//! por nodo, después de sumar sus fuerzas. Una proyección negativa se rechaza;
-//! una proyección exactamente cero produce masa cero. Esta masa escalar se
-//! asigna a cada traslación declarada del nodo, sin inercias rotacionales.
-//! La dirección no define una masa anisótropa. Los momentos no contribuyen al peso.
-//! No hay gravedad, factores de norma ni combinaciones implícitos.
+//! The conversion direction selects weight: m=(F·d̂)·factor/g_usuario
+//! per node, after summing its forces. A negative projection is rejected;
+//! an exactly zero projection produces zero mass. This scalar mass is
+//! assigned to each declared translation of the node, without rotational inertias.
+//! The direction does not define anisotropic mass. Moments do not contribute to weight.
+//! There is no implicit gravity, code factor, or combination.
 //!
-//! No finitos/desbordamientos: ENG-E-0008; masas/factores negativos, gravedad
-//! no positiva, dirección nula, proyección negativa o subdesbordamiento de
-//! masa positiva: ENG-E-0010.
-//! Referencias/GDL ausentes: ENG-E-0003/0011; ids repetidos: ENG-E-0002.
+//! Nonfinite values/overflow: ENG-E-0008; negative masses/factors, nonpositive
+//! gravity, zero direction, negative projection, or underflow of
+//! positive mass: ENG-E-0010.
+//! Missing references/DOFs: ENG-E-0003/0011; repeated ids: ENG-E-0002.
 //!
 //! ```
 //! use engine_assembly::DofMap;
@@ -80,16 +80,16 @@ fn unit(direction: [Real; 3]) -> EResult<[Real; 3]> {
     Ok(scaled.map(|v| v / norm))
 }
 
-/// Valida referencias, GDL, ids únicos, finitud y masas/inercias no negativas.
-/// También comprueba que la suma por GDL sea representable. Las componentes
-/// repetidas se suman, incluso dentro de una asignación, igual que LinearSystem.
+/// Validates references, DOFs, unique ids, finiteness, and nonnegative masses/inertias.
+/// Also checks that the sum per DOF is representable. Repeated components
+/// are summed, even within an assignment, as in LinearSystem.
 pub fn validate_nodal_masses(map: &DofMap, masses: &[NodalMass]) -> EResult<()> {
     assemble_nodal_masses(map, masses).map(|_| ())
 }
 
-/// Ensambla masas/inercias a la diagonal global por GDL, sin eliminar apoyos.
-/// Una lista vacía devuelve ceros. No suma masa entre direcciones ni confunde
-/// las inercias rotacionales con kg. Propaga los errores descritos en el módulo.
+/// Assembles masses/inertias on the global diagonal by DOF, without removing supports.
+/// An empty list returns zeros. Does not sum mass across directions or confuse
+/// rotational inertias with kg. Propagates the errors described in the module.
 pub fn assemble_nodal_masses(map: &DofMap, masses: &[NodalMass]) -> EResult<Vec<Real>> {
     let mut result = zeros(map.len())?;
     let nodes = (0..map.len())
@@ -120,9 +120,9 @@ pub fn assemble_nodal_masses(map: &DofMap, masses: &[NodalMass]) -> EResult<Vec<
     Ok(result)
 }
 
-/// Ensambla únicamente las masas nodales a una matriz diagonal global CSR.
-/// Ambos MassKind reciben esta misma contribución en LinearSystem; las masas
-/// elementales se agregan allí, no se duplican en esta función.
+/// Assembles only nodal masses into a global diagonal CSR matrix.
+/// Both MassKind variants receive this same contribution in LinearSystem; element
+/// masses are added there and are not duplicated in this function.
 pub fn assemble_nodal_mass_matrix(map: &DofMap, masses: &[NodalMass]) -> EResult<SparseMatrix> {
     let diagonal = assemble_nodal_masses(map, masses)?;
     let entries: Vec<_> = diagonal
@@ -137,10 +137,10 @@ pub fn assemble_nodal_mass_matrix(map: &DofMap, masses: &[NodalMass]) -> EResult
     SparseMatrix::from_triplets(map.len(), map.len(), &entries)
 }
 
-/// Vector global de traslación rígida unitaria en una dirección normalizada.
-/// Giros cero, incluidos los nodos apoyados. Cada nodo debe declarar las
-/// traslaciones con componente no nula de la dirección (ENG-E-0011 si falta
-/// alguna); así no se informa una masa total de una dirección truncada.
+/// Global unit rigid-translation vector in a normalized direction.
+/// Zero rotations, including supported nodes. Each node must declare the
+/// translations corresponding to nonzero direction components (ENG-E-0011 if any
+/// are missing); this avoids reporting total mass for a truncated direction.
 pub fn rigid_translation(map: &DofMap, direction: [Real; 3]) -> EResult<Vec<Real>> {
     let d = unit(direction)?;
     let mut result = zeros(map.len())?;
@@ -162,13 +162,13 @@ pub fn rigid_translation(map: &DofMap, direction: [Real; 3]) -> EResult<Vec<Real
     Ok(result)
 }
 
-/// Masa total en kg por dirección: r_dᵀ M r_d sobre la matriz global completa.
-/// Para masas nodales diagonales aporta Σm_n,a d̂_a²; para elementos de masa
-/// traslacional isotrópica aporta Σrho·A·L. Las inercias nodales no contribuyen.
-/// No usa la traza ni la suma de las diagonales de una matriz consistente.
-/// ENG-E-0010 por tamaño o masa direccional negativa; ENG-E-0008 por desborde.
-/// La matriz debe ser una masa física ya validada por su productor/ensamblador;
-/// esta operación no certifica semidefinición positiva ni simetría.
+/// Total mass in kg per direction: r_dᵀ M r_d over the complete global matrix.
+/// For diagonal nodal masses, contributes Σm_n,a d̂_a²; for elements with
+/// isotropic translational mass, contributes Σrho·A·L. Nodal inertias do not contribute.
+/// Does not use the trace or the diagonal sum of a consistent matrix.
+/// ENG-E-0010 for size or negative directional mass; ENG-E-0008 for overflow.
+/// The matrix must be a physical mass already validated by its producer/assembler;
+/// this operation does not certify positive semidefiniteness or symmetry.
 pub fn total_mass(map: &DofMap, matrix: &SparseMatrix, direction: [Real; 3]) -> EResult<Real> {
     if matrix.rows() != map.len() || matrix.cols() != map.len() {
         return Err(error(
@@ -192,8 +192,8 @@ pub fn total_mass(map: &DofMap, matrix: &SparseMatrix, direction: [Real; 3]) -> 
     Ok(total)
 }
 
-/// Consulta la masa global de LinearSystem en la MassKind elegida por el usuario.
-/// Incluye elementos y masas nodales; no reduce por apoyos ni modifica el sistema.
+/// Queries the global mass of LinearSystem for the user-selected MassKind.
+/// Includes elements and nodal masses; does not reduce for supports or modify the system.
 pub fn system_total_mass<B: LinAlgBackend>(
     system: &LinearSystem<B>,
     kind: MassKind,
@@ -233,11 +233,11 @@ fn projected_mass(force: [Real; 3], factor: Real, d: [Real; 3], gravity: Real) -
     Ok(mass)
 }
 
-/// Convierte fuerza global N a kg: (F·d̂)·factor/g_usuario.
-/// Factor no negativo y g positiva son obligatorios, ambos finitos. Admite
-/// componentes de cualquier signo; normaliza la dirección sin desbordar su norma.
-/// Proyección negativa: ENG-E-0010, incluso con factor cero, sin tolerancia.
-/// Proyección exactamente cero (incluido -0.0) produce masa cero.
+/// Converts global force in N to kg: (F·d̂)·factor/g_usuario.
+/// A nonnegative factor and positive g are required, both finite. Accepts
+/// components of either sign; normalizes the direction without overflowing its norm.
+/// Negative projection: ENG-E-0010, even with a zero factor, without tolerance.
+/// An exactly zero projection (including -0.0) produces zero mass.
 pub fn mass_from_force(
     force: [Real; 3],
     factor: Real,
@@ -248,14 +248,14 @@ pub fn mass_from_force(
     projected_mass(force, factor, unit(direction)?, gravity)
 }
 
-/// Convierte un vector global de fuerzas ya ensamblado a asignaciones nodales.
-/// Proyecta la fuerza neta por nodo, sin compensar proyecciones entre nodos.
-/// Momentos finitos se validan y no aportan masa.
-/// Cada masa se asigna a todas las traslaciones declaradas, con id
-/// `id_prefix:node:<id>`. El llamador debe elegir prefijos únicos al combinar
-/// fuentes. No se añade masa de elemento ni se modifica el modelo.
-/// ENG-E-0010 por tamaño o proyección nodal negativa; los errores de conversión
-/// nodal incluyen Node. Propaga los errores de conversión y GDL.
+/// Converts an already assembled global force vector to nodal assignments.
+/// Projects the net force per node, without offsetting projections between nodes.
+/// Finite moments are validated and do not contribute mass.
+/// Each mass is assigned to all declared translations, with id
+/// `id_prefix:node:<id>`. The caller must choose unique prefixes when combining
+/// sources. No element mass is added and the model is not modified.
+/// ENG-E-0010 for size or negative nodal projection; nodal conversion errors
+/// include Node. Propagates conversion and DOF errors.
 pub fn masses_from_load_vector(
     map: &DofMap,
     forces: &[Real],
@@ -302,10 +302,10 @@ pub fn masses_from_load_vector(
         .collect()
 }
 
-/// Convierte las cargas nodales de un LoadCase a masas, con factor/dirección/g
-/// explícitos. Prefijo `mass:case:<nombre>`. Valida el caso, incluidos sus
-/// momentos y duplicados; no interpreta combinaciones ni cargas de tramo.
-/// Rechaza proyección neta nodal negativa con ENG-E-0010 y entidades Node/Case.
+/// Converts the nodal loads of a LoadCase to masses, with explicit factor/direction/g.
+/// Prefix `mass:case:<nombre>`. Validates the case, including its
+/// moments and duplicates; does not interpret combinations or span loads.
+/// Rejects negative net nodal projection with ENG-E-0010 and Node/Case entities.
 pub fn masses_from_case(
     map: &DofMap,
     case: &LoadCase,
@@ -328,11 +328,11 @@ pub fn masses_from_case(
     })
 }
 
-/// Convierte un caso completo del sistema, incluidas fuerzas equivalentes de
-/// elementos. Lee `global_force(case, 1)`; aplica el factor solicitado una sola
-/// vez durante la conversión. No aplica apoyos ni cambia masas del sistema.
-/// Suma aportes antes de proyectar; proyección neta nodal negativa produce
-/// ENG-E-0010 con entidades Node/Case, incluso si el total del caso es gravitatorio.
+/// Converts a complete system case, including equivalent forces from
+/// elements. Reads `global_force(case, 1)`; applies the requested factor only
+/// once during conversion. Does not apply supports or change system masses.
+/// Sums contributions before projecting; negative net nodal projection produces
+/// ENG-E-0010 with Node/Case entities, even if the case total is gravitational.
 pub fn masses_from_system_case<B: LinAlgBackend>(
     system: &LinearSystem<B>,
     case: &CaseRef,

@@ -3,38 +3,38 @@ use crate::finite;
 use engine_core::math;
 use engine_core::{EResult, Real};
 
-/// Unidades SI declaradas para TODOS los pares de entrada; sin conversión de g.
+/// Declared SI units for ALL input pairs; no conversion from g.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SpectrumUnits {
-    /// Abscisa T en s y aceleración espectral Sa en m/s².
+    /// Abscissa T in s and spectral acceleration Sa in m/s².
     PeriodSecondsAccelerationMetersPerSecondSquared,
-    /// Abscisa f en Hz y aceleración espectral Sa en m/s².
+    /// Abscissa f in Hz and spectral acceleration Sa in m/s².
     FrequencyHertzAccelerationMetersPerSecondSquared,
 }
 
-/// Interpolación siempre en periodo T, también para entradas en frecuencia.
+/// Interpolation always in period T, including frequency inputs.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Interpolation {
-    /// Segmentos rectos en (T, Sa); admite T=0 y Sa=0.
+    /// Straight segments in (T, Sa); accepts T=0 and Sa=0.
     Linear,
-    /// Segmentos rectos en (ln T, ln Sa); exige T>0 y Sa>0.
+    /// Straight segments in (ln T, ln Sa); requires T>0 and Sa>0.
     LogLog,
 }
 
-/// Decisión obligatoria del usuario ante periodos fuera del intervalo tabulado.
+/// Required user decision for periods outside the tabulated interval.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Extrapolation {
-    /// Fuera del intervalo cerrado devuelve ENG-E-0010.
+    /// Returns ENG-E-0010 outside the closed interval.
     Error,
-    /// Mesetas explícitas: Sa del primer/último punto al salir por cada extremo.
+    /// Explicit plateaus: Sa of the first/last point beyond each end.
     Plateau,
 }
 
-/// Tabla del usuario para un único ζ declarado; no ajusta Sa por amortiguamiento.
+/// User table for a single declared ζ; does not adjust Sa for damping.
 ///
-/// Al menos dos pares finitos con abscisas estrictamente crecientes y Sa≥0.
-/// Las frecuencias deben ser positivas; se invierten y reordenan a periodos.
-/// No contiene espectros, factores normativos ni valores predeterminados.
+/// At least two finite pairs with strictly increasing abscissas and Sa≥0.
+/// Frequencies must be positive; they are inverted and reordered as periods.
+/// Contains no spectra, code factors, or default values.
 #[derive(Clone, Debug, PartialEq)]
 pub struct TabulatedSpectrum {
     points: Vec<(Real, Real)>,
@@ -45,10 +45,10 @@ pub struct TabulatedSpectrum {
 }
 
 impl TabulatedSpectrum {
-    /// Construye una tabla inmutable y validada en SI para ζ∈[0,1).
-    /// ENG-E-0008 por no finitos/desbordamientos; ENG-E-0010 por tamaño,
-    /// orden, signos o valores incompatibles con log-log. No ordena una tabla
-    /// inválida ni interpola en frecuencia: f se convierte a T=1/f.
+    /// Constructs an immutable, validated SI table for ζ∈[0,1).
+    /// ENG-E-0008 for nonfinite values/overflow; ENG-E-0010 for size,
+    /// order, signs, or values incompatible with log-log. Does not sort an
+    /// invalid table or interpolate in frequency: f is converted to T=1/f.
     pub fn new(
         pairs: &[(Real, Real)],
         units: SpectrumUnits,
@@ -97,40 +97,40 @@ impl TabulatedSpectrum {
         })
     }
 
-    /// Pares internos (T en s, Sa en m/s²), en orden de periodo creciente.
+    /// Internal pairs (T in s, Sa in m/s²), in increasing period order.
     pub fn period_points(&self) -> &[(Real, Real)] {
         &self.points
     }
 
-    /// Unidades declaradas de la tabla original.
+    /// Declared units of the original table.
     pub fn input_units(&self) -> SpectrumUnits {
         self.units
     }
 
-    /// Amortiguamiento ζ adimensional de esta tabla, sin corrección automática.
+    /// Dimensionless damping ratio ζ of this table, without automatic correction.
     pub fn damping(&self) -> Real {
         self.damping
     }
 
-    /// Interpolación elegida por el usuario.
+    /// User-selected interpolation.
     pub fn interpolation(&self) -> Interpolation {
         self.interpolation
     }
 
-    /// Tratamiento explícito fuera de rango.
+    /// Explicit out-of-range treatment.
     pub fn extrapolation(&self) -> Extrapolation {
         self.extrapolation
     }
 
-    /// Evalúa Sa(T,ζ_tabla) en m/s²; T en s, finito y no negativo.
-    /// Conserva exactamente las ordenadas en puntos de tabla. Un T=0 fuera
-    /// de una tabla log-log solo puede evaluarse con meseta explícita.
+    /// Evaluates Sa(T,ζ_tabla) in m/s²; T in s, finite and nonnegative.
+    /// Preserves ordinates exactly at table points. T=0 outside
+    /// a log-log table can only be evaluated with an explicit plateau.
     pub fn acceleration(&self, period: Real) -> EResult<Real> {
         finite(&[period])?;
         if period < 0.0 {
             return Err(invalid("Query period must be nonnegative."));
         }
-        // El constructor garantiza dos puntos y la tabla no permite mutaciones.
+        // The constructor guarantees two points and the table allows no mutations.
         let first = self.points[0];
         let last = self.points[self.points.len() - 1];
         if period < first.0 || period > last.0 {
@@ -151,8 +151,8 @@ impl TabulatedSpectrum {
                 (1.0 - a) * sa0 + a * sa1
             }
             Interpolation::LogLog => {
-                // ln_1p distingue periodos cercanos; la alternativa evita
-                // desbordar el cociente para intervalos muy amplios.
+                // ln_1p distinguishes nearby periods; the alternative avoids
+                // overflowing the ratio for very wide intervals.
                 let a = log_distance(t0, period) / log_distance(t0, t1);
                 math::exp((1.0 - a) * math::ln(sa0) + a * math::ln(sa1))
             }

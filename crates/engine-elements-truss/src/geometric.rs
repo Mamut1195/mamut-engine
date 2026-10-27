@@ -1,5 +1,5 @@
-//! Segunda variación de longitud: (N/L)[P,−P;−P,P], P=I−ddᵀ.
-//! Derivación propia en provenance/ENG-ELM-001.md; McGuire et al.: cita PENDIENTE.
+//! Second variation of length: (N/L)[P,−P;−P,P], P=I−ddᵀ.
+//! Original derivation in provenance/ENG-ELM-001.md; McGuire et al.: citation PENDING.
 use crate::{finite, geometry::Geometry};
 use engine_core::{EResult, Real};
 use engine_linalg::DMat;

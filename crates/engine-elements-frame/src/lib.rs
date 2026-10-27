@@ -1,37 +1,37 @@
 #![forbid(unsafe_code)]
-//! Viga-columna `frame2d.euler_elastic`, contrato element/1, método 0.1.0.
-//! [`WinklerFrame2D`] añade un lecho transversal consistente fijo a tierra;
-//! [`WinklerFactory`] construye `frame2d.winkler` con propiedades SI.
+//! Beam-column `frame2d.euler_elastic`, contract element/1, method 0.1.0.
+//! [`WinklerFrame2D`] adds a consistent transverse foundation attached to ground;
+//! [`WinklerFactory`] constructs `frame2d.winkler` with SI properties.
 //!
-//! Euler–Bernoulli homogénea, infinitesimal, sin deformación de corte, inercia
-//! rotatoria de sección ni historia. D2 está en X-Y horizontal, Z=0; local x
-//! de i a j, y=(-sin,cos), z=+Z. Orden `[ux,uy,rz]` por nodo; N positivo en
-//! tracción y giros antihorarios. E en Pa, A en m², I=Iz en m⁴, rho en kg/m³;
-//! coordenadas/traslaciones m, giros rad, fuerzas N, momentos N·m. K y Kg
-//! tienen entradas N/m, N y N·m; M tiene entradas kg, kg·m y kg·m².
+//! Homogeneous, infinitesimal Euler–Bernoulli, without shear deformation, section
+//! rotary inertia, or history. D2 is in horizontal X-Y, Z=0; local x
+//! from i to j, y=(-sin,cos), z=+Z. Order `[ux,uy,rz]` per node; positive N in
+//! tension and counterclockwise rotations. E in Pa, A in m², I=Iz in m⁴, rho in kg/m³;
+//! coordinates/translations in m, rotations in rad, forces in N, moments in N·m. K and Kg
+//! have entries in N/m, N, and N·m; M has entries in kg, kg·m, and kg·m².
 //!
-//! Propiedades inmutables en self; ctx aporta coordenadas, no propiedades:
-//! ctx.params no interviene, siguiendo la plantilla interna de elementos.
-//! `respond` es elástico: Kg se entrega aparte con N obtenido de u_e.
-//! Cargas uniformes globales XY y momento distribuido alrededor de Z;
-//! peso propio requiere gravedad explícita, nunca se supone Y vertical.
-//! Extremos recuperados son K u menos cargas equivalentes (acciones sobre
-//! el miembro); estaciones `[N,Vy,0,0,0,Mz]` por cara positiva local.
+//! Immutable properties in self; ctx supplies coordinates, not properties:
+//! ctx.params is unused, following the internal element template.
+//! `respond` is elastic: Kg is returned separately with N obtained from u_e.
+//! Global uniform XY loads and distributed moment about Z;
+//! self-weight requires explicit gravity; Y is never assumed vertical.
+//! Recovered ends are K u minus equivalent loads (actions on
+//! the member); stations `[N,Vy,0,0,0,Mz]` on the local positive face.
 //!
-//! Liberaciones sustituyen giros internos mediante equilibrio elástico:
-//! Kc=HᵀKH, Mc=HᵀMH (reducción estática de Guyan), Kgc=HᵀKgH,
-//! fc=Hᵀf. Kg es la derivada primera de la condensación de K+Kg en N=0;
-//! no una condensación exacta dependiente de N a compresión finita.
-//! Con dos liberaciones Kflexión=0 exactamente: los giros nodales quedan
-//! desconectados. El ensamblador debe restringir/eliminar GDL sin otros
-//! aportes; no se añade rigidez artificial. Se recuperan los giros del miembro
-//! mediante [`EulerFrame2D::local_displacements`], incluyendo cargas.
+//! Releases replace internal rotations through elastic equilibrium:
+//! Kc=HᵀKH, Mc=HᵀMH (Guyan static reduction), Kgc=HᵀKgH,
+//! fc=Hᵀf. Kg is the first derivative of condensation of K+Kg at N=0;
+//! not an exact N-dependent condensation at finite compression.
+//! With two releases, Kflexión=0 exactly: nodal rotations are
+//! disconnected. The assembler must restrain/remove DOFs without other
+//! contributions; no artificial stiffness is added. Member rotations are recovered
+//! through [`EulerFrame2D::local_displacements`], including loads.
 //!
-//! ENG-E-0005: L≤1e-12 m; ENG-E-0008: no finitos/desbordamientos;
-//! ENG-E-0010: rangos, tamaños, plano o estaciones inválidos;
-//! ENG-E-0013: cargas fuera del plano. Sin E/S, hilos, reloj ni estado global;
-//! determinista por destino; ejecución y equivalencia numérica wasm pendientes.
-//! Derivaciones y límites en provenance/ENG-ELM-002.md.
+//! ENG-E-0005: L≤1e-12 m; ENG-E-0008: nonfinite values/overflow;
+//! ENG-E-0010: invalid ranges, sizes, plane, or stations;
+//! ENG-E-0013: out-of-plane loads. No I/O, threads, clock, or global state;
+//! deterministic per target; wasm execution and numerical equivalence pending.
+//! Derivations and limits in provenance/ENG-ELM-002.md.
 //!
 //! ```
 //! use engine_elements_frame::{EulerFrame2D, MomentReleases};
@@ -66,7 +66,7 @@ pub use release::MomentReleases;
 pub use winkler::WinklerFrame2D;
 type Matrix = [[Real; 6]; 6];
 
-/// Viga 2D elástica de dos nodos, con propiedades SI y liberaciones propietarias.
+/// Two-node elastic 2D beam, with owned SI properties and releases.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct EulerFrame2D {
     material: Elastic,
@@ -78,8 +78,8 @@ pub struct EulerFrame2D {
     releases: MomentReleases,
 }
 impl EulerFrame2D {
-    /// Valida E,A,I>0 y rho≥0 finitos; I es Iz. Productos EA/EI positivos.
-    /// ENG-E-0010 por rango/subdesbordamiento, ENG-E-0008 por no finitos.
+    /// Validates finite E,A,I>0 and rho≥0; I is Iz. Positive products EA/EI.
+    /// ENG-E-0010 for range/underflow, ENG-E-0008 for nonfinite values.
     pub fn new(
         e: Real,
         area: Real,
@@ -104,28 +104,28 @@ impl EulerFrame2D {
             releases,
         })
     }
-    /// Material elástico uniaxial, módulo E en Pa.
+    /// Uniaxial elastic material, modulus E in Pa.
     pub fn material(&self) -> &Elastic {
         &self.material
     }
-    /// Área A en m².
+    /// Area A in m².
     pub fn area(&self) -> Real {
         self.area
     }
-    /// Segundo momento I=Iz en m⁴.
+    /// Second moment I=Iz in m⁴.
     pub fn inertia(&self) -> Real {
         self.inertia
     }
-    /// Densidad rho en kg/m³; cero representa ausencia de masa.
+    /// Density rho in kg/m³; zero represents no mass.
     pub fn density(&self) -> Real {
         self.density
     }
-    /// Liberaciones de momento; nunca libera traslaciones.
+    /// Moment releases; never releases translations.
     pub fn releases(&self) -> MomentReleases {
         self.releases
     }
-    /// Construye q=rho A g (N/m) desde aceleración global explícita (m/s²).
-    /// D2 admite solo g en XY; ENG-E-0013 por componente Z no nula.
+    /// Constructs q=rho A g (N/m) from explicit global acceleration (m/s²).
+    /// D2 allows g only in XY; ENG-E-0013 for a nonzero Z component.
     pub fn self_weight(&self, acceleration: [Real; 3]) -> EResult<MemberLoad> {
         vector(&acceleration, 3, "g (m/s²)")?;
         if acceleration[2] != 0.0 {
@@ -145,10 +145,10 @@ impl EulerFrame2D {
             moment_per_length: [0.0; 3],
         })
     }
-    /// `[u_i,v_i,theta_i,u_j,v_j,theta_j]` locales, m/rad; recupera giros
-    /// liberados por equilibrio de K, incluyendo todas las cargas uniformes.
-    /// Los giros nodales suministrados en extremos liberados no intervienen.
-    /// Errores de geometría, tamaños, cargas y finitud según el crate.
+    /// Local `[u_i,v_i,theta_i,u_j,v_j,theta_j]`, m/rad; recovers released
+    /// rotations through K equilibrium, including all uniform loads.
+    /// Supplied nodal rotations at released ends are unused.
+    /// Errors for geometry, sizes, loads, and finiteness as documented for the crate.
     pub fn local_displacements(
         &self,
         ctx: &ElementCtx<'_>,

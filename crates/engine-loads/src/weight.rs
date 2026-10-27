@@ -1,4 +1,4 @@
-//! Peso propio con gravedad explícita, sin imponer un eje vertical al modelo.
+//! Self-weight with explicit gravity, without imposing a vertical axis on the model.
 use crate::{error, finite, length};
 use engine_core::{EResult, Real};
 
@@ -11,10 +11,10 @@ fn properties(density: Real, area: Real, gravity: [Real; 3]) -> EResult<()> {
     Ok(())
 }
 
-/// Fuerza total global rho·A·L·g en N; g se aporta en m/s².
-/// Exige rho≥0, A>0, L>0 y magnitudes finitas; no aplica factores normativos.
-/// ENG-E-0008 por desbordamiento de resultados/productos intermedios.
-/// Para varios miembros, la fuerza total es la suma de sus vectores.
+/// Total global force rho·A·L·g in N; g is supplied in m/s².
+/// Requires rho≥0, A>0, L>0, and finite magnitudes; applies no code factors.
+/// ENG-E-0008 for overflow of results/intermediate products.
+/// For multiple members, the total force is the sum of their vectors.
 pub fn self_weight(
     density: Real,
     area: Real,
@@ -31,9 +31,9 @@ pub fn self_weight(
     Ok(result)
 }
 
-/// Fuerza por unidad de longitud global rho·A·g en N/m.
-/// Misma validación de propiedades que [`self_weight`]; permite gravedad nula
-/// o fuera del plano XY. El consumidor 2D debe rechazar componentes Z no nulas.
+/// Global force per unit length rho·A·g in N/m.
+/// Same property validation as [`self_weight`]; allows zero gravity
+/// or gravity outside the XY plane. The 2D consumer must reject nonzero Z components.
 pub fn self_weight_per_length(density: Real, area: Real, gravity: [Real; 3]) -> EResult<[Real; 3]> {
     properties(density, area, gravity)?;
     let line_mass = density * area;

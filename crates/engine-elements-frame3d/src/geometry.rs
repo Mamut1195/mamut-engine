@@ -1,4 +1,4 @@
-//! Terna diestra explícita; T global→local, Kglobal=Tᵀ Klocal T.
+//! Explicit right-handed triad; T global→local, Kglobal=Tᵀ Klocal T.
 use crate::{finite, invalid, vector, Matrix};
 use engine_contracts::ElementCtx;
 use engine_core::math;
@@ -9,8 +9,8 @@ pub(crate) struct Geometry {
     pub length: Real,
     axes: [[Real; 3]; 3],
 }
-/// Normalización escalada: admite orientaciones enormes o diminutas finitas.
-/// Seno mínimo del ángulo entre la orientación y el eje x local.
+/// Scaled normalization: accepts huge or tiny finite orientations.
+/// Minimum sine of the angle between the orientation and local x axis.
 pub(crate) const ORIENTATION_MIN_SIN: Real = 1e-8;
 pub(crate) fn unit(v: [Real; 3]) -> EResult<[Real; 3]> {
     vector(&v, 3, "Orientation")?;
@@ -50,10 +50,10 @@ impl Geometry {
         }
         let x = delta.map(|d| d / length);
         let hint = unit(orientation)?;
-        // hint×x equivale a proyectar hint normal a x y formar y=z×x.
-        // `hint` es unitario, luego |hint×x| = sen(ángulo). Con sen ≤ 1e-8 el error
-        // relativo de la terna sería ≥ ε/1e-8 ≈ 1e-8 y las rotaciones rígidas dejarían
-        // fuerzas espurias (J4 r6): se rechaza. Además se reortogonaliza.
+        // hint×x is equivalent to projecting hint normal to x and forming y=z×x.
+        // `hint` is unit length, so |hint×x| = sin(angle). With sin ≤ 1e-8, the triad's
+        // relative error would be ≥ ε/1e-8 ≈ 1e-8 and rigid rotations would leave
+        // spurious forces (J4 r6): rejected. Reorthogonalization is also performed.
         let y = cross(hint, x);
         if math::hypot(math::hypot(y[0], y[1]), y[2]) <= ORIENTATION_MIN_SIN {
             return Err(invalid(
@@ -61,7 +61,7 @@ impl Geometry {
             ));
         }
         let mut y = unit(y)?;
-        // Una pasada de Gram–Schmidt contra x y renormalización: ortonormal a ~1e-16.
+        // One Gram–Schmidt pass against x and renormalization: orthonormal to ~1e-16.
         let dot: Real = x.iter().zip(y).map(|(a, b)| a * b).sum();
         for (yi, xi) in y.iter_mut().zip(x) {
             *yi -= dot * xi;

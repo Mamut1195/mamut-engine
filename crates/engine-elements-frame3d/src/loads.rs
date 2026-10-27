@@ -1,4 +1,4 @@
-//! Trabajo ∫(qx u+qy v+qz w+mx rx−my w′+mz v′)dx; empotramiento=−f.
+//! Work ∫(qx u+qy v+qz w+mx rx−my w′+mz v′)dx; restrained ends=−f.
 use crate::{finite, geometry::Geometry};
 use engine_contracts::MemberLoad;
 use engine_core::{EResult, Real};

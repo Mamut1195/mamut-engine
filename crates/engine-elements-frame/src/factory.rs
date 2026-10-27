@@ -1,10 +1,10 @@
-//! Esquema propio SI, sin parser ni referencias; producto independiente de ModelView.
+//! Internal SI schema, without a parser or references; product independent of ModelView.
 use crate::{finite, invalid, EulerFrame2D, MomentReleases};
 use engine_contracts::{Element, ElementFactory, JsonValue, ModelView};
 use engine_core::{Dim, EResult, EngineError};
 use std::collections::BTreeSet;
 
-/// Fábrica frame2d.euler_elastic; E,A,I,rho requeridos, release_i/j opcionales.
+/// frame2d.euler_elastic factory; E,A,I,rho required, release_i/j optional.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct FrameFactory;
 impl ElementFactory for FrameFactory {
@@ -65,8 +65,8 @@ fn build_frame(params: &JsonValue, model: &ModelView<'_>) -> EResult<EulerFrame2
     )
 }
 
-/// Fábrica `frame2d.winkler`: propiedades Euler y k≥0 en N/m².
-/// Sin liberaciones de extremo; orientación y ejes según FrameFactory.
+/// `frame2d.winkler` factory: Euler properties and k≥0 in N/m².
+/// No end releases; orientation and axes as in FrameFactory.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct WinklerFactory;
 impl ElementFactory for WinklerFactory {

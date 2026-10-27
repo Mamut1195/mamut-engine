@@ -1,4 +1,4 @@
-//! Equilibrio por cara positiva: F′=−q, M′=−x×V−m.
+//! Positive-face equilibrium: F′=−q, M′=−x×V−m.
 use crate::{
     finite,
     geometry::{multiply, Geometry},
@@ -17,8 +17,8 @@ pub(crate) fn output(
     let u = g.local_vector(u)?;
     let q = loads::sum(g, member_loads)?;
     let f = release::load(beam, g, &loads::local_vector(g.length, q)?)?;
-    // Kc u−fc es algebraicamente igual a K u_rec−f en GDL conservados.
-    // Evita restar fuerzas enormes de giros internos; filas liberadas son cero.
+    // Kc u−fc is algebraically equal to K u_rec−f at retained DOFs.
+    // Avoids subtracting huge forces from internal rotations; released rows are zero.
     let elastic = multiply(&stiffness::condensed(beam, g)?, &u)?;
     let mut ends = [0.0; 12];
     for i in 0..12 {

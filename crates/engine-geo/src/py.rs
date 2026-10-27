@@ -1,24 +1,24 @@
-//! Curvas laterales estáticas propias: `py.matlock_soft_clay`, `py.reese_sand`,
-//! `py.user`. SI sin prefijos: y, x, d en m; p en N/m; c, σ'v en Pa;
-//! γ' y k en N/m³. p tiene el signo de y; la reacción del suelo es −p.
+//! Original static lateral curves: `py.matlock_soft_clay`, `py.reese_sand`,
+//! `py.user`. Unprefixed SI: y, x, d in m; p in N/m; c, σ'v in Pa;
+//! γ' and k in N/m³. p has the sign of y; soil reaction is −p.
 //!
-//! Fuentes: Matlock (1970), OTC 1204, Ec. 1–5 y Fig. 5a; Reese, Cox y Koop
-//! (1974), OTC 2080, Ec. 4–9 y 11–16, pasos 2 y 4–8. Ficha de J2 y
-//! derivaciones propias: `provenance/ENG-GEO-003.md`. No se incluyen ciclos.
+//! Sources: Matlock (1970), OTC 1204, Eqs. 1–5 and Fig. 5a; Reese, Cox, and Koop
+//! (1974), OTC 2080, Eqs. 4–9 and 11–16, steps 2 and 4–8. J2 specification and
+//! original derivations: `provenance/ENG-GEO-003.md`. Cyclic loading is not included.
 //!
-//! El perfil solo aporta σ'v mediante [`effective_stress_pa`]; no almacena c,
-//! εc, φ, k, A ni B. Estos datos y la geometría son explícitos y obligatorios.
-//! Reese supone γ' y φ constantes para determinar Xt; no se sustituye γ' por
-//! σ'v/x en un perfil variable. Matlock admite σ'v de un perfil variable.
+//! The profile supplies only σ'v through [`effective_stress_pa`]; it does not store c,
+//! εc, φ, k, A, or B. These data and the geometry are explicit and required.
+//! Reese assumes constant γ' and φ to determine Xt; γ' is not replaced by
+//! σ'v/x in a variable profile. Matlock accepts σ'v from a variable profile.
 //!
-//! [`PyCurve::points`] contiene tuplas consumibles numéricamente por
-//! `engine-laws::uniaxial::MultilinearElastic`. Su contrato físico es ε/σ:
-//! para conservar unidades, el adaptador del futuro pilote debe normalizar
-//! ε=y/L y σ=p·L/área, con L y área explícitos, y recuperar p=σ·área/L.
-//! Pasar (y,p) directamente solo reutiliza la interpolación, no sus unidades.
-//! La ley prolonga los segmentos extremos: las curvas generadas terminan en
-//! mesetas; `py.user` conserva sus extremos y [`PyCurve::at`] rechaza consultas
-//! fuera de la tabla. El consumidor debe decidir explícitamente su extrapolación.
+//! [`PyCurve::points`] contains tuples that can be consumed numerically by
+//! `engine-laws::uniaxial::MultilinearElastic`. Its physical contract is ε/σ:
+//! to preserve units, the future pile adapter must normalize
+//! ε=y/L and σ=p·L/area, with explicit L and area, and recover p=σ·area/L.
+//! Passing (y,p) directly only reuses interpolation, not its units.
+//! The law extends the end segments: generated curves end in
+//! plateaus; `py.user` retains its ends and [`PyCurve::at`] rejects queries
+//! outside the table. The consumer must explicitly choose its extrapolation.
 //!
 //! ```
 //! use engine_geo::py::{matlock_soft_clay, MatlockParams, Sampling};
@@ -40,11 +40,11 @@ use crate::StressProfile;
 use engine_core::math;
 use engine_core::{EResult, EngineError, Real};
 
-/// Identidad propia del generador estático de arcilla blanda.
+/// Internal identity of the static soft-clay generator.
 pub const MATLOCK_SOFT_CLAY: &str = "py.matlock_soft_clay";
-/// Identidad propia del generador estático de arena.
+/// Internal identity of the static sand generator.
 pub const REESE_SAND: &str = "py.reese_sand";
-/// Identidad propia de la tabla suministrada por el usuario.
+/// Internal identity of the user-supplied table.
 pub const USER: &str = "py.user";
 
 fn invalid(field: &str) -> EngineError {
@@ -91,10 +91,10 @@ fn pos(value: Option<Real>, field: &str) -> EResult<Real> {
     positive(required(value, field)?, field)
 }
 
-/// Convierte σ'v de `stress-profile/1` (kPa) a Pa, sin recortarla ni extrapolar.
-/// Propaga código, entidades y contexto del diagnóstico del perfil. El llamador
-/// conserva su reporte de procedencia mediante `StressProfile::stresses_at`.
-/// Rechaza tensiones negativas, no finitas y desbordamiento de conversión.
+/// Converts σ'v from `stress-profile/1` (kPa) to Pa, without clipping or extrapolation.
+/// Propagates the code, entities, and context of the profile diagnostic. The caller
+/// retains its provenance report through `StressProfile::stresses_at`.
+/// Rejects negative or nonfinite stresses and conversion overflow.
 pub fn effective_stress_pa(profile: &dyn StressProfile, depth_m: Real) -> EResult<Real> {
     nonnegative(depth_m, "x")?;
     let stress = profile.stresses_at(depth_m).map_err(|d| EngineError {
@@ -105,27 +105,27 @@ pub fn effective_stress_pa(profile: &dyn StressProfile, depth_m: Real) -> EResul
     nonnegative(stress.effective_vertical_kpa * 1000.0, "σ'v (Pa)")
 }
 
-/// Tabla inmutable, bilateral e impar. Incluye (0,0), con pendientes no negativas.
+/// Immutable, bilateral, odd table. Includes (0,0), with nonnegative slopes.
 #[derive(Clone, Debug)]
 pub struct PyCurve {
     kind: &'static str,
     points: Vec<(Real, Real)>,
 }
 impl PyCurve {
-    /// Identidad del generador.
+    /// Generator identity.
     pub fn kind(&self) -> &'static str {
         self.kind
     }
-    /// Puntos ordenados (y (m), p (N/m)); incluye ambas ramas y el origen.
+    /// Ordered points (y (m), p (N/m)); includes both branches and the origin.
     pub fn points(&self) -> &[(Real, Real)] {
         &self.points
     }
-    /// Transfiere la tabla para adaptadores de leyes, sin cambiar unidades.
+    /// Transfers the table for law adapters, without changing units.
     pub fn into_points(self) -> Vec<(Real, Real)> {
         self.points
     }
-    /// Interpolación secante acotada al intervalo tabulado; nunca extrapola.
-    /// ENG-E-0010 fuera de tabla; ENG-E-0008 por consulta/resultado no finito.
+    /// Secant interpolation bounded by the tabulated interval; never extrapolates.
+    /// ENG-E-0010 outside the table; ENG-E-0008 for nonfinite query/result.
     pub fn at(&self, y_m: Real) -> EResult<Real> {
         finite(y_m, "y")?;
         let first = self.points.first().ok_or_else(|| invalid("empty table"))?;
@@ -149,7 +149,7 @@ impl PyCurve {
     }
 }
 
-/// Valida la rama positiva, luego refleja sin duplicar el origen.
+/// Validates the positive branch, then reflects without duplicating the origin.
 fn curve(kind: &'static str, points: Vec<(Real, Real)>) -> EResult<PyCurve> {
     if points.len() < 2 || points.first() != Some(&(0.0, 0.0)) {
         return Err(invalid(
@@ -168,7 +168,7 @@ fn curve(kind: &'static str, points: Vec<(Real, Real)>) -> EResult<PyCurve> {
             return Err(invalid("slope underflow"));
         }
     }
-    // También deben ser representables las diferencias de la tabla bilateral.
+    // Differences in the bilateral table must also be representable.
     if let Some(&(y, p)) = points.last() {
         finite(2.0 * y, "bilateral y range")?;
         finite(2.0 * p, "bilateral p range")?;
@@ -183,21 +183,21 @@ fn curve(kind: &'static str, points: Vec<(Real, Real)>) -> EResult<PyCurve> {
     Ok(PyCurve { kind, points: both })
 }
 
-/// Construye `py.user` desde la rama y≥0. Exige origen, al menos dos puntos
-/// finitos, y estrictamente creciente y p≥0 no decreciente. No ordena, añade
-/// mesetas ni extrapola; refleja exactamente la tabla del usuario.
+/// Constructs `py.user` from the y≥0 branch. Requires the origin, at least two finite
+/// points, strictly increasing y, and nondecreasing p≥0. Does not sort, add
+/// plateaus, or extrapolate; reflects the user's table exactly.
 pub fn user(points: Vec<(Real, Real)>) -> EResult<PyCurve> {
     curve(USER, points)
 }
 
-/// Muestreo explícito: posiciones positivas adicionales y extremo de meseta.
-/// Se añaden origen, vértices del método y sus reflejos. No se usa una malla
-/// predeterminada. La interpolación entre muestras aproxima la curva analítica.
+/// Explicit sampling: additional positive positions and plateau end.
+/// Adds the origin, method vertices, and their reflections. No default mesh
+/// is used. Interpolation between samples approximates the analytical curve.
 #[derive(Clone, Debug)]
 pub struct Sampling {
-    /// y>0 finitas y estrictamente crecientes; puede estar vacía. No exceden la meseta.
+    /// Finite, strictly increasing y>0; may be empty. Must not exceed the plateau.
     pub positive_y_m: Vec<Real>,
-    /// Obligatoria, estrictamente mayor que 8yc (Matlock) o yu (Reese).
+    /// Required, strictly greater than 8yc (Matlock) or yu (Reese).
     pub plateau_y_m: Option<Real>,
 }
 fn sample(
@@ -237,42 +237,42 @@ fn sample(
     curve(kind, points)
 }
 
-/// Parámetros obligatorios de Matlock estático, sin valores asumidos.
+/// Required static Matlock parameters, without assumed values.
 #[derive(Clone, Debug)]
 pub struct MatlockParams {
-    /// Profundidad x≥0 (m).
+    /// Depth x≥0 (m).
     pub depth_m: Option<Real>,
-    /// Diámetro d>0 (m).
+    /// Diameter d>0 (m).
     pub diameter_m: Option<Real>,
-    /// Resistencia no drenada c>0 (Pa).
+    /// Undrained strength c>0 (Pa).
     pub undrained_strength_pa: Option<Real>,
-    /// Sobrecarga efectiva σ'v≥0 (Pa), explícita o de [`effective_stress_pa`].
+    /// Effective overburden σ'v≥0 (Pa), explicit or from [`effective_stress_pa`].
     pub effective_vertical_stress_pa: Option<Real>,
-    /// J>0 adimensional, obligatorio. OTC 1204 menciona 0.5 y 0.25 según sitio.
+    /// Dimensionless J>0, required. OTC 1204 mentions 0.5 and 0.25 depending on site.
     pub j: Option<Real>,
-    /// εc>0 adimensional a mitad de tensión máxima (ε50); sin imponer el
-    /// intervalo orientativo 0.005–0.020 de OTC 1204 como límite universal.
+    /// Dimensionless εc>0 at half the maximum stress (ε50); without imposing the
+    /// indicative OTC 1204 interval 0.005–0.020 as a universal limit.
     pub epsilon_50: Option<Real>,
 }
-/// Curva y magnitudes de control de Matlock (OTC 1204).
+/// Matlock curve and control quantities (OTC 1204).
 #[derive(Clone, Debug)]
 pub struct MatlockCurve {
-    /// Tabla bilateral en SI.
+    /// Bilateral table in SI.
     pub curve: PyCurve,
-    /// Np de Ec. 2/3, limitado a 9.
+    /// Np from Eq. 2/3, limited to 9.
     pub np: Real,
-    /// pu de Ec. 1 (N/m).
+    /// pu from Eq. 1 (N/m).
     pub ultimate_n_m: Real,
-    /// yc de Ec. 5 (m).
+    /// yc from Eq. 5 (m).
     pub yc_m: Real,
 }
-/// Matlock (1970), OTC 1204, Ec. 1–3 y 5, curva estática Fig. 5a.
-/// Se aplica min(Np,9) punto a punto, incluso con perfil variable. Ec. 4 es
-/// informativa para suelo constante: xr=6d/(γ'd/c+J), no se necesita aquí.
-/// Incluye siempre 8yc y una meseta posterior explícita. En el origen la
-/// derivada analítica es infinita: el primer segmento es secante al primer y>0.
-/// ENG-E-0003 por ausentes; ENG-E-0010 por dominio/muestreo/precisión inválidos;
-/// ENG-E-0008 por entradas o resultados no finitos. No acepta carga cíclica.
+/// Matlock (1970), OTC 1204, Eqs. 1–3 and 5, static curve Fig. 5a.
+/// Applies min(Np,9) pointwise, even with a variable profile. Eq. 4 is
+/// informative for constant soil: xr=6d/(γ'd/c+J), not needed here.
+/// Always includes 8yc and an explicit subsequent plateau. At the origin, the
+/// analytical derivative is infinite: the first segment is secant to the first y>0.
+/// ENG-E-0003 for missing data; ENG-E-0010 for invalid domain/sampling/precision;
+/// ENG-E-0008 for nonfinite inputs or results. Does not accept cyclic loading.
 pub fn matlock_soft_clay(params: &MatlockParams, sampling: &Sampling) -> EResult<MatlockCurve> {
     let x = nonnegative(required(params.depth_m, "x")?, "x")?;
     let d = pos(params.diameter_m, "d")?;
@@ -299,68 +299,68 @@ pub fn matlock_soft_clay(params: &MatlockParams, sampling: &Sampling) -> EResult
     })
 }
 
-/// Parámetros obligatorios de Reese estático para arena homogénea, sin tablas.
+/// Required static Reese parameters for homogeneous sand, without tables.
 #[derive(Clone, Debug)]
 pub struct ReeseParams {
-    /// Profundidad x≥0 (m); x=0 produce curva nula tras validar parámetros.
+    /// Depth x≥0 (m); x=0 produces a zero curve after parameter validation.
     pub depth_m: Option<Real>,
-    /// Diámetro b>0 (m).
+    /// Diameter b>0 (m).
     pub diameter_m: Option<Real>,
-    /// φ en radianes, 0<φ<π/2.
+    /// φ in radians, 0<φ<π/2.
     pub friction_angle_rad: Option<Real>,
-    /// γ'>0 constante (N/m³); no se obtiene implícitamente del perfil.
+    /// Constant γ'>0 (N/m³); not implicitly obtained from the profile.
     pub effective_unit_weight_n_m3: Option<Real>,
-    /// α en radianes, 0<α<π/2. Paso 2 propone α=φ/2; aporte explícito.
+    /// α in radians, 0<α<π/2. Step 2 proposes α=φ/2; supplied explicitly.
     pub alpha_rad: Option<Real>,
-    /// K0>0. Paso 2 fija 0.4 como valor del método; aporte explícito.
+    /// K0>0. Step 2 sets 0.4 as the method value; supplied explicitly.
     pub k0: Option<Real>,
-    /// A>0, factor de pu (Ec. 9); Fig. 8, a cargo del usuario.
+    /// A>0, factor for pu (Eq. 9); Fig. 8, supplied by the user.
     pub a: Option<Real>,
-    /// B>0, factor de pm (Ec. 11); Fig. 9, a cargo del usuario.
+    /// B>0, factor for pm (Eq. 11); Fig. 9, supplied by the user.
     pub b: Option<Real>,
-    /// k>0 (N/m³) de Ec. 4; no se copia la tabla del paper.
+    /// k>0 (N/m³) from Eq. 4; the paper's table is not copied.
     pub subgrade_modulus_n_m3: Option<Real>,
 }
-/// Curva y controles de Reese (OTC 2080), SI sin prefijos.
+/// Reese curve and controls (OTC 2080), unprefixed SI.
 #[derive(Clone, Debug)]
 pub struct ReeseCurve {
-    /// Tabla bilateral con k, m, u y meseta (en superficie solo m, u y meseta).
+    /// Bilateral table with k, m, u, and plateau (at the surface only m, u, and plateau).
     pub curve: PyCurve,
-    /// pct cercano de Ec. 5 (N/m).
+    /// Shallow pct from Eq. 5 (N/m).
     pub pct_n_m: Real,
-    /// pcd profundo de Ec. 8 (N/m).
+    /// Deep pcd from Eq. 8 (N/m).
     pub pcd_n_m: Real,
-    /// Xt>0 (m), intersección no trivial de Ec. 5/8.
+    /// Xt>0 (m), nontrivial intersection of Eq. 5/8.
     pub transition_depth_m: Real,
-    /// pu de Ec. 9 (N/m).
+    /// pu from Eq. 9 (N/m).
     pub ultimate_n_m: Real,
-    /// pm de Ec. 11 (N/m).
+    /// pm from Eq. 11 (N/m).
     pub pm_n_m: Real,
-    /// ym=b/60 (m), paso 7.
+    /// ym=b/60 (m), step 7.
     pub ym_m: Real,
-    /// yu=3b/80 (m), paso 6.
+    /// yu=3b/80 (m), step 6.
     pub yu_m: Real,
-    /// yk de Ec. 16 (m); None solo para x=0 (curva nula).
+    /// yk from Eq. 16 (m); None only for x=0 (zero curve).
     pub yk_m: Option<Real>,
-    /// n>1 de Ec. 14, también validado en x=0 por su forma independiente de pc.
+    /// n>1 from Eq. 14, also validated at x=0 through its pc-independent form.
     pub n: Real,
 }
-/// Reese, Cox y Koop (1974), OTC 2080, pasos 2 y 4–8, Ec. 4–9 y 11–16.
-/// β=π/4+φ/2 y Ka=tan²(π/4−φ/2) (Ec. 6/7). Xt se halla dividiendo
-/// pct−pcd por γ'H: queda una función afín. Se exige pendiente positiva
-/// y término independiente negativo;
-/// así hay una raíz positiva única. Se acota desde b duplicando hasta 128
-/// veces y se biseca 96 veces, con orden fijo. Se exige ancho final
-/// ≤8·EPSILON·cota superior; una raíz no resuelta es error tipado.
-/// Por encima de Xt se usa pct; por debajo pcd (paso 4).
+/// Reese, Cox, and Koop (1974), OTC 2080, steps 2 and 4–8, Eqs. 4–9 and 11–16.
+/// β=π/4+φ/2 and Ka=tan²(π/4−φ/2) (Eq. 6/7). Xt is found by dividing
+/// pct−pcd by γ'H: the remaining function is affine. Requires positive slope
+/// and negative constant term;
+/// hence there is a unique positive root. Brackets from b by doubling up to 128
+/// times and bisects 96 times, in a set order. Requires final width
+/// ≤8·EPSILON·upper bound; an unresolved root is a typed error.
+/// Above Xt, uses pct; below, pcd (step 4).
 ///
-/// Se rechazan A≤B, n≤1, yk≥ym y escalas no representables; no se inventa
-/// una rama alternativa. Para x=0, Ec. 5/8 dan p=0 en toda la tabla; no se
-/// calcula yk (división por cero). Todos los datos siguen siendo obligatorios.
-/// La parábola se evalúa como pm·(y/ym)^(1/n), forma de Ec. 12/15 que evita
-/// potencias dimensionales. yk=ym·[pm/(k·x·ym)]^(n/(n−1)) deriva de Ec. 16.
-/// Errores: ENG-E-0003 ausentes, ENG-E-0010 dominio/degeneración/muestreo,
-/// ENG-E-0008 no finitos/desbordamientos. Solo carga estática.
+/// Rejects A≤B, n≤1, yk≥ym, and unrepresentable scales; no alternative
+/// branch is invented. For x=0, Eqs. 5/8 give p=0 throughout the table; yk is not
+/// computed (division by zero). All data remain required.
+/// The parabola is evaluated as pm·(y/ym)^(1/n), a form of Eq. 12/15 that avoids
+/// dimensional powers. yk=ym·[pm/(k·x·ym)]^(n/(n−1)) derives from Eq. 16.
+/// Errors: ENG-E-0003 missing data, ENG-E-0010 domain/degeneracy/sampling,
+/// ENG-E-0008 nonfinite values/overflow. Static loading only.
 pub fn reese_sand(params: &ReeseParams, sampling: &Sampling) -> EResult<ReeseCurve> {
     let x = nonnegative(required(params.depth_m, "x")?, "x")?;
     let diameter = pos(params.diameter_m, "b diameter")?;
@@ -389,7 +389,7 @@ pub fn reese_sand(params: &ReeseParams, sampling: &Sampling) -> EResult<ReeseCur
     let ta = math::tan(alpha);
     let divisor = math::tan(beta - phi);
     let ka = math::powi(math::tan(std::f64::consts::FRAC_PI_4 - phi / 2.0), 2);
-    // Ec. 5 / (γ'H) = q1 H + q0; Ec. 8 / (γ'H) = deep.
+    // Eq. 5 / (γ'H) = q1 H + q0; Eq. 8 / (γ'H) = deep.
     let q1 = positive(
         k0 * tf * math::sin(beta) / (divisor * math::cos(alpha))
             + tb * tb * ta / divisor

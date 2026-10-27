@@ -1,4 +1,4 @@
-//! Masa lineal axial/torsional y Hermite transversal; reducción de Guyan.
+//! Linear axial/torsional and transverse Hermite mass; Guyan reduction.
 use crate::{
     finite, geometry::Geometry, positive, release, stiffness::block, EulerFrame3D, Matrix, PLANES,
 };

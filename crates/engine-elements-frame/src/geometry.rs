@@ -1,4 +1,4 @@
-//! T convierte global a local; Kglobal=Tᵀ Klocal T.
+//! T converts global to local; Kglobal=Tᵀ Klocal T.
 use crate::{finite, invalid, vector, Matrix};
 use engine_contracts::ElementCtx;
 use engine_core::math;

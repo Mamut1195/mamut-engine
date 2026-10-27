@@ -1,31 +1,31 @@
-//! Superposición por factores del usuario y envolventes algebraicas en SI.
+//! Superposition with user factors and algebraic envelopes in SI.
 //!
-//! No se aplican coeficientes normativos. Cada componente de la combinación es
-//! `Σ factor * valor`, con multiplicación y suma f64 separadas, en el orden de
-//! los términos (sin interpolación ni redondeo adicional). `CaseResults::factor`
-//! es metadato de cargas ya escaladas: no se multiplica una segunda vez.
-//! Con asentamientos la respuesta es afín: `r(F) = r(0) + L(F)`. Sumar casos
-//! completos multiplicaría `r(0)` por la suma de factores (por ejemplo, 2.8 en
-//! `1.2D + 1.6L`). Los resultados no separan fuerzas/reacciones de `r(0)`;
-//! sustraerlo automáticamente exigiría ampliar el contrato de recuperación.
-//! Por seguridad se rechazan con ENG-E-0010 y entidades Case los términos con
-//! más de un caso de prescritos no nulos, incluso si tienen factor cero o los
-//! mismos valores. Se rechazan también metadatos prescritos incoherentes.
-//! Resuelva D y L con prescritos cero, y el asentamiento S sin cargas, manteniendo
-//! los mismos GDL prescritos y rigidez; combine `1.2D + 1.6L + αS`, con factor
-//! explícito `α` (1 para contar el asentamiento una vez). Un único caso con
-//! asentamiento se pondera íntegramente por su factor; no se corrige en silencio.
+//! No code coefficients are applied. Each combination component is
+//! `Σ factor * valor`, with separate f64 multiplication and addition, in
+//! term order (without interpolation or additional rounding). `CaseResults::factor`
+//! is metadata for already scaled loads: it is not multiplied a second time.
+//! With settlements the response is affine: `r(F) = r(0) + L(F)`. Summing complete
+//! cases would multiply `r(0)` by the sum of factors (for example, 2.8 in
+//! `1.2D + 1.6L`). Results do not separate forces/reactions from `r(0)`;
+//! subtracting it automatically would require extending the recovery contract.
+//! For safety, terms with more than one case of nonzero prescribed displacements
+//! are rejected with ENG-E-0010 and Case entities, even if their factors are zero
+//! or their values match. Inconsistent prescribed metadata is also rejected.
+//! Solve D and L with zero prescribed displacements and settlement S without loads, keeping
+//! the same prescribed DOFs and stiffness; combine `1.2D + 1.6L + αS`, with an
+//! explicit factor `α` (1 to count settlement once). A single case with
+//! settlement is weighted in full by its factor; it is not silently corrected.
 //!
-//! Las entidades se emparejan por identificador, aunque su orden difiera. Cada
-//! miembro exige idénticas posiciones de estación y tamaño de acciones de extremo.
-//! Los diagramas son las estaciones sumadas. Los extremos se recalculan sobre
-//! esas estaciones, sin usar los máximos/mínimos almacenados en cada entrada ni
-//! deducir nuevas estaciones críticas interiores a partir de muestras.
+//! Entities are matched by identifier, even if their order differs. Each
+//! member requires identical station positions and end-action sizes.
+//! Diagrams are the summed stations. Extrema are recalculated over
+//! those stations, without using the maxima/minima stored in each input or
+//! inferring new critical interior stations from samples.
 //!
-//! La envolvente conserva identificador, valor y, en extremos de miembro,
-//! posición. Un empate exacto conserva la primera entrada; dentro de un miembro,
-//! la primera estación (menor x/L). Casos y combinaciones tienen identidades
-//! distintas aun con el mismo nombre. Una envolvente no es un caso de equilibrio.
+//! The envelope retains identifier, value, and, for member extrema,
+//! position. An exact tie retains the first input; within a member,
+//! the first station (smallest x/L). Cases and combinations have distinct
+//! identities even with the same name. An envelope is not an equilibrium case.
 
 use crate::results::{station_extremes, CaseResults, Extreme, Field, MemberResult, NodeResult};
 use engine_contracts::CaseRef;
@@ -33,30 +33,30 @@ use engine_core::{EResult, EngineError, EntityRef, MemberId, NodeId, Real};
 use engine_model::Combination;
 use std::collections::{BTreeMap, BTreeSet};
 
-/// Resultado de una combinación del usuario, reutilizando el modelo de resultados.
+/// Result of a user combination, reusing the results model.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CombinationResults {
-    /// Identificador de `engine_model::Combination`.
+    /// Identifier of `engine_model::Combination`.
     pub id: String,
-    /// Suma ponderada; `case` es el id de combinación y `factor` vale 1.
+    /// Weighted sum; `case` is the combination id and `factor` is 1.
     pub results: CaseResults,
 }
 
-/// Identidad del resultado gobernante, con espacios de nombres separados.
+/// Identity of the governing result, with separate namespaces.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ResultId {
-    /// Nombre de caso de carga.
+    /// Load case name.
     Case(String),
-    /// Identificador de combinación.
+    /// Combination identifier.
     Combination(String),
 }
 
-/// Entrada prestada de una envolvente, conservada en orden del usuario.
+/// Borrowed envelope input, retained in user order.
 #[derive(Clone, Copy, Debug)]
 pub enum EnvelopeInput<'a> {
-    /// Caso resuelto, incluso si ya tiene un factor de carga aplicado.
+    /// Solved case, even if a load factor has already been applied.
     Case(&'a CaseResults),
-    /// Combinación calculada.
+    /// Computed combination.
     Combination(&'a CombinationResults),
 }
 
@@ -76,104 +76,104 @@ impl<'a> EnvelopeInput<'a> {
     }
 }
 
-/// Componente SI e identidad que la gobierna.
+/// SI component and its governing identity.
 #[derive(Clone, Debug, PartialEq)]
 pub struct GoverningValue {
-    /// Caso o combinación gobernante.
+    /// Governing case or combination.
     pub source: ResultId,
-    /// Valor algebraico, sin módulo ni escalado adicional.
+    /// Algebraic value, without absolute value or additional scaling.
     pub value: Real,
 }
 
-/// Máximo y mínimo de una componente entre entradas.
+/// Maximum and minimum of a component across inputs.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ValueEnvelope {
-    /// Máximo algebraico; primer gobernante en empates.
+    /// Algebraic maximum; first governing input on ties.
     pub max: GoverningValue,
-    /// Mínimo algebraico; primer gobernante en empates.
+    /// Algebraic minimum; first governing input on ties.
     pub min: GoverningValue,
 }
 
-/// Envolventes nodales en el orden de GDL de `NodeResult`.
+/// Nodal envelopes in the DOF order of `NodeResult`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct NodeEnvelope {
-    /// Identificador nodal.
+    /// Node identifier.
     pub id: NodeId,
-    /// Desplazamientos `[Ux,Uy,Uz,Rx,Ry,Rz]`, m/rad.
+    /// Displacements `[Ux,Uy,Uz,Rx,Ry,Rz]`, m/rad.
     pub displacements: [ValueEnvelope; 6],
-    /// Reacciones `[Fx,Fy,Fz,Mx,My,Mz]`, N/N·m.
+    /// Reactions `[Fx,Fy,Fz,Mx,My,Mz]`, N/N·m.
     pub reactions: [ValueEnvelope; 6],
 }
 
-/// Envolventes de las seis resultantes de sección en una posición común.
+/// Envelopes of the six section resultants at a common position.
 #[derive(Clone, Debug, PartialEq)]
 pub struct StationEnvelope {
-    /// Posición adimensional x/L.
+    /// Dimensionless position x/L.
     pub position: Real,
     /// `[N,Vy,Vz,T,My,Mz]`, N/N·m.
     pub forces_local: [ValueEnvelope; 6],
 }
 
-/// Extremo de miembro gobernante, con ubicación e identidad.
+/// Governing member extremum, with location and identity.
 #[derive(Clone, Debug, PartialEq)]
 pub struct GoverningExtreme {
-    /// Caso o combinación gobernante.
+    /// Governing case or combination.
     pub source: ResultId,
-    /// Valor SI y posición del extremo.
+    /// SI value and position of the extremum.
     pub extreme: Extreme,
 }
 
-/// Envolvente global de un campo sobre entradas y estaciones del miembro.
+/// Global envelope of a field across inputs and member stations.
 #[derive(Clone, Debug, PartialEq)]
 pub struct FieldEnvelope {
-    /// Campo N, Vy, Vz, T, My o Mz.
+    /// Field N, Vy, Vz, T, My, or Mz.
     pub field: Field,
-    /// Máximo de los máximos recalculados de cada entrada.
+    /// Maximum of the recalculated maxima of each input.
     pub max: GoverningExtreme,
-    /// Mínimo de los mínimos recalculados de cada entrada.
+    /// Minimum of the recalculated minima of each input.
     pub min: GoverningExtreme,
 }
 
-/// Envolventes de acciones de extremo, diagramas y extremos de sección.
+/// Envelopes of end actions, diagrams, and section extrema.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MemberEnvelope {
-    /// Identificador del miembro.
+    /// Member identifier.
     pub id: MemberId,
-    /// En el orden de GDL local de `MemberResult::end_forces_local`.
+    /// In the local DOF order of `MemberResult::end_forces_local`.
     pub end_forces_local: Vec<ValueEnvelope>,
-    /// Estaciones comunes, en orden creciente.
+    /// Common stations, in increasing order.
     pub stations: Vec<StationEnvelope>,
-    /// Seis campos, en orden N, Vy, Vz, T, My, Mz.
+    /// Six fields, in the order N, Vy, Vz, T, My, Mz.
     pub extremes: Vec<FieldEnvelope>,
 }
 
-/// Envolvente algebraica; cada componente puede tener distinto gobernante.
+/// Algebraic envelope; each component may have a different governing input.
 #[derive(Clone, Debug, PartialEq)]
 pub struct EnvelopeResults {
-    /// Identidades de las entradas en el orden usado para resolver empates.
+    /// Input identities in the order used to resolve ties.
     pub sources: Vec<ResultId>,
-    /// Nodos por identificador ascendente.
+    /// Nodes by ascending identifier.
     pub nodes: Vec<NodeEnvelope>,
-    /// Miembros por identificador ascendente.
+    /// Members by ascending identifier.
     pub members: Vec<MemberEnvelope>,
 }
 
-/// Superpone resultados existentes según los términos de una combinación.
+/// Superposes existing results according to the terms of a combination.
 ///
-/// ENG-E-0003: caso referenciado ausente, incluso con factor cero.
-/// ENG-E-0008: factor/dato no finito o desborde de producto o suma parcial.
-/// ENG-E-0010: términos/repositorio vacíos, casos o entidades duplicados,
-/// topología/tamaños/estaciones incompatibles, varios casos con prescritos no
-/// nulos o metadatos prescritos incoherentes (entidades Case). Todos los términos
-/// deben compartir los GDL prescritos, aunque sus valores sean distintos.
-/// Se validan también los términos
-/// de factor cero. Los casos no referenciados solo se comprueban por duplicidad.
-/// No modifica las entradas. Los extremos se calculan después de sumar.
+/// ENG-E-0003: missing referenced case, even with a zero factor.
+/// ENG-E-0008: nonfinite factor/data or overflow of a product or partial sum.
+/// ENG-E-0010: empty terms/repository, duplicate cases or entities,
+/// incompatible topology/sizes/stations, multiple cases with nonzero prescribed
+/// displacements or inconsistent prescribed metadata (Case entities). All terms
+/// must share the prescribed DOFs, even if their values differ.
+/// Terms with a zero factor
+/// are also validated. Unreferenced cases are checked only for duplication.
+/// Does not modify inputs. Extrema are computed after summation.
 pub fn combine(combination: &Combination, cases: &[CaseResults]) -> EResult<CombinationResults> {
     combine_with_check(combination, cases, &mut || Ok(()))
 }
 
-/// Superposición cooperativa por término, nodo y miembro, sin reordenar sumas.
+/// Cooperative superposition per term, node, and member, without reordering sums.
 pub fn combine_with_check(
     combination: &Combination,
     cases: &[CaseResults],
@@ -287,12 +287,12 @@ pub fn combine_with_check(
     })
 }
 
-/// Calcula máximos/mínimos por componente, estación y campo de miembro.
+/// Computes maxima/minima per component, station, and member field.
 ///
-/// ENG-E-0010 por entradas vacías/duplicadas o resultados incompatibles;
-/// ENG-E-0008 por datos no finitos. Empates: primera entrada; a igualdad de
-/// valores en un mismo miembro: primera estación. Se recalculan los extremos
-/// de cada entrada sobre sus estaciones, sin confiar en extremos almacenados.
+/// ENG-E-0010 for empty/duplicate inputs or incompatible results;
+/// ENG-E-0008 for nonfinite data. Ties: first input; for equal
+/// values within a member: first station. Extrema of each input are
+/// recalculated over its stations, without relying on stored extrema.
 pub fn envelope(inputs: &[EnvelopeInput<'_>]) -> EResult<EnvelopeResults> {
     let first_input = inputs
         .first()
@@ -449,7 +449,7 @@ fn layout(results: &CaseResults) -> EResult<Layout<'_>> {
         {
             return Err(invalid("Missing end stations 0 and 1."));
         }
-        // Los extremos públicos pueden estar desactualizados: no se usan al calcular.
+        // Public extrema may be stale: they are not used in the calculation.
         for e in &m.extremes {
             numbers(&[e.max.value, e.max.at_station, e.min.value, e.min.at_station])?;
         }

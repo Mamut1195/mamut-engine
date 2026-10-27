@@ -1,4 +1,4 @@
-//! u_r=−Krr⁻¹Kra u_a+Krr⁻¹fr; formas cerradas y proyección de energía.
+//! u_r=−Krr⁻¹Kra u_a+Krr⁻¹fr; closed forms and energy projection.
 use crate::{
     finite,
     geometry::{multiply, Geometry},
@@ -6,13 +6,13 @@ use crate::{
 };
 use engine_core::{EResult, EngineError, Real};
 
-/// Liberaciones de torsión y momentos alrededor de x,y,z locales en i y j.
-/// No libera traslaciones. Los giros nodales liberados quedan desconectados.
+/// Torsion and moment releases about local x,y,z at i and j.
+/// Does not release translations. Released nodal rotations remain disconnected.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct MomentReleases {
-    /// Extremo i: `[T,My,Mz]`, true libera la componente.
+    /// End i: `[T,My,Mz]`, true releases the component.
     pub i: [bool; 3],
-    /// Extremo j: `[T,My,Mz]`, true libera la componente.
+    /// End j: `[T,My,Mz]`, true releases the component.
     pub j: [bool; 3],
 }
 impl MomentReleases {
@@ -51,16 +51,16 @@ impl MomentReleases {
 }
 fn torsion_equilibrium(beam: &EulerFrame3D, length: Real, f: &[Real; 12]) -> EResult<()> {
     let net = finite(f[3] + f[9], "Net torque")?.abs();
-    // La escala sólo se usa con torsión liberada en ambos extremos; su guarda
-    // no debe rechazar cargas finitas en elementos sin esa doble liberación.
+    // The scale is used only with torsion released at both ends; its guard
+    // must not reject finite loads on elements without that double release.
     if !(beam.releases.i[0] && beam.releases.j[0]) {
         return Ok(());
     }
-    // Tolerancia relativa a la escala de la carga: el redondeo de la proyección
-    // local deja mx≈1e-16·|q| en lugar de 0 (J4 r6: falso ENG-E-0006).
-    // Escala en N·m: momentos de f (N·m) y fuerzas de f (N) por la longitud (N·m);
-    // no se suman magnitudes de unidades distintas. El redondeo del momento local
-    // proviene de la proyección de cargas cuyos efectos aparecen como cortantes.
+    // Tolerance relative to the load scale: local projection rounding
+    // leaves mx≈1e-16·|q| instead of 0 (J4 r6: false ENG-E-0006).
+    // Scale in N·m: moments of f (N·m) and forces of f (N) times length (N·m);
+    // magnitudes with different units are not summed. Local moment rounding
+    // comes from projecting loads whose effects appear as shear forces.
     let moments = [3, 4, 5, 9, 10, 11]
         .iter()
         .fold(0.0_f64, |a, &i| a.max(f[i].abs()));
@@ -115,7 +115,7 @@ pub(crate) fn displacements(
     if ri || rj {
         let a = positive(beam.gj / g.length, "GJ/L")?;
         if ri && rj {
-            // Pseudoinversa en el subespacio de giro medio nulo.
+            // Pseudoinverse in the zero-mean-rotation subspace.
             d[3] = finite((f[3] / a) / 2.0, "Torsional rotation i")?;
             d[9] = -d[3];
         } else {

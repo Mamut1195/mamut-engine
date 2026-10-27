@@ -1,21 +1,21 @@
 #![forbid(unsafe_code)]
-//! Análisis `static.linear`, [`newton`] (`static.newton`), [`pdelta`], [`modal`] y [`spectrum`], en unidades SI.
+//! `static.linear`, [`newton`] (`static.newton`), [`pdelta`], [`modal`], and [`spectrum`] analysis, in SI units.
 //!
-//! `static.linear` resuelve casos independientes con una única factorización
-//! de K_red = T_fᵀ K T_f sobre los independientes libres. Recupera dependientes
-//! y prescritos con u = T_f q_f + u_0. Incluye asentamientos sin escalarlos por el factor de carga; no modifica el estado
-//! aceptado o de prueba. El módulo `combination` superpone resultados usando
-//! combinaciones declarativas del modelo; `StaticLinear` resuelve solo casos.
-//! Con prescritos nulos, u(A+B)=u(A)+u(B); con asentamientos, se resta una vez
-//! la solución sin carga u(0). No incorpora Kg, iteraciones ni regularización.
+//! `static.linear` solves independent cases with a single factorization
+//! of K_red = T_fᵀ K T_f over the free independent DOFs. Recovers dependent
+//! and prescribed DOFs with u = T_f q_f + u_0. Includes settlements without scaling them by the load factor; does not modify the
+//! accepted or trial state. The `combination` module superposes results using
+//! declarative model combinations; `StaticLinear` solves only cases.
+//! With zero prescribed displacements, u(A+B)=u(A)+u(B); with settlements, subtract
+//! the unloaded solution u(0) once. Does not incorporate Kg, iterations, or regularization.
 //!
-//! Ejes globales diestros; D2 usa XY y Rz, D3 XYZ y Rx/Ry/Rz. Coordenadas
-//! originales en m (D2 requiere Z=0), traslaciones en m, giros en rad, fuerzas
-//! en N y momentos en N·m. Se usan posiciones de referencia sin deformar.
-//! El equilibrio suma TODAS las cargas físicas globales, incluidas las cargas
-//! equivalentes elementales y las aplicadas sobre apoyos, más las reacciones
-//! de engine-assembly. El momento añade `(posición-punto) × fuerza`, con signo
-//! de mano derecha, y los pares nodales. No usa el RHS reducido para esta suma.
+//! Right-handed global axes; D2 uses XY and Rz, D3 XYZ and Rx/Ry/Rz. Original
+//! coordinates in m (D2 requires Z=0), translations in m, rotations in rad, forces
+//! in N, and moments in N·m. Undeformed reference positions are used.
+//! Equilibrium sums ALL physical global loads, including equivalent element
+//! loads and loads applied at supports, plus reactions
+//! from engine-assembly. The moment adds `(position-point) × force`, with the
+//! right-hand sign, and nodal couples. Does not use the reduced RHS for this sum.
 #![deny(missing_docs)]
 
 pub mod combination;
@@ -31,69 +31,69 @@ use engine_linalg::LinAlgBackend;
 
 pub mod newton;
 
-/// Método de análisis estático lineal sin estado propio.
+/// Stateless linear static analysis method.
 pub struct StaticLinear;
 
-/// Resultados en el mismo orden que la lista solicitada.
+/// Results in the same order as the requested list.
 #[derive(Clone, Debug, PartialEq)]
 pub struct StaticResults {
-    /// Un resultado independiente por caso, sin aceptación automática.
+    /// One independent result per case, without automatic acceptance.
     pub cases: Vec<StaticCaseResult>,
 }
 
-/// Solución física y verificaciones de un caso escalado.
+/// Physical solution and checks for a scaled case.
 #[derive(Clone, Debug, PartialEq)]
 pub struct StaticCaseResult {
-    /// Caso declarado del sistema.
+    /// Declared system case.
     pub case: CaseRef,
-    /// Factor aplicado solo a las cargas.
+    /// Factor applied only to loads.
     pub factor: Real,
-    /// Desplazamientos independientes libres en orden reducido, m/rad.
+    /// Free independent displacements in reduced order, m/rad.
     pub free_displacements: Vec<Real>,
-    /// Desplazamientos completos en orden global, incluidos dependientes y prescritos, m/rad.
+    /// Complete displacements in global order, including dependent and prescribed DOFs, m/rad.
     pub global_displacements: Vec<Real>,
-    /// Reacciones en todos los GDL prescritos, N/N·m.
+    /// Reactions at all prescribed DOFs, N/N·m.
     pub reactions: Vec<Reaction>,
-    /// Equilibrio de fuerzas y momentos globales.
+    /// Global force and moment equilibrium.
     pub equilibrium: EquilibriumReport,
-    /// `‖T_fᵀ(K u-F)‖∞` en componentes SI (N/N·m).
+    /// `‖T_fᵀ(K u-F)‖∞` in SI components (N/N·m).
     pub free_residual_norm: Real,
-    /// Norma anterior / max(1, ‖T_fᵀ K u‖∞, ‖T_fᵀ F‖∞).
-    /// Indicador numérico de componentes SI; mezcla fuerzas y momentos,
-    /// por lo que no es una norma física invariante al cambio de unidades.
+    /// Previous norm / max(1, ‖T_fᵀ K u‖∞, ‖T_fᵀ F‖∞).
+    /// Numerical indicator of SI components; mixes forces and moments,
+    /// so it is not a physical norm invariant under changes of units.
     pub relative_free_residual: Real,
 }
 
-/// Equilibrio global con sumas por componente y momentos con brazo.
+/// Global equilibrium with component sums and moments including lever arms.
 #[derive(Clone, Debug, PartialEq)]
 pub struct EquilibriumReport {
-    /// Suma física por GDL `[Fx,Fy,Fz,Mx,My,Mz]`; pares SIN brazo de fuerzas.
+    /// Physical sum per DOF `[Fx,Fy,Fz,Mx,My,Mz]`; couples WITHOUT force lever arms.
     pub applied_force_sum: [Real; 6],
-    /// Suma de reacciones por GDL, mismo orden y convención.
+    /// Sum of reactions per DOF, same order and convention.
     pub reaction_sum: [Real; 6],
-    /// Suma de los dos vectores anteriores; los últimos tres valores son
-    /// pares nodales residuales, no el momento total del equilibrio.
+    /// Sum of the two preceding vectors; the last three values are
+    /// residual nodal couples, not the total equilibrium moment.
     pub residual_force: [Real; 6],
-    /// Momento total residual `[Mx,My,Mz]`, incluidos brazos de fuerzas, N·m.
+    /// Total residual moment `[Mx,My,Mz]`, including force lever arms, N·m.
     pub residual_moment: [Real; 3],
-    /// Punto global de referencia de los momentos, m.
+    /// Global moment reference point, m.
     pub moment_point: [Real; 3],
-    /// Máximo de los seis cocientes: fuerzas residuales / max(1 N, suma de
-    /// módulos de fuerzas de esa componente) y momentos totales residuales /
-    /// max(1 N·m, suma de módulos de pares y términos del producto cruzado de
-    /// esa componente). Cargas y reacciones aportan ambas a las escalas.
-    /// Un sistema sin acciones y en equilibrio tiene residual relativo cero.
+    /// Maximum of the six ratios: residual forces / max(1 N, sum of
+    /// force magnitudes for that component) and total residual moments /
+    /// max(1 N·m, sum of magnitudes of couples and cross-product terms for
+    /// that component). Both loads and reactions contribute to the scales.
+    /// A system without actions and in equilibrium has zero relative residual.
     pub relative_residual: Real,
 }
 
 impl StaticLinear {
-    /// Identificador público del método.
+    /// Public method identifier.
     pub const KIND: &'static str = "static.linear";
 
-    /// Resuelve todos los casos con UNA factorización y momentos en el origen.
-    /// ENG-E-0010 por lista vacía/duplicada; ENG-E-0003 por caso ausente;
-    /// ENG-E-0008 por no finitos; ENG-E-0006 por mecanismo con nodo/GDL en
-    /// mensaje y entidades; ENG-E-0012 por diagnóstico inválido del backend.
+    /// Solves all cases with ONE factorization and moments about the origin.
+    /// ENG-E-0010 for an empty/duplicate list; ENG-E-0003 for a missing case;
+    /// ENG-E-0008 for nonfinite values; ENG-E-0006 for a mechanism with node/DOF in
+    /// the message and entities; ENG-E-0012 for an invalid backend diagnostic.
     pub fn run<B: LinAlgBackend>(
         system: &mut LinearSystem<B>,
         cases: &[(CaseRef, Real)],
@@ -101,8 +101,8 @@ impl StaticLinear {
         Self::run_about(system, cases, [0.0; 3])
     }
 
-    /// Como [`Self::run`], con momentos respecto a un punto global finito en m.
-    /// No altera ni acepta el estado del sistema, incluso ante errores.
+    /// Like [`Self::run`], with moments about a finite global point in m.
+    /// Does not alter or accept system state, even on errors.
     pub fn run_about<B: LinAlgBackend>(
         system: &mut LinearSystem<B>,
         cases: &[(CaseRef, Real)],
@@ -111,7 +111,7 @@ impl StaticLinear {
         Self::run_about_with_check(system, cases, point, &mut || Ok(()))
     }
 
-    /// Variante cooperativa por caso y durante la factorización de referencia.
+    /// Cooperative variant per case and during the reference factorization.
     pub fn run_about_with_check<B: LinAlgBackend>(
         system: &mut LinearSystem<B>,
         cases: &[(CaseRef, Real)],
@@ -196,7 +196,7 @@ impl Sum {
         self.components[axis] += value;
         if axis < 3 {
             self.scales[axis] += value.abs();
-            // r × F para una fuerza que solo tiene componente axis.
+            // r × F for a force with only an axis component.
             let mut f = [0.0; 3];
             f[axis] = value;
             let moment = [

@@ -1,4 +1,4 @@
-//! Validación por caso y adaptación a las primitivas del ensamblador.
+//! Per-case validation and adaptation to assembler primitives.
 use crate::{error, finite, ImposedDisplacement, LoadCase};
 use engine_assembly::{assemble::assemble_vector, DofMap};
 use engine_core::{DofIndex, EResult, EntityRef, Real};
@@ -9,7 +9,7 @@ fn nodal_indices(map: &DofMap, case: &LoadCase) -> EResult<(Vec<DofIndex>, Vec<R
     let mut indices = Vec::new();
     let mut values = Vec::new();
     for load in &case.loads {
-        // Un nodo inexistente se rechaza incluso si no contiene componentes.
+        // A nonexistent node is rejected even if it contains no components.
         let exists = (0..map.len()).any(|i| {
             map.label(DofIndex(i as u32))
                 .is_ok_and(|(node, _)| node == load.node)
@@ -35,10 +35,10 @@ fn nodal_indices(map: &DofMap, case: &LoadCase) -> EResult<(Vec<DofIndex>, Vec<R
     Ok((indices, values))
 }
 
-/// Valida las acciones de un caso contra los GDL declarados y su dimensión.
-/// Una componente no puede repetirse entre cargas del mismo caso, ni entre
-/// desplazamientos impuestos. Fuerza y desplazamiento sí pueden compartir GDL.
-/// No modifica el modelo; añade la referencia del caso a cualquier error.
+/// Validates the actions of a case against the declared DOFs and their dimension.
+/// A component cannot repeat across loads in the same case or across
+/// prescribed displacements. Force and displacement may share a DOF.
+/// Does not modify the model; adds the case reference to any error.
 pub fn validate_case(
     map: &DofMap,
     case: &LoadCase,
@@ -55,9 +55,9 @@ pub fn validate_case(
     })
 }
 
-/// Ensambla las cargas nodales de un caso a un vector global N/N·m.
-/// Reutiliza [`DofMap`] y [`engine_assembly::assemble::assemble_vector`].
-/// Una lista vacía produce ceros; componentes repetidas producen ENG-E-0010.
+/// Assembles the nodal loads of a case into a global vector in N/N·m.
+/// Reuses [`DofMap`] and [`engine_assembly::assemble::assemble_vector`].
+/// An empty list produces zeros; repeated components produce ENG-E-0010.
 pub fn assemble_nodal_loads(map: &DofMap, case: &LoadCase) -> EResult<Vec<Real>> {
     (|| {
         let (indices, values) = nodal_indices(map, case)?;
@@ -73,11 +73,11 @@ pub fn assemble_nodal_loads(map: &DofMap, case: &LoadCase) -> EResult<Vec<Real>>
     })
 }
 
-/// Vector global de traslaciones m y giros rad impuestos.
-/// None distingue un GDL libre de un valor prescrito cero. Los mismos valores
-/// pueden pasarse directamente a [`engine_assembly::Constraints::new`], pues
-/// [`ImposedDisplacement`] es el tipo PrescribedDof existente.
-/// Rechaza no finitos, referencias/GDL ausentes y duplicados (ENG-E-0010).
+/// Global vector of prescribed translations in m and rotations in rad.
+/// None distinguishes a free DOF from a prescribed zero value. The same values
+/// can be passed directly to [`engine_assembly::Constraints::new`], since
+/// [`ImposedDisplacement`] is the existing PrescribedDof type.
+/// Rejects nonfinite values, missing references/DOFs, and duplicates (ENG-E-0010).
 pub fn assemble_imposed_displacements(
     map: &DofMap,
     imposed: &[ImposedDisplacement],

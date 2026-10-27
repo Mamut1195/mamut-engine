@@ -1,22 +1,22 @@
-//! Fábrica element/1 con esquema SI propio, sin parser ni registro global.
+//! element/1 factory with an internal SI schema, without a parser or global registry.
 use crate::{finite, invalid, LinearSpring, SpringAxes, SpringConnection};
 use engine_contracts::{Element, ElementFactory, JsonValue, ModelView};
 use engine_core::{Dim, EResult, EngineError, Real};
 use std::collections::BTreeSet;
 
-/// Fábrica de spring.linear para la dimensión seleccionada.
-/// k y dofs son obligatorios; ground=false, sin dirección/rotación usa globales.
-/// dofs debe contener exactamente un GDL de la dimensión seleccionada.
-/// Las listas vacías o con más GDL que la dimensión se rechazan; varios GDL
-/// distintos válidos se rechazan con ENG-E-0013 para evitar acoplamientos.
-/// La dirección requiere dofs=["Ux"]; dofs expresa componentes LOCALES.
-/// Valida ModelView como truss/frame; el producto no conserva referencias.
+/// spring.linear factory for the selected dimension.
+/// k and dofs are required; ground=false, without direction/rotation uses global axes.
+/// dofs must contain exactly one DOF of the selected dimension.
+/// Empty lists or lists with more DOFs than the dimension are rejected; multiple distinct
+/// valid DOFs are rejected with ENG-E-0013 to avoid coupling.
+/// Direction requires dofs=["Ux"]; dofs expresses LOCAL components.
+/// Validates ModelView as in truss/frame; the product retains no references.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SpringFactory {
     dim: Dim,
 }
 impl SpringFactory {
-    /// Selecciona D2 (XY) o D3 para validar modelo, GDL y orientación.
+    /// Selects D2 (XY) or D3 to validate model, DOFs, and orientation.
     pub fn new(dim: Dim) -> Self {
         Self { dim }
     }
@@ -30,8 +30,8 @@ impl ElementFactory for SpringFactory {
             Dim::D2 => r#"["Ux","Uy","Rz"]"#,
             Dim::D3 => r#"["Ux","Uy","Uz","Rx","Ry","Rz"]"#,
         };
-        // Las restricciones físicas adicionales (familia, plano, ortonormalidad)
-        // se documentan y validan al construir, igual que la geometría en frame.
+        // Additional physical constraints (family, plane, orthonormality)
+        // are documented and validated on construction, as geometry is in frame.
         format!(
             r##"{{"type":"object","properties":{{"k":{{"type":"number","minimum":0,"description":"Rigidez SI: N/m para traslaciones, N·m/rad para giros"}},"dofs":{{"type":"array","minItems":1,"maxItems":1,"uniqueItems":true,"items":{{"enum":{dofs}}},"description":"Un único GDL local (varios GDL en un elemento serían un resorte de rango uno que los acopla; la fábrica lo rechaza)"}},"ground":{{"type":"boolean","default":false}},"direction":{{"$ref":"#/$defs/vector","description":"Dirección global finita no nula, solo Ux local"}},"rotation":{{"type":"array","minItems":3,"maxItems":3,"items":{{"$ref":"#/$defs/vector"}},"description":"Filas: ejes locales ortonormales, determinante +1; D2 conserva XY y +Z"}}}},"required":["k","dofs"],"additionalProperties":false,"not":{{"required":["direction","rotation"]}},"$defs":{{"vector":{{"type":"array","minItems":3,"maxItems":3,"items":{{"type":"number"}}}}}}}}"##
         )
@@ -97,9 +97,9 @@ impl ElementFactory for SpringFactory {
             return Err(invalid("Spring: duplicate DOF."));
         }
         if dofs.len() > 1 {
-            // Varios GDL en un mismo elemento forman un resorte de rango uno que
-            // ACOPLA los GDL (k·bbᵀ), no resortes independientes: la fábrica lo
-            // rechaza para evitar rigideces acopladas no pedidas (J4 r7).
+            // Multiple DOFs in one element form a rank-one spring that
+            // COUPLES the DOFs (k·bbᵀ), not independent springs: the factory
+            // rejects this to avoid unrequested coupled stiffnesses (J4 r7).
             return Err(EngineError::new(
                 "ENG-E-0013",
                 "Spring: an element supports a single DOF; for independent springs, use one element per DOF.",

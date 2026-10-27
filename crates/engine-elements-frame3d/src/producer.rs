@@ -1,22 +1,22 @@
-//! Adaptador poseído de la Kg P-Delta de una viga espacial a engine-assembly.
+//! Owned adapter from a spatial beam P-Delta Kg to engine-assembly.
 use crate::{invalid, EulerFrame3D};
 use engine_assembly::GeometricProducer;
 use engine_contracts::{Element, ElementCtx};
 use engine_core::{DofIndex, EResult};
 use std::collections::BTreeSet;
 
-/// Construye un productor poseído para una viga espacial D3 y su location global.
+/// Constructs an owned producer for a D3 spatial beam and its global location.
 ///
-/// Captura el elemento, las coordenadas y una copia de params; reconstruye
-/// ElementCtx y llama geometric_stiffness con u_e global total y estado vacío.
-/// No retiene préstamos del contexto. location sigue nodo i, nodo j, con
-/// Ux,Uy,Uz,Rx,Ry,Rz en D3; el sistema valida su rango global al registrar.
+/// Captures the element, coordinates, and a copy of params; reconstructs
+/// ElementCtx and calls geometric_stiffness with total global u_e and empty state.
+/// Retains no context borrows. location follows node i, node j, with
+/// Ux,Uy,Uz,Rx,Ry,Rz in D3; the system validates its global range on registration.
 ///
-/// N=EA(uj−ui)/L en el eje local, positivo en tracción. Kg se integra
-/// con pendientes Hermite biaxiales y se condensa con liberaciones elásticas.
-/// Geometría de referencia fija; no modifica respond ni actualiza el eje.
-/// Valida geometría y tamaño aquí; propaga errores del elemento en cada eval.
-/// ENG-E-0010 por tamaño, ENG-E-0002 por GDL repetidos; rango en el registro.
+/// N=EA(uj−ui)/L along the local axis, positive in tension. Kg is integrated
+/// with biaxial Hermite slopes and condensed with elastic releases.
+/// Fixed reference geometry; does not modify respond or update the axis.
+/// Validates geometry and size here; propagates element errors on each evaluation.
+/// ENG-E-0010 for size, ENG-E-0002 for repeated DOFs; range checked on registration.
 pub fn geometric_producer(
     element: EulerFrame3D,
     ctx: &ElementCtx<'_>,

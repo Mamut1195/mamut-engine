@@ -1,27 +1,27 @@
-//! Espectro de respuesta `spectrum`, exclusivamente tabulado por el usuario.
+//! `spectrum` response spectrum, exclusively tabulated by the user.
 //!
-//! Sa es pseudoaceleración en m/s² para el ζ declarado de cada tabla;
-//! q_n,max=Γ_n Sa(T_n,ζ_n)/ω_n² y u_n=φ_n q_n,max. Las fuerzas equivalentes
-//! globales son F_n=Mφ_n Γ_n Sa. K, M y participación vienen de [`Modal`].
-//! Los modos deben tener ω>0; no se asigna respuesta a modos rígidos.
+//! Sa is pseudoacceleration in m/s² for the declared ζ of each table;
+//! q_n,max=Γ_n Sa(T_n,ζ_n)/ω_n² and u_n=φ_n q_n,max. Global equivalent
+//! forces are F_n=Mφ_n Γ_n Sa. K, M, and participation come from [`Modal`].
+//! Modes must have ω>0; no response is assigned to rigid modes.
 //!
-//! R_n=(K u_n−F_n)_p en todos los apoyos, con perturbaciones prescritas cero.
-//! El cortante basal firmado es −Σ_apoyos R_traslacional·d̂. Se incluyen los
-//! acoplamientos de masa consistente hacia apoyos en F_p; para masas solo en
-//! GDL libres de un edificio de cortante, V_n=M*_n Sa_n. No se suman cargas
-//! estáticas, asentamientos ni términos M_fp r_p a la participación modal.
+//! R_n=(K u_n−F_n)_p at all supports, with zero prescribed perturbations.
+//! Signed base shear is −Σ_apoyos R_traslacional·d̂. Consistent-mass couplings
+//! to supports are included in F_p; for masses only at
+//! free DOFs of a shear building, V_n=M*_n Sa_n. Static loads,
+//! settlements, and M_fp r_p terms are not added to modal participation.
 //!
-//! SRSS/CQC combinan CADA escalar después de recuperarlo, usando su signo
-//! modal. Sus envolventes no constituyen un estado simultáneo ni equilibrado:
-//! el cortante basal combinado se calcula a partir de los cortantes por modo,
-//! nunca sumando las envolventes de reacciones. Para miembros, extraer u_e de
-//! cada `global_displacements`, usar `Element::recover` sin cargas estáticas y
-//! combinar cada escalar con [`combine_modal`]. El sistema ensamblado no retiene
-//! objetos Element/contextos ni dispone de una fachada results completa.
+//! SRSS/CQC combine EACH scalar after recovery, using its modal
+//! sign. Their envelopes are not a simultaneous or equilibrated state:
+//! combined base shear is computed from the shears per mode,
+//! never by summing reaction envelopes. For members, extract u_e from
+//! each `global_displacements`, use `Element::recover` without static loads, and
+//! combine each scalar with [`combine_modal`]. The assembled system retains
+//! no Element objects/contexts and has no complete results facade.
 //!
-//! El usuario elige tabla(s), amortiguamiento(s), interpolación, extrapolación,
-//! dirección(es), factores y combinación. No hay normas, espectros incorporados,
-//! corrección de amortiguamiento, gravedad ni factores predeterminados.
+//! The user chooses table(s), damping ratio(s), interpolation, extrapolation,
+//! direction(s), factors, and combination. There are no codes, built-in spectra,
+//! damping correction, gravity, or default factors.
 
 mod combination;
 mod table;
@@ -53,98 +53,98 @@ fn validate_damping(zeta: Real) -> EResult<()> {
     Ok(())
 }
 
-/// Excitación declarada: una tabla común o una tabla por modo, en orden modal.
+/// Declared excitation: one common table or one table per mode, in modal order.
 #[derive(Clone, Copy, Debug)]
 pub struct SpectrumDirection<'a> {
-    /// Dirección global del usuario, finita y no nula; se normaliza.
+    /// User global direction, finite and nonzero; normalized.
     pub direction: [Real; 3],
-    /// Longitud 1 (ζ común) o `mode_count` (ζ/tablas por modo); nunca vacía.
+    /// Length 1 (common ζ) or `mode_count` (ζ/tables per mode); never empty.
     pub spectra: &'a [TabulatedSpectrum],
 }
 
-/// Opciones explícitas del usuario; no implementa Default.
+/// Explicit user options; does not implement Default.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SpectrumOptions {
-    /// Número no nulo de modos solicitado a [`Modal::run`].
+    /// Nonzero number of modes requested from [`Modal::run`].
     pub mode_count: usize,
-    /// Tipo de masa del sistema.
+    /// System mass type.
     pub mass_kind: MassKind,
-    /// Combinación de respuestas modales firmadas.
+    /// Combination of signed modal responses.
     pub modal_combination: ModalCombination,
-    /// Combinación de envolventes direccionales.
+    /// Combination of directional envelopes.
     pub directional_combination: DirectionalCombination,
-    /// Un factor finito no negativo por dirección, en el mismo orden.
+    /// One finite nonnegative factor per direction, in the same order.
     pub directional_factors: Vec<Real>,
 }
 
-/// Desplazamientos, reacciones y cortante basal de un modo o una envolvente.
+/// Displacements, reactions, and base shear of a mode or envelope.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SpectrumResponse {
-    /// Desplazamientos libres en orden reducido, m/rad.
+    /// Free displacements in reduced order, m/rad.
     pub free_displacements: Vec<Real>,
-    /// Desplazamientos globales, m/rad; perturbaciones cero en apoyos.
+    /// Global displacements, m/rad; zero perturbations at supports.
     pub global_displacements: Vec<Real>,
-    /// Reacciones en orden global, N/N·m; firmadas por modo, magnitudes combinadas.
+    /// Reactions in global order, N/N·m; signed per mode, combined magnitudes.
     pub reactions: Vec<Reaction>,
-    /// Cortante basal proyectado en d̂, N; firmado por modo, magnitud combinada.
+    /// Base shear projected onto d̂, N; signed per mode, combined magnitude.
     pub base_shear: Real,
 }
 
-/// Respuesta modal máxima firmada en una dirección; no representa una historia.
+/// Signed peak modal response in one direction; does not represent a history.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SpectrumModeResponse {
-    /// Amortiguamiento ζ declarado en la tabla usada.
+    /// Damping ratio ζ declared in the table used.
     pub damping: Real,
-    /// Sa(T_n,ζ_n) tabulada/interpolada, m/s².
+    /// Tabulated/interpolated Sa(T_n,ζ_n), m/s².
     pub spectral_acceleration: Real,
-    /// Coordenada modal máxima Γ_n Sa/ω_n²; su signo depende del signo de φ.
-    /// Las unidades de q dependen de la normalización a masa de φ; φq es m/rad.
+    /// Peak modal coordinate Γ_n Sa/ω_n²; its sign depends on the sign of φ.
+    /// Units of q depend on the mass normalization of φ; φq is in m/rad.
     pub modal_displacement: Real,
-    /// Fuerzas equivalentes globales Mφ_n Γ_n Sa, N/N·m, incluidos apoyos.
+    /// Global equivalent forces Mφ_n Γ_n Sa, N/N·m, including supports.
     pub equivalent_forces: Vec<Real>,
-    /// Respuesta física firmada recuperada antes de combinar.
+    /// Signed physical response recovered before combination.
     pub response: SpectrumResponse,
 }
 
-/// Respuesta por dirección con trazabilidad de las tablas y combinaciones.
+/// Response per direction with traceability of tables and combinations.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SpectrumDirectionResult {
-    /// Dirección unitaria global utilizada.
+    /// Global unit direction used.
     pub unit_direction: [Real; 3],
-    /// Tablas de entrada, incluida su elección de interpolación/extrapolación.
+    /// Input tables, including their interpolation/extrapolation choices.
     pub spectra: Vec<TabulatedSpectrum>,
-    /// Respuestas por modo, en el mismo orden que `modal.modes`.
+    /// Responses per mode, in the same order as `modal.modes`.
     pub modes: Vec<SpectrumModeResponse>,
-    /// Envolvente SRSS o CQC por componente.
+    /// SRSS or CQC envelope per component.
     pub combined: SpectrumResponse,
 }
 
-/// Resultado completo; los estados aceptados y de prueba no se modifican.
+/// Complete result; accepted and trial states are not modified.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SpectrumResults {
-    /// Modos y participaciones de ENG-ANL-002 para estas mismas direcciones.
+    /// Modes and participations from ENG-ANL-002 for these same directions.
     pub modal: ModalResults,
-    /// Opciones declaradas y factores aplicados, sin interpretación normativa.
+    /// Declared options and applied factors, without code interpretation.
     pub options: SpectrumOptions,
-    /// Resultados direccionales, en orden de entrada.
+    /// Directional results, in input order.
     pub directions: Vec<SpectrumDirectionResult>,
-    /// Envolvente direccional; el basal combina las proyecciones de cada dirección.
-    /// No es una proyección en una nueva dirección ni un equilibrio simultáneo.
+    /// Directional envelope; base shear combines the projections of each direction.
+    /// This is neither a projection onto a new direction nor simultaneous equilibrium.
     pub combined: SpectrumResponse,
 }
 
-/// Método espectral lineal sin estado propio ni espectro predeterminado.
+/// Stateless linear spectral method without a default spectrum.
 pub struct Spectrum;
 
 impl Spectrum {
-    /// Identificador público del método.
+    /// Public method identifier.
     pub const KIND: &'static str = "spectrum";
 
-    /// Calcula respuestas máximas modales, envolventes y combinación direccional.
-    /// ENG-E-0010: modos/direcciones/tablas vacíos, ω=0, dirección nula,
-    /// factores inválidos o periodo fuera de tabla con Extrapolation::Error.
-    /// ENG-E-0008: no finitos/desbordamientos. Propaga los errores del módulo
-    /// modal y del ensamblador. No modifica ni acepta estados del sistema.
+    /// Computes peak modal responses, envelopes, and directional combination.
+    /// ENG-E-0010: empty modes/directions/tables, ω=0, zero direction,
+    /// invalid factors, or period outside the table with Extrapolation::Error.
+    /// ENG-E-0008: nonfinite values/overflow. Propagates errors from the modal
+    /// module and assembler. Does not modify or accept system states.
     pub fn run<B: LinAlgBackend>(
         system: &mut LinearSystem<B>,
         directions: &[SpectrumDirection<'_>],
@@ -153,9 +153,9 @@ impl Spectrum {
         Self::run_with(system, directions, options, |_, _| Ok(()))
     }
 
-    /// Variante cooperativa: etapas modal, spectrumMode y spectrumDirection.
-    /// Callback después de cada modo/dirección; `run_with_check` controla los kernels.
-    /// Un error detiene el análisis sin aceptar estado.
+    /// Cooperative variant: modal, spectrumMode, and spectrumDirection stages.
+    /// Callback after each mode/direction; `run_with_check` controls the kernels.
+    /// An error stops analysis without accepting state.
     pub fn run_with<B: LinAlgBackend>(
         system: &mut LinearSystem<B>,
         directions: &[SpectrumDirection<'_>],
@@ -165,7 +165,7 @@ impl Spectrum {
         Self::run_with_check(system, directions, options, checkpoint, || Ok(()))
     }
 
-    /// Control independiente del progreso, incluido el eigensolver y CQC.
+    /// Control independent of progress, including the eigensolver and CQC.
     pub fn run_with_check<B: LinAlgBackend>(
         system: &mut LinearSystem<B>,
         directions: &[SpectrumDirection<'_>],
@@ -177,7 +177,7 @@ impl Spectrum {
         if options.mode_count == 0 || directions.is_empty() {
             return Err(invalid("Nonempty modes and directions are required."));
         }
-        // Valida factores incluso si todas las respuestas son cero.
+        // Validates factors even if all responses are zero.
         combine_directions(
             &vec![0.0; directions.len()],
             &options.directional_factors,

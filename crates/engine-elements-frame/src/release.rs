@@ -1,4 +1,4 @@
-//! Condensación estática elástica: u_r=−Krr⁻¹Kra u_a+Krr⁻¹ f_r.
+//! Elastic static condensation: u_r=−Krr⁻¹Kra u_a+Krr⁻¹ f_r.
 use crate::{
     finite,
     geometry::{multiply, Geometry},
@@ -6,13 +6,13 @@ use crate::{
 };
 use engine_core::{EResult, Real};
 
-/// Liberaciones de momento alrededor de z local en extremos i y j.
-/// Dos liberaciones son válidas: Kflexión=0 y giros nodales desconectados.
+/// Moment releases about local z at ends i and j.
+/// Two releases are valid: Kflexión=0 and disconnected nodal rotations.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct MomentReleases {
-    /// Libera el momento del primer extremo; su giro interno se recupera.
+    /// Releases the first-end moment; its internal rotation is recovered.
     pub i: bool,
-    /// Libera el momento del segundo extremo; su giro interno se recupera.
+    /// Releases the second-end moment; its internal rotation is recovered.
     pub j: bool,
 }
 impl MomentReleases {
@@ -51,7 +51,7 @@ pub(crate) fn displacements(
     let b = positive(beam.ei / g.length, "EI/L")?;
     let b4 = positive(4.0 * b, "4EI/L")?;
     if beam.releases.i && beam.releases.j {
-        // Inversa normalizada de [[4,2],[2,4]]: [[1/3,-1/6],[-1/6,1/3]].
+        // Normalized inverse of [[4,2],[2,4]]: [[1/3,-1/6],[-1/6,1/3]].
         let ri = finite(f[2] / b, "f_i/(EI/L)")?;
         let rj = finite(f[5] / b, "f_j/(EI/L)")?;
         internal[2] = finite(internal[2] + ri / 3.0 - rj / 6.0, "Recovered theta_i")?;

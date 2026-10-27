@@ -1,28 +1,28 @@
 #![forbid(unsafe_code)]
-//! Barras homogéneas articuladas `truss2d.linear` y `truss3d.linear`, element/1.
+//! Homogeneous pin-jointed trusses `truss2d.linear` and `truss3d.linear`, element/1.
 //!
-//! Elasticidad lineal, desplazamientos y giros infinitesimales, sin pretensión,
-//! historia, flexión ni torsión. El eje d apunta del nodo i al j; N positivo es
-//! tracción. D2 usa X-Y horizontal, Z=0; D3 usa la terna diestra, Z hacia arriba.
-//! Solo Ux,Uy (D2) o Ux,Uy,Uz (D3), ordenados por nodo. Coordenadas/u en m,
-//! E en Pa, A en m², rho en kg/m³, fuerza en N, K/Kg en N/m y masa en kg.
+//! Linear elasticity, infinitesimal displacements and rotations, without prestress,
+//! history, bending, or torsion. Axis d points from node i to j; positive N is
+//! tension. D2 uses horizontal X-Y, Z=0; D3 uses the right-handed triad, Z upward.
+//! Only Ux,Uy (D2) or Ux,Uy,Uz (D3), ordered by node. Coordinates/u in m,
+//! E in Pa, A in m², rho in kg/m³, force in N, K/Kg in N/m, and mass in kg.
 //!
-//! Las propiedades validadas son propiedad del elemento; `ctx.coords` aporta
-//! la geometría de referencia. `ctx.params` no interviene: no se mezclan dos
-//! fuentes de propiedades. La fábrica usa números SI E, A y rho explícitos.
-//! Masa isotrópica de traslación con interpolación lineal. Kg se ofrece aparte:
-//! no modifica la tangente ni convierte respond en un análisis de segundo orden.
-//! [`geometric_producer`] adapta esta Kg a engine-assembly: captura geometría y
-//! propiedades y evalúa N con u_e total, incluidos desplazamientos prescritos.
-//! Solo cargas uniformes axiales sin momentos; peso propio debe convertirse
-//! explícitamente en q=rho A g y ser paralelo al eje. No se presume gravedad.
-//! La recuperación devuelve extremos locales [-N_i,0,…,N_j,0,…] y estaciones
-//! con N por cara positiva; no necesita orientación transversal D3.
+//! The element owns the validated properties; `ctx.coords` supplies
+//! reference geometry. `ctx.params` is unused: two property sources are not
+//! mixed. The factory uses explicit SI numbers E, A, and rho.
+//! Isotropic translational mass with linear interpolation. Kg is provided separately:
+//! it does not modify the tangent or turn respond into second-order analysis.
+//! [`geometric_producer`] adapts this Kg to engine-assembly: captures geometry and
+//! properties and evaluates N with total u_e, including prescribed displacements.
+//! Only uniform axial loads without moments; self-weight must be converted
+//! explicitly to q=rho A g and be parallel to the axis. Gravity is not assumed.
+//! Recovery returns local ends [-N_i,0,…,N_j,0,…] and stations
+//! with N on the positive face; no D3 transverse orientation is needed.
 //!
-//! Entradas/resultados no finitos: ENG-E-0008; tamaños, parámetros, cargas o
-//! estaciones inválidos: ENG-E-0010; L≤1e-12 m: ENG-E-0005. Sin E/S, hilos,
-//! reloj ni estado mutable. Determinismo en cada destino; igualdad binaria
-//! entre destinos pendiente de ENG-CORE-010.
+//! Nonfinite inputs/results: ENG-E-0008; invalid sizes, parameters, loads, or
+//! stations: ENG-E-0010; L≤1e-12 m: ENG-E-0005. No I/O, threads,
+//! clock, or mutable state. Deterministic on each target; binary equality
+//! across targets pending ENG-CORE-010.
 //!
 //! ```
 //! use engine_elements_truss::LinearTruss;
@@ -54,10 +54,10 @@ use engine_linalg::DMat;
 pub use factory::TrussFactory;
 pub use producer::geometric_producer;
 
-/// Barra lineal de dos nodos con propiedades SI inmutables y sin historia.
+/// Two-node linear truss with immutable SI properties and no history.
 ///
-/// Ambos kinds comparten la formulación; solo cambian dimensión y GDL activos.
-/// Véase la documentación del crate para hipótesis, unidades y cargas admitidas.
+/// Both kinds share the formulation; only dimension and active DOFs differ.
+/// See the crate documentation for assumptions, units, and supported loads.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct LinearTruss {
     dim: Dim,
@@ -68,10 +68,10 @@ pub struct LinearTruss {
 }
 
 impl LinearTruss {
-    /// Construye con E>0 Pa, A>0 m² y rho≥0 kg/m³, todos finitos.
+    /// Constructs with E>0 Pa, A>0 m², and rho≥0 kg/m³, all finite.
     ///
-    /// ENG-E-0008 por no finitos/productos desbordados; ENG-E-0010 por
-    /// rango inválido o EA positivo reducido a cero por subdesbordamiento.
+    /// ENG-E-0008 for nonfinite values/overflowed products; ENG-E-0010 for
+    /// invalid range or positive EA reduced to zero by underflow.
     pub fn new(dim: Dim, e: Real, area: Real, density: Real) -> EResult<Self> {
         let material = Elastic::new(e)?;
         positive(area, "A (m²)")?;
@@ -89,22 +89,22 @@ impl LinearTruss {
         })
     }
 
-    /// Dimensión de la barra; determina dos o tres traslaciones por nodo.
+    /// Truss dimension; determines two or three translations per node.
     pub fn dim(&self) -> Dim {
         self.dim
     }
 
-    /// Área A validada, en m².
+    /// Validated area A, in m².
     pub fn area(&self) -> Real {
         self.area
     }
 
-    /// Densidad rho validada, en kg/m³; cero significa ausencia de masa.
+    /// Validated density rho, in kg/m³; zero means no mass.
     pub fn density(&self) -> Real {
         self.density
     }
 
-    /// Material elástico uniaxial de engine-laws, con módulo E en Pa.
+    /// Uniaxial elastic material from engine-laws, with modulus E in Pa.
     pub fn material(&self) -> &Elastic {
         &self.material
     }

@@ -1,4 +1,4 @@
-//! Equilibrio por cara positiva: N′=−qx, V′=−qy, M′=−V−mz.
+//! Positive-face equilibrium: N′=−qx, V′=−qy, M′=−V−mz.
 use crate::{
     finite,
     geometry::{multiply, Geometry},
@@ -19,9 +19,9 @@ pub(crate) fn output(
     let f = loads::local_vector(g.length, q)?;
     let recovered = release::displacements(beam, g, &u, &f)?;
     let mut elastic = multiply(&stiffness::local_matrix(beam, g)?, &recovered)?;
-    // Doble liberación: la flexión condensada es EXACTAMENTE cero; el producto
-    // K·u_recuperado con EI enorme solo aporta ruido de redondeo (cortante espurio,
-    // J4 #31), así que la parte flexional elástica se fija en cero.
+    // Double release: condensed bending is EXACTLY zero; the product
+    // K·u_recuperado with huge EI only contributes rounding noise (spurious shear,
+    // J4 #31), so the elastic bending part is set to zero.
     if beam.releases.i && beam.releases.j {
         for i in [1, 2, 4, 5] {
             elastic[i] = 0.0;
@@ -31,8 +31,8 @@ pub(crate) fn output(
     for i in 0..6 {
         ends[i] = finite(elastic[i] - f[i], "End action")?;
     }
-    // Equilibrio de la condensación garantiza cero; imponerlo elimina solo
-    // el residuo de redondeo en la acción de un giro interno equilibrado.
+    // Condensation equilibrium guarantees zero; imposing it removes only
+    // the rounding residual in the action of an equilibrated internal rotation.
     if beam.releases.i {
         ends[2] = 0.0;
     }

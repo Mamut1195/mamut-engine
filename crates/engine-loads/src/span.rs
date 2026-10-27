@@ -1,19 +1,19 @@
-//! Integración exacta de interpolaciones axial lineal y transversal cúbica.
+//! Exact integration of linear axial and cubic transverse interpolations.
 use crate::{error, finite, length};
 use engine_contracts::MemberLoad;
 use engine_core::math;
 use engine_core::{EResult, Real};
 
-/// Ejes de las dos componentes de fuerza (o fuerza por longitud).
+/// Axes for the two force (or force per unit length) components.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LoadAxes {
-    /// Componentes `[x,y]` locales del miembro orientado i → j.
+    /// Local `[x,y]` components of the member oriented i → j.
     Local,
-    /// Componentes `[X,Y]` globales del plano XY.
+    /// Global `[X,Y]` components in the XY plane.
     Global,
 }
 
-/// Geometría inmutable de la viga 2D, independiente de rigidez y sección.
+/// Immutable 2D beam geometry, independent of stiffness and section.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Beam2D {
     length: Real,
@@ -22,8 +22,8 @@ pub struct Beam2D {
 }
 
 impl Beam2D {
-    /// Valida longitud > 0 y ángulo finito (rad desde +X hacia +Y).
-    /// No se impone una tolerancia dimensional: también admite L=1e-300 m.
+    /// Validates length > 0 and finite angle (rad from +X toward +Y).
+    /// No dimensional tolerance is imposed: L=1e-300 m is also accepted.
     pub fn new(member_length: Real, angle: Real) -> EResult<Self> {
         length(member_length)?;
         finite(&[angle])?;
@@ -36,13 +36,13 @@ impl Beam2D {
         })
     }
 
-    /// Longitud del miembro en m.
+    /// Member length in m.
     pub fn length(&self) -> Real {
         self.length
     }
 
-    /// Transforma fuerzas nodales locales a globales; los momentos conservan Z.
-    /// No aplica liberaciones. ENG-E-0008 para entradas o resultados no finitos.
+    /// Transforms local nodal forces to global axes; moments retain Z.
+    /// Does not apply releases. ENG-E-0008 for nonfinite inputs or results.
     pub fn forces_to_global(&self, local: [Real; 6]) -> EResult<[Real; 6]> {
         finite(&local)?;
         let mut global = local;
@@ -68,37 +68,37 @@ impl Beam2D {
     }
 }
 
-/// Fuerzas de tramo, sin momentos distribuidos; componentes axiales y transversales.
-/// Las distancias se miden sobre la longitud real, incluso en ejes globales.
+/// Span forces, without distributed moments; axial and transverse components.
+/// Distances are measured along the actual length, even in global axes.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum SpanLoad {
-    /// Carga constante sobre toda la longitud.
+    /// Constant load over the entire length.
     Uniform {
-        /// Componentes `[qx,qy]` en N/m según axes.
+        /// `[qx,qy]` components in N/m according to axes.
         q: [Real; 2],
-        /// Sistema de ejes de q.
+        /// Axis system for q.
         axes: LoadAxes,
     },
-    /// Carga lineal entre a y b; cero fuera de ese intervalo.
+    /// Linear load between a and b; zero outside that interval.
     Trapezoidal {
-        /// Intensidad en a (N/m), componentes según axes.
+        /// Intensity at a (N/m), components according to axes.
         q_i: [Real; 2],
-        /// Intensidad en b (N/m), componentes según axes.
+        /// Intensity at b (N/m), components according to axes.
         q_j: [Real; 2],
-        /// Inicio desde i (m); None equivale a 0.
+        /// Start measured from i (m); None is equivalent to 0.
         a: Option<Real>,
-        /// Fin desde i (m); None equivale a L. Exige 0 ≤ a < b ≤ L.
+        /// End measured from i (m); None is equivalent to L. Requires 0 ≤ a < b ≤ L.
         b: Option<Real>,
-        /// Sistema de ejes de las intensidades.
+        /// Axis system for the intensities.
         axes: LoadAxes,
     },
-    /// Fuerza puntual, incluidos los extremos x=0 y x=L.
+    /// Point force, including the ends x=0 and x=L.
     Point {
-        /// Distancia desde i en m, 0 ≤ x ≤ L.
+        /// Distance from i in m, 0 ≤ x ≤ L.
         x: Real,
-        /// Componentes de P en N según axes.
+        /// Components of P in N according to axes.
         p: [Real; 2],
-        /// Sistema de ejes de P.
+        /// Axis system for P.
         axes: LoadAxes,
     },
 }
@@ -156,8 +156,8 @@ fn local_load(beam: &Beam2D, load: &SpanLoad) -> EResult<LocalLoad> {
     }
 }
 
-// Hermite factorizado en r=x/L evita dividir por L²/L³ y reduce cancelaciones.
-// Se multiplica por L al final para no formar L² antes de combinar la carga.
+// Hermite form factored in r=x/L avoids division by L²/L³ and reduces cancellation.
+// Multiplication by L is deferred to avoid forming L² before combining the load.
 fn point_vector(l: Real, r: Real, [px, py]: [Real; 2]) -> EResult<[Real; 6]> {
     let t = 1.0 - r;
     let result = [
@@ -172,13 +172,13 @@ fn point_vector(l: Real, r: Real, [px, py]: [Real; 2]) -> EResult<[Real; 6]> {
     Ok(result)
 }
 
-/// Fuerzas nodales equivalentes locales ∫ Hᵀq dx o H(x)ᵀP.
+/// Local equivalent nodal forces ∫ Hᵀq dx or H(x)ᵀP.
 ///
-/// Integración analítica mediante Gauss–Legendre de 3 puntos, exacta hasta
-/// grado 5: H es cúbica y q lineal, por tanto Hᵀq tiene grado ≤4. No hay
-/// subdivisiones, tolerancias de cuadratura ni integración aproximada. Los
-/// puntos en `[0,1]` son (1±√(3/5))/2 y 1/2, con pesos 5/18, 4/9, 5/18.
-/// La exactitud es algebraica, sujeta al redondeo de Real=f64.
+/// Analytical integration using 3-point Gauss–Legendre, exact through
+/// degree 5: H is cubic and q is linear, so Hᵀq has degree ≤4. There are no
+/// subdivisions, quadrature tolerances, or approximate integration. The
+/// points in `[0,1]` are (1±√(3/5))/2 and 1/2, with weights 5/18, 4/9, 5/18.
+/// Exactness is algebraic, subject to Real=f64 rounding.
 pub fn equivalent_nodal_forces_local(beam: &Beam2D, load: &SpanLoad) -> EResult<[Real; 6]> {
     match local_load(beam, load)? {
         LocalLoad::Point { x, p } => point_vector(beam.length, x / beam.length, p),
@@ -216,16 +216,16 @@ pub fn equivalent_nodal_forces_local(beam: &Beam2D, load: &SpanLoad) -> EResult<
     }
 }
 
-/// Reacciones locales sobre el miembro empotrado: −∫ Hᵀq dx o −H(x)ᵀP.
-/// Para qy>0 uniforme: `[0,−qL/2,−qL²/12,0,−qL/2,+qL²/12]`.
-/// Comparte validación e integración exacta con [`equivalent_nodal_forces_local`].
+/// Local reactions on the member with restrained ends: −∫ Hᵀq dx or −H(x)ᵀP.
+/// For uniform qy>0: `[0,−qL/2,−qL²/12,0,−qL/2,+qL²/12]`.
+/// Shares validation and exact integration with [`equivalent_nodal_forces_local`].
 pub fn fixed_end_forces_local(beam: &Beam2D, load: &SpanLoad) -> EResult<[Real; 6]> {
     Ok(equivalent_nodal_forces_local(beam, load)?.map(|f| -f))
 }
 
-/// Convierte una carga uniforme completa a [`MemberLoad`] en ejes globales.
-/// También acepta un trapecio completo con q_i=q_j; nunca promedia una carga
-/// variable o parcial (ENG-E-0013). Valida primero todas las entradas.
+/// Converts a full uniform load to [`MemberLoad`] in global axes.
+/// Also accepts a full trapezoid with q_i=q_j; never averages a
+/// variable or partial load (ENG-E-0013). Validates all inputs first.
 pub fn to_member_load(beam: &Beam2D, load: &SpanLoad) -> EResult<MemberLoad> {
     local_load(beam, load)?;
     let (q, axes) = match *load {

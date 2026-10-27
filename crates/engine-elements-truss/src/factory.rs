@@ -1,20 +1,20 @@
-//! Fábrica element/1 sin parser, referencias de material ni registro global.
+//! element/1 factory without a parser, material references, or global registry.
 use crate::{finite, invalid, LinearTruss};
 use engine_contracts::{Element, ElementFactory, JsonValue, ModelView};
 use engine_core::{Dim, EResult, EngineError};
 use std::collections::BTreeSet;
 
-/// Fábrica para un kind de barra; valida el esquema E, A y rho en SI.
+/// Factory for a truss kind; validates the SI E, A, and rho schema.
 ///
-/// No recibe ids ni conexiones: la geometría de cada barra llegará en ElementCtx.
-/// ModelView se comprueba por dimensión, ids únicos y coordenadas finitas/planares;
-/// su vida no condiciona la del producto. No modifica ni ensambla el modelo.
+/// Receives no ids or connections: each truss geometry arrives in ElementCtx.
+/// ModelView is checked for dimension, unique ids, and finite/planar coordinates;
+/// its lifetime does not constrain the product's. Does not modify or assemble the model.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TrussFactory {
     dim: Dim,
 }
 impl TrussFactory {
-    /// Selecciona truss2d.linear para D2 o truss3d.linear para D3.
+    /// Selects truss2d.linear for D2 or truss3d.linear for D3.
     pub fn new(dim: Dim) -> Self {
         Self { dim }
     }

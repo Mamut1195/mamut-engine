@@ -1,4 +1,4 @@
-//! Acciones locales ±c kδ; resultantes constantes sin interpolación espacial.
+//! Local actions ±c kδ; constant resultants without spatial interpolation.
 use crate::{finite, geometry, invalid, loads, stiffness, LinearSpring};
 use engine_contracts::{ElementCtx, ElementOutput, MemberLoad, StationResult};
 use engine_core::{EResult, Real};

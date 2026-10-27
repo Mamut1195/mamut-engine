@@ -1,19 +1,19 @@
 #![forbid(unsafe_code)]
-//! Casos de carga y funciones puras en SI, sin factores normativos implícitos.
+//! Load cases and pure functions in SI, with no implicit code factors.
 //!
-//! Se reutilizan las cargas nodales del modelo y los desplazamientos prescritos
-//! del ensamblador. Las cargas de tramo actúan sobre una viga Euler–Bernoulli 2D
-//! sin liberaciones: plano XY, local x de i a j, local y=(-sin,cos), z=+Z.
-//! [`equivalent_nodal_forces_local`] sigue el signo de la carga aplicada;
-//! [`fixed_end_forces_local`] devuelve su opuesto, las reacciones de los
-//! empotramientos sobre el miembro con desplazamientos nulos.
-//! Ambas usan el orden `[N_i,V_i,M_i,N_j,V_j,M_j]`.
+//! Model nodal loads and assembler prescribed displacements
+//! are reused. Span loads act on a 2D Euler–Bernoulli beam
+//! without releases: XY plane, local x from i to j, local y=(-sin,cos), z=+Z.
+//! [`equivalent_nodal_forces_local`] follows the applied load sign;
+//! [`fixed_end_forces_local`] returns its opposite, the reactions of the
+//! restrained ends on the member at zero displacement.
+//! Both use the order `[N_i,V_i,M_i,N_j,V_j,M_j]`.
 //!
-//! Las funciones validan entradas y resultados: ENG-E-0008 para no finitos o
-//! desbordamientos, ENG-E-0010 para rangos o componentes repetidas en un caso,
-//! ENG-E-0011 para GDL ausentes, ENG-E-0003 para referencias rotas y ENG-E-0013
-//! para conversiones no representables mediante el contrato uniforme.
-//! Las listas públicas se vuelven a validar en cada operación.
+//! Functions validate inputs and results: ENG-E-0008 for nonfinite values or
+//! overflow, ENG-E-0010 for ranges or repeated components in a case,
+//! ENG-E-0011 for missing DOFs, ENG-E-0003 for broken references, and ENG-E-0013
+//! for conversions that cannot be represented through the uniform contract.
+//! Public lists are revalidated on every operation.
 //!
 //! ```
 //! use engine_loads::{Beam2D, LoadAxes, SpanLoad, equivalent_nodal_forces_local};
@@ -43,7 +43,7 @@ pub use weight::{self_weight, self_weight_per_length};
 use engine_core::{catalog, EResult, EngineError, Real};
 
 fn error(code: &'static str, context: &str) -> EngineError {
-    // Todos los códigos utilizados pertenecen al catálogo; sin unwrap/expect.
+    // All codes used belong to the catalog; no unwrap/expect.
     let message = match catalog::lookup(code) {
         Some(info) => format!("{} {context}", info.message),
         None => context.to_owned(),

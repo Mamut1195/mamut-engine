@@ -1,4 +1,4 @@
-//! ε=d·(u_j−u_i)/L; N=Aσ; Hessiana elástica (EA/L)bbᵀ.
+//! ε=d·(u_j−u_i)/L; N=Aσ; elastic Hessian (EA/L)bbᵀ.
 use crate::{finite, geometry::Geometry, positive, vector, LinearTruss};
 use engine_contracts::UniaxialLaw;
 use engine_core::{EResult, Real};
@@ -18,12 +18,12 @@ pub(crate) fn axial(
         extension = finite(extension + g.d[axis] * relative, "Elongation (m)")?;
     }
     let strain = finite(extension / g.length, "ε")?;
-    // Suposición: la tensión se evalúa con la ley uniaxial en la deformación ε,
-    // pero solo se usa `response.stress`; la tangente de la ley no interviene.
-    // La rigidez `matrix` usa EA/L fijo (barra lineal), por lo que N y K solo son
-    // consistentes si la ley es elástica lineal con módulo E = ea/área. Con una
-    // ley no lineal habría que usar la tangente (fuera de alcance de ENG-ELM-001).
-    // `committed` es la historia aceptada y no se modifica aquí.
+    // Assumption: stress is evaluated with the uniaxial law at strain ε,
+    // but only `response.stress` is used; the law tangent is unused.
+    // Stiffness `matrix` uses constant EA/L (linear truss), so N and K are
+    // consistent only if the law is linear elastic with modulus E = ea/area. A
+    // nonlinear law would require using the tangent (outside the scope of ENG-ELM-001).
+    // `committed` is the accepted history and is not modified here.
     let response = bar.material.respond(strain, committed)?;
     finite(bar.area * response.stress, "N (N)")
 }

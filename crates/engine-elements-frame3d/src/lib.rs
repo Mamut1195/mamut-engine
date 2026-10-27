@@ -1,39 +1,39 @@
 #![forbid(unsafe_code)]
-//! Viga-columna espacial `frame3d.euler_elastic`, contrato element/1, versión 0.1.0.
-//! [`WinklerFrame3D`] añade un lecho transversal consistente fijo a tierra;
-//! [`WinklerFactory`] construye `frame3d.winkler` con propiedades SI.
+//! Spatial beam-column `frame3d.euler_elastic`, contract element/1, version 0.1.0.
+//! [`WinklerFrame3D`] adds a consistent transverse foundation attached to ground;
+//! [`WinklerFactory`] constructs `frame3d.winkler` with SI properties.
 //!
-//! Euler–Bernoulli homogénea, infinitesimal, con torsión de Saint-Venant.
-//! Terna global diestra X-Y horizontal y Z arriba. Orden por nodo
-//! `[Ux,Uy,Uz,Rx,Ry,Rz]`; x local apunta de i a j. La orientación es una
-//! referencia de z local: se proyecta normal a x y se toma y=z×x, z=x×y.
-//! Giros según mano derecha; v′=rz, w′=−ry; N positivo en tracción.
-//! E,G en Pa; A en m²; J,Iy,Iz en m⁴; rho en kg/m³; longitud en m.
-//! J es la constante torsional, distinta de la inercia polar Iy+Iz.
-//! Fuerzas en N, momentos en N·m, giros en rad. Propiedades en self,
-//! coordenadas en ctx; ctx.params no interviene, como en frame2d.
+//! Homogeneous, infinitesimal Euler–Bernoulli, with Saint-Venant torsion.
+//! Right-handed global triad, horizontal X-Y and Z upward. Order per node
+//! `[Ux,Uy,Uz,Rx,Ry,Rz]`; local x points from i to j. Orientation is a
+//! reference for local z: projected normal to x, then y=z×x, z=x×y.
+//! Rotations follow the right-hand rule; v′=rz, w′=−ry; positive N in tension.
+//! E,G in Pa; A in m²; J,Iy,Iz in m⁴; rho in kg/m³; length in m.
+//! J is the torsion constant, distinct from polar inertia Iy+Iz.
+//! Forces in N, moments in N·m, rotations in rad. Properties in self,
+//! coordinates in ctx; ctx.params is unused, as in frame2d.
 //!
-//! `respond` entrega K elástica y K u, sin cargas ni Kg. Kg se obtiene
-//! separadamente del axial N=EA(uj−ui)/L y geometría de referencia fija.
-//! Liberaciones en rx,ry,rz locales: Schur elástico analítico; masa y Kg
-//! proyectadas con HᵀMH y HᵀKgH (Guyan y derivada del Schur en N=0).
-//! No es la condensación de K+Kg a N finito. Giros nodales liberados quedan
-//! desconectados; el ensamblador debe eliminar/restringir mecanismos.
-//! Torsión doblemente liberada: giro común interno fijado a cero (elección
-//! de referencia sin energía); un torsor distribuido neto requiere equilibrio
-//! imposible y produce ENG-E-0006. No se agrega rigidez artificial.
+//! `respond` returns elastic K and K u, without loads or Kg. Kg is obtained
+//! separately from axial N=EA(uj−ui)/L and fixed reference geometry.
+//! Releases in local rx,ry,rz: analytical elastic Schur complement; mass and Kg
+//! projected with HᵀMH and HᵀKgH (Guyan and Schur derivative at N=0).
+//! This is not condensation of K+Kg at finite N. Released nodal rotations remain
+//! disconnected; the assembler must remove/restrain mechanisms.
+//! Doubly released torsion: common internal rotation set to zero (an
+//! energy-free reference choice); a net distributed torque requires impossible
+//! equilibrium and produces ENG-E-0006. No artificial stiffness is added.
 //!
-//! Masa transversal Hermite sin inercia rotatoria de flexión; masa torsional
-//! lineal con rho(Iy+Iz). Masa concentrada: rho A L/2 por traslación y
-//! rho(Iy+Iz)L/2 en rx. rho=0 devuelve None tras validar la geometría.
-//! MemberLoad es global; [`EulerFrame3D::global_load`] convierte intensidades
-//! locales al contrato. Empotramiento perfecto = menos la carga equivalente.
-//! Recuperación por equilibrio: `[N,Vy,Vz,T,My,Mz]` en cara positiva local.
+//! Transverse Hermite mass without bending rotary inertia; linear torsional
+//! mass with rho(Iy+Iz). Lumped mass: rho A L/2 per translation and
+//! rho(Iy+Iz)L/2 in rx. rho=0 returns None after validating geometry.
+//! MemberLoad is global; [`EulerFrame3D::global_load`] converts local
+//! intensities to the contract. Fully restrained ends = minus equivalent load.
+//! Equilibrium recovery: `[N,Vy,Vz,T,My,Mz]` on the local positive face.
 //!
-//! ENG-E-0005 por L≤1e-12; ENG-E-0008 por no finitos/desbordamientos;
-//! ENG-E-0010 por rangos/tamaños/orientación degenerada. Sin E/S, hilos,
-//! reloj, estado global ni historia; determinista por destino. Ejecución
-//! numérica wasm pendiente. Derivaciones en provenance/ENG-ELM-003.md.
+//! ENG-E-0005 for L≤1e-12; ENG-E-0008 for nonfinite values/overflow;
+//! ENG-E-0010 for ranges/sizes/degenerate orientation. No I/O, threads,
+//! clock, global state, or history; deterministic per target. Numerical wasm
+//! execution pending. Derivations in provenance/ENG-ELM-003.md.
 //!
 //! ```
 //! use engine_elements_frame3d::{EulerFrame3D, MomentReleases};
@@ -70,10 +70,10 @@ pub use producer::geometric_producer;
 pub use release::MomentReleases;
 pub use winkler::WinklerFrame3D;
 type Matrix = [[Real; 12]; 12];
-// Pares Hermite: v′=rz y w′=−ry.
+// Hermite pairs: v′=rz and w′=−ry.
 const PLANES: [([usize; 4], Real); 2] = [([1, 5, 7, 11], 1.0), ([2, 4, 8, 10], -1.0)];
 
-/// Viga 3D elástica de dos nodos, propiedades SI y liberaciones locales.
+/// Two-node elastic 3D beam, SI properties and local releases.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct EulerFrame3D {
     material: Elastic,
@@ -91,10 +91,10 @@ pub struct EulerFrame3D {
     releases: MomentReleases,
 }
 impl EulerFrame3D {
-    /// Valida E,G,A,J,Iy,Iz>0, rho≥0 y orientación finita no nula.
-    /// La condición no paralela a x se valida cuando se conocen coordenadas.
-    /// Productos positivos; ENG-E-0010 por rango y ENG-E-0008 por no finitos.
-    #[allow(clippy::too_many_arguments)] // Propiedades SI explícitas, patrón de frame2d.
+    /// Validates E,G,A,J,Iy,Iz>0, rho≥0, and finite nonzero orientation.
+    /// The nonparallel-to-x condition is validated once coordinates are known.
+    /// Positive products; ENG-E-0010 for range and ENG-E-0008 for nonfinite values.
+    #[allow(clippy::too_many_arguments)] // Explicit SI properties, following the frame2d pattern.
     pub fn new(
         e: Real,
         g: Real,
@@ -133,39 +133,39 @@ impl EulerFrame3D {
             releases,
         })
     }
-    /// Material elástico uniaxial, módulo E en Pa.
+    /// Uniaxial elastic material, modulus E in Pa.
     pub fn material(&self) -> &Elastic {
         &self.material
     }
-    /// Módulo de corte G en Pa, usado solo en torsión.
+    /// Shear modulus G in Pa, used only in torsion.
     pub fn shear_modulus(&self) -> Real {
         self.shear_modulus
     }
-    /// Área A en m².
+    /// Area A in m².
     pub fn area(&self) -> Real {
         self.area
     }
-    /// Constante J de Saint-Venant en m⁴.
+    /// Saint-Venant constant J in m⁴.
     pub fn torsion_constant(&self) -> Real {
         self.torsion_constant
     }
-    /// Momentos de área `[Iy,Iz]` en m⁴.
+    /// Area moments `[Iy,Iz]` in m⁴.
     pub fn inertias(&self) -> [Real; 2] {
         [self.iy, self.iz]
     }
-    /// Densidad rho en kg/m³.
+    /// Density rho in kg/m³.
     pub fn density(&self) -> Real {
         self.density
     }
-    /// Referencia global de z local, sin normalizar.
+    /// Global reference for local z, unnormalized.
     pub fn orientation(&self) -> [Real; 3] {
         self.orientation
     }
-    /// Liberaciones de rx,ry,rz en cada extremo local.
+    /// Releases of rx,ry,rz at each local end.
     pub fn releases(&self) -> MomentReleases {
         self.releases
     }
-    /// Construye q=rho A g (N/m) con aceleración global explícita (m/s²).
+    /// Constructs q=rho A g (N/m) with explicit global acceleration (m/s²).
     pub fn self_weight(&self, acceleration: [Real; 3]) -> EResult<MemberLoad> {
         vector(&acceleration, 3, "g (m/s²)")?;
         let line_mass = if self.density == 0.0 {
@@ -182,8 +182,8 @@ impl EulerFrame3D {
             moment_per_length: [0.0; 3],
         })
     }
-    /// Convierte intensidades locales de fuerza y momento a un MemberLoad global.
-    /// Usa la misma terna que K; rechaza geometría y cargas inválidas.
+    /// Converts local force and moment intensities to a global MemberLoad.
+    /// Uses the same triad as K; rejects invalid geometry and loads.
     pub fn global_load(&self, ctx: &ElementCtx<'_>, local: &MemberLoad) -> EResult<MemberLoad> {
         let g = geometry::Geometry::new(ctx, self.orientation)?;
         Ok(MemberLoad {
@@ -191,8 +191,8 @@ impl EulerFrame3D {
             moment_per_length: g.global_triplet(local.moment_per_length)?,
         })
     }
-    /// Desplazamientos del miembro en orden local de 12 GDL, m/rad.
-    /// Recupera giros liberados con cargas globales; ignora sus giros nodales.
+    /// Member displacements in local order of 12 DOFs, m/rad.
+    /// Recovers released rotations with global loads; ignores their nodal rotations.
     pub fn local_displacements(
         &self,
         ctx: &ElementCtx<'_>,

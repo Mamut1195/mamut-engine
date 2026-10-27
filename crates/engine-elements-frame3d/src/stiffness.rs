@@ -1,4 +1,4 @@
-//! EA u′² + GJ rx′² + EIz v″² + EIy w″²; Schur analítico por plano.
+//! EA u′² + GJ rx′² + EIz v″² + EIy w″²; analytical Schur complement per plane.
 use crate::{finite, geometry::Geometry, positive, EulerFrame3D, Matrix, PLANES};
 use engine_contracts::UniaxialLaw;
 use engine_core::{EResult, Real};
@@ -7,9 +7,9 @@ pub(crate) fn axial(beam: &EulerFrame3D, g: &Geometry, u: &[Real; 12]) -> EResul
     let strain = finite(finite(u[6] - u[0], "Elongation")? / g.length, "ε")?;
     let response = beam.material.respond(strain, &[])?;
     let n = finite(beam.area * response.stress, "N (N)")?;
-    // E·ε puede subdesbordar (subnormal/0) con E diminuto y A enorme aunque A·E·ε
-    // sea representable (J4 r6): en ese caso se usa (A·E_t)·ε, exacto a primer
-    // orden para deformaciones de ese orden.
+    // E·ε may underflow (subnormal/0) with tiny E and huge A even if A·E·ε
+    // is representable (J4 r6): in that case uses (A·E_t)·ε, exact to first
+    // order for strains of that order.
     if strain != 0.0 && !response.stress.is_normal() && response.tangent > 0.0 {
         let alt = finite((beam.area * response.tangent) * strain, "N (N)")?;
         if alt.is_normal() {

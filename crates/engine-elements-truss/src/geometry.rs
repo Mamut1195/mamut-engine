@@ -1,4 +1,4 @@
-//! Geometría de referencia SI, sin orientación transversal arbitraria.
+//! SI reference geometry, without arbitrary transverse orientation.
 use crate::{finite, invalid};
 use engine_contracts::ElementCtx;
 use engine_core::math;

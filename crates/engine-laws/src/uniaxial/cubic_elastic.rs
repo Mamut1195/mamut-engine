@@ -1,27 +1,27 @@
-//! Elasticidad cúbica conservativa; derivación propia en docs/METHODS_GUIDE.md §5.
+//! Conservative cubic elasticity; original derivation in docs/METHODS_GUIDE.md §5.
 
 use super::UniaxialFactory;
 use crate::{finite, positive, vector, LawDescriptor};
 use engine_contracts::{UniaxialLaw, UniaxialResponse};
 use engine_core::{ContractId, EResult, EngineError, Real};
 
-/// Descriptor de la elasticidad cúbica, método 0.1.0.
+/// Cubic elasticity descriptor, method 0.1.0.
 pub const CUBIC_ELASTIC: LawDescriptor = LawDescriptor {
     kind: "elastic.cubic",
     contract: ContractId::new("uniaxial", 1, 0),
     version: (0, 1, 0),
 };
 
-/// Parámetros SI de [`CubicElasticFactory`], validados al construir.
+/// SI parameters of [`CubicElasticFactory`], validated on construction.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CubicElasticParams {
-    /// Módulo inicial E en Pa, finito y estrictamente positivo.
+    /// Initial modulus E in Pa, finite and strictly positive.
     pub e: Real,
-    /// Coeficiente cúbico C en Pa, finito y no negativo.
+    /// Cubic coefficient C in Pa, finite and nonnegative.
     pub c: Real,
 }
 
-/// Fábrica tipada de [`CubicElastic`], sin estado ni registro global.
+/// Typed factory for [`CubicElastic`], without state or a global registry.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct CubicElasticFactory;
 
@@ -37,19 +37,19 @@ impl UniaxialFactory for CubicElasticFactory {
     }
 }
 
-/// Ley elástica suave σ = Eε + Cε³, sin historia, precarga, daño ni plasticidad.
+/// Smooth elastic law σ = Eε + Cε³, without history, preload, damage, or plasticity.
 ///
-/// ε es total, adimensional y positiva en tracción; σ, E, C y la tangente
-/// están en Pa. La energía W = Eε²/2 + Cε⁴/4 es estrictamente convexa:
-/// σ = dW/dε y K = E + 3Cε² > 0. La descarga recorre la misma curva.
-/// C = 0 recupera la elasticidad lineal. Es una idealización local 1D;
-/// no garantiza validez física para grandes deformaciones.
+/// ε is total, dimensionless, and positive in tension; σ, E, C, and the tangent
+/// are in Pa. Energy W = Eε²/2 + Cε⁴/4 is strictly convex:
+/// σ = dW/dε and K = E + 3Cε² > 0. Unloading follows the same curve.
+/// C = 0 recovers linear elasticity. This is a local 1D idealization;
+/// it does not guarantee physical validity at large strains.
 ///
-/// La historia inicial, aceptada y de prueba tiene longitud cero. El dominio
-/// numérico exige ε y todas las operaciones q = (Cε)ε, σ = (E+q)ε y K = E+3q
-/// finitas. Se admite el redondeo/subdesbordamiento habitual de f64. No se forma
-/// ε² por separado, para conservar el límite C = 0 a deformaciones grandes.
-/// Derivación y benchmark propios: docs/METHODS_GUIDE.md §5, (1)–(3), ENG-CORE-011.
+/// Initial, accepted, and trial histories have zero length. The numerical
+/// domain requires finite ε and finite operations q = (Cε)ε, σ = (E+q)ε, and K = E+3q.
+/// Ordinary f64 rounding/underflow is allowed. ε² is not formed
+/// separately, to preserve the C = 0 limit at large strains.
+/// Original derivation and benchmark: docs/METHODS_GUIDE.md §5, (1)–(3), ENG-CORE-011.
 ///
 /// ```
 /// use engine_contracts::UniaxialLaw;
@@ -65,10 +65,10 @@ pub struct CubicElastic {
 }
 
 impl CubicElastic {
-    /// Construye con E > 0 y C ≥ 0 en Pa, ambos finitos.
+    /// Constructs with E > 0 and C ≥ 0 in Pa, both finite.
     ///
-    /// # Errores
-    /// `ENG-E-0008` por parámetros no finitos; `ENG-E-0010` por E ≤ 0 o C < 0.
+    /// # Errors
+    /// `ENG-E-0008` for nonfinite parameters; `ENG-E-0010` for E ≤ 0 or C < 0.
     pub fn new(e: Real, c: Real) -> EResult<Self> {
         positive(e, "E (Pa)")?;
         finite(c, "C (Pa)")?;
@@ -83,7 +83,7 @@ impl CubicElastic {
         })
     }
 
-    /// Parámetros originales validados, inmutables.
+    /// Original validated parameters, immutable.
     pub fn params(&self) -> &CubicElasticParams {
         &self.params
     }
@@ -110,10 +110,10 @@ impl UniaxialLaw for CubicElastic {
         self.params.e
     }
 
-    /// Evalúa sin mutar el objeto ni aceptar historia.
+    /// Evaluates without mutating the object or accepting history.
     ///
-    /// `ENG-E-0010` por historia no vacía; `ENG-E-0008` por ε no finita
-    /// o desbordamiento en productos/sumas de tensión o tangente.
+    /// `ENG-E-0010` for nonempty history; `ENG-E-0008` for nonfinite ε
+    /// or overflow in stress or tangent products/sums.
     fn respond(&self, strain: Real, committed: &[Real]) -> EResult<UniaxialResponse> {
         vector(committed, 0, "Accepted history")?;
         finite(strain, "ε total")?;

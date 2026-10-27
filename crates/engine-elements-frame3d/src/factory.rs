@@ -1,11 +1,11 @@
-//! Esquema SI propio; parámetros poseídos e independientes de ModelView.
+//! Internal SI schema; owned parameters independent of ModelView.
 use crate::{finite, invalid, EulerFrame3D, MomentReleases};
 use engine_contracts::{Element, ElementFactory, JsonValue, ModelView};
 use engine_core::{Dim, EResult, EngineError};
 use std::collections::BTreeSet;
 
-/// Fábrica frame3d.euler_elastic; E,G,A,J,Iy,Iz,rho y orientation requeridos.
-/// release_i/j opcionales: arrays de tres booleanos `[T,My,Mz]` locales.
+/// frame3d.euler_elastic factory; E,G,A,J,Iy,Iz,rho and orientation required.
+/// Optional release_i/j: arrays of three local booleans `[T,My,Mz]`.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct FrameFactory;
 impl ElementFactory for FrameFactory {
@@ -104,8 +104,8 @@ fn build_frame(params: &JsonValue, model: &ModelView<'_>) -> EResult<EulerFrame3
     )
 }
 
-/// Fábrica `frame3d.winkler`: propiedades Euler y ky, kz≥0 en N/m².
-/// Sin liberaciones de extremo; orientación y ejes según FrameFactory.
+/// `frame3d.winkler` factory: Euler properties and ky, kz≥0 in N/m².
+/// No end releases; orientation and axes as in FrameFactory.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct WinklerFactory;
 impl ElementFactory for WinklerFactory {

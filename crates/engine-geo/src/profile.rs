@@ -11,11 +11,11 @@ struct ValidatedLayer {
     gamma_sat: Option<Real>,
 }
 
-/// Perfil estratificado validado e inmutable, definido mediante espesores en m.
+/// Validated immutable layered profile, defined by thicknesses in m.
 ///
-/// Las capas son contiguas desde profundidad cero. No hay capas implícitas,
-/// conversión de cotas ni extensión bajo la última capa. Validar al construir
-/// impide consultar un perfil incompleto aunque el dato falte en una capa profunda.
+/// Layers are contiguous from depth zero. No implicit layers,
+/// elevation conversion, or extension below the last layer. Validation on construction
+/// prevents querying an incomplete profile even if data are missing in a deep layer.
 #[derive(Clone, Debug)]
 pub struct StratifiedProfile {
     layers: Vec<ValidatedLayer>,
@@ -64,32 +64,32 @@ fn report_assumed(parameters: &mut Vec<ParameterId>, parameter: Parameter, id: P
 }
 
 impl StratifiedProfile {
-    /// Construye y valida el perfil completo sin valores por defecto.
+    /// Constructs and validates the entire profile without default values.
     ///
-    /// `groundwater_depth_m` es zw en m y `water_unit_weight_kn_m3` es γw en
-    /// kN/m³, ambos obligatorios incluso si zw está bajo el perfil. Se admite
-    /// zw = 0 y zw >= espesor total; zw < 0 se rechaza porque el modelo no
-    /// incluye agua embalsada sobre el terreno ni su sobrecarga.
+    /// `groundwater_depth_m` is zw in m and `water_unit_weight_kn_m3` is γw in
+    /// kN/m³, both required even if zw is below the profile. Allows
+    /// zw = 0 and zw >= total thickness; zw < 0 is rejected because the model does not
+    /// include ponded water above ground or its surcharge.
     ///
-    /// # Errores
+    /// # Errors
     ///
-    /// Devuelve el primer diagnóstico: `ENG-E-0003` por dato requerido ausente;
-    /// `ENG-E-0010` por perfil vacío, espesores/pesos no positivos, zw negativo
-    /// o espesor perdido al acumular en f64; `ENG-E-0008` por no finitos o
-    /// desbordamiento del espesor total. Un γsat aportado se valida aunque la
-    /// capa esté seca. No se exige γsat >= γ. Las tensiones se comprueban al
-    /// consultar: un perfil válido geométricamente puede desbordar en una consulta.
+    /// Returns the first diagnostic: `ENG-E-0003` for missing required data;
+    /// `ENG-E-0010` for an empty profile, nonpositive thicknesses/unit weights, negative zw,
+    /// or thickness lost during f64 accumulation; `ENG-E-0008` for nonfinite values or
+    /// total thickness overflow. A supplied γsat is validated even if the
+    /// layer is dry. γsat >= γ is not required. Stresses are checked on
+    /// query: a geometrically valid profile may overflow during a query.
     ///
-    /// # Límite de precisión (f64)
+    /// # Precision limit (f64)
     ///
-    /// Las cotas se acumulan en f64 (53 bits de mantisa). Con una profundidad
-    /// acumulada cercana a 1e16 m el paso entre f64 consecutivos es 2 m: un
-    /// espesor que no llega a la mitad de ese paso (p. ej. 1 m) se pierde y se
-    /// rechaza con `ENG-E-0010`, pero uno mayor (p. ej. 3 m) se acepta y su cota
-    /// inferior se redondea (1e16 + 3 → 1e16 + 4). No es un error de lógica sino
-    /// una limitación de la aritmética f64; la API no emite aviso en el segundo
-    /// caso. Los espesores físicos reales están muchos órdenes de magnitud por
-    /// debajo de este régimen.
+    /// Elevations are accumulated in f64 (53 mantissa bits). At an accumulated depth
+    /// near 1e16 m, the spacing between consecutive f64 values is 2 m: a
+    /// thickness below half that spacing (e.g. 1 m) is lost and
+    /// rejected with `ENG-E-0010`, but a larger one (e.g. 3 m) is accepted and its bottom
+    /// elevation is rounded (1e16 + 3 → 1e16 + 4). This is not a logic error but
+    /// a limitation of f64 arithmetic; the API emits no warning in the second
+    /// case. Actual physical thicknesses are many orders of magnitude
+    /// below this regime.
     ///
     /// ```
     /// use engine_geo::{Layer, Parameter, Provenance, StratifiedProfile};
@@ -180,11 +180,11 @@ impl StressProfile for StratifiedProfile {
         self.total_depth_m
     }
 
-    /// Integra los tramos sobre y bajo zw sin extrapolar ni omitir parámetros.
+    /// Integrates portions above and below zw without extrapolating or omitting parameters.
     ///
-    /// Admite los extremos z = 0 y z = espesor total. Una consulta negativa o
-    /// mayor que el total devuelve `ENG-E-0010`, sin tolerancia ni recorte;
-    /// NaN, infinitos y resultados desbordados devuelven `ENG-E-0008`.
+    /// Accepts the ends z = 0 and z = total thickness. A negative query or
+    /// one above the total returns `ENG-E-0010`, without tolerance or clipping;
+    /// NaN, infinities, and overflowed results return `ENG-E-0008`.
     ///
     /// ```
     /// use engine_geo::{Layer, Parameter, Provenance, StratifiedProfile, StressProfile};
@@ -213,7 +213,7 @@ impl StressProfile for StratifiedProfile {
             let saturated_height = (bottom - layer.top_m.max(self.groundwater_depth_m)).max(0.0);
             total += layer.gamma * dry_height;
             if saturated_height > 0.0 {
-                // El constructor exige γsat para cada capa con tramo sumergido.
+                // The constructor requires γsat for each layer with a submerged portion.
                 let saturated = required(
                     layer.gamma_sat,
                     &format!("layers[{layer_index}].gamma_sat_kn_m3"),

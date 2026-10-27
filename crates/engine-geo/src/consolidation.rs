@@ -1,87 +1,87 @@
-//! Consolidación Terzaghi 1D multicapa, elementos lineales y masa consistente.
+//! Multilayer 1D Terzaghi consolidation, linear elements, and consistent mass.
 //!
-//! Contrato `consolidation/1`: z en m, positiva hacia abajo; t en s; exceso u y
-//! Δσ en kPa, compresión positiva. mv en 1/kPa, k en m/s, cv en m²/s y γw en
-//! kN/m³. Se exige cv=k/(mv γw), con discrepancia relativa máxima 1e-10.
-//! No se deriva ni sustituye un parámetro ausente. Geometría independiente del
-//! perfil geostático: se pueden reutilizar sus espesores, sin exigir γ/γsat/zw
-//! que no intervienen en este problema incremental saturado.
+//! Contract `consolidation/1`: z in m, positive downward; t in s; excess u and
+//! Δσ in kPa, positive in compression. mv in 1/kPa, k in m/s, cv in m²/s, and γw in
+//! kN/m³. Requires cv=k/(mv γw), with maximum relative discrepancy 1e-10.
+//! No missing parameter is derived or substituted. Geometry is independent of the
+//! geostatic profile: its thicknesses can be reused without requiring γ/γsat/zw,
+//! which do not enter this saturated incremental problem.
 //!
-//! Ecuación conservativa: mv u̇ − ((k/γw)u′)′ = mv Δσ̇. Los nodos compartidos
-//! imponen continuidad de u; el flujo se equilibra débilmente en interfaces.
-//! Drenes ideales u=0, caras restantes impermeables. Carga uniforme en z,
-//! inicial en reposo: Δσ(0) se aplica instantáneamente, u(0)=Δσ(0) en nodos
-//! interiores y cero en drenes. Esta interpolación tiene una capa de error
-//! inicial de tamaño h; no se afirma s(0)=0 exactamente en una malla finita.
+//! Conservative equation: mv u̇ − ((k/γw)u′)′ = mv Δσ̇. Shared nodes
+//! impose continuity of u; flux is balanced weakly at interfaces.
+//! Ideal drains u=0, other faces impermeable. Load uniform in z,
+//! initially at rest: Δσ(0) is applied instantaneously, u(0)=Δσ(0) at interior
+//! nodes and zero at drains. This interpolation has an initial error layer
+//! of size h; s(0)=0 is not claimed exactly on a finite mesh.
 //!
-//! La tabla empieza en t=0, interpola linealmente y no extrapola. El integrador
-//! divide en todos los quiebres de carga y tiempos de salida. θ=0.5 por defecto;
-//! θ<0.5 exige estabilidad modal, verificada con la cota de Gershgorin del par
-//! (K,M) documentada en provenance/ENG-GEO-006.md. No se recortan oscilaciones
-//! de Crank–Nicolson ni resultados negativos durante descarga.
+//! The table starts at t=0, interpolates linearly, and does not extrapolate. Time stepping
+//! splits at all load breakpoints and output times. θ=0.5 by default;
+//! θ<0.5 requires modal stability, checked using the Gershgorin bound for the pair
+//! (K,M) documented in provenance/ENG-GEO-006.md. Crank–Nicolson oscillations
+//! and negative results during unloading are not clipped.
 //!
-//! `U=s/[Δσ∫mv dz]` es el grado medio ponderado por compresibilidad. Para Δσ=0
-//! se devuelve None (también si existe presión residual). Con descarga U puede
-//! salir de `[0,1]`. s=∫mv(Δσ−u)dz se integra exactamente para el campo lineal.
-//! El resultado conserva todos los parámetros Assumed, incluidos carga y γw.
+//! `U=s/[Δσ∫mv dz]` is the compressibility-weighted average degree. For Δσ=0,
+//! returns None (even if residual pressure exists). With unloading, U may
+//! leave `[0,1]`. s=∫mv(Δσ−u)dz is integrated exactly for the linear field.
+//! The result retains all Assumed parameters, including load and γw.
 //!
-//! Se reutiliza la factorización de engine-linalg; su backend de referencia es
-//! denso, O(n³) al factorizar y O(n²) por solve. El ensamblaje es CSR. Límites
-//! explícitos de esta API de referencia: 2048 elementos, 100000 salidas,
-//! 8000000 valores nodales de salida y 1000000 subpasos por intervalo.
-//! ENG-E-0010 por rango, malla, estabilidad o
-//! cv incompatible; 0003 por dato ausente; 0008 por datos/resultados no finitos.
+//! Reuses the engine-linalg factorization; its reference backend is
+//! dense, O(n³) for factorization and O(n²) per solve. Assembly is CSR. Explicit
+//! limits of this reference API: 2048 elements, 100000 outputs,
+//! 8000000 output nodal values, and 1000000 substeps per interval.
+//! ENG-E-0010 for range, mesh, stability, or
+//! incompatible cv; 0003 for missing data; 0008 for nonfinite data/results.
 use crate::{Diagnostic, GeoResult, Parameter, Provenance, Real};
 use engine_core::{EngineError, Severity};
 use engine_linalg::{
     DMat, LinAlgBackend, ReferenceBackend, SparseMatrix, SymFactorization, SymMatrix, Triplet,
 };
 
-/// Capa saturada; todos los datos físicos llevan origen explícito.
+/// Saturated layer; all physical data have explicit provenance.
 #[derive(Clone, Debug)]
 pub struct ConsolidationLayer {
-    /// Espesor positivo en m, contiguo a la capa anterior desde z=0.
+    /// Positive thickness in m, contiguous with the preceding layer from z=0.
     pub thickness_m: Parameter,
-    /// cv positivo en m²/s, requerido y contrastado con k/(mv γw).
+    /// Positive cv in m²/s, required and checked against k/(mv γw).
     pub cv_m2_s: Option<Parameter>,
-    /// mv positivo en 1/kPa, requerido.
+    /// Positive mv in 1/kPa, required.
     pub mv_per_kpa: Option<Parameter>,
-    /// Conductividad hidráulica k positiva en m/s, requerida.
+    /// Positive hydraulic conductivity k in m/s, required.
     pub k_m_s: Option<Parameter>,
-    /// Número positivo de elementos uniformes de esta capa.
+    /// Positive number of uniform elements in this layer.
     pub elements: usize,
 }
 
-/// Caras permeables; las demás son impermeables, sin flujo prescrito.
+/// Permeable faces; the others are impermeable, without prescribed flux.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Drainage {
-    /// Dren superior en z=0.
+    /// Top drain at z=0.
     Top,
-    /// Dren inferior en z=H.
+    /// Bottom drain at z=H.
     Bottom,
-    /// Drenes en z=0 y z=H.
+    /// Drains at z=0 and z=H.
     Double,
 }
 
-/// Punto de una historia de incremento de tensión total uniforme en profundidad.
+/// Point in a history of total stress increment uniform with depth.
 #[derive(Clone, Copy, Debug)]
 pub struct LoadPoint {
-    /// Tiempo en s, estrictamente creciente; la tabla empieza exactamente en 0.
+    /// Time in s, strictly increasing; the table starts exactly at 0.
     pub time_s: Real,
-    /// Δσ en kPa y su origen; requerido, puede ser cero o negativo.
+    /// Δσ in kPa and its provenance; required, may be zero or negative.
     pub delta_stress_kpa: Option<Parameter>,
 }
 
-/// Controles numéricos explícitos, sin parámetros físicos supuestos.
+/// Explicit numerical controls, without assumed physical parameters.
 #[derive(Clone, Copy, Debug)]
 pub struct ConsolidationOptions {
-    /// θ en `[0,1]`; 0 explícito, 0.5 Crank–Nicolson, 1 Euler implícito.
+    /// θ in `[0,1]`; 0 explicit, 0.5 Crank–Nicolson, 1 implicit Euler.
     pub theta: Real,
-    /// Paso máximo positivo en s; se reduce para alcanzar quiebres y salidas.
+    /// Positive maximum step in s; reduced to reach breakpoints and outputs.
     pub max_step_s: Real,
 }
 impl ConsolidationOptions {
-    /// Crank–Nicolson; el paso máximo siempre lo aporta el llamador.
+    /// Crank–Nicolson; the caller always supplies the maximum step.
     pub const fn new(max_step_s: Real) -> Self {
         Self {
             theta: 0.5,
@@ -90,41 +90,41 @@ impl ConsolidationOptions {
     }
 }
 
-/// Campo en los nodos comunes a todas las salidas y magnitudes integradas.
+/// Field at nodes common to all outputs and integrated quantities.
 #[derive(Clone, Debug)]
 pub struct ConsolidationState {
-    /// Tiempo en s.
+    /// Time in s.
     pub time_s: Real,
-    /// Δσ interpolada, kPa.
+    /// Interpolated Δσ, kPa.
     pub delta_stress_kpa: Real,
-    /// u en kPa, alineada con ConsolidationResult::depths_m.
+    /// u in kPa, aligned with ConsolidationResult::depths_m.
     pub excess_pore_pressure_kpa: Vec<Real>,
-    /// Asiento positivo hacia abajo, m; integral exacta del campo FE.
+    /// Settlement positive downward, m; exact integral of the FE field.
     pub settlement_m: Real,
-    /// U=s/(Δσ∫mv dz); indefinido cuando Δσ=0, sin recorte.
+    /// U=s/(Δσ∫mv dz); undefined when Δσ=0, without clipping.
     pub mean_degree: Option<Real>,
 }
 
-/// Salidas y procedencia completa del cálculo incremental.
+/// Outputs and complete provenance of the incremental calculation.
 #[derive(Clone, Debug)]
 pub struct ConsolidationResult {
-    /// Profundidades nodales en m, incluidas todas las interfaces.
+    /// Nodal depths in m, including all interfaces.
     pub depths_m: Vec<Real>,
-    /// Estados, exactamente en el orden de tiempos solicitado.
+    /// States, exactly in the requested time order.
     pub states: Vec<ConsolidationState>,
-    /// Rutas de todos los parámetros declarados Assumed, sin duplicados.
+    /// Paths of all parameters declared Assumed, without duplicates.
     pub assumed_parameters: Vec<String>,
 }
 impl ConsolidationResult {
-    /// Interpola u(z,t) linealmente a una profundidad dentro del perfil.
-    /// El tiempo se selecciona por índice de salida; no extrapola espacio/tiempo.
+    /// Interpolates u(z,t) linearly at a depth within the profile.
+    /// Time is selected by output index; no space/time extrapolation.
     pub fn pressure_at(&self, state_index: usize, depth_m: Real) -> GeoResult<Real> {
         finite(depth_m, "depth_m")?;
         let state = self
             .states
             .get(state_index)
             .ok_or_else(|| invalid("Output index is out of range."))?;
-        // También valida los campos públicos si el llamador modifica el resultado.
+        // Also validates public fields if the caller modifies the result.
         if self.depths_m.len() < 2 || state.excess_pore_pressure_kpa.len() != self.depths_m.len() {
             return Err(invalid("Result dimensions have changed."));
         }
@@ -149,7 +149,7 @@ struct Element {
     conductivity: Real, // k/γw
 }
 
-/// Perfil de consolidación validado e inmutable, sin parámetros por defecto.
+/// Validated immutable consolidation profile, without default parameters.
 #[derive(Clone, Debug)]
 pub struct ConsolidationProfile {
     depths: Vec<Real>,
@@ -216,8 +216,8 @@ fn parameter(p: Option<Parameter>, field: &str, assumed: &mut Vec<String>) -> Ge
     Ok(p.value)
 }
 impl ConsolidationProfile {
-    /// Valida todas las capas, k/mv/cv/γw, procedencia, malla y aritmética.
-    /// No exige datos del perfil de tensiones geostáticas que aquí no intervienen.
+    /// Validates all layers, k/mv/cv/γw, provenance, mesh, and arithmetic.
+    /// Does not require geostatic stress profile data that do not enter this problem.
     pub fn new(
         layers: Vec<ConsolidationLayer>,
         water_unit_weight_kn_m3: Option<Parameter>,
@@ -370,7 +370,7 @@ impl ConsolidationProfile {
         ))
     }
 
-    /// Integra con el backend de referencia de engine-linalg.
+    /// Integrates with the engine-linalg reference backend.
     pub fn solve(
         &self,
         history: &[LoadPoint],
@@ -380,10 +380,10 @@ impl ConsolidationProfile {
         self.solve_with_cancel(history, output_times_s, options, &mut || false)
     }
 
-    /// Integra consultando el cierre antes de cada intervalo, factorización,
-    /// bloque de hasta 16 columnas y subpaso, sin cambiar la
-    /// partición temporal ni la aritmética de `solve`.
-    /// Si devuelve true, termina con API-I-CANCELLED y sin resultados parciales.
+    /// Integrates while checking the closure before each interval, factorization,
+    /// block of up to 16 columns, and substep, without changing the
+    /// time partition or arithmetic of `solve`.
+    /// If it returns true, terminates with API-I-CANCELLED and no partial results.
     pub fn solve_with_cancel(
         &self,
         history: &[LoadPoint],
@@ -400,8 +400,8 @@ impl ConsolidationProfile {
         )
     }
 
-    /// Integra con un backend existente; no implementa eliminación ni solver propio.
-    /// Un error no modifica el perfil, historia ni salidas previas del llamador.
+    /// Integrates with an existing backend; implements no elimination or solver of its own.
+    /// An error does not modify the caller's profile, history, or previous outputs.
     pub fn solve_with_backend<B: LinAlgBackend>(
         &self,
         backend: &mut B,
@@ -501,9 +501,9 @@ impl ConsolidationProfile {
                 let dt = positive(span / steps as Real, "dt")?;
                 check_cancelled(cancelled).map_err(algebra)?;
                 check_stability(&m, &k, options.theta, dt)?;
-                // Solo ReferenceBackend: M, K y theta son inmutables; el mismo
-                // dt por bits produce la misma matriz y LDLᵀ determinista.
-                // Los backends del llamador mantienen todas sus llamadas.
+                // ReferenceBackend only: M, K, and theta are immutable; the same
+                // bitwise dt produces the same matrix and deterministic LDLᵀ.
+                // Caller backends retain all their calls.
                 if !REUSE_FACTOR
                     || cached_factor
                         .as_ref()

@@ -1,4 +1,4 @@
-//! Ejes fijos y cinemática lineal: Kg nula, indicada mediante None.
+//! Fixed axes and linear kinematics: zero Kg, indicated by None.
 use crate::{geometry, vector, LinearSpring};
 use engine_contracts::ElementCtx;
 use engine_core::{EResult, Real};

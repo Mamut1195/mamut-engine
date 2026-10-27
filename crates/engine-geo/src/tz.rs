@@ -1,96 +1,96 @@
-//! Curvas axiales locales t-z y q-z, en SI sin prefijos (m, Pa, N).
+//! Local axial t-z and q-z curves, in unprefixed SI (m, Pa, N).
 //!
-//! `z > 0` significa que el pilote baja respecto al suelo (compresión).
-//! Las ordenadas son resistencias movilizadas con ese signo; la acción del
-//! suelo sobre el pilote tiene signo opuesto. No son tensiones geostáticas.
+//! `z > 0` means the pile moves downward relative to the soil (compression).
+//! Ordinates are mobilized resistances with that sign; soil action on
+//! the pile has the opposite sign. These are not geostatic stresses.
 //!
-//! # Fuente y alcance
+//! # Source and scope
 //!
-//! API RP 2GEO, *Geotechnical and Foundation Design Considerations*, primera
-//! edición, abril de 2011, Addendum 1, octubre de 2014, reafirmada en 2021
-//! (ISO 19901-4:2003 modificada): §8.4.2, figura 2 y tabla 2 para t-z;
-//! §8.4.3, figura 3 para q-z. Se implementan solo los vértices numéricos
-//! aportados en la ficha de J2; no se reproduce texto ni figuras.
-//! La interpolación lineal entre vértices y la reflexión de forma en tracción
-//! con escala independiente son derivaciones propias, no reglas atribuidas
-//! a la fuente. Véase `provenance/ENG-GEO-004.md`.
+//! API RP 2GEO, *Geotechnical and Foundation Design Considerations*, first
+//! edition, April 2011, Addendum 1, October 2014, reaffirmed in 2021
+//! (ISO 19901-4:2003 modified): §8.4.2, Figure 2 and Table 2 for t-z;
+//! §8.4.3, Figure 3 for q-z. Only the numerical vertices supplied in
+//! the J2 specification are implemented; text and figures are not reproduced.
+//! Linear interpolation between vertices and shape reflection in tension
+//! with an independent scale are original derivations, not rules attributed
+//! to the source. See `provenance/ENG-GEO-004.md`.
 //!
-//! # Consumo y errores
+//! # Usage and errors
 //!
-//! Las tablas son inmutables, incluyen (0, 0) y no tienen malla ni parámetros
-//! por defecto. El evaluador prolonga los tramos extremos, como la ley
-//! multilineal elástica de engine-laws (ENG-MAT-002); las API cierran ambos
-//! extremos con mesetas. Las tablas de usuario controlan su extrapolación.
-//! Los adaptadores convierten a (ε, σ), tracción positiva, para
-//! `MultilinearElastic::new(points, MultilinearMode::Both)`, sin dependencia
-//! de engine-laws. Esta ley rechaza pendientes negativas: el adaptador devuelve
-//! `ENG-E-0010` ante ablandamiento, aunque el generador sí lo conserva.
-//! No se implementan historia, barra axial, pilote ni equilibrio estructural.
+//! Tables are immutable, include (0, 0), and have no default mesh or
+//! parameters. The evaluator extends end segments, like the
+//! multilinear elastic law in engine-laws (ENG-MAT-002); the APIs close both
+//! ends with plateaus. User tables control their extrapolation.
+//! Adapters convert to (ε, σ), positive in tension, for
+//! `MultilinearElastic::new(points, MultilinearMode::Both)`, without depending
+//! on engine-laws. This law rejects negative slopes: the adapter returns
+//! `ENG-E-0010` for softening, although the generator preserves it.
+//! No history, axial bar, pile, or structural equilibrium is implemented.
 //!
-//! `ENG-E-0003`: parámetro requerido ausente; `ENG-E-0010`: dominio, orden,
-//! origen, subdesbordamiento o incompatibilidad con la ley;
-//! `ENG-E-0008`: entrada o cálculo no finito. Los mensajes identifican el dato.
+//! `ENG-E-0003`: missing required parameter; `ENG-E-0010`: domain, order,
+//! origin, underflow, or incompatibility with the law;
+//! `ENG-E-0008`: nonfinite input or calculation. Messages identify the datum.
 //!
-//! # Extensiones
+//! # Extensions
 //!
-//! La identidad `tz.coyle_reese_clay` queda **no implementada — pendiente de
-//! la fuente original**, Coyle & Reese (1966), ASCE JSMFD. En esta entrega solo
-//! se pueden ingresar puntos propios mediante [`user`]; no hay función ni
-//! constantes de ese método. No se usó Reese/Isenhower/Wang (2006).
+//! Identity `tz.coyle_reese_clay` remains **unimplemented — pending the
+//! original source**, Coyle & Reese (1966), ASCE JSMFD. In this tranche, only
+//! user points can be entered through [`user`]; there is no function or
+//! constants for that method. Reese/Isenhower/Wang (2006) was not used.
 
 use engine_core::{EResult, EngineError, Real};
 
-/// Datos obligatorios de `tz.api_sand` y `tz.api_clay`, sin sustituciones.
+/// Required data for `tz.api_sand` and `tz.api_clay`, without substitutions.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ApiTzParams {
-    /// Fricción unitaria máxima en compresión, Pa, estrictamente positiva.
-    /// Debe calcularla el usuario según §8.1; ecuaciones 17–21 pendientes.
+    /// Maximum unit friction in compression, Pa, strictly positive.
+    /// The user must compute it according to §8.1; equations 17–21 pending.
     pub tmax_compression_pa: Option<Real>,
-    /// Fricción unitaria máxima en tracción ft(z), Pa, estrictamente positiva.
-    /// Puede coincidir con la de compresión, solo por elección del usuario.
+    /// Maximum unit friction in tension ft(z), Pa, strictly positive.
+    /// May match the compression value, only by user choice.
     pub tmax_tension_pa: Option<Real>,
-    /// Desplazamiento de pico, m, estrictamente positivo, aportado por el usuario.
-    /// §8.4.2 recomienda zpeak/D = 0.01 para diseño rutinario y señala
-    /// 0.0025–0.02; aquí no se adopta ni impone ninguno de esos valores.
+    /// Peak displacement, m, strictly positive, supplied by the user.
+    /// §8.4.2 recommends zpeak/D = 0.01 for routine design and mentions
+    /// 0.0025–0.02; none of those values is adopted or imposed here.
     pub zpeak_m: Option<Real>,
-    /// Extremo positivo de la meseta, m; también cierra la tabla en −z.
-    /// Debe superar zpeak para arena y 2·zpeak para arcilla.
+    /// Positive plateau end, m; also closes the table at −z.
+    /// Must exceed zpeak for sand and 2·zpeak for clay.
     pub plateau_z_m: Option<Real>,
 }
 
-/// Elección obligatoria de la rama negativa en tablas de usuario.
+/// Required choice of the negative branch in user tables.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UserTraction {
-    /// Se aportan puntos negativos y positivos, además de (0, 0).
-    /// Exige resistencia ≤ 0 si z < 0 y resistencia ≥ 0 si z > 0.
-    /// Permite escalas independientes y ramas negativas de resistencia cero.
+    /// Negative and positive points are supplied, along with (0, 0).
+    /// Requires resistance ≤ 0 if z < 0 and resistance ≥ 0 if z > 0.
+    /// Allows independent scales and negative branches with zero resistance.
     Explicit,
-    /// Se aportan solo (0, 0) y puntos positivos; se añaden (−z, −resistencia).
+    /// Only (0, 0) and positive points are supplied; adds (−z, −resistance).
     Symmetric,
 }
 
-/// Tabla inmutable (z en m, t en Pa); admite ablandamiento post-pico.
+/// Immutable table (z in m, t in Pa); allows post-peak softening.
 #[derive(Clone, Debug, PartialEq)]
 pub struct TzCurve(Table);
 
 impl TzCurve {
-    /// Vértices ordenados; solo lectura, incluidos origen y ramas declaradas.
+    /// Ordered vertices; read-only, including origin and declared branches.
     pub fn points(&self) -> &[(Real, Real)] {
         &self.0.points
     }
 
-    /// Resistencia unitaria, Pa, interpolada; prolonga los tramos extremos.
-    /// Errores numéricos según la documentación del módulo.
+    /// Interpolated unit resistance, Pa; extends end segments.
+    /// Numerical errors as documented in the module.
     pub fn at(&self, z_m: Real) -> EResult<Real> {
         self.0.at(z_m)
     }
 
-    /// Adapta a la ley uniaxial: ε = −z/L, σ = −t (Pa); invierte el orden.
-    /// L (m) es una longitud de referencia explícita, positiva y finita;
-    /// no se usa D ni se asigna una longitud de elemento implícitamente.
-    /// Es una representación de la interfaz unitaria: el futuro pilote debe
-    /// integrar t sobre su superficie para obtener fuerza (N).
-    /// Rechaza ablandamiento con `ENG-E-0010`, sin modificar el generador.
+    /// Adapts to the uniaxial law: ε = −z/L, σ = −t (Pa); reverses the order.
+    /// L (m) is an explicit, positive, finite reference length;
+    /// D is not used and no element length is assigned implicitly.
+    /// This represents the unit interface: the future pile must
+    /// integrate t over its surface to obtain force (N).
+    /// Rejects softening with `ENG-E-0010`, without modifying the generator.
     pub fn multilinear_points(
         &self,
         reference_length_m: Option<Real>,
@@ -99,23 +99,23 @@ impl TzCurve {
     }
 }
 
-/// Arena `tz.api_sand`: API RP 2GEO §8.4.2, figura 2 y tabla 2.
+/// Sand `tz.api_sand`: API RP 2GEO §8.4.2, Figure 2 and Table 2.
 ///
-/// Ascenso tabulado y meseta t/tmax = 1 desde zpeak. Interpolación lineal
-/// y rama negativa con igual forma y escala tmax_tension: derivación propia.
-/// Requiere todos los campos de [`ApiTzParams`]; errores según el módulo.
+/// Tabulated rise and plateau t/tmax = 1 from zpeak. Linear interpolation
+/// and negative branch with equal shape and scale tmax_tension: original derivation.
+/// Requires all fields of [`ApiTzParams`]; errors as in the module.
 pub fn api_sand(params: ApiTzParams) -> EResult<TzCurve> {
     api_tz(params, None)
 }
 
-/// Arcilla `tz.api_clay`: API RP 2GEO §8.4.2, figura 2 y tabla 2.
+/// Clay `tz.api_clay`: API RP 2GEO §8.4.2, Figure 2 and Table 2.
 ///
-/// `residual_ratio` es obligatorio, 0 < tres/tmax ≤ 1. La fuente indica
-/// 0.70–0.90, pero aquí no se impone ese intervalo. Se fija zres = 2·zpeak
-/// según la tabla 2; otros zres admitidos por la fuente quedan fuera de alcance.
-/// Entre pico y residual se interpola linealmente (derivación propia);
-/// después hay meseta. La rama negativa refleja la forma, con escala ft(z).
-/// tmax y zpeak quedan a cargo del usuario, véase [`ApiTzParams`].
+/// `residual_ratio` is required, 0 < tres/tmax ≤ 1. The source specifies
+/// 0.70–0.90, but that interval is not imposed here. Sets zres = 2·zpeak
+/// according to Table 2; other zres allowed by the source are out of scope.
+/// Linear interpolation between peak and residual (original derivation);
+/// followed by a plateau. The negative branch reflects the shape, with scale ft(z).
+/// tmax and zpeak are supplied by the user, see [`ApiTzParams`].
 pub fn api_clay(params: ApiTzParams, residual_ratio: Option<Real>) -> EResult<TzCurve> {
     let ratio = positive(residual_ratio, "tres/tmax")?;
     if ratio > 1.0 {
@@ -124,17 +124,17 @@ pub fn api_clay(params: ApiTzParams, residual_ratio: Option<Real>) -> EResult<Tz
     api_tz(params, Some(ratio))
 }
 
-/// Tabla `tz.user`, sin ordenar, corregir ni imponer monotonía de t.
+/// `tz.user` table, without sorting, correcting, or imposing monotonic t.
 ///
-/// Incluye (0, 0), z estrictamente creciente y valores finitos. La elección
-/// de tracción es explícita; véase [`UserTraction`]. Se admiten pendientes
-/// negativas: engine-laws actual no las admite y el adaptador las diagnostica.
-/// `None` da `ENG-E-0003`; demás errores según la documentación del módulo.
+/// Includes (0, 0), strictly increasing z, and finite values. Tension is
+/// chosen explicitly; see [`UserTraction`]. Negative slopes are allowed:
+/// current engine-laws does not support them and the adapter diagnoses them.
+/// `None` gives `ENG-E-0003`; other errors as documented in the module.
 pub fn user(points: Option<Vec<(Real, Real)>>, traction: UserTraction) -> EResult<TzCurve> {
     Ok(TzCurve(user_table(points, traction)?))
 }
 
-// Vértices numéricos de §8.4.2 tabla 2, suministrados por J2.
+// Numerical vertices of §8.4.2 Table 2, supplied by J2.
 const ASCENDING: [(Real, Real); 6] = [
     (0.0, 0.0),
     (0.16, 0.30),
@@ -162,7 +162,7 @@ fn api_tz(params: ApiTzParams, residual: Option<Real>) -> EResult<TzCurve> {
             shape.push((last_z, ratio));
             ratio
         }
-        None => 1.0, // Meseta de arena, no un parámetro omitido.
+        None => 1.0, // Sand plateau, not an omitted parameter.
     };
     shape.push((plateau, end_ratio));
     let mut points: Vec<_> = shape
@@ -177,46 +177,46 @@ fn api_tz(params: ApiTzParams, residual: Option<Real>) -> EResult<TzCurve> {
     Ok(TzCurve(Table::new(points)?))
 }
 
-/// Curvas de punta q-z: API RP 2GEO §8.4.3, figura 3, o tabla explícita.
-/// También exportado como `engine_geo::qz`.
+/// Tip q-z curves: API RP 2GEO §8.4.3, Figure 3, or explicit table.
+/// Also exported as `engine_geo::qz`.
 pub mod qz {
     use super::*;
 
-    /// Parámetros obligatorios de `qz.api`, en SI sin prefijos.
+    /// Required parameters of `qz.api`, in unprefixed SI.
     #[derive(Clone, Copy, Debug, PartialEq)]
     pub struct ApiQzParams {
-        /// Capacidad de punta Qp (N), positiva; cálculo de §8.1 fuera de alcance.
+        /// Tip capacity Qp (N), positive; calculation from §8.1 is out of scope.
         pub qp_n: Option<Real>,
-        /// Diámetro D (m), estrictamente positivo.
+        /// Diameter D (m), strictly positive.
         pub diameter_m: Option<Real>,
-        /// Extremo de meseta z (m), estrictamente mayor que 0.10·D.
+        /// Plateau end z (m), strictly greater than 0.10·D.
         pub plateau_z_m: Option<Real>,
     }
 
-    /// Tabla inmutable (z en m, Q en N), distinta dimensionalmente de t-z.
+    /// Immutable table (z in m, Q in N), dimensionally distinct from t-z.
     #[derive(Clone, Debug, PartialEq)]
     pub struct QzCurve(Table);
 
     impl QzCurve {
-        /// Vértices ordenados, incluyendo (0, 0) y rama negativa declarada.
+        /// Ordered vertices, including (0, 0) and the declared negative branch.
         pub fn points(&self) -> &[(Real, Real)] {
             &self.0.points
         }
 
-        /// Resistencia de punta, N, interpolada; prolonga tramos extremos.
-        /// Para [`api`], Q = 0 en todo z < 0 y Q = Qp en z ≥ 0.10·D.
+        /// Interpolated tip resistance, N; extends end segments.
+        /// For [`api`], Q = 0 for all z < 0 and Q = Qp for z ≥ 0.10·D.
         pub fn at(&self, z_m: Real) -> EResult<Real> {
             self.0.at(z_m)
         }
 
-        /// Adapta a (ε, σ): ε = −z/L y σ = −Q/A, invirtiendo el orden.
-        /// L (m) y A (m²) son obligatorios, positivos y finitos; no se
-        /// identifica Q (N) con σ (Pa). El gap de [`api`] está incluido en
-        /// la tabla, con compresión ε < 0. Para [`api`], `CompressionOnly`
-        /// conserva en el origen la tangente del lado de compresión; `Both`
-        /// da las mismas resistencias pero tangente cero en el origen (gap
-        /// derecho). Para tablas de usuario bilaterales se usa `Both`.
-        /// Rechaza pendientes negativas con `ENG-E-0010`.
+        /// Adapts to (ε, σ): ε = −z/L and σ = −Q/A, reversing the order.
+        /// L (m) and A (m²) are required, positive, and finite; Q (N) is not
+        /// identified with σ (Pa). The gap of [`api`] is included in
+        /// the table, with compression ε < 0. For [`api`], `CompressionOnly`
+        /// retains the compression-side tangent at the origin; `Both`
+        /// gives the same resistances but zero tangent at the origin (right-hand
+        /// gap). For bilateral user tables, uses `Both`.
+        /// Rejects negative slopes with `ENG-E-0010`.
         pub fn multilinear_points(
             &self,
             reference_length_m: Option<Real>,
@@ -227,12 +227,12 @@ pub mod qz {
         }
     }
 
-    /// `qz.api`: API RP 2GEO §8.4.3, figura 3.
+    /// `qz.api`: API RP 2GEO §8.4.3, Figure 3.
     ///
-    /// Interpolación lineal propia entre vértices Q/Qp frente a z/D, meseta
-    /// desde 0.10·D y cierre explícito posterior. Se añade (−zmeseta, 0):
-    /// punta sin tracción para z < 0, idealización propia del contacto.
-    /// No se calculan Qp ni D; todos los parámetros son del usuario.
+    /// Original linear interpolation between vertices Q/Qp versus z/D, plateau
+    /// from 0.10·D and explicit subsequent closure. Adds (−zmeseta, 0):
+    /// tip without tension for z < 0, original contact idealization.
+    /// Qp and D are not computed; all parameters come from the user.
     pub fn api(params: ApiQzParams) -> EResult<QzCurve> {
         let qp = positive(params.qp_n, "qp_n")?;
         let diameter = positive(params.diameter_m, "diameter_m")?;
@@ -241,7 +241,7 @@ pub mod qz {
         if plateau <= last {
             return Err(domain("plateau_z_m must exceed 0.10·D."));
         }
-        // Vértices numéricos de §8.4.3 figura 3, suministrados por J2.
+        // Numerical vertices of §8.4.3 Figure 3, supplied by J2.
         let normalized = [
             (0.0, 0.0),
             (0.002, 0.25),
@@ -261,10 +261,10 @@ pub mod qz {
         Ok(QzCurve(Table::new(points)?))
     }
 
-    /// `qz.user`: (z, Q) explícitos, mismos requisitos que [`super::user`].
-    /// La rama negativa es explícita o simétrica por opción; puede expresar
-    /// Q = 0 mediante puntos negativos de ordenada cero. A diferencia de
-    /// [`api`], no se impone un gap a los datos del usuario.
+    /// `qz.user`: explicit (z, Q), same requirements as [`super::user`].
+    /// The negative branch is explicit or optionally symmetric; can express
+    /// Q = 0 through negative points with zero ordinate. Unlike
+    /// [`api`], no gap is imposed on user data.
     pub fn user(points: Option<Vec<(Real, Real)>>, traction: UserTraction) -> EResult<QzCurve> {
         Ok(QzCurve(user_table(points, traction)?))
     }
@@ -334,7 +334,7 @@ impl Table {
             .rev()
             .map(|&(z, v)| (-z / length, -v / area))
             .collect();
-        // Revalida orden, finitud y pendientes tras cambiar escala y signo.
+        // Revalidates order, finiteness, and slopes after changing scale and sign.
         let table = Self::new(points)?;
         for (&(_, v), &(_, scaled)) in self.points.iter().rev().zip(&table.points) {
             if v != 0.0 && scaled == 0.0 {

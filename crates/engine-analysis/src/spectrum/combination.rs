@@ -3,34 +3,34 @@ use crate::finite;
 use engine_core::math;
 use engine_core::{EResult, EngineError, Real};
 
-/// Combinación modal componente a componente, conservando signos antes de sumar.
+/// Componentwise modal combination, preserving signs before summation.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ModalCombination {
-    /// √Σ R_n²; modos estadísticamente independientes.
+    /// √Σ R_n²; statistically independent modes.
     Srss,
-    /// √Σ_iΣ_j ρ_ij R_i R_j con ζ de cada tabla modal.
+    /// √Σ_iΣ_j ρ_ij R_i R_j with ζ from each modal table.
     Cqc,
 }
 
-/// Combinación de envolventes direccionales con factores explícitos del usuario.
+/// Combination of directional envelopes with explicit user factors.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DirectionalCombination {
     /// √Σ_d (a_d R_d)².
     Srss,
-    /// Σ_d a_d R_d. Es una envolvente ponderada, no un estado equilibrado.
+    /// Σ_d a_d R_d. A weighted envelope, not an equilibrated state.
     WeightedSum,
 }
 
-/// Correlación CQC Wilson–Der Kiureghian–Bayo (1981), fórmula de la petición.
+/// Wilson–Der Kiureghian–Bayo (1981) CQC correlation, formula from the request.
 ///
-/// r=ω_j/ω_i; numerador=8√(ζ_iζ_j)(ζ_i+rζ_j)r^(3/2);
-/// denominador=(1−r²)²+4ζ_iζ_j r(1+r²)+4(ζ_i²+ζ_j²)r².
-/// Reduce a la fórmula de ζ común. Se permutan i,j para usar r≤1 y evitar
-/// desbordamientos; la expresión es simétrica. Devuelve 0≤ρ≤1.
-/// Para frecuencias iguales y ζ_i=ζ_j (incluido cero), ρ=1 por convención;
-/// con ambos ζ=0 y frecuencias distintas, ρ=0. Para frecuencias iguales y
-/// ζ distintos, ρ=2√(ζ_iζ_j)/(ζ_i+ζ_j), cero si solo uno tiene ζ=0.
-/// No finitos: ENG-E-0008; ω≤0 o ζ fuera de [0,1): ENG-E-0010.
+/// r=ω_j/ω_i; numerator=8√(ζ_iζ_j)(ζ_i+rζ_j)r^(3/2);
+/// denominator=(1−r²)²+4ζ_iζ_j r(1+r²)+4(ζ_i²+ζ_j²)r².
+/// Reduces to the common-ζ formula. Swaps i,j to use r≤1 and avoid
+/// overflow; the expression is symmetric. Returns 0≤ρ≤1.
+/// For equal frequencies and ζ_i=ζ_j (including zero), ρ=1 by convention;
+/// with both ζ=0 and distinct frequencies, ρ=0. For equal frequencies and
+/// distinct ζ, ρ=2√(ζ_iζ_j)/(ζ_i+ζ_j), zero if only one has ζ=0.
+/// Nonfinite values: ENG-E-0008; ω≤0 or ζ outside [0,1): ENG-E-0010.
 pub fn cqc_correlation(omega_i: Real, omega_j: Real, zi: Real, zj: Real) -> EResult<Real> {
     validate_frequency(omega_i)?;
     validate_frequency(omega_j)?;
@@ -64,7 +64,7 @@ pub fn cqc_correlation(omega_i: Real, omega_j: Real, zi: Real, zj: Real) -> ERes
         * r
         * math::sqrt(r);
     finite(&[rho])?;
-    // Solo redondeo en los límites matemáticos de una correlación.
+    // Only rounding at the mathematical bounds of a correlation.
     Ok(rho.clamp(0.0, 1.0))
 }
 
@@ -117,11 +117,11 @@ pub(super) fn correlations_with_check(
     Ok(rows)
 }
 
-/// Combina un escalar firmado por modo (p. ej. una acción de miembro recuperada).
-/// Dimensiones iguales no vacías; frecuencias en rad/s, ζ∈[0,1). Devuelve una
-/// magnitud no negativa. Se recuperan acciones con `Element::recover` sobre
-/// CADA desplazamiento modal antes de combinar; recuperar sobre la envolvente
-/// combinada perdería los signos y las correlaciones de los modos.
+/// Combines one signed scalar per mode (e.g. a recovered member action).
+/// Equal nonempty dimensions; frequencies in rad/s, ζ∈[0,1). Returns a
+/// nonnegative magnitude. Actions are recovered with `Element::recover` at
+/// EACH modal displacement before combining; recovery at the combined
+/// envelope would lose the signs and correlations of the modes.
 pub fn combine_modal(
     values: &[Real],
     frequencies: &[Real],
@@ -170,9 +170,9 @@ pub(super) fn quadratic_with_check(
     Ok(result)
 }
 
-/// Combina escalares de direcciones con factores finitos no negativos.
-/// ENG-E-0010 por listas vacías/incompatibles o factores negativos;
-/// ENG-E-0008 por no finitos/desbordamiento. Ningún factor está incorporado.
+/// Combines directional scalars with finite nonnegative factors.
+/// ENG-E-0010 for empty/incompatible lists or negative factors;
+/// ENG-E-0008 for nonfinite values/overflow. No factor is built in.
 pub fn combine_directions(
     values: &[Real],
     factors: &[Real],

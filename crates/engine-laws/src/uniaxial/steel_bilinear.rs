@@ -1,30 +1,30 @@
-//! Plasticidad 1D con endurecimiento cinemático lineal; derivación propia.
+//! 1D plasticity with linear kinematic hardening; original derivation.
 
 use super::UniaxialFactory;
 use crate::{finite, positive, vector, LawDescriptor};
 use engine_contracts::{UniaxialLaw, UniaxialResponse};
 use engine_core::{ContractId, EResult, EngineError, Real};
 
-/// Descriptor del acero bilineal cinemático, método 0.1.0.
+/// Bilinear kinematic steel descriptor, method 0.1.0.
 pub const STEEL_BILINEAR_KINEMATIC: LawDescriptor = LawDescriptor {
     kind: "steel.bilinear_kinematic",
     contract: ContractId::new("uniaxial", 1, 0),
     version: (0, 1, 0),
 };
 
-/// Parámetros SI de [`SteelBilinearKinematicFactory`], validados al construir.
+/// SI parameters of [`SteelBilinearKinematicFactory`], validated on construction.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SteelBilinearKinematicParams {
-    /// Módulo elástico E en Pa, finito y estrictamente positivo.
+    /// Elastic modulus E in Pa, finite and strictly positive.
     pub e: Real,
-    /// Tensión de fluencia inicial fy en Pa, finita y estrictamente positiva.
+    /// Initial yield stress fy in Pa, finite and strictly positive.
     pub fy: Real,
-    /// Razón adimensional de la pendiente posfluencia respecto de E: 0 ≤ b < 1.
-    /// El módulo cinemático es H = bE/(1−b); b = 0 permite plasticidad perfecta.
+    /// Dimensionless ratio of post-yield slope to E: 0 ≤ b < 1.
+    /// The kinematic modulus is H = bE/(1−b); b = 0 allows perfect plasticity.
     pub b: Real,
 }
 
-/// Fábrica tipada sin registro global, conforme a [`UniaxialFactory`].
+/// Typed factory without a global registry, conforming to [`UniaxialFactory`].
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SteelBilinearKinematicFactory;
 
@@ -42,28 +42,28 @@ impl UniaxialFactory for SteelBilinearKinematicFactory {
     }
 }
 
-/// Acero bilineal: retorno implícito exacto en 1D con endurecimiento cinemático.
+/// Bilinear steel: exact implicit return in 1D with kinematic hardening.
 ///
-/// ε es la deformación TOTAL adimensional, positiva en tracción; E, fy, σ,
-/// α y la tangente están en Pa. La historia plana es `[ε_p, α]`, inicialmente
-/// `[0, 0]`: deformación plástica y retroceso (back-stress). El llamador es dueño
-/// del estado aceptado; `respond` devuelve una prueba independiente y no acepta
-/// ni modifica historia. No hay daño, endurecimiento isotrópico ni acumulados.
+/// ε is TOTAL dimensionless strain, positive in tension; E, fy, σ,
+/// α, and tangent are in Pa. The flat history is `[ε_p, α]`, initially
+/// `[0, 0]`: plastic strain and back-stress. The caller owns
+/// the accepted state; `respond` returns an independent trial and neither accepts
+/// nor modifies history. There is no damage, isotropic hardening, or accumulated quantities.
 ///
-/// Se define H = bE/(1−b), de modo que la pendiente posfluencia es bE.
-/// Con la historia aceptada: σ_tr = E(ε−ε_p), ξ = σ_tr−α y f = |ξ|−fy.
-/// Si f ≤ 0, la respuesta es elástica y su tangente es E. Si f > 0, s = sign(ξ),
-/// Δγ = f/(E+H), ε_p' = ε_p + sΔγ, α' = α + sHΔγ y
-/// σ = σ_tr−sEΔγ = α'+s fy. La tangente consistente es EH/(E+H) = bE.
-/// La superficie |σ−α| ≤ fy se traslada: tras invertir, el recorrido elástico
-/// en tensión siempre mide 2fy (en deformación, 2fy/E), efecto Bauschinger.
+/// H = bE/(1−b) is defined so that the post-yield slope is bE.
+/// With accepted history: σ_tr = E(ε−ε_p), ξ = σ_tr−α, and f = |ξ|−fy.
+/// If f ≤ 0, the response is elastic and its tangent is E. If f > 0, s = sign(ξ),
+/// Δγ = f/(E+H), ε_p' = ε_p + sΔγ, α' = α + sHΔγ, and
+/// σ = σ_tr−sEΔγ = α'+s fy. The consistent tangent is EH/(E+H) = bE.
+/// The surface |σ−α| ≤ fy translates: after reversal, the elastic stress
+/// range is always 2fy (in strain, 2fy/E), the Bauschinger effect.
 ///
-/// Se evalúan EΔγ = (1−b)f y HΔγ = bf, sin formar H ni E+H. Se obtiene
-/// Δγ dividiendo EΔγ entre E y σ desde la superficie retornada, evitando
-/// restar tensiones grandes para obtener una meseta pequeña. El rango numérico
-/// exige diferencias, incrementos y resultados finitos; su desbordamiento se
-/// diagnostica. La precisión de la historia está limitada por `Real` (f64).
-/// En f = 0 se elige la rama elástica; allí no hay derivada bilateral única.
+/// Evaluates EΔγ = (1−b)f and HΔγ = bf, without forming H or E+H. Obtains
+/// Δγ by dividing EΔγ by E and σ from the returned surface, avoiding
+/// subtraction of large stresses to obtain a small plateau. The numerical range
+/// requires finite differences, increments, and results; their overflow is
+/// diagnosed. History precision is limited by `Real` (f64).
+/// At f = 0 the elastic branch is chosen; no unique two-sided derivative exists there.
 ///
 /// ```
 /// use engine_contracts::UniaxialLaw;
@@ -72,7 +72,7 @@ impl UniaxialFactory for SteelBilinearKinematicFactory {
 /// let mut committed = law.initial_state();
 /// let trial = law.respond(0.02, &committed)?;
 /// assert!((trial.stress - 1.3).abs() < 1e-12);
-/// committed = trial.trial_state; // aceptación explícita por el llamador
+/// committed = trial.trial_state; // explicit acceptance by the caller
 /// let unload = law.respond(0.015, &committed)?;
 /// assert!((unload.stress - 0.3).abs() < 1e-12);
 /// # Ok::<(), engine_core::EngineError>(())
@@ -83,11 +83,11 @@ pub struct SteelBilinearKinematic {
 }
 
 impl SteelBilinearKinematic {
-    /// Construye con E y fy en Pa y b = pendiente posfluencia/E.
+    /// Constructs with E and fy in Pa and b = post-yield slope/E.
     ///
-    /// # Errores
-    /// `ENG-E-0008` por parámetros no finitos; `ENG-E-0010` por E ≤ 0,
-    /// fy ≤ 0 o b fuera de [0, 1). No se necesita que H sea representable.
+    /// # Errors
+    /// `ENG-E-0008` for nonfinite parameters; `ENG-E-0010` for E ≤ 0,
+    /// fy ≤ 0 or b outside [0, 1). H need not be representable.
     pub fn new(e: Real, fy: Real, b: Real) -> EResult<Self> {
         positive(e, "E (Pa)")?;
         positive(fy, "fy (Pa)")?;
@@ -100,7 +100,7 @@ impl SteelBilinearKinematic {
         })
     }
 
-    /// Parámetros originales validados, inmutables.
+    /// Original validated parameters, immutable.
     pub fn params(&self) -> &SteelBilinearKinematicParams {
         &self.params
     }
@@ -127,15 +127,15 @@ impl UniaxialLaw for SteelBilinearKinematic {
         self.params.e
     }
 
-    /// Evalúa sin mutar la ley ni aceptar historia.
+    /// Evaluates without mutating the law or accepting history.
     ///
-    /// `ENG-E-0010` por longitud distinta de dos; `ENG-E-0008` por ε o historia
-    /// no finitas, o desbordamiento de diferencias, incrementos o resultados.
+    /// `ENG-E-0010` for length other than two; `ENG-E-0008` for nonfinite ε or
+    /// history, or overflow of differences, increments, or results.
     fn respond(&self, strain: Real, committed: &[Real]) -> EResult<UniaxialResponse> {
         vector(committed, 2, "Accepted history [ε_p, α]")?;
         finite(strain, "ε")?;
         let SteelBilinearKinematicParams { e, fy, b } = self.params;
-        // La longitud se ha validado antes de acceder a ambos componentes.
+        // Length was validated before accessing both components.
         let (plastic_strain, alpha) = (committed[0], committed[1]);
         let elastic_strain = finite(strain - plastic_strain, "ε−ε_p")?;
         let stress_trial = finite(e * elastic_strain, "σ_tr (Pa)")?;

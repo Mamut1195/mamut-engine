@@ -1,4 +1,4 @@
-//! rho A ∫ HᵀH dx: axial lineal, transversal Hermite cúbica; sin rho I.
+//! rho A ∫ HᵀH dx: linear axial, cubic Hermite transverse; without rho I.
 use crate::{geometry::Geometry, positive, release, EulerFrame2D, Matrix};
 use engine_contracts::MassKind;
 use engine_core::EResult;

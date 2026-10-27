@@ -1,4 +1,4 @@
-//! Fuerzas uniformes axiales globales; rechazo explícito de momentos/transversales.
+//! Global uniform axial forces; explicit rejection of moments/transverse loads.
 use crate::{finite, geometry::Geometry, invalid, vector as check_vector};
 use engine_contracts::MemberLoad;
 use engine_core::{EResult, Real};
@@ -15,8 +15,8 @@ pub(crate) fn axial(g: &Geometry, load: &MemberLoad) -> EResult<Real> {
     for axis in 0..g.axes {
         q = finite(q + g.d[axis] * load.force_per_length[axis], "q axial (N/m)")?;
     }
-    // Tolerancia relativa de proyección: solo redondeo, sin umbral absoluto
-    // que permita omitir una carga transversal pequeña.
+    // Relative projection tolerance: rounding only, without an absolute threshold
+    // that would allow a small transverse load to be omitted.
     let magnitude = load
         .force_per_length
         .iter()

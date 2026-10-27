@@ -1,39 +1,39 @@
-//! Interpolación elástica por tramos, sin historia ni dependencias externas.
+//! Piecewise elastic interpolation, without history or external dependencies.
 
 use super::UniaxialFactory;
 use crate::{finite, vector, LawDescriptor};
 use engine_contracts::{UniaxialLaw, UniaxialResponse};
 use engine_core::{ContractId, EResult, EngineError, Real};
 
-/// Descriptor de la ley multilineal elástica, método 0.1.0.
+/// Multilinear elastic law descriptor, method 0.1.0.
 pub const MULTILINEAR_ELASTIC: LawDescriptor = LawDescriptor {
     kind: "multilinear_elastic",
     contract: ContractId::new("uniaxial", 1, 0),
     version: (0, 1, 0),
 };
 
-/// Lados habilitados; ε positiva es tracción y ε negativa es compresión.
+/// Enabled sides; positive ε is tension and negative ε is compression.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum MultilinearMode {
-    /// Curva completa, sin gap.
+    /// Complete curve, without a gap.
     #[default]
     Both,
-    /// σ y tangente nulas para ε > 0.
+    /// Zero σ and tangent for ε > 0.
     CompressionOnly,
-    /// σ y tangente nulas para ε < 0.
+    /// Zero σ and tangent for ε < 0.
     TensionOnly,
 }
 
-/// Parámetros SI de [`MultilinearElasticFactory`], validados al construir.
+/// SI parameters of [`MultilinearElasticFactory`], validated on construction.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MultilinearElasticParams {
-    /// Puntos (ε adimensional, σ en Pa), ordenados e incluyendo (0, 0).
+    /// Points (dimensionless ε, σ in Pa), ordered and including (0, 0).
     pub points: Vec<(Real, Real)>,
-    /// Lados habilitados; no cambia ni omite la validación de puntos.
+    /// Enabled sides; does not change or skip point validation.
     pub mode: MultilinearMode,
 }
 
-/// Fábrica tipada sin registro global, conforme a [`UniaxialFactory`].
+/// Typed factory without a global registry, conforming to [`UniaxialFactory`].
 #[derive(Clone, Copy, Debug, Default)]
 pub struct MultilinearElasticFactory;
 
@@ -52,27 +52,27 @@ impl UniaxialFactory for MultilinearElasticFactory {
     }
 }
 
-/// Curva σ(ε) elástica no lineal, continua y sin estado, definida por puntos.
+/// Continuous, stateless nonlinear elastic σ(ε) curve defined by points.
 ///
-/// Cada tramo usa mᵢ = (σᵢ₊₁ − σᵢ)/(εᵢ₊₁ − εᵢ) ≥ 0 y
-/// σ = σᵢ + mᵢ(ε − εᵢ). Fuera de la tabla se prolonga el tramo extremo
-/// correspondiente: primero en compresión, último en tracción. Se permite
-/// el origen en un extremo (tabla unilateral); la misma regla prolonga el
-/// otro lado, salvo que el modo lo inhabilite. Para simetría impar se dan
-/// puntos reflejados (−ε, −σ); puntos independientes permiten asimetría.
+/// Each segment uses mᵢ = (σᵢ₊₁ − σᵢ)/(εᵢ₊₁ − εᵢ) ≥ 0 and
+/// σ = σᵢ + mᵢ(ε − εᵢ). Outside the table, the corresponding end segment
+/// is extended: first in compression, last in tension. The origin may
+/// be at an end (one-sided table); the same rule extends the
+/// other side unless the mode disables it. For odd symmetry, supply
+/// reflected points (−ε, −σ); independent points allow asymmetry.
 ///
-/// La tangente en el interior es mᵢ. En un vértice se elige el tramo derecho,
-/// salvo el último punto (último tramo) y el origen en modo solo-compresión
-/// (tramo izquierdo si existe). `initial_tangent()` coincide con esta elección
-/// en ε = 0. En el gap, σ y tangente son cero; el origen conserva la tangente
-/// del lado activo. En vértices con pendientes distintas y en la apertura del
-/// gap no existe derivada bilateral. El kit `check_uniaxial_law` acepta esta
-/// convención con muestras cuyo intervalo ε ± h sea diferenciable, como exige
-/// su contrato; los vértices se verifican por separado, sin FD central.
+/// The interior tangent is mᵢ. At a vertex, the right segment is chosen,
+/// except at the last point (last segment) and the origin in compression-only mode
+/// (left segment if present). `initial_tangent()` matches this choice
+/// at ε = 0. In the gap, σ and tangent are zero; the origin retains the tangent
+/// of the active side. At vertices with different slopes and at gap opening,
+/// there is no two-sided derivative. The `check_uniaxial_law` kit accepts this
+/// convention with samples whose ε ± h interval is differentiable, as required
+/// by its contract; vertices are checked separately, without central FD.
 ///
-/// σ y tangente están en Pa; ε es total y adimensional. No hay precarga,
-/// plasticidad ni daño, y tanto la historia inicial como la de prueba son vacías.
-/// El rango numérico exige operaciones intermedias y resultados finitos.
+/// σ and tangent are in Pa; ε is total and dimensionless. There is no preload,
+/// plasticity, or damage, and both initial and trial histories are empty.
+/// The numerical range requires finite intermediate operations and results.
 ///
 /// ```
 /// use engine_contracts::UniaxialLaw;
@@ -92,14 +92,14 @@ pub struct MultilinearElastic {
 }
 
 impl MultilinearElastic {
-    /// Valida al menos dos puntos finitos, ε estrictamente creciente y (0, 0).
-    /// No ordena, refleja ni corrige datos; se valida también el lado inactivo.
+    /// Validates at least two finite points, strictly increasing ε, and (0, 0).
+    /// Does not sort, reflect, or correct data; the inactive side is also validated.
     ///
-    /// # Errores
-    /// `ENG-E-0008`: no finitos o desbordamiento en diferencias/pendientes.
-    /// `ENG-E-0010`: menos de dos puntos, orden incorrecto, ausencia del origen,
-    /// pendiente negativa o pendiente positiva reducida a cero por
-    /// subdesbordamiento. Las mesetas exactas (σᵢ₊₁ = σᵢ) son válidas.
+    /// # Errors
+    /// `ENG-E-0008`: nonfinite values or overflow in differences/slopes.
+    /// `ENG-E-0010`: fewer than two points, incorrect order, missing origin,
+    /// negative slope, or positive slope reduced to zero by
+    /// underflow. Exact plateaus (σᵢ₊₁ = σᵢ) are valid.
     pub fn new(points: Vec<(Real, Real)>, mode: MultilinearMode) -> EResult<Self> {
         if points.len() < 2 {
             return Err(invalid("The curve requires at least two points."));
@@ -138,7 +138,7 @@ impl MultilinearElastic {
         })
     }
 
-    /// Puntos y modo originales validados, inmutables.
+    /// Original validated points and mode, immutable.
     pub fn params(&self) -> &MultilinearElasticParams {
         &self.params
     }
@@ -152,7 +152,7 @@ impl MultilinearElastic {
                 e <= strain
             }
         });
-        // El constructor garantiza al menos dos puntos y un tramo.
+        // The constructor guarantees at least two points and one segment.
         upper.saturating_sub(1).min(self.slopes.len() - 1)
     }
 }
@@ -178,10 +178,10 @@ impl UniaxialLaw for MultilinearElastic {
         self.slopes[self.segment(0.0)]
     }
 
-    /// Evalúa sin mutar entradas. `ENG-E-0010` por historia no vacía;
-    /// `ENG-E-0008` por ε no finita o desbordamiento en resta, producto o suma
-    /// de interpolación/extrapolación. Se usa el extremo más cercano para
-    /// reducir cancelación. Se validan ε e historia incluso en el gap.
+    /// Evaluates without mutating inputs. `ENG-E-0010` for nonempty history;
+    /// `ENG-E-0008` for nonfinite ε or overflow in interpolation/extrapolation
+    /// subtraction, product, or sum. Uses the nearest end to
+    /// reduce cancellation. ε and history are validated even in the gap.
     fn respond(&self, strain: Real, committed: &[Real]) -> EResult<UniaxialResponse> {
         vector(committed, 0, "Accepted history")?;
         finite(strain, "ε")?;

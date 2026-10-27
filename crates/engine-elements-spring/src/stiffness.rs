@@ -1,4 +1,4 @@
-//! Energía ½kδ²: fuerza generalizada kδ y Hessiana kbbᵀ.
+//! Energy ½kδ²: generalized force kδ and Hessian kbbᵀ.
 use crate::{finite, vector as validate_vector, LinearSpring, SpringConnection};
 use engine_contracts::Element;
 use engine_core::{EResult, Real};
@@ -7,7 +7,7 @@ use engine_linalg::DMat;
 pub(crate) fn force(s: &LinearSpring, u: &[Real], committed: &[Real]) -> EResult<Real> {
     validate_vector(u, s.size(), "u_e")?;
     validate_vector(committed, 0, "Historia")?;
-    // k=0 desconecta exactamente; evita productos/sumas que no afectan salida.
+    // k=0 disconnects exactly; avoids products/sums that do not affect output.
     if s.k == 0.0 {
         return Ok(0.0);
     }

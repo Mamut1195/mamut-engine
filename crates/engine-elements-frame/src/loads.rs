@@ -1,4 +1,4 @@
-//! ∫ Hᵀq + H′ᵀmz dx; f_eq local, empotramiento perfecto = −f_eq.
+//! ∫ Hᵀq + H′ᵀmz dx; local f_eq, fully restrained ends = −f_eq.
 use crate::{finite, geometry::Geometry, unsupported, vector};
 use engine_contracts::MemberLoad;
 use engine_core::{EResult, Real};
