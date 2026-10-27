@@ -1,85 +1,85 @@
-# ADR-004: tablas de resultados y NumPy opcional en Python
+# ADR-004: result tables and optional NumPy in Python
 
 - **Ticket:** MAM-82 · ENG-PY-004.
-- **Estado:** decisión implementada; revisión clean-room **PENDIENTE (J4)**.
-- **Fecha:** 2026-10-20 (America/Guayaquil).
-- **Antecedentes:** [ADR-003](ADR-003-python-v1.md),
+- **Status:** decision implemented; clean-room review **PENDING (J4)**.
+- **Date:** 2026-10-20 (America/Guayaquil).
+- **Background:** [ADR-003](ADR-003-python-v1.md),
   [ENG-PY-003](../../provenance/ENG-PY-003.md).
 
-## Contexto
+## Context
 
-`results/1` transporta listas JSON producidas exclusivamente por Rust. Los
-notebooks necesitan matrices con identidad y unidades explícitas, sin depender
-de la vida de buffers del backend. Los modelos pueden mezclar elementos con
-distinto número de GDL; las identidades del documento no necesariamente tienen
-el mismo orden que las filas de respuesta. El estado fallido puede carecer de
-respuestas físicas y conservar diagnósticos y convergencia útiles.
+`results/1` transports JSON lists produced exclusively by Rust.
+Notebooks need matrices with explicit identity and units, without depending
+on the lifetime of backend buffers. Models may mix elements with
+different numbers of DOFs; document identities do not necessarily have
+the same order as response rows. A failed status may lack
+physical responses while retaining useful diagnostics and convergence.
 
-## Decisión
+## Decision
 
-1. `Results.to_arrays()` devuelve `ArrayResults` con listas independientes y
-   metadatos; `Results.to_numpy()` devuelve el mismo contrato con `ndarray`.
-   Ambos verifican stale antes de acceder al snapshot. `ArrayResults.document`
-   es una copia completa de `results/1`, conservando estado textual, huella,
-   identidades, GDL activos, conectividad, diagnósticos y campos no tabulados.
-   `status` y `partial` mantienen la semántica de `Results`. No se transforma
-   el estado en una magnitud f64 ni se presenta un fallo como éxito.
-2. NumPy es el extra `mamut-engine[numpy]` (`numpy>=1.23`). Importarlo solo
-   ocurre dentro de `to_numpy`; importar el paquete, resolver anotaciones,
-   ejecutar análisis y exportar listas funciona sin NumPy. Su ausencia lanza
-   `MissingNumPyError`, subclase de `EngineError`, código `PY-E-NUMPY`, con el
-   nombre del extra. Un error interno de instalación de NumPy no se disfraza
-   de dependencia ausente. El tipo `values: Any` permite resolver las
-   anotaciones públicas sin importar la dependencia opcional.
-   NumPy se distribuye bajo licencia BSD-3-Clause, compatible con AGPL-3.0 y
-   con la licencia comercial, y no se vendoriza.
-3. Cada `ResultMatrix` publica `values`, `shape`, `row_ids`, `row_indices`,
-   `dofs`, `units` y `frame`. IDs e índices se mantienen como tuplas de enteros
-   Python exactos; nunca se convierten a floats. Las etiquetas y unidades son
-   tuplas de strings. Solo los valores numéricos son matrices f64.
-4. La conversión es `numpy.asarray(listas, dtype=numpy.float64, order="C")`,
-   reshape al shape explícito y `.copy(order="C")`. Incluso las matrices
-   vacías tienen dos dimensiones, memoria propia (`OWNDATA`, `base is None`)
-   y orden C. Las salidas son mutables, independientes entre sí, del JSON y
-   del backend. Sobreviven a la destrucción de Results o cambios posteriores
-   del modelo; esos cambios bloquean nuevas exportaciones mediante stale.
-   Las listas también se copian. No hay vistas cero-copia ni préstamos de
-   buffers mutables del motor. Los metadatos contenedores son copias locales;
-   modificar un export no modifica el snapshot ni otro export.
-5. Las tablas siguen las respuestas sin reordenarlas, interpolarlas,
-   completarlas ni calcular fuerzas. Las fuerzas de extremo se agrupan por
-   tipo de elemento para evitar matrices ragged o rellenos inventados.
-   Un tipo desconocido requiere nuevas etiquetas explícitas y da `Unsupported`
-   (`ENG-E-0013`); un shape o identidad incompatible da `InvalidInputError`.
-   El JSON original sigue disponible. El contrato detallado está en el
-   [README del binding](../../bindings/python/README.md#tablas-y-numpy-opcional).
-6. No se añaden dependencias Rust ni se cambian Cargo.toml/Cargo.lock.
-   El transporte JSON/listas existente basta; añadir rust-numpy duplicaría
-   infraestructura y complicaría ownership sin evidencia de necesidad.
-   Python solo valida estructura y convierte representación; Rust conserva
-   toda la física y la aritmética del análisis.
-7. No se añade liberación del GIL. La proyección Python/NumPy requiere objetos
-   Python vivos. Se conserva el `py.detach` previo exclusivamente alrededor de
-   llamadas Rust: captura `&str` inmutable cuya vida abarca la llamada, un Arc
-   de token atómico y acumulación Rust de eventos; no accede a objetos Python
-   ni ejecuta callbacks Python durante el detach. La conversión de salida y
-   callbacks se ejecutan tras readquirir el GIL.
+1. `Results.to_arrays()` returns `ArrayResults` with independent lists and
+   metadata; `Results.to_numpy()` returns the same contract with `ndarray`.
+   Both check for staleness before accessing the snapshot. `ArrayResults.document`
+   is a full copy of `results/1`, preserving textual status, fingerprint,
+   identities, active DOFs, connectivity, diagnostics and untabulated fields.
+   `status` and `partial` retain the semantics of `Results`. Status is not converted
+   into an f64 quantity, nor is a failure presented as success.
+2. NumPy is the extra `mamut-engine[numpy]` (`numpy>=1.23`). Importing it only
+   occurs inside `to_numpy`; importing the package, resolving annotations,
+   running analyses and exporting lists work without NumPy. Its absence raises
+   `MissingNumPyError`, a subclass of `EngineError`, code `PY-E-NUMPY`, with the
+   name of the extra. An internal NumPy installation error is not disguised
+   as a missing dependency. The type `values: Any` allows public
+   annotations to be resolved without importing the optional dependency.
+   NumPy is distributed under the BSD-3-Clause license, compatible with AGPL-3.0 and
+   with the commercial license, and is not vendored.
+3. Each `ResultMatrix` exposes `values`, `shape`, `row_ids`, `row_indices`,
+   `dofs`, `units` and `frame`. IDs and indices are kept as tuples of exact
+   Python integers; they are never converted to floats. Labels and units are
+   tuples of strings. Only numerical values are f64 matrices.
+4. The conversion is `numpy.asarray(listas, dtype=numpy.float64, order="C")`,
+   reshape to the explicit shape and `.copy(order="C")`. Even empty
+   matrices have two dimensions, their own memory (`OWNDATA`, `base is None`)
+   and C order. Outputs are mutable, independent of each other, the JSON and
+   the backend. They survive destruction of Results or subsequent changes
+   to the model; those changes block new exports through staleness.
+   Lists are also copied. There are no zero-copy views or borrows of
+   mutable engine buffers. Metadata containers are local copies;
+   modifying an export does not modify the snapshot or another export.
+5. Tables follow the responses without reordering, interpolating,
+   completing them or computing forces. End forces are grouped by
+   element type to avoid ragged matrices or invented padding.
+   An unknown type requires new explicit labels and yields `Unsupported`
+   (`ENG-E-0013`); an incompatible shape or identity yields `InvalidInputError`.
+   The original JSON remains available. The detailed contract is in the
+   [binding README](../../bindings/python/README.md#tablas-y-numpy-opcional).
+6. No Rust dependencies are added and Cargo.toml/Cargo.lock are not changed.
+   The existing JSON/list transport is sufficient; adding rust-numpy would duplicate
+   infrastructure and complicate ownership without evidence of need.
+   Python only validates structure and converts representation; Rust retains
+   all the physics and arithmetic of the analysis.
+7. No GIL release is added. The Python/NumPy projection requires live Python
+   objects. The previous `py.detach` is retained exclusively around
+   Rust calls: it captures an immutable `&str` whose lifetime spans the call, an Arc
+   containing an atomic token and Rust event accumulation; it does not access Python objects
+   or execute Python callbacks during detach. Output conversion and
+   callbacks run after reacquiring the GIL.
 
-## Consecuencias y comprobación
+## Consequences and verification
 
-Las copias consumen memoria y tiempo proporcionales a la salida. `document`
-conserva además el snapshot JSON con listas; no se promete mínima memoria ni
-aceleración del solve. Solo los campos tabulados se convierten a ndarray;
-prescritos nullable, extremos, participación modal y convergencia permanecen
-en `document`, evitando NaN como sustituto de null. Los ceros de componentes
-ausentes y reacciones modales son los placeholders originales del motor.
+Copies consume memory and time proportional to the output. `document`
+also retains the JSON snapshot with lists; minimal memory or
+solve acceleration is not promised. Only tabulated fields are converted to ndarray;
+nullable prescribed values, end data, modal participation and convergence remain
+in `document`, avoiding NaN as a substitute for null. Zeros for absent
+components and modal reactions are the engine's original placeholders.
 
-Las pruebas instaladas comparan con referencias Rust independientes, rechazan
-NaN/Inf, shapes e identidades incorrectos, verifican copias/orden C/dtype,
-vacíos y funcionamiento sin NumPy. Las pruebas NumPy usan
-`pytest.importorskip("numpy")`; la API básica solo necesita stdlib.
-La wheel se construye dos veces en targets separados y se exige igualdad de
-SHA-256 mediante el verificador existente. No se publica en PyPI.
+The installed tests compare against independent Rust references, reject
+NaN/Inf, incorrect shapes and identities, verify copies/C order/dtype,
+empty outputs and operation without NumPy. NumPy tests use
+`pytest.importorskip("numpy")`; the basic API only needs stdlib.
+The wheel is built twice in separate targets and SHA-256 equality is
+required through the existing verifier. It is not published on PyPI.
 
-El [plan de rendimiento](../PYTHON_BOUNDARY_BENCHMARKS.md) separa solve,
-transporte, parseo y copias, y conserva muestras sin umbrales de CI.
+The [performance plan](../PYTHON_BOUNDARY_BENCHMARKS.md) separates solve,
+transport, parsing and copies, and retains samples without CI thresholds.

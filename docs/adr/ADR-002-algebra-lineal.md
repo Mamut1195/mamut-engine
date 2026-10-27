@@ -1,266 +1,270 @@
-# ADR-002: selección de librerías de álgebra lineal
+# ADR-002: selection of linear algebra libraries
 
-- **Tarea:** ENG-LA-006
-- **Estado:** Aceptado (2026-10-11): aprobado por J0 (jefe de programa); revocable por Jonathan
-- **Fecha:** 2026-10-10 (America/Guayaquil)
+- **Task:** ENG-LA-006
+- **Status:** Accepted (2026-10-11): approved by J0 (program lead); revocable by Jonathan
+- **Date:** 2026-10-10 (America/Guayaquil)
 
-## Contexto
+## Context
 
-El motor necesita álgebra densa para matrices de elemento, almacenamiento
-disperso para ensamblaje, factorización simétrica para sistemas definidos e
-indefinidos y autovalores generalizados para análisis modal. La selección debe
-servir en nativo y en `wasm32-unknown-unknown`, sin hilos en V1 ni dependencias
-C/Fortran en el build wasm. El [protocolo clean-room](../CLEAN_ROOM.md) exige
-dependencias permisivas y procedencia documentada.
+The engine needs dense algebra for element matrices, sparse storage
+for assembly, symmetric factorization for definite and
+indefinite systems and generalized eigenvalues for modal analysis. The selection must
+work natively and on `wasm32-unknown-unknown`, with no threads in V1 or
+C/Fortran dependencies in the wasm build. The [clean-room protocol](../CLEAN_ROOM.md) requires
+permissive dependencies and documented provenance.
 
-La especificación de referencia es
-`/workspace/motor-rust/01_ARQUITECTURA_Y_CONTRATOS.md`, §§4.5–4.6, 9 y 10,
-junto con `00_PROYECTO.md` y los tickets ENG-LA-006/007/008/009 de
-`04_TICKETS.md` en ese mismo directorio. Esos documentos son externos a este
-repositorio. El formato sigue [ADR-001](ADR-001-fundacionales.md).
+The reference specification is
+`/workspace/motor-rust/01_ARQUITECTURA_Y_CONTRATOS.md`, §§4.5–4.6, 9 and 10,
+together with `00_PROYECTO.md` and tickets ENG-LA-006/007/008/009 from
+`04_TICKETS.md` in that same directory. Those documents are external to this
+repository. The format follows [ADR-001](ADR-001-fundacionales.md).
 
-Este ticket es documental: propone la selección y las pruebas para aprobarla.
-No incorpora crates, código Rust, configuración de licencias ni workflows.
+This ticket is documentation only: it proposes the selection and the tests for approving it.
+It adds no crates, Rust code, license configuration or workflows.
 
-## Evidencia y comparación
+## Evidence and comparison
 
-Los metadatos de crates.io siguientes corresponden al corte **2026-10-10
-verificado y proporcionado por el solicitante**. Las descargas son totales
-aproximadas del crate, no de esa versión ni una medida de calidad. En esta
-sesión no fue posible repetir la consulta: el acceso web a crates.io falló y
-la consulta directa de su API falló por resolución DNS. Los enlaces identifican
-las fuentes del corte; no se afirma una verificación remota nueva.
+The following crates.io metadata corresponds to the **2026-10-10 snapshot
+verified and provided by the requester**. Downloads are approximate
+totals for the crate, not for that version or a measure of quality. In this
+session it was not possible to repeat the query: web access to crates.io failed and
+the direct API query failed due to DNS resolution. The links identify
+the snapshot sources; no new remote verification is claimed.
 
-La evidencia de compilación procede exclusivamente de la prueba desechable del
-**2026-10-08 registrada en arquitectura §10**. No se repitió aquí. Esa sección
-registra también revisión de archivos LICENSE de faer, nalgebra y sprs, pero
-no aporta en este ADR una revisión reproducible del grafo completo por versión.
+Compilation evidence comes exclusively from the disposable test on
+**2026-10-08 recorded in architecture §10**. It was not repeated here. That section
+also records a review of LICENSE files for faer, nalgebra and sprs, but
+does not provide a reproducible review of the full graph by version in this ADR.
 
-| Candidato y función evaluada | Licencia | `wasm32-unknown-unknown`: compila / ejecuta | MSRV | Mantenimiento: evidencia disponible | Rendimiento | Tamaño wasm | Determinismo |
+| Candidate and evaluated function | License | `wasm32-unknown-unknown`: compiles / runs | MSRV | Maintenance: available evidence | Performance | wasm size | Determinism |
 |---|---|---|---|---|---|---|---|
-| [faer 0.24.4](https://crates.io/crates/faer/0.24.4): denso, disperso, solver simétrico con AMD y autovalores densos según §10 | MIT | **Compila**, según §10, con `default-features = false`, `features = ["std", "sparse-linalg"]`; por defecto falla por `getrandom`. **Ejecuta: PENDIENTE**, V2 | 1.84; compatible con el 1.85 declarado, sujeto al grafo resuelto (V1) | ~5.0 M descargas; actualización 2026-06-24. Salud del mantenimiento: **PENDIENTE**, V7 | **PENDIENTE**, V4 | **PENDIENTE**, V5 | Sin `rayon` propuesto; repetibilidad y equivalencia entre destinos **PENDIENTE**, V6 |
-| [nalgebra 0.35.0](https://crates.io/crates/nalgebra/0.35.0): segundo backend denso mínimo | Apache-2.0 | **Compila**, según §10; configuración exacta a reproducir. **Ejecuta: PENDIENTE**, V2 | 1.89; incompatible con 1.85 cuando se habilita | ~94.5 M descargas; actualización 2026-05-24. Salud del mantenimiento: **PENDIENTE**, V7 | **PENDIENTE**, V4 | **PENDIENTE**, V5 | **PENDIENTE**, V6 |
-| [nalgebra-sparse 0.12.0](https://crates.io/crates/nalgebra-sparse/0.12.0): almacenamiento disperso alternativo | Apache-2.0 | **Compila**, según §10. **Ejecuta: PENDIENTE**, V2 si se reconsidera | Sin MSRV declarado; mínimo efectivo **PENDIENTE**, V1 | ~669 k descargas; fecha de actualización y salud del mantenimiento **PENDIENTE**, V7 | **PENDIENTE**, V4 si se reconsidera | **PENDIENTE**, V5 si se reconsidera | **PENDIENTE**, V6 si se reconsidera |
-| [sprs 0.11.5](https://crates.io/crates/sprs/0.11.5): almacenamiento disperso alternativo | MIT OR Apache-2.0; su solver `sprs-ldl` LGPL-2.1 queda **excluido** según §10 | **Compila**, según §10. **Ejecuta: PENDIENTE**, V2 si se reconsidera | 1.88; incompatible con 1.85 cuando se habilita | ~8.5 M descargas; fecha de actualización y salud del mantenimiento **PENDIENTE**, V7 | **PENDIENTE**, V4 si se reconsidera | **PENDIENTE**, V5 si se reconsidera | **PENDIENTE**, V6 si se reconsidera |
-| [scirs2-sparse 0.6.5](https://crates.io/crates/scirs2-sparse/0.6.5): candidato a autovalores dispersos generalizados | Apache-2.0 | **Compila**, según §10. **Ejecuta: PENDIENTE**, V2/V3 | Sin MSRV declarado; mínimo efectivo **PENDIENTE**, V1 | ~42 k descargas; §10 lo considera joven. Fecha de actualización y madurez **PENDIENTE**, V7 | **PENDIENTE**, V4 | **PENDIENTE**, V5 | **PENDIENTE**, V6 |
-| arpack-ng (bindings): alternativa para autovalores dispersos | BSD-3-Clause, según §10; versión de bindings y licencia de su grafo **PENDIENTE**, V1 solo si se reconsidera | **Descartado** para wasm por dependencia Fortran/C, según §10; ejecución no probada (**PENDIENTE**, V2 solo si se reconsidera) | No verificado: **PENDIENTE**, V1 solo si se reconsidera | No evaluado: **PENDIENTE**, V7 solo si se reconsidera | **PENDIENTE**, sin medición; V4 solo si se reconsidera | **PENDIENTE**, sin medición; V5 solo si se reconsidera | **PENDIENTE**, V6 solo si se reconsidera |
+| [faer 0.24.4](https://crates.io/crates/faer/0.24.4): dense, sparse, symmetric solver with AMD and dense eigenvalues according to §10 | MIT | **Compiles**, according to §10, with `default-features = false`, `features = ["std", "sparse-linalg"]`; fails by default due to `getrandom`. **Runs: PENDING**, V2 | 1.84; compatible with the declared 1.85, subject to the resolved graph (V1) | ~5.0 M downloads; updated 2026-06-24. Maintenance health: **PENDING**, V7 | **PENDING**, V4 | **PENDING**, V5 | No `rayon` proposed; repeatability and equivalence across targets **PENDING**, V6 |
+| [nalgebra 0.35.0](https://crates.io/crates/nalgebra/0.35.0): second minimal dense backend | Apache-2.0 | **Compiles**, according to §10; exact configuration to be reproduced. **Runs: PENDING**, V2 | 1.89; incompatible with 1.85 when enabled | ~94.5 M downloads; updated 2026-05-24. Maintenance health: **PENDING**, V7 | **PENDING**, V4 | **PENDING**, V5 | **PENDING**, V6 |
+| [nalgebra-sparse 0.12.0](https://crates.io/crates/nalgebra-sparse/0.12.0): alternative sparse storage | Apache-2.0 | **Compiles**, according to §10. **Runs: PENDING**, V2 if reconsidered | No declared MSRV; effective minimum **PENDING**, V1 | ~669 k downloads; update date and maintenance health **PENDING**, V7 | **PENDING**, V4 if reconsidered | **PENDING**, V5 if reconsidered | **PENDING**, V6 if reconsidered |
+| [sprs 0.11.5](https://crates.io/crates/sprs/0.11.5): alternative sparse storage | MIT OR Apache-2.0; its LGPL-2.1 solver `sprs-ldl` is **excluded** according to §10 | **Compiles**, according to §10. **Runs: PENDING**, V2 if reconsidered | 1.88; incompatible with 1.85 when enabled | ~8.5 M downloads; update date and maintenance health **PENDING**, V7 | **PENDING**, V4 if reconsidered | **PENDING**, V5 if reconsidered | **PENDING**, V6 if reconsidered |
+| [scirs2-sparse 0.6.5](https://crates.io/crates/scirs2-sparse/0.6.5): candidate for generalized sparse eigenvalues | Apache-2.0 | **Compiles**, according to §10. **Runs: PENDING**, V2/V3 | No declared MSRV; effective minimum **PENDING**, V1 | ~42 k downloads; §10 considers it young. Update date and maturity **PENDING**, V7 | **PENDING**, V4 | **PENDING**, V5 | **PENDING**, V6 |
+| arpack-ng (bindings): alternative for sparse eigenvalues | BSD-3-Clause, according to §10; bindings version and license of its graph **PENDING**, V1 only if reconsidered | **Rejected** for wasm due to Fortran/C dependency, according to §10; execution untested (**PENDING**, V2 only if reconsidered) | Unverified: **PENDING**, V1 only if reconsidered | Not evaluated: **PENDING**, V7 only if reconsidered | **PENDING**, unmeasured; V4 only if reconsidered | **PENDING**, unmeasured; V5 only if reconsidered | **PENDING**, V6 only if reconsidered |
 
-La comparación permite recomendar una configuración por cobertura funcional y
-compatibilidad declarada. No permite afirmar qué librería es más rápida, qué
-artefacto es menor ni que un resultado numérico sea idéntico entre destinos.
-V1–V7 identifican pruebas concretas del plan siguiente.
+The comparison supports recommending a configuration based on functional coverage and
+declared compatibility. It does not support claims about which library is faster, which
+artifact is smaller or whether a numerical result is identical across targets.
+V1–V7 identify specific tests in the following plan.
 
-## Decisión
+<a id="decisión"></a>
 
-1. **Recomendar faer 0.24.4 como backend principal**, con
-   `default-features = false` y `features = ["std", "sparse-linalg"]`, sin
-   `rayon`. Usar su almacenamiento disperso y su factorización simétrica con
-   AMD: Cholesky LLᵀ para matrices definidas y LDLᵀ/LBLᵀ para indefinidas,
-   conforme a §10 y ENG-LA-008. La cobertura exacta de APIs con estas features,
-   incluidas las operaciones densas y autovalores, queda **PENDIENTE** de V3.
-   Si alguna API requiere otra feature, documentar y revisar el ajuste antes
-   de incorporarlo; no activar las features por defecto como solución implícita.
-2. **Recomendar nalgebra 0.35.0 como segundo backend denso mínimo** en
-   ENG-LA-007, detrás de una feature opcional y deshabilitada por defecto.
-   Pasará la misma suite de operaciones densas y resolución de sistemas
-   pequeños que faer para demostrar intercambiabilidad. No se le atribuye
-   cobertura del solver disperso ni del análisis modal completo.
-3. **Mantener el MSRV 1.85 del workspace** para la configuración principal.
-   [Cargo.toml](../../Cargo.toml) declara actualmente `rust-version = "1.85"`;
-   nalgebra exige **1.89** y sprs **1.88**. La alternativa sería subir todo el
-   workspace a 1.89; se descarta por ahora para conservar la compatibilidad del
-   camino principal con faer. La feature de nalgebra requerirá Rust **al menos
-   1.89**, con mínimo efectivo confirmado sobre dependencias transitivas en V1.
-   ENG-LA-007 deberá documentar ambos perfiles y probar el principal con 1.85
-   y el segundo con su toolchain compatible. La selección opcional no convierte
-   nalgebra en compatible con 1.85; `--all-features` no tendrá esa garantía.
-   Este ADR no modifica el manifest.
-4. **Definir un trait propio `LinAlgBackend` en ENG-LA-007**, con tipos del
-   motor para matrices densas, tripletas dispersas, factorización con `solve`
-   e información de inercia y autovalores generalizados. Solo `engine-linalg`
-   importará las librerías. Los contratos `linsolve/1` y `eigen/1` de §§4.5–4.6
-   seguirán visibles mediante tipos propios; los errores se traducirán a
-   `ENG-E` con contexto de nodo/GDL cuando esté disponible.
-5. **Mantener PENDIENTE la inercia expuesta por faer**: confirmar acceso a los
-   signos de D, incluidos bloques 2×2, y su interpretación en V3. El campo
-   `FactorInfo.inertia` admite ausencia de información; no se anunciará control
-   de Sturm ni detección de modos faltantes sin evidencia. No se implementará
-   una factorización propia para cubrir esta incertidumbre.
-6. **Usar faer como candidato denso para ENG-LA-009**, conforme a
-   `self_adjoint_eigen`/`gevd` citados en §10, sujeto a la verificación de V3.
-   **Solver disperso de autovalores: PENDIENTE.** Evaluar scirs2-sparse y la
-   interoperabilidad de `eigsh_generalized`/shift-invert con la factorización
-   de ENG-LA-008. Compilar ese crate no demuestra madurez, corrección ni que
-   permita reutilizar nuestra factorización. No queda seleccionado todavía.
+## Decision
 
-## Alternativas descartadas
+1. **Recommend faer 0.24.4 as the primary backend**, with
+   `default-features = false` and `features = ["std", "sparse-linalg"]`, without
+   `rayon`. Use its sparse storage and symmetric factorization with
+   AMD: Cholesky LLᵀ for definite matrices and LDLᵀ/LBLᵀ for indefinite ones,
+   according to §10 and ENG-LA-008. Exact API coverage with these features,
+   including dense operations and eigenvalues, remains **PENDING** V3.
+   If an API requires another feature, document and review the adjustment before
+   incorporating it; do not enable default features as an implicit solution.
+2. **Recommend nalgebra 0.35.0 as a second minimal dense backend** in
+   ENG-LA-007, behind an optional feature disabled by default.
+   It will pass the same suite of dense operations and small system solves
+   as faer to demonstrate interchangeability. It is not credited with
+   coverage of the sparse solver or full modal analysis.
+3. **Keep the workspace MSRV at 1.85** for the primary configuration.
+   [Cargo.toml](../../Cargo.toml) currently declares `rust-version = "1.85"`;
+   nalgebra requires **1.89** and sprs **1.88**. The alternative would be to raise the entire
+   workspace to 1.89; this is rejected for now to preserve compatibility of the
+   primary path with faer. The nalgebra feature will require Rust **at least
+   1.89**, with the effective minimum confirmed against transitive dependencies in V1.
+   ENG-LA-007 must document both profiles and test the primary one with 1.85
+   and the second with its compatible toolchain. Optional selection does not make
+   nalgebra compatible with 1.85; `--all-features` will not have that guarantee.
+   This ADR does not modify the manifest.
+4. **Define an engine-owned trait `LinAlgBackend` in ENG-LA-007**, with engine
+   types for dense matrices, sparse triplets, factorization with `solve`
+   and inertia information and generalized eigenvalues. Only `engine-linalg`
+   will import the libraries. The `linsolve/1` and `eigen/1` contracts from §§4.5–4.6
+   will remain visible through engine-owned types; errors will be translated to
+   `ENG-E` with node/DOF context when available.
+5. **Keep the inertia exposed by faer PENDING**: confirm access to the
+   signs of D, including 2×2 blocks, and their interpretation in V3. The
+   `FactorInfo.inertia` field allows information to be absent; no Sturm checking
+   or missing-mode detection will be advertised without evidence. No in-house
+   factorization will be implemented to cover this uncertainty.
+6. **Use faer as the dense candidate for ENG-LA-009**, according to
+   `self_adjoint_eigen`/`gevd` cited in §10, subject to V3 verification.
+   **Sparse eigenvalue solver: PENDING.** Evaluate scirs2-sparse and the
+   interoperability of `eigsh_generalized`/shift-invert with the factorization
+   from ENG-LA-008. Compiling that crate does not demonstrate maturity, correctness or that
+   it allows reuse of our factorization. It has not yet been selected.
 
-- **nalgebra como principal:** no ofrece en esta evaluación la cobertura
-  integrada propuesta para el solver disperso y exige subir el MSRV. Se conserva
-  como segundo backend denso opcional.
-- **nalgebra-sparse y sprs como almacenamiento principal:** añadirían otra
-  representación y conversiones al solver de faer sin beneficio medido. Pueden
-  reconsiderarse con V2/V4/V5/V6; su compilación histórica no decide la selección.
-- **sprs-ldl:** excluido por LGPL-2.1 frente a la política de dependencias
-  permisivas. La exclusión del solver no afecta la licencia permisiva de sprs.
-- **scirs2-sparse como elección inmediata para autovalores dispersos:** se
-  aplaza hasta resolver V1/V2/V3/V7. No hay evidencia suficiente de madurez ni
-  de integración con los contratos exigidos.
-- **arpack-ng y builds con BLAS/LAPACK/ARPACK C/Fortran:** descartados para el
-  build wasm y el requisito de backend Rust. Su licencia permisiva no resuelve
-  la dependencia de toolchains y bibliotecas externas.
-- **Features por defecto de faer o paralelismo V1:** incompatibles con la
-  configuración wasm registrada o con la política sin hilos. No se propone
-  álgebra lineal propia para sustituir librerías.
+## Rejected alternatives
 
-## Consecuencias
+- **nalgebra as primary:** in this evaluation it does not offer the proposed
+  integrated coverage for the sparse solver and requires raising the MSRV. It is retained
+  as an optional second dense backend.
+- **nalgebra-sparse and sprs as primary storage:** they would add another
+  representation and conversions to faer's solver without measured benefit. They may be
+  reconsidered with V2/V4/V5/V6; their historical compilation does not determine the selection.
+- **sprs-ldl:** excluded due to LGPL-2.1 under the permissive dependency
+  policy. Excluding the solver does not affect sprs's permissive license.
+- **scirs2-sparse as an immediate choice for sparse eigenvalues:**
+  deferred until V1/V2/V3/V7 are resolved. There is insufficient evidence of maturity or
+  integration with the required contracts.
+- **arpack-ng and builds with C/Fortran BLAS/LAPACK/ARPACK:** rejected for the
+  wasm build and the Rust backend requirement. Their permissive license does not resolve
+  the dependency on external toolchains and libraries.
+- **Default faer features or V1 parallelism:** incompatible with the
+  recorded wasm configuration or the no-threads policy. No in-house
+  linear algebra is proposed to replace libraries.
 
-- El resto del motor dependerá del contrato propio, con pruebas comunes para
-  las capacidades compartidas y capacidades dispersas verificadas por separado.
-  La integración y los cambios de tipos provisionales de ENG-CORE-007
-  corresponden a ENG-LA-007, no a este ADR.
-- La feature de nalgebra tendrá un requisito de toolchain superior al perfil
-  principal. La resolución del grafo y la unificación de features deberán
-  comprobar que no activa nalgebra ni `rayon` en el build principal.
-- La selección principal es provisional hasta validar ejecución wasm, APIs,
-  licencias transitivas y MSRV efectivo. No hay estimaciones de rendimiento ni
-  tamaño wasm verificadas; los presupuestos siguen **PENDIENTE**.
-- ENG-LA-008 conserva pendientes los diagnósticos de singularidad y la inercia;
-  ENG-LA-009 conserva pendiente el solver disperso y el control de modos
-  faltantes. No se declara completo el análisis modal por seleccionar faer.
-- Sin hilos, orden estable de ensamblaje y semillas fijas reducen fuentes de
-  variación, pero SIMD y FMA pueden diferir entre destinos. La igualdad bit a
-  bit sigue **PENDIENTE** en ENG-CORE-010.
+## Consequences
 
-## Plan de verificación
+- The rest of the engine will depend on the engine-owned contract, with common tests for
+  shared capabilities and sparse capabilities verified separately.
+  Integration and changes to provisional types from ENG-CORE-007
+  belong to ENG-LA-007, not this ADR.
+- The nalgebra feature will have a higher toolchain requirement than the primary
+  profile. Graph resolution and feature unification must
+  verify that it does not activate nalgebra or `rayon` in the primary build.
+- The primary selection is provisional until wasm execution, APIs,
+  transitive licenses and effective MSRV are validated. There are no verified performance or
+  wasm size estimates; budgets remain **PENDING**.
+- ENG-LA-008 retains outstanding singularity diagnostics and inertia;
+  ENG-LA-009 retains the outstanding sparse solver and missing-mode
+  checking. Selecting faer does not declare modal analysis complete.
+- No threads, stable assembly order and constant seeds reduce sources of
+  variation, but SIMD and FMA may differ across targets. Bitwise
+  equality remains **PENDING** in ENG-CORE-010.
 
-Estas acciones se ejecutarán en los tickets de integración y gobernanza; no
-se realizaron pruebas numéricas ni builds de candidatos en este ticket.
-Cada informe deberá registrar versiones, features, toolchain, target, entradas,
-comandos y resultados, con bitácora clean-room. Solo se usarán fuentes permitidas
-y soluciones analíticas, sin motores externos como oráculos.
+<a id="plan-de-verificación"></a>
 
-1. **V1 — Licencias y MSRV (ENG-GOV-005 / ENG-LA-007).** Repetir la consulta
-   a crates.io de las versiones exactas; contrastar su expresión SPDX con los
-   archivos LICENSE oficiales de esas versiones y los del grafo transitivo,
-   sin abrir código de motores. Preparar en ENG-GOV-005 un `deny.toml` con
-   allow-list de MIT, Apache-2.0, BSD, ISC, Zlib y Unicode, usando identificadores
-   SPDX concretos para las variantes BSD/Unicode presentes; rechazar licencias
-   desconocidas o fuera de esa lista. Ejecutar `cargo-deny check licenses`
-   para ambos perfiles y targets, con nalgebra activado y desactivado, incluyendo
-   scirs2-sparse si llega a proponerse. Revisar `cargo tree -e features` y
-   `cargo tree --target wasm32-unknown-unknown`: ausencia de `sprs-ldl`,
-   `rayon` y dependencias C/Fortran/BLAS/LAPACK/ARPACK en el perfil wasm.
-   Construir el perfil principal con Rust 1.85 y el de nalgebra con 1.89;
-   registrar cualquier exigencia transitiva mayor. Para crates sin MSRV
-   declarado, determinar el mínimo efectivo mediante builds con toolchains
-   fijadas. **No se crea `deny.toml` en esta entrega.**
-2. **V2 — Compilación y ejecución nativa/wasm (ENG-LA-007/008/009).** Crear
-   la suite de integración al implementar los adaptadores y compilar los
-   perfiles por separado para `wasm32-unknown-unknown`, reproduciendo las
-   features de faer de §10. Ejecutar la misma suite en nativo y en Node mediante
-   un runner de pruebas wasm (`wasm-bindgen-test`, por ejemplo con
-   `wasm-pack test --node`), registrando versión de Node y toolchain. Cubrir
-   operaciones densas, ensamblaje por tripletas, solución conocida SPD y
-   simétrica indefinida, singularidad y varios RHS con una factorización.
-   Exigir residual relativo < 1e-12 en sistemas bien condicionados según
-   ENG-LA-008; declarar norma y tratamiento de RHS cero. Ejecutar en CI al
-   integrar esos tickets; **este ADR no crea workflows**. Las alternativas
-   de almacenamiento solo recibirán esta suite si se reconsideran.
-3. **V3 — Cobertura funcional e inercia (ENG-LA-007/008/009).** Comprobar en
-   documentación/API y en pruebas de la versión fijada las operaciones densas,
-   la separación simbólica/numérica con AMD y la reutilización de factores.
-   Verificar que las features mínimas alcanzan las APIs densas y dispersas
-   requeridas. Probar inercia con matrices de signos conocidos, permutaciones,
-   caso singular y matriz indefinida que requiera pivote de bloque 2×2; verificar
-   que un eventual desplazamiento/regularización no confunda la inercia original.
-   Si no hay API verificable, conservar ausencia de inercia y documentar la
-   limitación del control de Sturm. Para autovalores, usar K y M diagonales
-   con solución cerrada, masa singular y benchmarks analíticos de viga apoyada
-   y voladizo; comprobar residual `Kφ − λMφ`, normalización `φᵀMφ = 1` y
-   multiplicidades mediante subespacios. Evaluar scirs2-sparse con shift-invert,
-   shifts próximos a autovalores, no convergencia y modos faltantes; confirmar
-   si puede consumir nuestra operación de solución sin duplicar factorizaciones.
-   Fijar tolerancias de los fixtures antes de evaluar resultados. Registrar
-   selección o rechazo del solver disperso en una revisión de este ADR.
-4. **V4 — Rendimiento (ENG-LA-007/008/009 / ENG-VAL-004).** Medir familias
-   reproducibles de matrices de elemento, bandas y dispersas estructurales con
-   tamaños, `nnz`, condición y semillas registrados. Separar ensamblaje,
-   análisis simbólico, factorización, solución por RHS y autovalores; medir tiempo
-   y memoria en nativo y Node, tras calentamiento y con repeticiones, en la misma
-   máquina. Comparar faer/nalgebra solo en capacidades comunes, y otros candidatos
-   si se reconsideran. Publicar dispersión y entorno; acordar presupuestos
-   antes de aceptar o rechazar por rendimiento. No extrapolar de descargas.
-5. **V5 — Tamaño wasm (ENG-LA-007 / ENG-VAL-004).** Construir en release
-   artefactos equivalentes con el mismo código consumidor, LTO, optimización y
-   herramientas fijadas; comparar base sin backend, faer mínimo y perfil con
-   nalgebra, separando también cualquier candidato modal. Medir bytes de `.wasm`
-   y gzip con opciones fijas, conservando comandos y hashes. El objetivo de
-   **1 MB gzip o menos** de `00_PROYECTO.md` es una propuesta **PENDIENTE**,
-   no un resultado ni un presupuesto aprobado. Determinar también límites de
-   modelo/memoria; §10 limita V1 a wasm32 sin Memory64.
-6. **V6 — Determinismo (ENG-CORE-010).** Ejecutar repetidamente los mismos
-   fixtures en cada destino y cruzar nativo/Node. Registrar orden de tripletas
-   y sumas, backend, features, SIMD, flags y semillas; sin hilos ni activación
-   de `-C target-feature=+fma`, con estructuras ordenadas y la política `libm`
-   de §9 para funciones escalares. Comparar bits de salidas escalares; en
-   autovectores fijar convención de signo y comparar subespacios para valores
-   repetidos. Si difieren los destinos, publicar diferencias y tolerancias
-   justificadas. No prometer igualdad bit a bit por deshabilitar `rayon`.
-7. **V7 — Mantenimiento.** Para cada candidato aún considerado, revisar
-   historial de releases y cambios incompatibles, política de MSRV, documentación,
-   pruebas nativas/wasm publicadas, issues y respuesta de mantenedores. Registrar
-   fechas y enlaces de documentación oficial sin abrir código prohibido. Para
-   scirs2-sparse, exigir evidencia específica del solver generalizado y casos
-   de convergencia, masa singular e interoperabilidad. Las cifras de descargas
-   por sí solas no satisfacen esta revisión.
+## Verification plan
 
-## Aceptación (2026-10-11)
+These actions will be carried out in the integration and governance tickets; no
+numerical tests or candidate builds were performed in this ticket.
+Each report must record versions, features, toolchain, target, inputs,
+commands and results, with a clean-room log. Only permitted sources
+and analytical solutions will be used, without external engines as oracles.
 
-Este ADR pasa de provisional a **aceptado** el 2026-10-11: **aprobado por J0
-(jefe de programa); revocable por Jonathan**. Se acepta faer como backend
-principal y nalgebra como segundo opcional. La evidencia medida está en
+1. **V1 — Licenses and MSRV (ENG-GOV-005 / ENG-LA-007).** Repeat the query
+   to crates.io for the exact versions; compare their SPDX expressions with the
+   official LICENSE files for those versions and those of the transitive graph,
+   without opening engine code. Prepare a `deny.toml` in ENG-GOV-005 with an
+   allow-list of MIT, Apache-2.0, BSD, ISC, Zlib and Unicode, using specific
+   SPDX identifiers for the BSD/Unicode variants present; reject licenses
+   that are unknown or outside that list. Run `cargo-deny check licenses`
+   for both profiles and targets, with nalgebra enabled and disabled, including
+   scirs2-sparse if it is proposed. Review `cargo tree -e features` and
+   `cargo tree --target wasm32-unknown-unknown`: absence of `sprs-ldl`,
+   `rayon` and C/Fortran/BLAS/LAPACK/ARPACK dependencies in the wasm profile.
+   Build the primary profile with Rust 1.85 and the nalgebra profile with 1.89;
+   record any higher transitive requirement. For crates without a declared
+   MSRV, determine the effective minimum through builds with pinned
+   toolchains. **No `deny.toml` is created in this delivery.**
+2. **V2 — Native/wasm compilation and execution (ENG-LA-007/008/009).** Create
+   the integration suite when implementing the adapters and compile the
+   profiles separately for `wasm32-unknown-unknown`, reproducing the
+   faer features from §10. Run the same suite natively and in Node using
+   a wasm test runner (`wasm-bindgen-test`, for example with
+   `wasm-pack test --node`), recording the Node version and toolchain. Cover
+   dense operations, triplet assembly, known SPD and
+   symmetric indefinite solutions, singularity and multiple RHS with one factorization.
+   Require relative residual < 1e-12 in well-conditioned systems according to
+   ENG-LA-008; declare the norm and handling of zero RHS. Run in CI when
+   integrating those tickets; **this ADR creates no workflows**. Storage
+   alternatives will receive this suite only if reconsidered.
+3. **V3 — Functional coverage and inertia (ENG-LA-007/008/009).** Check in
+   documentation/API and tests for the pinned version the dense operations,
+   symbolic/numerical separation with AMD and factor reuse.
+   Verify that the minimal features cover the required dense and sparse
+   APIs. Test inertia with matrices of known signs, permutations,
+   a singular case and an indefinite matrix requiring a 2×2 block pivot; verify
+   that any shift/regularization does not obscure the original inertia.
+   If no verifiable API exists, keep inertia absent and document the
+   limitation of Sturm checking. For eigenvalues, use diagonal K and M
+   with a closed-form solution, singular mass and analytical benchmarks for a simply supported beam
+   and a cantilever; check residual `Kφ − λMφ`, normalization `φᵀMφ = 1` and
+   multiplicities through subspaces. Evaluate scirs2-sparse with shift-invert,
+   shifts near eigenvalues, nonconvergence and missing modes; confirm
+   whether it can consume our solve operation without duplicating factorizations.
+   Set test case tolerances before evaluating results. Record
+   selection or rejection of the sparse solver in a revision of this ADR.
+4. **V4 — Performance (ENG-LA-007/008/009 / ENG-VAL-004).** Measure
+   reproducible families of element, banded and structural sparse matrices with
+   sizes, `nnz`, condition and seeds recorded. Separate assembly,
+   symbolic analysis, factorization, solve per RHS and eigenvalues; measure time
+   and memory natively and in Node, after warm-up and with repetitions, on the same
+   machine. Compare faer/nalgebra only on common capabilities, and other candidates
+   if reconsidered. Publish variability and environment; agree on budgets
+   before accepting or rejecting on performance grounds. Do not extrapolate from downloads.
+5. **V5 — wasm size (ENG-LA-007 / ENG-VAL-004).** Build equivalent release
+   artifacts with the same consuming code, LTO, optimization and
+   pinned tools; compare the baseline without a backend, minimal faer and the profile with
+   nalgebra, also separating any modal candidate. Measure `.wasm` bytes
+   and gzip with constant options, retaining commands and hashes. The target of
+   **1 MB gzip or less** from `00_PROYECTO.md` is a **PENDING** proposal,
+   not a result or an approved budget. Also determine
+   model/memory limits; §10 limits V1 to wasm32 without Memory64.
+6. **V6 — Determinism (ENG-CORE-010).** Repeatedly run the same
+   test cases on each target and cross-check native/Node. Record triplet
+   and summation order, backend, features, SIMD, flags and seeds; without threads or enabling
+   `-C target-feature=+fma`, with ordered structures and the `libm` policy
+   from §9 for scalar functions. Compare bits of scalar outputs; for
+   eigenvectors set a sign convention and compare subspaces for repeated
+   values. If targets differ, publish differences and justified
+   tolerances. Do not promise bitwise equality from disabling `rayon`.
+7. **V7 — Maintenance.** For each candidate still under consideration, review
+   release history and breaking changes, MSRV policy, documentation,
+   published native/wasm tests, issues and maintainer responses. Record
+   dates and official documentation links without opening prohibited code. For
+   scirs2-sparse, require specific evidence for the generalized solver and cases
+   of convergence, singular mass and interoperability. Download counts
+   alone do not satisfy this review.
+
+## Acceptance (2026-10-11)
+
+This ADR moves from provisional to **accepted** on 2026-10-11: **approved by J0
+(program lead); revocable by Jonathan**. faer is accepted as the primary
+backend and nalgebra as the optional second backend. Measured evidence is in
 [ADR-002-evidencia.md](ADR-002-evidencia.md).
 
-Queda **PENDIENTE** (no cubierto por esta aceptación): matrices dispersas
-(solver disperso), LDLt, autovalores, `simd128`, `wasm-opt`, memoria y CI.
+Still **PENDING** (not covered by this acceptance): sparse matrices
+(sparse solver), LDLt, eigenvalues, `simd128`, `wasm-opt`, memory and CI.
 
-Garantías de determinismo: con faer **no se promete igualdad bit a bit entre
-nativo y wasm**, ni con `rayon` entre distinto número de hilos.
+Determinism guarantees: with faer **bitwise equality between
+native and wasm is not promised**, nor with `rayon` across different thread counts.
 
-Licencia de manifests: ADR-001 registra la licencia dual AGPL-3.0 + comercial,
-que no es una única expresión SPDX; la expresión `license` de los `Cargo.toml`
-es **decisión pendiente de Jonathan** y esta aceptación no la fija.
+Manifest licensing: ADR-001 records the dual AGPL-3.0 + commercial license,
+which is not a single SPDX expression; the `license` expression in the `Cargo.toml` files
+is a **decision pending Jonathan** and this acceptance does not settle it.
 
-## Criterios de aceptación de ENG-LA-006
+## ENG-LA-006 acceptance criteria
 
-| Criterio del ticket | Estado | Evidencia o trabajo restante |
+| Ticket criterion | Status | Evidence or remaining work |
 |---|---|---|
-| Evaluación y decisión documentada de álgebra densa, almacenamiento disperso, solver simétrico y autovalores generalizados | **Cumplido** para la comparación y recomendación documental; solver disperso **PENDIENTE** | Tabla, decisión y alternativas; V3 debe cerrar el solver disperso |
-| Licencia de cada crate verificada en crates.io y LICENSE oficial, y aceptada por `cargo-deny` | **PENDIENTE** | Corte crates.io proporcionado; §10 registra LICENSE de faer/nalgebra/sprs. Falta revisión reproducible por versión y grafo completo, y `cargo-deny` (V1) |
-| Cada crate elegido compila y corre pruebas en wasm (Node) y nativo en CI | **PENDIENTE** | Compilación wasm histórica registrada en §10; ejecución y CI de integración no verificadas (V2) |
-| Sin dependencias C/Fortran (BLAS, LAPACK, ARPACK) en el build wasm | **PENDIENTE** de verificación del build | Restricción y descarte documental de arpack-ng **cumplidos**; falta grafo y build de los perfiles elegidos (V1/V2) |
-| Decisión aprobada | **Cumplido** (2026-10-11) | Aprobada por J0 (jefe de programa); revocable por Jonathan |
+| Documented evaluation and decision on dense algebra, sparse storage, symmetric solver and generalized eigenvalues | **Met** for the documented comparison and recommendation; sparse solver **PENDING** | Table, decision and alternatives; V3 must resolve the sparse solver |
+| License of each crate verified on crates.io and in the official LICENSE, and accepted by `cargo-deny` | **PENDING** | Provided crates.io snapshot; §10 records LICENSE for faer/nalgebra/sprs. Reproducible review by version and full graph, and `cargo-deny` still missing (V1) |
+| Each selected crate compiles and runs tests on wasm (Node) and natively in CI | **PENDING** | Historical wasm compilation recorded in §10; execution and integration CI unverified (V2) |
+| No C/Fortran dependencies (BLAS, LAPACK, ARPACK) in the wasm build | **PENDING** build verification | Restriction and documented rejection of arpack-ng **met**; graph and build of the selected profiles still missing (V1/V2) |
+| Decision approved | **Met** (2026-10-11) | Approved by J0 (program lead); revocable by Jonathan |
 
-## Pendientes
+## Outstanding items
 
-- [x] Aprobación (2026-10-11) por J0; revocable por Jonathan. La recomendación de MSRV por perfil queda incluida.
-- [ ] V1: licencias del grafo, `cargo-deny`, MSRV efectivo y features resueltas.
-- [ ] V2: ejecución real de pruebas en nativo y wasm en Node/CI.
-- [ ] V3: APIs con features mínimas, inercia de faer y solver disperso de autovalores.
-- [ ] V4/V5: rendimiento, memoria, tamaño wasm y presupuestos aprobados.
-- [ ] V6/V7: determinismo comprobado y revisión de mantenimiento/madurez.
+- [x] Approval (2026-10-11) by J0; revocable by Jonathan. The MSRV recommendation per profile is included.
+- [ ] V1: graph licenses, `cargo-deny`, effective MSRV and resolved features.
+- [ ] V2: actual test execution natively and on wasm in Node/CI.
+- [ ] V3: APIs with minimal features, faer inertia and sparse eigenvalue solver.
+- [ ] V4/V5: performance, memory, wasm size and approved budgets.
+- [ ] V6/V7: verified determinism and maintenance/maturity review.
 
-La [bitácora ENG-LA-006](../../provenance/ENG-LA-006.md) registra las fuentes,
-el alcance y los límites de verificación de esta sesión.
+The [ENG-LA-006 log](../../provenance/ENG-LA-006.md) records the sources,
+scope and verification limits of this session.
 
-## Condición de licencia de faer (hallazgo de ENG-LA-007)
+## faer licensing condition (ENG-LA-007 finding)
 
-**Condición:** faer (su paquete 0.24.4 incluye el aviso MPL-2.0 de Eigen en `COPYING.EIGEN.MPL2`; no es una dependencia aparte ni figura en su grafo de crates, según el hallazgo de LA-007) requiere revisión de licencia y visto bueno de Jonathan antes de ser backend por defecto o de distribuirse en la oferta comercial. Hasta entonces faer solo puede usarse detrás de la feature de Cargo `faer`, nunca por defecto (ENG-LA-007 deja el adaptador como PENDIENTE). Esta sección registra evidencia técnica; **no es una conclusión legal**.
+**Condition:** faer (its 0.24.4 package includes Eigen's MPL-2.0 notice in `COPYING.EIGEN.MPL2`; it is not a separate dependency or listed in its crate graph, according to the LA-007 finding) requires a license review and Jonathan's approval before becoming the default backend or being distributed in the commercial offering. Until then faer may only be used behind the Cargo feature `faer`, never by default (ENG-LA-007 leaves the adapter PENDING). This section records technical evidence; **it is not a legal conclusion**.
 
-Evidencia (2026-10-11; crate de prueba fuera del workspace con `faer =0.24.4`, `default-features = false`, `features = ["std", "sparse-linalg"]`, sin rayon):
+Evidence (2026-10-11; test crate outside the workspace with `faer =0.24.4`, `default-features = false`, `features = ["std", "sparse-linalg"]`, without rayon):
 
-- `cargo tree` sobre ese crate: el grafo resuelto son crates sin copyleft declarado en su manifiesto (p. ej. gemm*, pulp, dyn-stack, num-complex, bytemuck, libm, qd); ningún crate del grafo declara MPL-2.0 en su campo `license`.
-- `COPYING.EIGEN.MPL2` es un archivo **dentro del propio paquete `faer-0.24.4`** (junto a `COPYING.LAPACK.BSD`, `COPYING.SUITE_SPARSE.AMD.BSD` y `COPYING.SUITE_SPARSE.COLAMD.BSD`), no una dependencia aparte. El manifiesto de faer declara `license = "MIT"`. El encabezado del archivo dice «ported algorithms: divide and conquer SVD» seguido del texto de MPL-2.0; es decir, el aviso se refiere a algoritmos portados de Eigen y su alcance exacto en el código de faer no está documentado en el manifiesto.
-- Los módulos de SVD de faer (`src/linalg/svd/`, incluido `bidiag_svd.rs`) forman parte de la feature `linalg`, que `sparse-linalg` activa. Por tanto el archivo está presente con la configuración propuesta. No se verificó qué rutas de código cubre exactamente el aviso ni si Cholesky/LU/LDLᵀ denso o disperso quedan fuera: **PENDIENTE** (requiere revisión del titular de faer/abogado; no se leyó código de implementación para este ADR).
-- `cargo deny check licenses` sobre el crate de prueba: las licencias de manifiesto del grafo se resuelven con la lista MIT/Apache-2.0/BSD-3-Clause/ISC/Zlib/Unicode-3.0; cargo-deny **no detecta** el archivo `COPYING.EIGEN.MPL2` porque lee la expresión SPDX del manifiesto (y, con confianza, archivos LICENSE), de modo que un resultado verde de cargo-deny no descarta el aviso. Contraste con [ADR-002-evidencia.md](ADR-002-evidencia.md): sus resultados de cargo-deny son coherentes con esto y no examinan los archivos `COPYING.*` del paquete.
+- `cargo tree` on that crate: the resolved graph consists of crates with no copyleft declared in their manifest (e.g. gemm*, pulp, dyn-stack, num-complex, bytemuck, libm, qd); no crate in the graph declares MPL-2.0 in its `license` field.
+- `COPYING.EIGEN.MPL2` is a file **inside the `faer-0.24.4` package itself** (alongside `COPYING.LAPACK.BSD`, `COPYING.SUITE_SPARSE.AMD.BSD` and `COPYING.SUITE_SPARSE.COLAMD.BSD`), not a separate dependency. faer's manifest declares `license = "MIT"`. The file header says «ported algorithms: divide and conquer SVD» followed by the MPL-2.0 text; that is, the notice refers to algorithms ported from Eigen and its exact scope in faer's code is not documented in the manifest.
+- faer's SVD modules (`src/linalg/svd/`, including `bidiag_svd.rs`) are part of the `linalg` feature, which `sparse-linalg` enables. Therefore the file is present with the proposed configuration. Exactly which code paths the notice covers or whether dense or sparse Cholesky/LU/LDLᵀ are excluded was not verified: **PENDING** (requires review by faer's rights holder/a lawyer; no implementation code was read for this ADR).
+- `cargo deny check licenses` on the test crate: the graph's manifest licenses resolve with the MIT/Apache-2.0/BSD-3-Clause/ISC/Zlib/Unicode-3.0 list; cargo-deny **does not detect** the `COPYING.EIGEN.MPL2` file because it reads the manifest's SPDX expression (and, with confidence, LICENSE files), so a passing cargo-deny result does not rule out the notice. Compare with [ADR-002-evidencia.md](ADR-002-evidencia.md): its cargo-deny results are consistent with this and do not examine the package's `COPYING.*` files.

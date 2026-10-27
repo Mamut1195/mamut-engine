@@ -1,39 +1,39 @@
-# ADR-001: decisiones fundacionales
+# ADR-001: foundational decisions
 
-- **Tarea:** ENG-GOV-001
-- **Estado:** Propuesto, pendiente de aprobación de Jonathan
+- **Task:** ENG-GOV-001
+- **Status:** Proposed, pending Jonathan's approval
 
-## Contexto
+## Context
 
-El proyecto necesita registrar sus decisiones fundacionales sobre identidad, visibilidad del repositorio, licencia, titularidad y contribuciones externas. El nombre provisional es **MAMUT Engine** y el repositorio es `Mamut1195/mamut-engine`.
+The project needs to record its foundational decisions on identity, repository visibility, license, ownership and external contributions. The provisional name is **MAMUT Engine** and the repository is `Mamut1195/mamut-engine`.
 
-El **2026-10-08** se recomendó y adoptó como decisión inicial una licencia dual **AGPL-3.0 + licencia comercial**; Jonathan la **confirmó el 2026-10-15** como AGPL-3.0-only + licencia comercial de MAMPRO SAS (el Engine no es propietario; titular del copyright: MAMPRO SAS). Este ADR registra esa decisión ya tomada; su estado propuesto no sustituye ni revoca esa decisión. Los demás puntos pendientes requieren aprobación o definición.
+On **2026-10-08**, a dual license **AGPL-3.0 + commercial license** was recommended and adopted as the initial decision; Jonathan **confirmed it on 2026-10-15** as AGPL-3.0-only + a commercial license from MAMPRO SAS (the Engine is not proprietary; copyright holder: MAMPRO SAS). This ADR records that decision already made; its proposed status does not supersede or revoke that decision. The other outstanding items require approval or definition.
 
-El [protocolo clean-room](../CLEAN_ROOM.md) rige el trabajo del motor. El texto AGPL-3.0 está en `LICENSE` y el aviso en `NOTICE`; el texto de la licencia comercial sigue pendiente en **ENG-GOV-004**. Este documento no contiene texto legal.
+The [clean-room protocol](../CLEAN_ROOM.md) governs work on the engine. The AGPL-3.0 text is in `LICENSE` and the notice in `NOTICE`; the commercial license text remains pending in **ENG-GOV-004**. This document contains no legal text.
 
-## Decisión
+## Decision
 
-1. Usar **MAMUT Engine** como nombre provisional. Nombre y marca definitivos: **PENDIENTE**.
-2. Mantener `Mamut1195/mamut-engine` **PRIVADO por ahora**, como decisión recomendada. Publicarlo desde el día 1 o al release: **PENDIENTE** de Jonathan.
-3. Adoptar la licencia dual **AGPL-3.0 + licencia comercial**, recomendada el **2026-10-08** y confirmada por Jonathan el **2026-10-15** (AGPL-3.0-only; titular MAMPRO SAS). Texto AGPL en `LICENSE` y aviso en `NOTICE`; texto de la licencia comercial: **PENDIENTE**, en ENG-GOV-004.
-4. Titular del copyright: **MAMPRO SAS** (confirmado por Jonathan el 2026-10-15).
-5. Exigir CLA a los contribuyentes externos, según **ENG-GOV-007** y la [guía de contribución](../../CONTRIBUTING.md). El titular debe poder distribuir las contribuciones bajo AGPL y bajo licencia comercial. El texto del CLA queda **PENDIENTE** de revisión legal.
-6. Aplicar el [protocolo clean-room](../CLEAN_ROOM.md) a las contribuciones.
+1. Use **MAMUT Engine** as the provisional name. Final name and brand: **PENDING**.
+2. Keep `Mamut1195/mamut-engine` **PRIVATE for now**, as the recommended decision. Making it public from day 1 or at release: **PENDING** Jonathan's decision.
+3. Adopt the dual license **AGPL-3.0 + commercial license**, recommended on **2026-10-08** and confirmed by Jonathan on **2026-10-15** (AGPL-3.0-only; holder MAMPRO SAS). AGPL text in `LICENSE` and notice in `NOTICE`; commercial license text: **PENDING**, in ENG-GOV-004.
+4. Copyright holder: **MAMPRO SAS** (confirmed by Jonathan on 2026-10-15).
+5. Require a CLA from external contributors, according to **ENG-GOV-007** and the [contribution guide](../../CONTRIBUTING.md). The holder must be able to distribute contributions under AGPL and under a commercial license. The CLA text remains **PENDING** legal review.
+6. Apply the [clean-room protocol](../CLEAN_ROOM.md) to contributions.
 
-## Consecuencias
+## Consequences
 
-- La documentación usará el nombre provisional hasta que se definan el nombre y la marca definitivos.
-- El repositorio permanece privado por ahora; la decisión de cuándo publicarlo sigue pendiente de Jonathan.
-- La licencia dual requiere que las contribuciones externas estén cubiertas por un CLA que permita al titular distribuirlas bajo ambas modalidades.
-- El titular del copyright es MAMPRO SAS (confirmado el 2026-10-15).
-- El texto AGPL-3.0 está en `LICENSE` y el aviso en `NOTICE`. Solo quedan pendientes el texto de la licencia comercial y el contacto de MAMPRO SAS (ENG-GOV-004).
-- Las contribuciones deben cumplir el protocolo clean-room y el requisito de CLA para externos.
+- The documentation will use the provisional name until the final name and brand are defined.
+- The repository remains private for now; the decision on when to make it public is still pending Jonathan.
+- Dual licensing requires external contributions to be covered by a CLA allowing the holder to distribute them under both arrangements.
+- The copyright holder is MAMPRO SAS (confirmed on 2026-10-15).
+- The AGPL-3.0 text is in `LICENSE` and the notice in `NOTICE`. Only the commercial license text and MAMPRO SAS contact information remain pending (ENG-GOV-004).
+- Contributions must comply with the clean-room protocol and the CLA requirement for external contributors.
 
-## Pendientes
+## Outstanding items
 
-- [ ] Aprobación de este ADR por Jonathan.
-- [ ] Definir nombre y marca definitivos.
-- [ ] Decidir si publicar el repositorio desde el día 1 o al release.
-- [x] Titular del copyright: MAMPRO SAS (2026-10-15).
-- [ ] Texto de la licencia comercial y contacto de MAMPRO SAS: **PENDIENTE**, ENG-GOV-004.
-- [ ] Completar ENG-GOV-007: revisión legal del texto del CLA y creación de `docs/CLA.md`.
+- [ ] Jonathan's approval of this ADR.
+- [ ] Define the final name and brand.
+- [ ] Decide whether to make the repository public from day 1 or at release.
+- [x] Copyright holder: MAMPRO SAS (2026-10-15).
+- [ ] Commercial license text and MAMPRO SAS contact information: **PENDING**, ENG-GOV-004.
+- [ ] Complete ENG-GOV-007: legal review of the CLA text and creation of `docs/CLA.md`.
