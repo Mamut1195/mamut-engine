@@ -1,4 +1,4 @@
-//! Ejecuta idénticos fixtures y convergencia en nativo y wasm sin imports JS.
+//! Run identical fixtures and convergence checks on native and wasm targets without JS imports.
 #[path = "../tests/support/consolidation_harness.rs"]
 mod harness;
 #[path = "../tests/support/consolidation_table.rs"]
@@ -6,7 +6,7 @@ mod table;
 fn main() -> engine_core::EResult<()> {
     harness::run_all().map(|_| ())
 }
-/// Siete fixtures aprobados y convergencia verificada; cero si hay un error.
+/// Seven fixtures passed and convergence verified; zero on error.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn consolidation_benchmarks() -> u32 {

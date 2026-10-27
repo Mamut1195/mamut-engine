@@ -1,4 +1,4 @@
-//! Tabla de datos SI; cada fila es un problema, no una comprobación aislada.
+//! SI data table; each row is a problem rather than an isolated check.
 #[derive(Clone, Copy)]
 pub enum Kind {
     CantileverPoint,

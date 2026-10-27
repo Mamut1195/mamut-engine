@@ -1,4 +1,4 @@
-//! Datos SI propios. Una fila es un problema completo, con oráculo independiente.
+//! Independently derived SI data. Each row is a complete problem with an independent oracle.
 #[derive(Clone, Copy)]
 pub enum Parameters {
     Shear {

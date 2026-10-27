@@ -1,4 +1,4 @@
-//! Montaje con APIs públicas; los oráculos están en analytical.rs y la bitácora.
+//! Assembly through public APIs; oracles are in analytical.rs and the provenance log.
 use engine_analysis::{
     combination::combine,
     results::{CaseResults, MemberRecovery},
@@ -227,7 +227,7 @@ pub fn build(f: &Fixture) -> EResult<Problem> {
         Kind::Release => {
             let mut b = Problem::new(&[[0.0; 3], [l, 0.0, 0.0]], false);
             b.support(1, all);
-            // Rz externo desconectado fijado; el giro interno se recupera por condensación.
+            // Disconnected external Rz restrained; internal rotation recovered through condensation.
             b.support(2, &[Dof::Uy, Dof::Rz]);
             b.frame(1, 2, p, MomentReleases { i: false, j: true }, q(p.w, 0.0))?;
             Ok(b)
@@ -353,7 +353,7 @@ pub fn solve(problem: &Problem, check: &Check) -> EResult<Vec<CaseResults>> {
         .collect();
     let static_results = StaticLinear::run(&mut system, &cases)?;
     let mut recovered = Vec::new();
-    // Rejilla común deliberada para LOAD-002; las raíces adicionales vienen de RES-001.
+    // Deliberate common grid for LOAD-002; additional roots come from RES-001.
     let stations = [0.0, 0.2, 0.8, 1.0];
     for result in &static_results.cases {
         check.close(
@@ -411,7 +411,7 @@ pub fn solve(problem: &Problem, check: &Check) -> EResult<Vec<CaseResults>> {
     Ok(recovered)
 }
 
-// Balance independiente sobre cargas físicas y resultados recuperados, incluyendo brazos.
+// Independent balance of physical loads and recovered results, including moment arms.
 fn equilibrium(problem: &Problem, r: &CaseResults, c: &Check) -> EResult<()> {
     let mut fx = 0.0;
     let mut fy = 0.0;

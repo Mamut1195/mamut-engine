@@ -1,4 +1,4 @@
-//! Oráculos analíticos propios: provenance/ENG-VAL-001.md, ampliación dinámica.
+//! Independent analytical oracles: provenance/ENG-VAL-001.md, dynamic extension.
 #[path = "support/dynamic_harness.rs"]
 mod harness;
 #[path = "support/dynamic_table.rs"]
@@ -127,7 +127,7 @@ fn beta(cantilever: bool) -> [f64; 3] {
     if !cantilever {
         return [PI, 2.0 * PI, 3.0 * PI];
     }
-    // Raíces de cos β cosh β=−1 calculadas aquí, sin cifras publicadas.
+    // Roots of cos β cosh β=−1 computed here, without published figures.
     std::array::from_fn(|i| {
         let (mut lo, mut hi) = (i as f64 * PI + 0.1, (i + 1) as f64 * PI);
         for _ in 0..55 {
@@ -322,7 +322,7 @@ fn validate_pdelta(f: &Fixture) -> EResult<()> {
                     numerical().close("P=0 reproduce lineal", a, b)?;
                 }
             }
-            // Refinamiento independiente: misma carga y solución continua.
+            // Independent refinement: same load and continuous solution.
             if ratio != 0.0 {
                 let mut coarse = column(4, ratio * pcr, f.frame)?;
                 let cr = PDelta::run(&mut coarse, &case("G"), &case("H"), options())?;
@@ -493,7 +493,7 @@ fn validate_spectrum(f: &Fixture) -> EResult<()> {
             let mut vb2 = 0.0;
             let mut displacement2 = [0.0; 2];
             for (i, response) in r.directions[0].modes.iter().enumerate() {
-                // φ=(1,t)/√[m(1+t²)], t=(1±√5)/2; signo arbitrario.
+                // φ=(1,t)/√[m(1+t²)], t=(1±√5)/2; arbitrary sign.
                 let t =
                     (1.0 + if i == 0 {
                         math::sqrt(5.0_f64)
@@ -569,7 +569,7 @@ fn validate_spectrum(f: &Fixture) -> EResult<()> {
             damping: [zi, zj],
             responses: [a, b],
         } => {
-            // WDKB 1981 según fórmula de la petición, expansión directa independiente.
+            // WDKB 1981 using the requested formula, independent direct expansion.
             let r = wj / wi;
             let rho = 8.0 * math::sqrt(zi * zj) * (zi + r * zj) * math::powf(r, 1.5)
                 / (math::powi(1.0 - r * r, 2)

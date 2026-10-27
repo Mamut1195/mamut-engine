@@ -1,9 +1,9 @@
-// Transporte de un engine-input/1 por stdin y un results/1 por stdout.
-// El runner Rust valida source y compara ambos targets con el mismo oráculo.
+// Transport an engine-input/1 document through stdin and results/1 through stdout.
+// The Rust runner validates source and compares both targets against the same oracle.
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const wasmPath = process.argv[2];
-if (!wasmPath) throw new Error('Uso: node run-fixture-wasm.cjs módulo.wasm < entrada.json');
+if (!wasmPath) throw new Error('Usage: node run-fixture-wasm.cjs module.wasm < input.json');
 const wasmModule = new WebAssembly.Module(fs.readFileSync(wasmPath));
 assert.deepEqual(WebAssembly.Module.imports(wasmModule), [], 'El módulo debe tener cero imports');
 const { input_clear, input_push, execute, output_byte } = new WebAssembly.Instance(wasmModule, {}).exports;

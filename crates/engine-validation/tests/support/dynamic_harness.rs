@@ -1,4 +1,4 @@
-//! Montaje mediante APIs públicas. Ninguna solución del motor es un oráculo.
+//! Assembly through public APIs. No engine solution is an oracle.
 use engine_analysis::pdelta::geometric_producer;
 use engine_assembly::{DofMap, ElementContribution, GeometricProducer, LinearSystem};
 use engine_contracts::{Element, ElementCtx, ElementParams, MassKind};
@@ -41,12 +41,12 @@ pub fn require(condition: bool, message: &str) -> EResult<()> {
 pub fn run_group(fixtures: &[Fixture], validate: fn(&Fixture) -> EResult<()>) {
     let mut names = std::collections::BTreeSet::new();
     for f in fixtures {
-        assert!(names.insert(f.name), "Fixture repetido: {}", f.name);
+        assert!(names.insert(f.name), "Duplicate fixture: {}", f.name);
         assert!(
             !f.source.is_empty()
                 && f.citation.starts_with("provenance/ENG-VAL-001.md#")
                 && !f.tolerance.justification.is_empty(),
-            "Metadatos: {}",
+            "Metadata: {}",
             f.name
         );
         if let Err(error) = validate(f) {
@@ -159,7 +159,7 @@ pub fn shear(
     for (i, &k) in stiffness.iter().enumerate() {
         let ids = [i as u32 + 1, i as u32 + 2];
         if chain {
-            // Resortes axiales EA/ℓ=k con barras sin masa, masas puntuales.
+            // Axial springs EA/ℓ=k with massless truss members and point masses.
             let e: Arc<dyn Element> = Arc::new(LinearTruss::new(Dim::D2, k, 1.0, 0.0)?);
             entries.push(contribution(&model, e, ids)?.0);
         } else {

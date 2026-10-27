@@ -1,4 +1,4 @@
-//! Ejecuta los mismos cinco fixtures axiales en nativo y wasm, sin imports JS.
+//! Run the same five axial fixtures on native and wasm targets, without JS imports.
 #[path = "../../engine-geo/tests/support/axial_benchmarks.rs"]
 mod harness;
 
@@ -6,7 +6,7 @@ fn main() -> engine_core::EResult<()> {
     harness::run_all().map(|_| ())
 }
 
-/// Cinco fixtures aprobados; cero si falla alguna comparación.
+/// Five fixtures passed; zero if any comparison fails.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn axial_benchmarks() -> u32 {

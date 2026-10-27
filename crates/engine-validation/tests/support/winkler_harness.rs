@@ -1,4 +1,4 @@
-//! Ensamblaje público y oráculos analíticos propios, sin dependencias de runtime.
+//! Public assembly and independent analytical oracles, without runtime dependencies.
 use super::table::{Fixture, Kind, FIXTURES};
 use engine_analysis::StaticLinear;
 use engine_assembly::{DofMap, ElementContribution, LinearSystem};
@@ -88,7 +88,7 @@ fn solve(f: &Fixture, n: usize, length: f64) -> EResult<Observation> {
         model
             .nodes
             .push(Node::new(id, dim, [i as f64 * h, 0.0, 0.0]));
-        // Solo GDL desacoplados sin carga; ningún apoyo transversal ni de flexión.
+        // Only unloaded uncoupled DOFs; no transverse or bending restraints.
         model.supports.push(Support {
             id: format!("axial-torsion-{i}"),
             node: id,
@@ -144,7 +144,7 @@ fn solve(f: &Fixture, n: usize, length: f64) -> EResult<Observation> {
     let mut system = LinearSystem::from_model(ReferenceBackend, &model, &contributions, &[])?;
     let result = StaticLinear::run(&mut system, &[(CaseRef("P".into()), 1.0)])?;
     let result = result.cases.first().ok_or_else(|| error("Caso ausente"))?;
-    // EI grande eleva el condicionamiento: cota numérica separada de la física.
+    // Large EI increases the condition number: numerical bound separate from the physical bound.
     let residual_bound = if f.kind == Kind::Rigid { 1e-6 } else { 1e-8 };
     if result.relative_free_residual > residual_bound {
         return Err(error(format!(
@@ -174,7 +174,7 @@ fn solve(f: &Fixture, n: usize, length: f64) -> EResult<Observation> {
             let rotation = if plane == 0 { stride - 1 } else { 4 };
             let moment = if plane == 0 { 5 } else { 4 };
             let sign = if plane == 0 { 1.0 } else { -1.0 };
-            // Gauss de 3 puntos: exacto para v cúbica y x·v cuártica.
+            // 3-point Gauss: exact for cubic v and quartic x·v.
             for (t, weight) in [
                 (0.5 - math::sqrt(3.0_f64 / 5.0) / 2.0, 5.0 / 18.0),
                 (0.5, 4.0 / 9.0),

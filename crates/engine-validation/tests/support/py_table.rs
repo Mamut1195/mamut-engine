@@ -1,4 +1,4 @@
-//! Fixtures analíticos SI; números derivados en provenance/ENG-GEO-003.md.
+//! Analytical SI fixtures; figures derived in provenance/ENG-GEO-003.md.
 #[derive(Clone, Copy)]
 pub struct Source {
     pub kind: &'static str,
@@ -45,7 +45,7 @@ pub const FIXTURES: &[Fixture] = &[
             citation: "Reese, L. C., Cox, W. R., Koop, F. D. (1974), OTC 2080, Ec. 5, 8, 9; paso 4.",
             derivation: "provenance/ENG-GEO-003.md#reese-derivación-analítica",
         },
-        // pct, pcd y pu [N/m].
+        // pct, pcd, and pu [N/m].
         checks: &[3613076.828180442,2874512.763574932,2874512.763574932],
     },
 ];

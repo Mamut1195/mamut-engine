@@ -1,4 +1,4 @@
-//! Los mismos fixtures se ejecutan en examples/winkler_wasm.rs.
+//! The same fixtures run in examples/winkler_wasm.rs.
 #[path = "support/winkler_harness.rs"]
 mod harness;
 #[path = "support/winkler_table.rs"]

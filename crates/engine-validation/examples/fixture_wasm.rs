@@ -1,5 +1,5 @@
-//! Transporte wasm seguro de engine-input/1 → results/1, sin imports ni bindgen.
-//! Node transfiere bytes mediante funciones escalares; nunca comparte punteros.
+//! Safe wasm transport from engine-input/1 → results/1, without imports or bindgen.
+//! Node transfers bytes through scalar functions; it never shares pointers.
 use engine_api::{run, CancelToken, MAX_INPUT_BYTES};
 use std::sync::Mutex;
 
@@ -13,7 +13,7 @@ static BRIDGE: Mutex<Bridge> = Mutex::new(Bridge {
     output: Vec::new(),
 });
 
-/// Inicia una entrada nueva. Cero indica éxito; uno, error de transporte.
+/// Start new input. Zero indicates success; one indicates a transport error.
 #[no_mangle]
 pub extern "C" fn input_clear() -> u32 {
     let Ok(mut bridge) = BRIDGE.lock() else {
@@ -24,7 +24,7 @@ pub extern "C" fn input_clear() -> u32 {
     0
 }
 
-/// Añade un byte con límite de tamaño; cero indica éxito.
+/// Append a byte within the size limit; zero indicates success.
 #[no_mangle]
 pub extern "C" fn input_push(byte: u32) -> u32 {
     let Ok(mut bridge) = BRIDGE.lock() else {
@@ -37,7 +37,7 @@ pub extern "C" fn input_push(byte: u32) -> u32 {
     0
 }
 
-/// Ejecuta la entrada y retorna el tamaño de results/1; cero indica fallo de ABI.
+/// Run the input and return the results/1 size; zero indicates an ABI failure.
 #[no_mangle]
 pub extern "C" fn execute() -> u32 {
     let Ok(mut bridge) = BRIDGE.lock() else {
@@ -52,7 +52,7 @@ pub extern "C" fn execute() -> u32 {
     u32::try_from(bridge.output.len()).unwrap_or(0)
 }
 
-/// Lee un byte de results/1; 256 indica índice fuera de rango o fallo de ABI.
+/// Read a results/1 byte; 256 indicates an out-of-range index or ABI failure.
 #[no_mangle]
 pub extern "C" fn output_byte(index: u32) -> u32 {
     let Ok(bridge) = BRIDGE.lock() else {

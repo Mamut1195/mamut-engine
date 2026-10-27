@@ -1,4 +1,4 @@
-//! Integración polinómica independiente, contrato, transformaciones y negativos.
+//! Independent polynomial integration, contract, transformations, and negative tests.
 use engine_contracts::{
     Element, ElementCtx, ElementFactory, ElementParams, JsonValue, MassKind, MemberLoad, ModelView,
 };
@@ -17,7 +17,7 @@ fn close(a: f64, b: f64) {
     );
 }
 fn code<T>(result: EResult<T>, expected: &str) {
-    assert_eq!(result.err().expect("debe rechazar").code, expected);
+    assert_eq!(result.err().expect("must reject").code, expected);
 }
 fn base(spatial: bool, orientation: [f64; 3]) -> Box<dyn Element> {
     if spatial {
@@ -71,7 +71,7 @@ fn bed(spatial: bool, orientation: [f64; 3], k: [f64; 2]) -> Box<dyn Element> {
     }
 }
 fn rotate(p: [f64; 3]) -> [f64; 3] {
-    // Qz(.47) Qx(.63), propia; para D2 se usa Qz por separado.
+    // Independent Qz(.47) Qx(.63); D2 uses Qz separately.
     let (s, c) = math::sin_cos(0.63_f64);
     let y = c * p[1] - s * p[2];
     let z = s * p[1] + c * p[2];
@@ -127,7 +127,7 @@ fn foundation_is_exact_hermite_gram_and_positive_definite_on_each_transverse_pla
                 }
             }
             if k > 0.0 {
-                // Cholesky independiente: exige los cuatro pivotes estrictamente positivos.
+                // Independent Cholesky: require all four pivots to be strictly positive.
                 let mut chol = [[0.0; 4]; 4];
                 for i in 0..4 {
                     for j in 0..=i {
@@ -315,7 +315,7 @@ fn grounded_element_has_consistent_tangent_repeatability_and_rotation_covariance
         {
             close(*a, *b);
         }
-        // Verificar congruencia de K y M por sus acciones sobre una base completa.
+        // Check congruence of K and M through their actions on a complete basis.
         for j in 0..n {
             let mut e = vec![0.0; n];
             e[j] = 1.0;
@@ -566,7 +566,7 @@ fn factory_schema_and_invalid_inputs_use_catalogued_diagnostics() {
         winkler::integrals(1.0, 2.0, [f64::MAX; 4], 0.5),
         "ENG-E-0008",
     );
-    // Resolver el bloque positivo comprueba además que no se añade regularización.
+    // Solving the positive block also checks that no regularization is added.
     let gram = winkler::matrix(2.0, 3.0).unwrap();
     let gram = DMat::new(4, 4, gram.into_iter().flatten().collect()).unwrap();
     let rhs = DMat::new(4, 1, vec![1.0; 4]).unwrap();
@@ -625,7 +625,7 @@ fn recovery_with_distributed_loads_matches_independent_quadrature_of_soil_force(
                 let x = station.position * l;
                 let mut force = 0.0;
                 let mut torque = 0.0;
-                // Gauss sobre [0,x], independiente de los antiderivados de producción.
+                // Gauss over [0,x], independent of the production antiderivatives.
                 for (r, weight) in [
                     (0.5 - math::sqrt(3.0_f64 / 5.0) / 2.0, 5.0 / 18.0),
                     (0.5, 4.0 / 9.0),

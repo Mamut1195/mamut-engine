@@ -1,4 +1,4 @@
-//! Fixtures SI propios, compartidos por las pruebas nativas y el ejecutor wasm.
+//! Independent SI fixtures shared by native tests and the wasm runner.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Kind {
     Infinite,
@@ -12,7 +12,7 @@ pub struct Fixture {
     pub citation: &'static str,
     pub spatial: bool,
     pub kind: Kind,
-    pub ei: [f64; 2], // EIz, EIy: flexión de y, z locales.
+    pub ei: [f64; 2], // EIz, EIy: bending in local y, z.
     pub k: [f64; 2],
     pub p: [f64; 2],
     pub meshes: [usize; 3],

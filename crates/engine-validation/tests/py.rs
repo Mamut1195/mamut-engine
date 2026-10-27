@@ -1,4 +1,4 @@
-//! Benchmarks compartidos y adaptación dimensional a ENG-MAT-002.
+//! Shared benchmarks and dimensional adaptation to ENG-MAT-002.
 #[path = "support/py_harness.rs"]
 mod py_harness;
 #[path = "support/py_table.rs"]
@@ -30,8 +30,8 @@ fn generated_and_user_points_feed_multilinear_with_explicit_unit_conversion() ->
     let generated = matlock_soft_clay(&p, &s)?.curve;
     let supplied = user(vec![(0.0, 0.0), (0.01, 100.0), (0.02, 150.0)])?;
     for curve in [generated, supplied] {
-        let length = 2.0; // m; extensión tributaria del pilote y escala de ε explícita.
-        let area = 0.5; // m²; escala de σ explícita.
+        let length = 2.0; // m; tributary pile length and explicit ε scale.
+        let area = 0.5; // m²; explicit σ scale.
         let points = curve
             .points()
             .iter()

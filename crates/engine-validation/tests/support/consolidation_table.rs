@@ -1,6 +1,6 @@
-//! Fixtures derivados a mano en provenance/ENG-GEO-006.md; sin datos de motores.
+//! Fixtures derived by hand in provenance/ENG-GEO-006.md; no engine data.
 use engine_geo::consolidation::Drainage;
-/// Límites existentes: errores normalizados de asiento/presión y relativos de U/flujo.
+/// Existing limits: normalized settlement/pressure errors and relative U/flux errors.
 #[derive(Clone, Copy)]
 pub struct Tolerance {
     pub settlement_normalized: f64,

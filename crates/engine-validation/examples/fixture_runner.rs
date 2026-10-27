@@ -1,4 +1,4 @@
-//! Runner offline. El adaptador Node usa únicamente módulos estándar.
+//! Offline runner. The Node adapter uses only standard modules.
 #[cfg(not(target_arch = "wasm32"))]
 mod host {
     use engine_validation::fixtures::{self, NativeTarget, Target};

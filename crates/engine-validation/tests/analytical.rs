@@ -1,4 +1,4 @@
-//! Un único test recorre la tabla; cada fallo identifica fixture, campo y cita.
+//! A single test traverses the table; each failure identifies the fixture, field, and citation.
 #[path = "support/harness.rs"]
 mod harness;
 #[path = "support/table.rs"]
@@ -91,7 +91,7 @@ fn validate(f: &Fixture) -> EResult<()> {
                 ),
             };
             let tip = node(r, 3)?;
-            // Transformación inversa explícita: compara componentes globales y locales.
+            // Explicit inverse transformation: compare global and local components.
             c.close("Ux rotado", tip.displacements[0], -v * math::sin(p.angle))?;
             c.close("Uy rotado", tip.displacements[1], v * math::cos(p.angle))?;
             c.close(
@@ -220,7 +220,7 @@ fn validate(f: &Fixture) -> EResult<()> {
                     0.0,
                 )?;
             }
-            // Raíz x=5L/8 fuera de la rejilla explícita [0,.2,.8,1].
+            // Root x=5L/8 lies outside the explicit grid [0,.2,.8,1].
             moment_range(r, &c, -w * l * l / 8.0, 9.0 * w * l * l / 128.0)?;
             let peak_member = if matches!(f.kind, Kind::Release) {
                 1
@@ -347,7 +347,7 @@ fn validate(f: &Fixture) -> EResult<()> {
         Kind::PortalLateral => {
             let h = p.height;
             let delta = force * math::powi(h, 3) / (24.0 * ei);
-            // Forma cerrada finita independiente del límite rígido.
+            // Finite closed-form solution independent of the rigid limit.
             let beam_ei = ei * p.rigid_ratio;
             let column_ea = ea * p.rigid_ratio;
             let beta = (12.0 * beam_ei / math::powi(l, 2))
@@ -392,7 +392,7 @@ fn validate(f: &Fixture) -> EResult<()> {
                 node(r, 1)?.reactions[0] + node(r, 2)?.reactions[0],
                 -force,
             )?;
-            // θ y uy son pequeños pero NO exactamente cero con rigideces finitas.
+            // θ and uy are small but NOT exactly zero with finite stiffnesses.
         }
         Kind::PortalVertical => {
             let h = p.height;
@@ -478,20 +478,16 @@ fn suite_estatica_lineal_analitica() {
     assert_eq!(
         FIXTURES.len(),
         42,
-        "Actualizar el conteo documentado si cambia la tabla"
+        "Update the documented count if the table changes"
     );
     let mut names = std::collections::BTreeSet::new();
     for f in FIXTURES {
-        assert!(
-            names.insert(f.name),
-            "Nombre de fixture repetido: {}",
-            f.name
-        );
+        assert!(names.insert(f.name), "Duplicate fixture name: {}", f.name);
         assert!(
             !f.source.is_empty()
                 && f.citation.starts_with("provenance/ENG-VAL-001.md#")
                 && !f.tolerance.justification.is_empty(),
-            "Metadatos incompletos: {}",
+            "Incomplete metadata: {}",
             f.name
         );
         if let Err(error) = validate(f) {

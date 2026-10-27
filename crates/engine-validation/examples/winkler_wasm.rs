@@ -1,4 +1,4 @@
-//! Ejecuta los mismos benchmarks nativos/wasm, sin framework ni imports de JS.
+//! Run the same native/wasm benchmarks, without a framework or JS imports.
 #[path = "../tests/support/winkler_harness.rs"]
 mod harness;
 #[path = "../tests/support/winkler_table.rs"]
@@ -6,7 +6,7 @@ mod table;
 fn main() -> engine_core::EResult<()> {
     harness::run_all().map(|_| ())
 }
-/// Retorna seis fixtures aprobados o cero si algún benchmark falla.
+/// Return six passed fixtures, or zero if any benchmark fails.
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn winkler_benchmarks() -> u32 {
