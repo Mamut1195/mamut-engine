@@ -1,16 +1,16 @@
-//! P-Delta elástico con axiales del caso de gravedad lineal, sin factores normativos.
+//! Elastic P-Delta with axial forces from the linear gravity case, without code factors.
 //!
-//! Se congela Kg en u_g: los productores recuperan el axial de cada miembro con
-//! su geometría original. Se resuelve el caso lateral mediante iteración de
-//! punto fijo `K_red q_{i+1} = T_fᵀ(F − K u_0 − Kg u_i)`, equivalente a
-//! `T_fᵀ(K + Kg)(T_f q + u_0) = T_fᵀF`. No se actualizan ejes, materiales ni axiales por la carga
-//! lateral; esta es una aproximación de pretensión inicial, no gran deformación.
-//! La inercia LDLᵀ de `T_fᵀ(K + Kg)T_f` se comprueba antes de iterar; un mecanismo
-//! sigue siendo ENG-E-0006. Una matriz estable puede no converger por punto fijo
-//! (p. ej. tracción muy grande): se reporta sin cambiar estrategia ni reintentar.
-//! Los casos son independientes: u lateral no incluye u_g; los prescritos no se
-//! escalan. No se acepta ni modifica el estado del sistema. Véase la derivación
-//! y las tolerancias analíticas en `provenance/ENG-ANL-003.md`.
+//! Kg is held constant at u_g: producers recover each member's axial force using
+//! its original geometry. The lateral case is solved by Picard
+//! iteration `K_red q_{i+1} = T_fᵀ(F − K u_0 − Kg u_i)`, equivalent to
+//! `T_fᵀ(K + Kg)(T_f q + u_0) = T_fᵀF`. Axes, materials, and axial forces are not updated by the
+//! lateral load; this is an initial-prestress approximation, not large-deformation analysis.
+//! The LDLᵀ inertia of `T_fᵀ(K + Kg)T_f` is checked before iteration; a mechanism
+//! still yields ENG-E-0006. A stable matrix may fail to converge with Picard iteration
+//! (e.g. very large tension): this is reported without changing strategy or retrying.
+//! The cases are independent: lateral u excludes u_g; prescribed displacements are not
+//! scaled. The system state is neither accepted nor modified. See the derivation
+//! and analytical tolerances in `provenance/ENG-ANL-003.md`.
 
 use crate::{finite, StaticCaseResult, StaticLinear};
 use engine_assembly::{GeometricProducer, LinearSystem, Reaction};
@@ -19,108 +19,108 @@ use engine_core::{DofIndex, EResult, EngineError, Real};
 use engine_linalg::{DMat, LinAlgBackend, SparseMatrix, SymMatrix, Triplet};
 use std::{collections::BTreeSet, sync::Arc};
 
-/// Ajustes explícitos del punto fijo, sin valores normativos ni reintentos.
+/// Explicit Picard iteration settings, without code-based values or retries.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PDeltaOptions {
-    /// Tolerancia relativa positiva y menor que uno, para cambio y residual.
-    /// El residual admite además el piso de redondeo documentado en PDeltaIteration.
+    /// Positive relative tolerance less than one, for change and residual.
+    /// The residual also allows the roundoff floor documented in PDeltaIteration.
     pub tolerance: Real,
-    /// Máximo de pasos laterales; positivo. La gravedad no cuenta como paso.
+    /// Maximum number of lateral steps; positive. Gravity does not count as a step.
     pub max_iterations: usize,
-    /// Escala positiva en m para normalizar traslaciones (no modifica ecuaciones).
+    /// Positive scale in m for normalizing translations (does not modify equations).
     pub displacement_scale: Real,
-    /// Escala positiva en rad para normalizar giros.
+    /// Positive scale in rad for normalizing rotations.
     pub rotation_scale: Real,
 }
 
-/// Terminación física/numerérica del método, distinta de errores de entrada.
+/// Physical/numerical termination of the method, distinct from input errors.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PDeltaOutcome {
-    /// Cambio relativo y residual por GDL con piso de redondeo cumplen el criterio.
+    /// Relative change and per-DOF residual with roundoff floor meet the criterion.
     Completed,
-    /// Se agotó exactamente max_iterations; no se aceptó ningún estado.
+    /// Reached exactly max_iterations; no state was accepted.
     NotConverged,
-    /// Pérdida de estabilidad por inercia LDLᵀ de la rigidez reducida total.
+    /// Loss of stability from the LDLᵀ inertia of the total reduced stiffness.
     Unstable {
-        /// Número de autovalores negativos (incluye signos de bloques 2×2).
+        /// Number of negative eigenvalues (includes signs from 2×2 blocks).
         negative_eigenvalues: usize,
     },
 }
 
-/// Reporte de cada paso lateral; no hay iteraciones ocultas.
+/// Report for each lateral step; there are no hidden iterations.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PDeltaIteration {
-    /// Número de paso, comenzando en uno.
+    /// Step number, starting at one.
     pub iteration: usize,
-    /// Desplazamiento libre lateral de esta prueba, m/rad.
+    /// Free lateral displacement of this trial, m/rad.
     pub free_displacements: Vec<Real>,
     /// ‖Δu/s‖∞ / max(1, ‖u_nuevo/s‖∞, ‖u_previo/s‖∞).
-    /// s es displacement_scale o rotation_scale según el GDL.
+    /// s is displacement_scale or rotation_scale according to the DOF.
     pub relative_displacement_change: Real,
-    /// ‖T_fᵀ((K+Kg)u−F)‖∞; mezcla fuerzas y momentos (N/N·m en SI).
+    /// ‖T_fᵀ((K+Kg)u−F)‖∞; mixes forces and moments (N/N·m in SI).
     pub free_residual_norm: Real,
     /// Residual / max(1, ‖T_fᵀ((K+Kg)u)‖∞, ‖T_fᵀF‖∞).
-    /// Indicador SI mixto; no es una norma física invariante de unidades.
-    /// Se conserva como diagnóstico; no determina la convergencia.
+    /// Mixed SI indicator; not a unit-invariant physical norm.
+    /// Retained as a diagnostic; does not determine convergence.
     pub relative_free_residual: Real,
     /// max_i |T_fᵀ((K+Kg)u−F)_i| / (tolerance·ref_g + piso_i).
-    /// ref_g = max_j(|(T_fᵀF)_j|, (|T_f|ᵀ|K+Kg||u|)_j) del mismo grupo:
-    /// traslaciones (fuerzas) o giros (momentos), sin escala unitaria absoluta.
-    /// piso_i = 64·m_i·eps·(|T_f|ᵀ|K+Kg||u|)_i, con m_i el número de
-    /// entradas CSR de las filas globales que contribuyen a la fila proyectada
-    /// (incluye prescritos y ceros almacenados), mínimo 1. Sin diafragmas
-    /// coincide con la fila global y conserva el criterio anterior.
-    /// eps = Real::EPSILON; el factor 64 cubre acumulación y resolución previas
-    /// además del producto final (derivación en ENG-ANL-003.md).
-    /// Debe ser <= 1, junto al criterio de cambio de desplazamiento.
-    /// Cerca del pandeo, el residuo aceptado equivale a un error de desplazamiento
-    /// amplificado por ~1/(1−P/Pcr): la tolerancia efectiva en u se afloja así.
-    /// En la práctica el piso solo es activo con desplazamientos prescritos;
-    /// el estancamiento W14x48 lo resuelven las referencias fuerza/momento.
-    /// 0/0 se reporta como 0; denominador subdesbordado con residual no nulo,
-    /// como Real::MAX (no converge).
+    /// ref_g = max_j(|(T_fᵀF)_j|, (|T_f|ᵀ|K+Kg||u|)_j) within the same group:
+    /// translations (forces) or rotations (moments), without an absolute unit scale.
+    /// piso_i = 64·m_i·eps·(|T_f|ᵀ|K+Kg||u|)_i, where m_i is the number of
+    /// CSR entries in the global rows contributing to the projected row
+    /// (includes prescribed DOFs and stored zeros), at least 1. Without diaphragms
+    /// it matches the global row and preserves the previous criterion.
+    /// eps = Real::EPSILON; the factor 64 covers prior accumulation and solution
+    /// as well as the final product (derivation in ENG-ANL-003.md).
+    /// Must be <= 1, together with the displacement-change criterion.
+    /// Near buckling, the accepted residual corresponds to a displacement error
+    /// amplified by ~1/(1−P/Pcr): the effective tolerance on u is thus relaxed.
+    /// In practice the floor is active only with prescribed displacements;
+    /// the force/moment references resolve the W14x48 stagnation.
+    /// 0/0 is reported as 0; an underflowed denominator with a nonzero residual,
+    /// as Real::MAX (does not converge).
     pub residual_convergence_ratio: Real,
 }
 
-/// Resultado lateral y gravedad usada como pretensión, sin aceptación implícita.
+/// Lateral result and gravity used as prestress, without implicit state acceptance.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PDeltaResult {
-    /// Terminación del análisis lateral.
+    /// Termination of the lateral analysis.
     pub outcome: PDeltaOutcome,
-    /// Ajustes efectivamente utilizados, incluidas escalas y tolerancia.
+    /// Settings actually used, including scales and tolerance.
     pub options: PDeltaOptions,
-    /// Caso de gravedad lineal previo; axiales evaluados en sus desplazamientos.
+    /// Prior linear gravity case; axial forces evaluated at its displacements.
     pub gravity: StaticCaseResult,
-    /// Caso lateral independiente.
+    /// Independent lateral case.
     pub lateral_case: CaseRef,
-    /// Factor de cargas lateral, sin escalar prescritos.
+    /// Lateral load factor, without scaling prescribed displacements.
     pub lateral_factor: Real,
-    /// Inercia (positivos, negativos, nulos) de `T_fᵀ(K+Kg)T_f`, dada por LDLᵀ.
+    /// Inertia (positive, negative, zero) of `T_fᵀ(K+Kg)T_f`, from LDLᵀ.
     pub inertia: (usize, usize, usize),
-    /// Bloques 2×2 usados en la inercia; None si el backend no lo informa.
+    /// 2×2 blocks used for inertia; None if the backend does not report this.
     pub inertia_uses_2x2: Option<bool>,
-    /// Reportes ordenados; vacío para Unstable (no se resuelve carga lateral).
+    /// Ordered reports; empty for Unstable (lateral load is not solved).
     pub iterations: Vec<PDeltaIteration>,
-    /// Última prueba lateral global, o None para Unstable.
+    /// Last global lateral trial, or None for Unstable.
     pub global_displacements: Option<Vec<Real>>,
-    /// Reacciones `(K+Kg)u−F` en GDL prescritos de la última prueba.
-    /// Vacío para Unstable. No son reacciones de la combinación gravedad+lateral.
+    /// Reactions `(K+Kg)u−F` at prescribed DOFs from the last trial.
+    /// Empty for Unstable. These are not reactions from the gravity+lateral combination.
     pub reactions: Vec<Reaction>,
 }
 
-/// Análisis P-Delta con pretensión inicial y punto fijo explícito.
+/// P-Delta analysis with initial prestress and explicit Picard iteration.
 pub struct PDelta;
 
 impl PDelta {
-    /// Identificador público del método.
+    /// Public method identifier.
     pub const KIND: &'static str = "pdelta";
 
-    /// Primero StaticLinear(gravedad), luego Kg(u_g) y el caso lateral iterado.
-    /// Deben registrarse productores para evaluar Kg fuera de su referencia
-    /// estática (o declararse explícitamente la referencia correcta).
-    /// ENG-E-0008: no finitos; ENG-E-0010: ajustes inválidos; ENG-E-0003: caso
-    /// ausente; ENG-E-0006: mecanismo con nodo/GDL; ENG-E-0013: backend sin
-    /// inercia; ENG-E-0012: diagnósticos incoherentes. Sin cambio de estados.
+    /// First StaticLinear(gravedad), then Kg(u_g) and the iterated lateral case.
+    /// Producers must be registered to evaluate Kg outside their static
+    /// reference (or the correct reference must be explicitly declared).
+    /// ENG-E-0008: nonfinite values; ENG-E-0010: invalid settings; ENG-E-0003: missing
+    /// case; ENG-E-0006: mechanism with node/DOF; ENG-E-0013: backend without
+    /// inertia; ENG-E-0012: inconsistent diagnostics. No state changes.
     pub fn run<B: LinAlgBackend>(
         system: &mut LinearSystem<B>,
         gravity: &(CaseRef, Real),
@@ -130,8 +130,8 @@ impl PDelta {
         Self::run_with(system, gravity, lateral, options, |_| Ok(()))
     }
 
-    /// Variante cooperativa: callback tras gravedad (0) y cada iteración lateral.
-    /// Un error del callback detiene el análisis sin aceptar estado.
+    /// Cooperative variant: callback after gravity (0) and each lateral iteration.
+    /// A callback error stops the analysis without accepting state.
     pub fn run_with<B: LinAlgBackend>(
         system: &mut LinearSystem<B>,
         gravity: &(CaseRef, Real),
@@ -142,7 +142,7 @@ impl PDelta {
         Self::run_with_check(system, gravity, lateral, options, checkpoint, || Ok(()))
     }
 
-    /// Control independiente del progreso; consulta durante LDLᵀ y por iteración.
+    /// Checks independent of progress; polls during LDLᵀ and at each iteration.
     pub fn run_with_check<B: LinAlgBackend>(
         system: &mut LinearSystem<B>,
         gravity: &(CaseRef, Real),
@@ -167,7 +167,7 @@ impl PDelta {
         {
             return Err(EngineError::new("ENG-E-0010", "P-Delta: invalid settings."));
         }
-        // Validar también el caso lateral antes de cualquier factorización.
+        // Also validate the lateral case before any factorization.
         let force = system.global_force(&lateral.0, lateral.1)?;
         let elastic_rhs = system.reduced_rhs(&lateral.0, lateral.1)?;
         let gravity = StaticLinear::run_about_with_check(
@@ -229,7 +229,7 @@ impl PDelta {
         if inertia.1 > 0 {
             return Ok(result);
         }
-        // Este factor solo diagnosticó estabilidad, nunca se usa un eigensolver.
+        // This factor only diagnosed stability; an eigensolver is never used.
         drop(total_factor);
         let elastic = system.reduced_stiffness().clone();
         let factor = system.factorize_reduced_with_check(&elastic, &mut check)?;
@@ -297,13 +297,13 @@ impl PDelta {
     }
 }
 
-/// Adaptador poseído para frame2d, barras u otros elementos que proporcionen Kg.
-/// Captura coordenadas, parámetros e historia aceptada sin aceptar nuevas pruebas.
-/// Cada evaluación delega en Element::geometric_stiffness, usando sus axiales
-/// propios (tracción positiva). No estima N a partir de la carga total del modelo.
-/// ENG-E-0010 por tamaños; ENG-E-0002 por GDL repetidos; ENG-E-0008 por no
-/// finitos; ENG-E-0013 si el elemento no soporta Kg. El sistema valida el rango
-/// global al registrar mediante set_geometric_producers.
+/// Owned adapter for frame2d, bars, or other elements that provide Kg.
+/// Captures coordinates, parameters, and accepted history without accepting new trials.
+/// Each evaluation delegates to Element::geometric_stiffness, using the element's own
+/// axial forces (positive in tension). Does not estimate N from the total model load.
+/// ENG-E-0010 for sizes; ENG-E-0002 for repeated DOFs; ENG-E-0008 for nonfinite
+/// values; ENG-E-0013 if the element does not support Kg. The system validates the
+/// global range upon registration through set_geometric_producers.
 pub fn geometric_producer(
     element: Arc<dyn Element>,
     ctx: &ElementCtx<'_>,
@@ -379,8 +379,8 @@ fn reduce<B: LinAlgBackend>(system: &LinearSystem<B>, matrix: &SparseMatrix) -> 
                     .constraints()
                     .free_transformation_row(DofIndex(matrix.column_indices()[p] as u32))?
                 {
-                    // T_fᵀ (K+Kg) T_f; acumular y reflejar una sola mitad
-                    // conserva simetría exacta, igual que en engine-assembly.
+                    // T_fᵀ (K+Kg) T_f; accumulating and mirroring only one half
+                    // preserves exact symmetry, as in engine-assembly.
                     if row >= col {
                         let value = a * matrix.values()[p] * b;
                         finite(&[value])?;
@@ -459,7 +459,7 @@ fn residual<B: LinAlgBackend>(
         let end = matrix.row_offsets()[global + 1];
         let mut absolute_product = 0.0;
         for p in start..end {
-            // Incluye prescritos; |T_f|ᵀ |K+Kg| |u| acota la proyección.
+            // Includes prescribed DOFs; |T_f|ᵀ |K+Kg| |u| bounds the projection.
             absolute_product += (matrix.values()[p] * u[matrix.column_indices()[p]]).abs();
             finite(&[absolute_product])?;
         }

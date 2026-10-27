@@ -1,22 +1,22 @@
-//! Análisis `modal`: K constante, masas SI y vibración libre no amortiguada.
+//! `modal` analysis: constant K, SI masses, and undamped free vibration.
 //!
-//! Usa K_ff y M_ff de [`LinearSystem`] y `lowest_modes`, sin factores normativos.
-//! Los modos globales tienen cero en apoyos, incluso con asentamientos: son
-//! perturbaciones alrededor del equilibrio, no desplazamientos estáticos.
-//! Γ=φᵀM_ff r_f/(φᵀM_ffφ), M*= (φᵀM_ff r_f)² para φ normalizado a masa.
-//! La dirección del usuario se normaliza con `rigid_translation`.
+//! Uses K_ff and M_ff from [`LinearSystem`] and `lowest_modes`, without code factors.
+//! Global modes are zero at supports, even with settlements: they are
+//! perturbations about equilibrium, not static displacements.
+//! Γ=φᵀM_ff r_f/(φᵀM_ffφ), M*= (φᵀM_ff r_f)² for mass-normalized φ.
+//! The user direction is normalized with `rigid_translation`.
 //!
-//! Con TODOS los modos, ΣM*=r_fᵀM_ff r_f. La masa global usada como denominador
-//! de las fracciones incluye apoyos y puede ser mayor que esta masa libre.
-//! No se usa M_fp r_p para excitar los GDL libres. Para una matriz consistente
-//! con apoyos, la identidad de completitud es la de M_ff, no la masa global.
+//! With ALL modes, ΣM*=r_fᵀM_ff r_f. The global mass used as the denominator
+//! of the fractions includes supports and may exceed this free mass.
+//! M_fp r_p is not used to excite free DOFs. For a consistent matrix
+//! with supports, the completeness identity is for M_ff, not the global mass.
 //!
-//! Guyan (ENG-LA-009) condensa filas/columnas de M_ff exactamente nulas tras
-//! apoyos y diafragmas; recupera φs antes de participación y espectro.
-//! Kss singular/no positiva da ENG-E-0014 con nodo/GDL; masa negativa o ausencia
-//! de masa libre da ENG-E-0006. Sin filas nulas conserva el camino numérico.
-//! También propaga el corte de multiplicidad y los límites densos de
-//! [`engine_linalg::lowest_modes`]. No distingue mecanismos de modos rígidos.
+//! Guyan reduction (ENG-LA-009) condenses exactly zero rows/columns of M_ff after
+//! supports and diaphragms; recovers φs before participation and spectrum calculations.
+//! Singular/nonpositive Kss yields ENG-E-0014 with node/DOF; negative mass or absence
+//! of free mass yields ENG-E-0006. Without zero rows, the numerical path is preserved.
+//! Also propagates the multiplicity cutoff and dense limits from
+//! [`engine_linalg::lowest_modes`]. Does not distinguish mechanisms from rigid modes.
 
 use engine_assembly::LinearSystem;
 use engine_contracts::MassKind;
@@ -25,82 +25,82 @@ use engine_core::{EResult, EngineError, Real};
 use engine_linalg::{LinAlgBackend, SparseMatrix};
 use engine_loads::mass::{rigid_translation, total_mass};
 
-/// Método de vibración libre lineal sin estado propio.
+/// Stateless linear free-vibration method.
 pub struct Modal;
 
-/// Espectro seleccionado y sumas direccionales, en el orden pedido.
+/// Selected spectrum and directional sums, in the requested order.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ModalResults {
-    /// Tipo de masa explícitamente elegido por el usuario.
+    /// Mass type explicitly chosen by the user.
     pub mass_kind: MassKind,
-    /// Modos en orden ascendente de frecuencia.
+    /// Modes in ascending frequency order.
     pub modes: Vec<ModalMode>,
-    /// Totales de cada dirección, en el orden de entrada.
+    /// Totals for each direction, in input order.
     pub directions: Vec<ModalDirection>,
-    /// Modos devueltos con rigidez numéricamente nula: rígidos o mecanismos.
+    /// Returned modes with numerically zero stiffness: rigid modes or mechanisms.
     pub rigid_mode_count: usize,
 }
 
-/// Un modo normalizado a masa, sin amortiguamiento.
+/// One mass-normalized mode, without damping.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ModalMode {
-    /// λ=ω², en s⁻².
+    /// λ=ω², in s⁻².
     pub eigenvalue: Real,
-    /// Frecuencia angular ω, en rad/s.
+    /// Angular frequency ω, in rad/s.
     pub angular_frequency: Real,
-    /// Frecuencia f=ω/(2π), en Hz.
+    /// Frequency f=ω/(2π), in Hz.
     pub frequency_hz: Real,
-    /// Periodo T=2π/ω, en s; None significa periodo infinito (λ=0).
+    /// Period T=2π/ω, in s; None means infinite period (λ=0).
     pub period: Option<Real>,
-    /// φ en orden reducido, φᵀM_ffφ=1.
+    /// φ in reduced order, φᵀM_ffφ=1.
     pub free_shape: Vec<Real>,
-    /// φ en orden global, con ceros en los GDL prescritos.
+    /// φ in global order, with zeros at prescribed DOFs.
     pub global_shape: Vec<Real>,
-    /// Participación por dirección, en el orden de entrada.
+    /// Participation per direction, in input order.
     pub participation: Vec<ModalParticipation>,
 }
 
-/// Participación y masa efectiva de un modo para una dirección unitaria.
+/// Participation and effective mass of one mode for a unit direction.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ModalParticipation {
-    /// Γ=φᵀM_ff r_f/(φᵀM_ffφ), con signo de la forma modal.
+    /// Γ=φᵀM_ff r_f/(φᵀM_ffφ), with the sign of the mode shape.
     pub factor: Real,
-    /// M*=(φᵀM_ff r_f)², en kg, con φ normalizado a masa.
+    /// M*=(φᵀM_ff r_f)², in kg, with mass-normalized φ.
     pub effective_mass: Real,
-    /// Suma de M* hasta este modo inclusive, en kg.
+    /// Sum of M* up to and including this mode, in kg.
     pub cumulative_effective_mass: Real,
-    /// M*/masa global direccional; None si la masa total es cero.
+    /// M*/directional global mass; None if the total mass is zero.
     pub mass_fraction: Option<Real>,
-    /// Masa acumulada/masa global direccional; None si la masa total es cero.
+    /// Cumulative mass/directional global mass; None if the total mass is zero.
     pub cumulative_mass_fraction: Option<Real>,
 }
 
-/// Totales direccionales para el conjunto de modos solicitado.
+/// Directional totals for the requested set of modes.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ModalDirection {
-    /// Dirección original del usuario; la evaluación usa su versión unitaria.
+    /// Original user direction; evaluation uses its unit version.
     pub direction: [Real; 3],
-    /// Masa global rᵀMr en kg, incluidos apoyos (`engine_loads::mass::total_mass`).
+    /// Global mass rᵀMr in kg, including supports (`engine_loads::mass::total_mass`).
     pub total_mass: Real,
-    /// Masa r_fᵀM_ff r_f en kg: límite de la suma con todos los modos libres.
+    /// Mass r_fᵀM_ff r_f in kg: sum limit with all free modes.
     pub free_mass: Real,
-    /// Suma de masas efectivas de los modos solicitados, en kg.
+    /// Sum of effective masses of the requested modes, in kg.
     pub cumulative_effective_mass: Real,
-    /// Suma anterior/masa global; None si la masa total es cero.
+    /// Previous sum/global mass; None if the total mass is zero.
     pub cumulative_mass_fraction: Option<Real>,
 }
 
 impl Modal {
-    /// Identificador público del método.
+    /// Public method identifier.
     pub const KIND: &'static str = "modal";
 
-    /// Calcula exactamente `count` modos y participación en cada dirección.
-    /// No modifica los estados aceptado o de prueba. `count=0` devuelve listas
-    /// modales vacías; conserva la semántica de validación de `lowest_modes`.
-    /// ENG-E-0010: lista de direcciones vacía, dirección nula, count>n;
-    /// ENG-E-0008: no finitos/desbordamientos; ENG-E-0011: dirección con GDL
-    /// ausentes; ENG-E-0012: resultado del backend incompatible. Propaga los
-    /// demás diagnósticos de masa/espectro descritos en el módulo.
+    /// Computes exactly `count` modes and participation in each direction.
+    /// Does not modify accepted or trial states. `count=0` returns empty
+    /// modal lists; preserves the validation semantics of `lowest_modes`.
+    /// ENG-E-0010: empty direction list, zero direction, count>n;
+    /// ENG-E-0008: nonfinite values/overflows; ENG-E-0011: direction with missing
+    /// DOFs; ENG-E-0012: incompatible backend result. Propagates the
+    /// other mass/spectrum diagnostics described in the module.
     pub fn run<B: LinAlgBackend>(
         system: &mut LinearSystem<B>,
         count: usize,
@@ -110,8 +110,8 @@ impl Modal {
         Self::run_with(system, count, kind, directions, |_| Ok(()))
     }
 
-    /// Variante cooperativa: callback tras el eigensolver (0) y cada modo.
-    /// No acepta estado; para controlar también el eigensolver use `run_with_check`.
+    /// Cooperative variant: callback after the eigensolver (0) and each mode.
+    /// Does not accept state; to also check the eigensolver use `run_with_check`.
     pub fn run_with<B: LinAlgBackend>(
         system: &mut LinearSystem<B>,
         count: usize,
@@ -122,8 +122,8 @@ impl Modal {
         Self::run_with_check(system, count, kind, directions, checkpoint, || Ok(()))
     }
 
-    /// Control independiente del progreso, incluido el eigensolver de referencia.
-    /// Consulta por dirección y modo sin añadir eventos de progreso.
+    /// Checks independent of progress, including the reference eigensolver.
+    /// Polls per direction and mode without adding progress events.
     pub fn run_with_check<B: LinAlgBackend>(
         system: &mut LinearSystem<B>,
         count: usize,
@@ -195,10 +195,10 @@ impl Modal {
                 global[index.0 as usize] = spectrum.vectors.values()[row * count + col];
             }
             if condensed && !system.constraints().diaphragms().is_empty() {
-                // Perturbación homogénea T_f φ: nunca sumar asentamientos.
-                // Solo tras Guyan: el camino existente sin condensación conserva
-                // sus resultados y hashes, incluido el alcance pendiente de
-                // API-W-DIAPHRAGM-RECOVERY (#84). Ampliarlo requiere otro cambio.
+                // Homogeneous perturbation T_f φ: never add settlements.
+                // Only after Guyan reduction: the existing path without condensation preserves
+                // its results and hashes, including the pending scope of
+                // API-W-DIAPHRAGM-RECOVERY (#84). Extending it requires another change.
                 let mut expanded = vec![0.0; global.len()];
                 for (row, value) in expanded.iter_mut().enumerate() {
                     for &(index, coefficient) in system
