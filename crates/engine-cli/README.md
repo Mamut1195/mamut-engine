@@ -451,6 +451,9 @@ available.
 
 ## Agent discovery and API queries
 
+For a task-oriented walkthrough (pipes, exit codes, error handling, limits) see the
+[CLI guide for agents](../../docs/GUIA_CLI_AGENTES.md).
+
 ```sh
 mamut-engine describe --json
 mamut-engine --help --json
