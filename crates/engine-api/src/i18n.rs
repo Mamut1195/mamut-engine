@@ -210,7 +210,7 @@ mod tests {
             "consolidation1d",
             "options.allow_experimental",
             "true",
-            "docs/GUIA_METODOS.md",
+            "docs/METHODS_GUIDE.md",
             "provenance/ENG-SFC-010.md",
             "max_step_s",
             "max(1, ceil(interval/max_step_s))",

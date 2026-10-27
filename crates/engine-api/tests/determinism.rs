@@ -114,7 +114,7 @@ fn spatial_fixtures_exercise_static_recovery_and_rotated_modes() {
 
 #[test]
 fn all_sixteen_published_hashes_remain_unchanged() {
-    let document = include_str!("../../../docs/DETERMINISMO.md");
+    let document = include_str!("../../../docs/DETERMINISM.md");
     let table = document
         .rsplit("| Entrada / caso de bits | Hash |")
         .next()

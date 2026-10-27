@@ -66,7 +66,7 @@ Los estados no cierran los seguimientos #78/#84/#85/#86 ni certifican modelos ar
 X-Y horizontal, Z arriba. D2 exige Z=0 y usa Ux, Uy, Rz; D3 admite los seis GDL.
 Coordenadas en m, masa en kg, tiempo en s, fuerzas en N, momentos en N·m,
 tensiones en Pa y giros en rad. No se convierten unidades.
-Véase [convención aprobada](../../docs/CONVENCION_EJES.md).
+Véase [convención aprobada](../../docs/AXES_CONVENTION.md).
 
 ## engine-input/1 = model/1 + job/1
 
@@ -267,7 +267,7 @@ La sonda histórica `9007199254740993` está marcada `rejected_by_engine`: desde
 #143 se rechaza antes de la huella. Conserva los valores históricos del SDK
 como evidencia; no son huellas emitidas por la fachada para esa entrada.
 El control no modifica mamut-canon ni las huellas de entradas seguras; los
-16 hashes de [DETERMINISMO.md](../../docs/DETERMINISMO.md) siguen iguales.
+16 hashes de [DETERMINISM.md](../../docs/DETERMINISM.md) siguen iguales.
 Por ejemplo `{"v":1.0}` pasa de
 `f3c8be97307d38261061fa08e74365e54a239cddb1d189f3bea18022adbe2f35` a
 `afbf9d0f3560b0fd7795e81c42a0a79ee6b6fc67e064f77826aee642cad28d91`.

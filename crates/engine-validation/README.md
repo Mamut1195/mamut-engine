@@ -70,7 +70,7 @@ estado de ejecución documentado arriba.
 
 ## Línea base independiente · ENG-VAL-005 (MAM-105)
 
-La [matriz de oráculos](ORACULOS.md) inventaría los 91 casos analíticos V1,
+La [matriz de oráculos](ORACLES.md) inventaría los 91 casos analíticos V1,
 sus fuentes y tolerancias, incluidos Winkler, consolidación y `fixture/1`.
 La guardia `tests/oracles.rs` recorre las tablas y documentos versionados;
 las suites numéricas existentes verifican sus valores sin alterar límites.

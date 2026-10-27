@@ -5,7 +5,7 @@ Do not attach code, data or reports from prohibited sources.
 
 ```text
 Implementa <método> para <ticket> en Rust, dentro del worktree actual.
-Lee docs/CLEAN_ROOM.md y sigue docs/GUIA_METODOS.md.
+Lee docs/CLEAN_ROOM.md y sigue docs/METHODS_GUIDE.md.
 Contrato vigente: <trait y versión>. Ficha: <ruta relativa>.
 Fuentes autorizadas: SOLO los contratos locales, la ficha y las fuentes
 permitidas de docs/CLEAN_ROOM.md §4 disponibles localmente y citadas en ella.
@@ -32,7 +32,7 @@ expón descriptor/fábrica como los métodos existentes y verifica conformidad,
 negativos, pureza y benchmark nativo independiente. Sin unsafe nuevo ni
 unwrap/expect/panic en biblioteca, sin dependencias nuevas injustificadas.
 No modifiques clean-room/**, docs/CLEAN_ROOM.md, CODEOWNERS,
-.github/workflows ni vendor/. No cambies los 16 hashes de DETERMINISMO.md.
+.github/workflows ni vendor/. No cambies los 16 hashes de DETERMINISM.md.
 No hagas commit, push, rebase, reset, stash ni checkout de ramas.
 Documentación, mensajes y bitácora en español, sin rutas locales absolutas;
 usa rutas relativas y marcadores como $CARGO_TARGET_DIR.

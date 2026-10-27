@@ -86,7 +86,7 @@ ENG-CORE-010 centralizes scalar functions in `engine_core::math`, with
 libm 0.2.16 (MIT) pinned and approved by Jonathan on 2026-10-14. `hypot` and the
 trigonometric test reference values use libm; `sqrt` retains std's correct IEEE-754
 rounding within the module. Policy and native/wasm bit cross-check in
-[docs/DETERMINISMO.md](../../docs/DETERMINISMO.md).
+[docs/DETERMINISM.md](../../docs/DETERMINISM.md).
 
 ## Dense lowest modes · ENG-LA-009
 

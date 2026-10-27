@@ -73,7 +73,7 @@ fn check_error<T>(result: Result<T, EngineError>, code: &str) -> EngineError {
 }
 
 /// Single generic suite: same contract and tolerances for each backend.
-fn conformidad(backend: &mut impl LinAlgBackend) {
+fn conformance(backend: &mut impl LinAlgBackend) {
     let a = mat(3, 3, &[4.0, 1.0, -1.0, 2.0, 7.0, 1.0, 0.0, -2.0, 5.0]);
     let inverse = backend.solve_dense(&a, &identity(3)).unwrap();
     let product = backend.matmul(&a, &inverse).unwrap();
@@ -416,7 +416,7 @@ fn conformidad(backend: &mut impl LinAlgBackend) {
 
 #[test]
 fn reference_conformance() {
-    conformidad(&mut ReferenceBackend);
+    conformance(&mut ReferenceBackend);
 }
 #[cfg(feature = "faer")]
 #[test]

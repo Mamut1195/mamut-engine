@@ -9,7 +9,7 @@
 //! does not convert units or know the mapping between global indices and nodes.
 //! V1 uses the sequential reference, without explicit SIMD or implicit FMA.
 //! Reduction order and the explicit Sturm FMA exception are documented
-//! in `docs/DETERMINISMO.md` (ENG-CORE-010). Scalar functions go through
+//! in `docs/DETERMINISM.md` (ENG-CORE-010). Scalar functions go through
 //! `engine_core::math`: libm 0.2.16 (MIT) except sqrt, correctly rounded
 //! IEEE-754 in std. The native/wasm cross-check verifies results and scalar bits.
 //!

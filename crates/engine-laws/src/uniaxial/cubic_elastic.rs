@@ -1,4 +1,4 @@
-//! Elasticidad cúbica conservativa; derivación propia en docs/GUIA_METODOS.md §5.
+//! Elasticidad cúbica conservativa; derivación propia en docs/METHODS_GUIDE.md §5.
 
 use super::UniaxialFactory;
 use crate::{finite, positive, vector, LawDescriptor};
@@ -49,7 +49,7 @@ impl UniaxialFactory for CubicElasticFactory {
 /// numérico exige ε y todas las operaciones q = (Cε)ε, σ = (E+q)ε y K = E+3q
 /// finitas. Se admite el redondeo/subdesbordamiento habitual de f64. No se forma
 /// ε² por separado, para conservar el límite C = 0 a deformaciones grandes.
-/// Derivación y benchmark propios: docs/GUIA_METODOS.md §5, (1)–(3), ENG-CORE-011.
+/// Derivación y benchmark propios: docs/METHODS_GUIDE.md §5, (1)–(3), ENG-CORE-011.
 ///
 /// ```
 /// use engine_contracts::UniaxialLaw;

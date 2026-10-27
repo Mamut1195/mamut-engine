@@ -344,7 +344,7 @@ mod tests {
     ];
 
     #[test]
-    fn simbolos_alias_y_texto_desconocido() {
+    fn symbols_aliases_and_unknown_text() {
         for unit in UNITS {
             assert_eq!(Unit::parse(unit.symbol()).unwrap(), unit);
         }
@@ -365,7 +365,7 @@ mod tests {
     }
 
     #[test]
-    fn codigos_ascii_de_units_1() {
+    fn units_1_ascii_codes() {
         assert_eq!(Unit::parse("N.m").unwrap(), Unit::NewtonMeter);
         assert_eq!(Unit::parse("kN.m").unwrap(), Unit::KilonewtonMeter);
         assert_eq!(Unit::parse("N.m").unwrap(), Unit::parse("N·m").unwrap());
@@ -375,7 +375,7 @@ mod tests {
     }
 
     #[test]
-    fn factores_y_unidades_si_por_magnitud() {
+    fn factors_and_si_units_by_quantity() {
         let expected = [
             (Quantity::Length, Unit::Meter, 1.0),
             (Quantity::Length, Unit::Meter, 0.01),
@@ -428,7 +428,7 @@ mod tests {
     }
 
     #[test]
-    fn ida_y_vuelta_momento_y_presion() {
+    fn moment_and_pressure_round_trip() {
         for (scaled, si, factor) in [
             (Unit::KilonewtonMeter, Unit::NewtonMeter, 1000.0),
             (Unit::Megapascal, Unit::Pascal, 1_000_000.0),
@@ -462,7 +462,7 @@ mod tests {
     }
 
     #[test]
-    fn compatibilidad_de_todas_las_magnitudes() {
+    fn compatibility_of_all_quantities() {
         for from in UNITS {
             for to in UNITS {
                 let result = convert(1.0, from, to);
@@ -479,7 +479,7 @@ mod tests {
     }
 
     #[test]
-    fn no_finitos_desbordamiento_e_identidad() {
+    fn nonfinite_values_overflow_and_identity() {
         for unit in UNITS {
             for value in [Real::NAN, Real::INFINITY, Real::NEG_INFINITY] {
                 assert_eq!(
@@ -515,7 +515,7 @@ mod tests {
     }
 
     #[test]
-    fn declaraciones_si_ordenadas_y_reemplazo() {
+    fn ordered_si_declarations_and_replacement() {
         let mut output = UnitsOut::new();
         assert!(output.fields().is_empty());
         assert_eq!(output.get("ausente"), None);

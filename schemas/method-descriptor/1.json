@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:mamut:method-descriptor:1",
-  "title": "method-descriptor/1 — extensión del Engine",
+  "title": "method-descriptor/1 — Engine extension",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -22,7 +22,7 @@
       "$ref": "#/$defs/workflow"
     },
     "status": {
-      "description": "pDelta es Stable por ENG-BENCH-002 (PR #132), provenance/ENG-BENCH-002.md. nonlinearStatic, soilProfile y consolidation1d son Experimental hasta ENG-VAL-006 (decisión de Jonathan vía J0 2026-10-20). Solo Experimental requiere options.allow_experimental=true; los estados delimitan la evidencia publicada, sin certificar modelos arbitrarios.",
+      "description": "pDelta is Stable based on ENG-BENCH-002 (PR #132), provenance/ENG-BENCH-002.md. nonlinearStatic, soilProfile and consolidation1d are Experimental pending ENG-VAL-006 (Jonathan's decision via J0 2026-10-20). Only Experimental requires options.allow_experimental=true; statuses delimit the published evidence, without certifying arbitrary models.",
       "enum": [
         "Experimental",
         "Stable",

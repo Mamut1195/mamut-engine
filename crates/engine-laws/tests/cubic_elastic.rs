@@ -1,6 +1,6 @@
 //! Benchmark analítico propio y conformidad del piloto ENG-CORE-011.
 //! Cita: Codex gpt-6.1-sol high, Elasticidad cúbica conservativa, 2026-10-20,
-//! docs/GUIA_METODOS.md §5, ecuaciones (1)–(3) y tabla analítica.
+//! docs/METHODS_GUIDE.md §5, ecuaciones (1)–(3) y tabla analítica.
 
 use engine_contracts::{conformance::check_uniaxial_law, UniaxialLaw};
 use engine_core::{ContractId, Diagnostic, EResult, Real};
@@ -21,7 +21,7 @@ struct Fixture {
 // E=8 Pa, C=16 Pa; ε=1/4 da σ=2+1/4, K=8+3=11, etc.
 const FIXTURE: Fixture = Fixture {
     source: "analytical",
-    citation: "Codex gpt-6.1-sol high. Elasticidad cúbica conservativa, 2026-10-20; docs/GUIA_METODOS.md §5, (1)–(3) y tabla propia.",
+    citation: "Codex gpt-6.1-sol high. Elasticidad cúbica conservativa, 2026-10-20; docs/METHODS_GUIDE.md §5, (1)–(3) y tabla propia.",
     params: CubicElasticParams { e: 8.0, c: 16.0 },
     rows: &[
         (0.0, 0.0, 8.0),
@@ -57,7 +57,7 @@ fn code<T>(result: EResult<T>, expected: &str) {
 }
 
 #[test]
-fn benchmark_analitico_nativo() -> EResult<()> {
+fn native_analytical_benchmark() -> EResult<()> {
     let f = FIXTURE;
     assert!(!f.source.is_empty() && !f.citation.is_empty() && !f.rows.is_empty());
     let law = CubicElastic::new(f.params.e, f.params.c)?;
@@ -73,7 +73,7 @@ fn benchmark_analitico_nativo() -> EResult<()> {
 }
 
 #[test]
-fn kit_de_conformidad_en_traccion_descarga_y_compresion() -> EResult<()> {
+fn conformance_kit_in_tension_unloading_and_compression() -> EResult<()> {
     for c in [0.0, 16.0, 1600.0] {
         let law = CubicElastic::new(8.0, c)?;
         let diagnostics =
@@ -84,7 +84,7 @@ fn kit_de_conformidad_en_traccion_descarga_y_compresion() -> EResult<()> {
 }
 
 #[test]
-fn fabrica_descriptor_y_propiedad_del_estado() -> EResult<()> {
+fn factory_descriptor_and_state_ownership() -> EResult<()> {
     fn send_sync<T: Send + Sync>() {}
     send_sync::<CubicElastic>();
     send_sync::<CubicElasticFactory>();
@@ -125,7 +125,7 @@ fn fabrica_descriptor_y_propiedad_del_estado() -> EResult<()> {
 }
 
 #[test]
-fn simetria_y_limite_lineal() -> EResult<()> {
+fn symmetry_and_linear_limit() -> EResult<()> {
     let cubic = CubicElastic::new(8.0, 16.0)?;
     let linear = CubicElastic::new(8.0, 0.0)?;
     let existing = Elastic::new(8.0)?;
@@ -149,7 +149,7 @@ fn simetria_y_limite_lineal() -> EResult<()> {
 }
 
 #[test]
-fn parametros_y_entradas_invalidos_usan_catalogo() -> EResult<()> {
+fn invalid_parameters_and_inputs_use_catalog() -> EResult<()> {
     for e in [0.0, -0.0, -1.0] {
         code(CubicElastic::new(e, 16.0), "ENG-E-0010");
     }
@@ -172,7 +172,7 @@ fn parametros_y_entradas_invalidos_usan_catalogo() -> EResult<()> {
 }
 
 #[test]
-fn desbordamientos_de_productos_y_sumas_son_errores() -> EResult<()> {
+fn product_and_sum_overflows_are_errors() -> EResult<()> {
     // Cε, Cε², E+q, σ, 3q y E+3q, respectivamente.
     for (e, c, strain) in [
         (1.0, Real::MAX, 2.0),

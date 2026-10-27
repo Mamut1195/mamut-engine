@@ -22,7 +22,7 @@ Read, in this order:
    law does not constitute a new method.
 5. [ENG-CORE-009 benchmarks](../crates/engine-validation/README.md),
    [fixture/1 schema](../crates/engine-validation/schemas/fixture-1.json) and
-   [determinism](DETERMINISMO.md).
+   [determinism](DETERMINISM.md).
 
 Record the specifier/implementer role and local sources consulted.
 If exposure to prohibited sources or reports occurred, do not implement: apply
@@ -225,7 +225,7 @@ If `.git` objects are read-only, also configure
 exporting that configuration. New objects are then temporary too.
 Retain logs and do not change lists or workflows to evade a check.
 
-Also verify all 16 hashes against the DETERMINISMO.md table, with
+Also verify all 16 hashes against the DETERMINISM.md table, with
 `MAMUT_ENGINE_GIT_COMMIT` unset, the `determinism_native` and
 `determinism_wasm` examples, and `scripts/check-determinism.mjs`; run native/wasm and
 debug/release as described in that document. Save outputs under
@@ -240,7 +240,7 @@ The following capabilities execute with `engine-input/1` through the same
 result in `engineResults[0]`; Python `run(...).to_json()` and WASM `run(...)`
 return the canonical `results/1` document. Added fields are optional:
 previous inputs retain their bytes and the 16 hashes published in
-[DETERMINISMO.md](DETERMINISMO.md). The `target` provenance still identifies
+[DETERMINISM.md](DETERMINISM.md). The `target` provenance still identifies
 the compilation target: complete document equality across surfaces
 is verified by compiling them for the same target, including the WASM function on
 native. `target` is not removed from results to simulate equality between

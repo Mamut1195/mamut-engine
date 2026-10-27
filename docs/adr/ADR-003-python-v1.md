@@ -65,7 +65,7 @@ cambiar algoritmos, contratos, manifests ni dependencias.
    el SDK existente (SDK-WF-003), con orquestación fuera del solver.
 5. **Unidades, ejes y trazabilidad compartidos.** La entrada pública usa SI
    explícito, rechaza NaN/Inf y conserva los datos originales. Se mantiene
-   [X-Y horizontal, Z arriba](../CONVENCION_EJES.md): D2 tiene Ux/Uy/Rz y D3
+   [X-Y horizontal, Z arriba](../AXES_CONVENTION.md): D2 tiene Ux/Uy/Rz y D3
    Ux/Uy/Uz/Rx/Ry/Rz. La elevación 2D sigue pendiente; no habrá mapeo
    silencioso a X-Z. Un adaptador deberá declarar y probar cualquier
    conversión aprobada. Resultados y manifest registrarán versión del motor,

@@ -94,7 +94,7 @@ across architectures PENDING ENG-CORE-010.
 
 Translations: m; rotations: rad; forces: N; moments: N·m. K and Kg: N/m, N, or
 N·m according to components; M: kg, kg·m, or kg·m². D2 uses the horizontal X-Y plane
-according to `docs/CONVENCION_EJES.md`; Y is not interpreted as vertical. Norms
+according to `docs/AXES_CONVENTION.md`; Y is not interpreted as vertical. Norms
 with forces/moments or translations/rotations require scales from the analysis method.
 
 Fixtures are compiled from `tests/fixtures/mod.rs` and contain `source`,

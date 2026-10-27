@@ -50,7 +50,7 @@ La URL sirve los bytes cuya identidad sigue siendo el URN. Un consumidor puede
 usar el índice como catálogo para resolver esa identidad. Cambiar la base de
 distribución solo modifica el índice. La eventual migración de `$id` a URL es
 decisión de Jonathan: cambiaría los documentos, sus huellas y la evidencia de
-`docs/DETERMINISMO.md`, y debe planificarse junto con la compatibilidad del
+`docs/DETERMINISM.md`, y debe planificarse junto con la compatibilidad del
 contrato. Este ticket no modifica esos datos ni capabilities.
 
 ## Generación y extensión

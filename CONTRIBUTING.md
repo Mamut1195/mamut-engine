@@ -2,7 +2,7 @@
 
 Every contribution must follow the [clean-room protocol](docs/CLEAN_ROOM.md).
 
-To implement a method in Rust, follow the [method guide](docs/GUIA_METODOS.md):
+To implement a method in Rust, follow the [method guide](docs/METHODS_GUIDE.md):
 it includes templates, review and a reproducible uniaxial pilot.
 
 External contributors must sign a **mandatory CLA** before their contribution is accepted. This requirement follows from the dual **AGPL-3.0 + commercial license**: the holder must be able to distribute contributions under both AGPL and a commercial license.

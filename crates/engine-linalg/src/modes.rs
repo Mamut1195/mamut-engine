@@ -62,7 +62,7 @@ fn count_with_valid_mass<B: LinAlgBackend + ?Sized>(
     {
         // Explicit FMA: a single rounding reduces cancellation near an
         // eigenvalue. mul_add semantics are required whether implemented in hardware or
-        // software; exception documented in docs/DETERMINISMO.md.
+        // software; exception documented in docs/DETERMINISM.md.
         *entry = (-sigma).mul_add(mi, ki);
     }
     finite(&shifted.values)?;

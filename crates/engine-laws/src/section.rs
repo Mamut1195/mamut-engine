@@ -3,7 +3,7 @@
 //! Ejes aprobados: terna diestra, X-Y horizontal, Z vertical arriba. D2 se
 //! representa en X-Y, Z = 0. El eje local x va de i a j; en D2 el local z
 //! apunta a +Z. En D3 la orientación transversal la establece el consumidor.
-//! Véase `docs/CONVENCION_EJES.md`; no se redefine el plano de elevación D2.
+//! Véase `docs/AXES_CONVENTION.md`; no se redefine el plano de elevación D2.
 
 use crate::{finite, positive, vector, LawDescriptor};
 use engine_contracts::{DMat, SectionLaw, SectionResponse};

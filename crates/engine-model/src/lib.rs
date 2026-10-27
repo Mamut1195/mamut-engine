@@ -15,7 +15,7 @@
 //! toward -x at i and +x at j; positive shear Vy toward -y at i and +y at j;
 //! positive moment Mz toward -z at i and +z at j. These signs of internal
 //! resultants must be distinguished from nodal loads expressed in global axes.
-//! The 2D elevation convention is still pending a decision. See also `docs/CONVENCION_EJES.md`.
+//! The 2D elevation convention is still pending a decision. See also `docs/AXES_CONVENTION.md`.
 //!
 //! Each node declares its dimension; collections of nodes with different
 //! dimensions are allowed without enforcing member compatibility in this ticket. All

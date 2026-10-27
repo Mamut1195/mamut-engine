@@ -21,7 +21,7 @@ use serde_json::Value;
 use std::collections::BTreeSet;
 use std::path::Path;
 
-const MATRIX: &str = include_str!("../ORACULOS.md");
+const MATRIX: &str = include_str!("../ORACLES.md");
 const MULTILAYER_CASES: &[&str] = &["multicapa-no-transformable"];
 
 fn metadata(
@@ -160,7 +160,7 @@ fn matrix_row(names: &mut BTreeSet<String>, name: &str, note: &str, tolerance: &
     let rows: Vec<_> = matrix_rows(MATRIX)
         .filter(|line| line.starts_with(&prefix))
         .collect();
-    assert_eq!(rows.len(), 1, "Falta fila única en ORACULOS.md: {name}");
+    assert_eq!(rows.len(), 1, "Falta fila única en ORACLES.md: {name}");
     let cells: Vec<_> = rows[0].split('|').map(str::trim).collect();
     assert_eq!(cells.len(), 5, "Columnas inválidas: {name}");
     let (file, _) = derivation_link(cells[2]).unwrap_or_else(|e| panic!("{name}: {e}"));
@@ -169,7 +169,7 @@ fn matrix_row(names: &mut BTreeSet<String>, name: &str, note: &str, tolerance: &
 }
 
 #[test]
-fn inventario_cubre_todas_las_tablas_y_fixtures() {
+fn inventory_covers_all_tables_and_fixtures() {
     let cases: Vec<_> = linear::FIXTURES
         .iter()
         .map(|f| f.name)
@@ -302,7 +302,7 @@ fn inventario_cubre_todas_las_tablas_y_fixtures() {
 }
 
 #[test]
-fn cada_fila_enlaza_un_ancla_existente_de_su_derivacion() {
+fn each_row_links_to_an_existing_derivation_anchor() {
     for row in matrix_rows(MATRIX) {
         let cells: Vec<_> = row.split('|').map(str::trim).collect();
         verify_derivation(cells[2]).unwrap_or_else(|e| panic!("{}: {e}", cells[1]));
@@ -310,7 +310,7 @@ fn cada_fila_enlaza_un_ancla_existente_de_su_derivacion() {
 }
 
 #[test]
-fn guardia_detecta_enlaces_de_derivacion_rotos() {
+fn guard_detects_broken_derivation_links() {
     for cell in [
         "[Propia](../../provenance/ENG-VAL-001.md)",
         "[Propia](../../provenance/ENG-VAL-001.md#)",
@@ -323,7 +323,7 @@ fn guardia_detecta_enlaces_de_derivacion_rotos() {
 }
 
 #[test]
-fn guardia_informa_casos_faltantes_y_sobrantes_en_ambos_lados() {
+fn guard_reports_missing_and_extra_cases_on_both_sides() {
     let matrix = "| `comun` | fuente | tolerancia |\n| `solo-matriz` | fuente | tolerancia |";
     let error = matrix_coverage(&["comun", "solo-tablas"], matrix).unwrap_err();
     assert!(error.contains("Faltan en matriz / sobran en tablas-fixtures: [\"solo-tablas\"]"));
@@ -333,7 +333,7 @@ fn guardia_informa_casos_faltantes_y_sobrantes_en_ambos_lados() {
 }
 
 #[test]
-fn guardia_rechaza_fuentes_o_limites_incompletos() {
+fn guard_rejects_incomplete_sources_or_limits() {
     let source = "Derivación propia independiente: u=PL/EA";
     let citation = "provenance/ENG-VAL-001.md";
     let reason = "Margen de redondeo f64";
@@ -363,7 +363,7 @@ fn guardia_rechaza_fuentes_o_limites_incompletos() {
 }
 
 #[test]
-fn fixtures_rechazan_justificacion_vacia_o_en_blanco_y_cita_pendiente() {
+fn fixtures_reject_empty_or_blank_justification_and_pending_citation() {
     for (name, text) in REPOSITORY_FIXTURES {
         for justification in ["", " ", "\t\n "] {
             let mut value: Value = serde_json::from_str(text).unwrap();
@@ -387,7 +387,7 @@ fn fixtures_rechazan_justificacion_vacia_o_en_blanco_y_cita_pendiente() {
 }
 
 #[test]
-fn fixtures_versionados_rechazan_oraculo_o_tolerancia_ausente() {
+fn versioned_fixtures_reject_missing_oracle_or_tolerance() {
     for (_, text) in REPOSITORY_FIXTURES {
         assert!(repository_fixture(text).is_ok());
         for field in ["source", "expected", "tolerance"] {

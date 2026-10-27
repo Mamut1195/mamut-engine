@@ -188,7 +188,7 @@ A method failure preserves emitted stages and the final envelope, without
 keys, decimal integers and floating zero normalization where applicable.
 Without `--progress`, output retains its previous behavior. stdout remains a
 single JSON document, byte-identical to execution without progress, as described
-in [docs/DETERMINISMO.md](../../docs/DETERMINISMO.md).
+in [docs/DETERMINISM.md](../../docs/DETERMINISM.md).
 
 ### Contrato publicado cli-run/1 · 1.0.0
 
@@ -285,7 +285,7 @@ becomes `CLI-E-DOCUMENT`; timeout's former `WF-E-0006` becomes `CLI-E-TIMEOUT`.
 Other commands replace `{exit_code,message}` with the same envelope. Consumers
 should inspect `schema` and `code`, without interpreting messages. Successful
 stdout bytes, manifests and canonical run documents remain unchanged under
-[docs/DETERMINISMO.md](../../docs/DETERMINISMO.md). Direct-validation reports,
+[docs/DETERMINISM.md](../../docs/DETERMINISM.md). Direct-validation reports,
 including invalid reports (exit 2), retain `validate-report/1` on stdout with
 empty stderr.
 
@@ -602,7 +602,7 @@ fallar la prueba; el LF entra en la longitud y en el hash. No se versionan
 archivos `.stdout.json` ni se incluyen rutas de ejecución o mensajes dependientes
 del locale.
 
-Según [DETERMINISMO.md](../../docs/DETERMINISMO.md), `target` y `git_commit`
+Según [DETERMINISM.md](../../docs/DETERMINISM.md), `target` y `git_commit`
 son procedencia y pueden variar con la compilación. El manifiesto registra
 la procedencia base de Linux con `git_commit:null`. Para comparar otro entorno,
 el test lleva stdout a esa procedencia: sustituye literalmente solo esos dos campos y recalcula las huellas

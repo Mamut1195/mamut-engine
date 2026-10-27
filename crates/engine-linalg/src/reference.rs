@@ -10,7 +10,7 @@ use engine_core::math;
 /// tests, without AMD ordering or a production sparse solver.
 /// V1 is sequential: `i,j,k` products, reductions by increasing index, and
 /// back substitution by decreasing row. No explicit SIMD or CPU-based
-/// selection; tie-breaking and portable scope are in docs/DETERMINISMO.md.
+/// selection; tie-breaking and portable scope are in docs/DETERMINISM.md.
 #[derive(Default, Debug)]
 pub struct ReferenceBackend;
 
