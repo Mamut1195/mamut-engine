@@ -1,4 +1,4 @@
-//! Despacho y serialización geotécnica, sin modificar el cálculo del dominio.
+//! Geotechnical dispatch and serialization, without changing domain calculations.
 use super::*;
 use crate::{analysis_input::Analysis, input::Object};
 use engine_geo::{ParameterId, StressProfile};

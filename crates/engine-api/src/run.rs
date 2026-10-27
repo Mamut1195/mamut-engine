@@ -1,4 +1,4 @@
-//! Ejecución y serialización, sin E/S.
+//! Execution and serialization, without I/O.
 pub(crate) mod advanced;
 pub(crate) mod geo;
 pub(crate) mod nonlinear;
@@ -16,31 +16,31 @@ use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-/// Estado estable de una ejecución, independiente del proceso anfitrión.
+/// Stable execution status, independent of the host process.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Status {
-    /// Resultados completos sin avisos.
+    /// Complete results without warnings.
     Ok,
-    /// Resultados completos con limitaciones explícitas.
+    /// Complete results with explicit limitations.
     Warning,
-    /// Entrada inválida, incluido contrato desconocido.
+    /// Invalid input, including an unknown contract.
     Invalid,
-    /// Capacidad solicitada no implementada.
+    /// Requested capability is not implemented.
     Unsupported,
-    /// Solver sin convergencia.
+    /// Solver did not converge.
     NotConverged,
-    /// Sistema singular o mecanismo.
+    /// Singular system or mechanism.
     Unstable,
-    /// Cancelación cooperativa en un punto de control.
+    /// Cooperative cancellation at a checkpoint.
     Cancelled,
-    /// Reservado; no se generan plazos en esta fachada.
+    /// Reserved; this facade does not generate deadlines.
     Timeout,
-    /// Error interno comunicado mediante diagnóstico.
+    /// Internal error reported through a diagnostic.
     InternalError,
 }
 
-/// Código de salida portable; no termina el proceso.
+/// Portable exit code; does not terminate the process.
 pub const fn exit_code(status: Status) -> i32 {
     match status {
         Status::Ok => 0,
@@ -54,12 +54,12 @@ pub const fn exit_code(status: Status) -> i32 {
     }
 }
 
-/// Resultado de frontera, también para entrada inválida o cancelación.
+/// Boundary outcome, including invalid input or cancellation.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Outcome {
-    /// Estado que también figura en el documento.
+    /// Status also present in the document.
     pub status: Status,
-    /// Bytes UTF-8 canónicos de `results/1`, sin relojes ni rutas.
+    /// Canonical UTF-8 bytes of `results/1`, without clocks or paths.
     pub document: String,
 }
 impl Outcome {
@@ -72,7 +72,7 @@ impl Outcome {
         self
     }
 
-    /// Código de salida para CLI/bindings.
+    /// Exit code for CLI/bindings.
     pub const fn exit_code(&self) -> i32 {
         exit_code(self.status)
     }
@@ -144,17 +144,17 @@ pub(crate) struct Member {
     dim: Dim,
     element: Arc<dyn Element>,
     params: ElementParams,
-    // Una única fuente para load_vector y MemberRecovery, sin cargas escaladas.
+    // A single source for load_vector and MemberRecovery, without scaled loads.
     loads: Vec<Vec<engine_contracts::MemberLoad>>,
 }
 
-/// Ejecuta linearStatic, pDelta, modal o responseSpectrum con opciones explícitas.
-/// Consulta cancelación antes de empezar y antes/después de cada callback.
-/// Parseo, modelo validado, ensamblado, cada caso, combinaciones y serialización
-/// son indivisibles. El callback es síncrono y debe retornar normalmente.
-/// Un fallo elimina todos los resultados parciales; input_sha256 es null si no
-/// se completó el parseo/huella RFC 8785 con mamut-canon. Los métodos iterativos
-/// consultan entre pasos/modos.
+/// Runs linearStatic, pDelta, modal, or responseSpectrum with explicit options.
+/// Checks cancellation before starting and before/after each callback.
+/// Parsing, the validated model, assembly, each case, combinations, and serialization
+/// are indivisible. The callback is synchronous and must return normally.
+/// A failure discards all partial results; input_sha256 is null if RFC 8785
+/// parsing/fingerprinting with mamut-canon did not complete. Iterative methods
+/// check between steps/modes.
 pub fn run(input_json: &str, cancel: &CancelToken, mut progress: impl FnMut(Progress)) -> Outcome {
     let mut document = json!({
         "schema": "results/1", "engine_version": env!("CARGO_PKG_VERSION"),
@@ -198,7 +198,7 @@ pub fn run(input_json: &str, cancel: &CancelToken, mut progress: impl FnMut(Prog
         }
     };
     document["status"] = json!(status);
-    // Value contiene solo tipos serializables y números finitos del dominio.
+    // Value contains only serializable types and finite numbers from the domain.
     match crate::json::canonical_value(document) {
         Ok(document) => Outcome { status, document },
         Err(_) => Outcome {
@@ -209,7 +209,7 @@ pub fn run(input_json: &str, cancel: &CancelToken, mut progress: impl FnMut(Prog
 }
 
 fn internal_document() -> String {
-    // Sobre constante válido incluso si fallara la serialización de la salida.
+    // Constant envelope valid even if output serialization were to fail.
     format!(concat!("{{\"cases\":[],\"combinations\":[],\"contracts\":[\"engine-input/1\",\"results/1\"],",
         "\"convergence\":null,\"diagnostics\":[{{\"cause\":\"Error al serializar results/1\",\"code\":\"ENG-E-0012\",",
         "\"entities\":[],\"hint\":null,\"severity\":\"error\"}}],\"engine_version\":\"{}\",\"envelopes\":[],",
@@ -315,7 +315,7 @@ fn execute(
 
 fn identities(document: &mut Value, execution: &input::Execution, members: &[Member]) {
     let model = &execution.model;
-    // Identidades/geometría arriba; respuestas numéricas siempre dentro de su caso.
+    // Identities/geometry above; numerical responses always within their case.
     document["nodes"] = json!(model.nodes.iter().map(|n| json!({"id": n.id.0, "dim": format!("{:?}", n.dim), "coordinates": n.coordinates, "dofs": n.dofs.iter().map(|d| format!("{d:?}")).collect::<Vec<_>>()})).collect::<Vec<_>>());
     let mut identities: Vec<_> = model.members.iter().zip(members).map(|(m, built)| json!({"id": m.id.0, "nodes": m.nodes.map(|n| n.0), "section": m.section, "law": m.law, "element": built.element.kind()})).collect();
     identities.extend(members.iter().skip(model.members.len()).zip(&execution.springs).map(|(m, s)| {
@@ -568,10 +568,10 @@ pub(crate) fn explain(code: &str) -> Option<&'static str> {
     }
 }
 
-/// Integra validación del modelo y las extensiones sin alterar el dominio.
+/// Integrates model validation and extensions without changing the domain.
 pub(crate) fn validation(e: &input::Execution) -> Vec<Diagnostic> {
     let mut diagnostics: Vec<_> = engine_model::validate(&e.model).into_iter().filter(|d| {
-        // Un nodo unido a un resorte ya tiene conectividad de frontera.
+        // A node attached to a spring already has boundary connectivity.
         !(d.code == "ENG-E-0004" && d.entities.iter().any(|entity| matches!(entity, EntityRef::Node(id) if e.springs.iter().any(|s| s.nodes.contains(&id.0)))))
     }).map(Diagnostic::from).collect();
     if diagnostics.iter().any(|d| d.severity == "error") {

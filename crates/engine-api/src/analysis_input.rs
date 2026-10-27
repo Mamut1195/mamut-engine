@@ -1,4 +1,4 @@
-//! Opciones de análisis explícitas, sin factores ni espectros predeterminados.
+//! Explicit analysis options, without default factors or spectra.
 use crate::input::Object;
 use serde::{Deserialize, Deserializer};
 

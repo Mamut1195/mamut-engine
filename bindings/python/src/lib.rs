@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
-//! Adaptador Python de engine-api, sin implementación numérica.
+//! Python adapter for engine-api, without a numerical implementation.
 //!
-//! El crate queda vacío en wasm32 y permanece fuera de default-members.
+//! The crate is empty on wasm32 and remains outside default-members.
 
 #[cfg(not(target_arch = "wasm32"))]
 mod unwind;
@@ -21,8 +21,8 @@ mod python {
     pyo3::create_exception!(mamut_engine._native, AnalysisError, EngineError);
     pyo3::create_exception!(mamut_engine._native, InternalEngineError, EngineError);
 
-    // Cubre también conversión de resultados y entrega de callbacks. PyO3 conserva
-    // además su barrera de unwind para el código generado de entrada al módulo.
+    // Also covers result conversion and callback delivery. PyO3 retains
+    // its unwind barrier for the generated module entry code as well.
     fn guarded<T>(py: Python<'_>, f: impl FnOnce() -> PyResult<T>) -> PyResult<T> {
         match super::unwind::boundary(f) {
             Ok(result) => result,
@@ -101,7 +101,7 @@ mod python {
     fn parse_output(py: Python<'_>, document: &str) -> PyResult<Value> {
         serde_json::from_str(document)
             .map_err(|err| {
-                // Solo se parsea salida de engine-api, nunca entrada del usuario.
+                // Only engine-api output is parsed, never user input.
                 InternalEngineError::new_err(err.to_string())
             })
             .or_else(|err| {
@@ -115,7 +115,7 @@ mod python {
             })
     }
 
-    /// Token atómico compartido; cancel() puede ejecutarse desde otro hilo Python.
+    /// Shared atomic token; cancel() can run from another Python thread.
     #[pyclass(frozen, module = "mamut_engine._native")]
     #[derive(Default)]
     struct CancelToken {
@@ -233,7 +233,7 @@ mod python {
         Err(err)
     }
 
-    /// Ejecuta sin GIL; entrega progreso acumulado después de salir del motor.
+    /// Runs without the GIL; delivers accumulated progress after leaving the engine.
     #[pyfunction(signature = (input_json, progress=None, cancel=None, lang=None))]
     fn run(
         py: Python<'_>,
@@ -261,7 +261,7 @@ mod python {
                 });
                 (result, events)
             });
-            // Un error del motor tiene prioridad frente a excepciones del callback.
+            // An engine error takes precedence over callback exceptions.
             let result = outcome(py, result.localized(lang));
             for event in events {
                 if let Some(callback) = &progress {

@@ -1,4 +1,4 @@
-//! Parseo sin claves duplicadas y normalización numérica de la frontera JSON.
+//! Parsing without duplicate keys and numerical normalization at the JSON boundary.
 use serde::de::{self, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer};
 use serde_json::{Map, Number, Value};
@@ -27,7 +27,7 @@ impl<'de> Deserialize<'de> for Strict {
                 Ok(Strict(Value::Number(v.into())))
             }
             fn visit_f64<E: de::Error>(self, v: f64) -> Result<Strict, E> {
-                // El cero flotante conserva su tipo; se elimina únicamente su signo.
+                // Floating-point zero retains its type; only its sign is removed.
                 let v = if v == 0.0 { 0.0 } else { v };
                 Number::from_f64(v)
                     .map(|n| Strict(Value::Number(n)))
@@ -74,7 +74,7 @@ pub(crate) fn canonical(input: &str) -> Result<String, ApiError> {
 }
 
 pub(crate) fn canonical_value(mut value: Value) -> Result<String, ApiError> {
-    // Orden explícito incluso si otra superficie activa preserve_order de serde_json.
+    // Explicit ordering even if another interface enables serde_json preserve_order.
     fn sort(value: &mut Value) {
         match value {
             Value::Object(map) => {

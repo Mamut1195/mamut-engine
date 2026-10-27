@@ -1,4 +1,4 @@
-//! Adaptadores registrados del análisis estático y su postproceso lineal.
+//! Registered adapters for static analysis and its linear postprocessing.
 use super::*;
 
 pub(crate) fn budget(execution: &input::Execution) -> usize {

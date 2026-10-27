@@ -1,4 +1,4 @@
-//! Fontanería SFC-010: propiedades de frontera, sin algoritmos constitutivos.
+//! SFC-010 plumbing: boundary properties, without constitutive algorithms.
 use crate::{
     analysis_input::Analysis,
     input::{Component, Execution, Object},
@@ -314,7 +314,7 @@ pub(crate) fn validate(e: &Execution) -> EResult<()> {
         })?;
     }
     for l in &e.laws {
-        // Las leyes históricas sin kind conservan exactamente la validación anterior.
+        // Legacy laws without kind retain exactly the previous validation.
         if !l.kind.is_empty() || !l.points.is_empty() || !l.mode.is_empty() {
             l.build()?;
         }

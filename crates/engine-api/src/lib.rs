@@ -1,8 +1,8 @@
 #![forbid(unsafe_code)]
-//! Fachada portable de validación y análisis de `engine-input/1`.
+//! Portable facade for validation and analysis of `engine-input/1`.
 //!
-//! La única frontera serde/JSON del workspace; salida canónica `results/1`.
-//! Consulte el README del crate para el alcance y las convenciones SI.
+//! The workspace's only serde/JSON boundary; canonical `results/1` output.
+//! See the crate README for scope and SI conventions.
 #![deny(missing_docs)]
 
 mod analysis_input;
@@ -38,19 +38,19 @@ use serde_json::{json, Value};
 use std::fmt;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-/// Fallos de la frontera; los defectos topológicos se devuelven como diagnósticos.
+/// Boundary failures; topological defects are returned as diagnostics.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", content = "cause")]
 pub enum ApiError {
-    /// JSON, campos, tipos o convenciones de entrada inválidos.
+    /// Invalid JSON, fields, types, or input conventions.
     InvalidInput(String),
-    /// Contrato de entrada desconocido o versión mayor no admitida.
+    /// Unknown input contract or unsupported major version.
     UnsupportedSchema(String),
-    /// Documento de esquema no publicado por esta fachada.
+    /// Schema document not published by this facade.
     UnknownSchema(String),
-    /// Código ausente del catálogo de engine-core.
+    /// Code absent from the engine-core catalog.
     UnknownCode(String),
-    /// Cancelación cooperativa solicitada entre etapas.
+    /// Cooperative cancellation requested between stages.
     Cancelled,
 }
 
@@ -68,21 +68,21 @@ impl fmt::Display for ApiError {
 
 impl std::error::Error for ApiError {}
 
-/// Token reutilizable por referencia, sin runtime, hilos ni dependencia de SO.
-/// Una vez cancelado permanece cancelado. Puede compartirse mediante `Arc`.
+/// Token reusable by reference, without a runtime, threads, or OS dependency.
+/// Once cancelled, it remains cancelled. Can be shared through `Arc`.
 #[derive(Debug, Default)]
 pub struct CancelToken(AtomicBool);
 
 impl CancelToken {
-    /// Crea un token inicialmente activo.
+    /// Creates an initially active token.
     pub const fn new() -> Self {
         Self(AtomicBool::new(false))
     }
-    /// Solicita detenerse en el próximo punto de control.
+    /// Requests a stop at the next checkpoint.
     pub fn cancel(&self) {
         self.0.store(true, Ordering::Relaxed);
     }
-    /// Consulta la solicitud sin ejecutar trabajo del motor.
+    /// Checks the request without performing engine work.
     pub fn is_cancelled(&self) -> bool {
         self.0.load(Ordering::Relaxed)
     }
@@ -95,31 +95,31 @@ impl CancelToken {
     }
 }
 
-/// Progreso determinista al terminar una etapa, iteración o modo.
+/// Deterministic progress upon completion of a stage, iteration, or mode.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub struct Progress {
-    /// Operación pública en curso, `validate` o `run`.
+    /// Public operation in progress, `validate` or `run`.
     pub operation: &'static str,
-    /// Etapa finalizada; incluye gravity/pdeltaIteration/modal/spectrumMode/spectrumDirection.
+    /// Completed stage; includes gravity/pdeltaIteration/modal/spectrumMode/spectrumDirection.
     pub stage: &'static str,
-    /// Etapas completadas (los casos cuentan individualmente).
+    /// Completed stages (cases count individually).
     pub completed: usize,
-    /// Total de etapas; P-Delta reserva su máximo y puede terminar antes.
+    /// Total stages; P-Delta reserves its maximum and may finish early.
     pub total: usize,
 }
 
-/// Diagnóstico serializable que conserva el catálogo y contexto del dominio.
+/// Serializable diagnostic preserving the domain catalog and context.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Diagnostic {
-    /// Código del dominio ENG-E-xxxx o código documentado local API-*.
+    /// Domain code ENG-E-xxxx or locally documented API-* code.
     pub code: &'static str,
-    /// `info`, `warning` o `error` según engine-core.
+    /// `info`, `warning`, or `error` as defined by engine-core.
     pub severity: &'static str,
-    /// Entidades `{kind, id}` en el orden del dominio.
+    /// `{kind, id}` entities in domain order.
     pub entities: Vec<Value>,
-    /// Mensaje del diagnóstico del dominio.
+    /// Domain diagnostic message.
     pub cause: String,
-    /// Contexto o sugerencia original.
+    /// Original context or hint.
     pub hint: Option<String>,
 }
 
@@ -150,18 +150,18 @@ impl From<engine_core::Diagnostic> for Diagnostic {
     }
 }
 
-/// Versión del engine en este workspace y contratos reconocidos por la fachada.
+/// Engine version in this workspace and contracts recognized by the facade.
 pub fn version() -> Value {
     json!({"engine_version": env!("CARGO_PKG_VERSION"),
         "contracts": ["engine-input/1", "results/1"]})
 }
 
-/// Capacidades reales: estático, P-Delta, modal, espectro y combinaciones lineales.
-/// `engine` indica presencia en engine-analysis; `run` indica soporte de la fachada.
-/// `method_descriptors` publica estado, contratos y evidencia desde el registro SDK;
-/// pDelta es Stable y se habilita por defecto. nonlinearStatic, soilProfile y
-/// consolidation1d son Experimental hasta ENG-VAL-006; requieren
-/// options.allow_experimental = true al ejecutar el job.
+/// Actual capabilities: static, P-Delta, modal, spectrum, and linear combinations.
+/// `engine` indicates presence in engine-analysis; `run` indicates facade support.
+/// `method_descriptors` publishes status, contracts, and evidence from the SDK registry;
+/// pDelta is Stable and enabled by default. nonlinearStatic, soilProfile, and
+/// consolidation1d are Experimental until ENG-VAL-006; they require
+/// options.allow_experimental = true when running the job.
 pub fn capabilities() -> Value {
     let mut capabilities = json!({
         "run": true,
@@ -196,7 +196,7 @@ pub fn capabilities() -> Value {
     capabilities
 }
 
-// Registro único: añadir aquí un esquema lo expone y lo incluye en la publicación.
+// Single registry: adding a schema here exposes it and includes it in publication.
 const SCHEMAS: &[(&str, &str)] = &[
     (
         "engine-input/1",
@@ -217,13 +217,13 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
 ];
 
-/// Enumera todos los kinds admitidos por `schema()`, en orden de registro.
+/// Lists all kinds supported by `schema()`, in registry order.
 pub fn schema_kinds() -> impl ExactSizeIterator<Item = &'static str> {
     SCHEMAS.iter().map(|(kind, _)| *kind)
 }
 
-/// Devuelve un documento JSON Schema estático (Draft 2020-12), sin E/S ni red.
-/// Los kinds admitidos se enumeran mediante `schema_kinds()`.
+/// Returns a static JSON Schema document (Draft 2020-12), without I/O or network access.
+/// Supported kinds are listed by `schema_kinds()`.
 pub fn schema(kind: &str) -> Result<&'static str, ApiError> {
     SCHEMAS
         .iter()
@@ -236,19 +236,19 @@ pub fn explain(code: &str) -> Result<&'static str, ApiError> {
     explain_in(code, Lang::En)
 }
 
-/// JSON compacto determinista: claves ordenadas recursivamente y -0.0 → +0.0.
-/// Conserva el orden de arrays y los floats f64 con round-trip; no es RFC 8785.
-/// Rechaza claves duplicadas, NaN/Inf, overflow y documentos con texto sobrante.
-/// Aplica los límites públicos de entrada antes de construir el árbol JSON.
-/// Los enteros léxicos requieren |n| <= 2^53-1 (rango seguro de JCS/binary64).
+/// Deterministic compact JSON: recursively sorted keys and -0.0 → +0.0.
+/// Preserves array order and round-trip f64 floats; this is not RFC 8785.
+/// Rejects duplicate keys, NaN/Inf, overflow, and documents with trailing text.
+/// Applies public input limits before building the JSON tree.
+/// Lexical integers require |n| <= 2^53-1 (the JCS/binary64 safe range).
 pub fn canonical_json(input_json: &str) -> Result<String, ApiError> {
     json::canonical(input_json)
 }
 
-/// Huella SHA-256 RFC 8785 del input, idéntica a `results/1.input_sha256`.
-/// Aplica el mismo parseo estricto y límites de `run`, sin ejecutar física.
-/// Rechaza literales enteros fuera de ±(2^53-1) antes de convertirlos a binary64.
-/// No usa la serialización propia de `canonical_json` como preimagen.
+/// RFC 8785 SHA-256 input fingerprint, identical to `results/1.input_sha256`.
+/// Applies the same strict parsing and limits as `run`, without running physics.
+/// Rejects integer literals outside ±(2^53-1) before converting to binary64.
+/// Does not use the custom `canonical_json` serialization as the preimage.
 pub fn input_sha256(input_json: &str) -> Result<String, ApiError> {
     fingerprint_value(&json::parse(input_json)?)
 }
@@ -259,15 +259,15 @@ fn fingerprint_value(value: &Value) -> Result<String, ApiError> {
         .map_err(|e| ApiError::InvalidInput(format!("RFC 8785 fingerprint: {e}")))
 }
 
-/// Valida el contrato, las convenciones y la topología; no comprueba estabilidad.
-/// Fallos de parseo/contrato son `Err`; defectos del modelo son diagnósticos `Ok`.
+/// Validates the contract, conventions, and topology; does not check stability.
+/// Parsing/contract failures are `Err`; model defects are `Ok` diagnostics.
 pub fn validate(input_json: &str) -> Result<Vec<Diagnostic>, ApiError> {
     validate_with(input_json, &CancelToken::new(), |_| {})
 }
 
-/// Variante con cancelación y callback síncrono entre etapas completas.
-/// Consulta antes de empezar y antes/después de cada callback, incluido el último.
-/// El parseo, mapeo y validador del dominio son etapas indivisibles.
+/// Variant with cancellation and a synchronous callback between complete stages.
+/// Checks before starting and before/after each callback, including the last one.
+/// Parsing, mapping, and the domain validator are indivisible stages.
 pub fn validate_with(
     input_json: &str,
     cancel: &CancelToken,

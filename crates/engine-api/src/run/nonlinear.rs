@@ -1,4 +1,4 @@
-//! Control de frontera por pasos; Newton y las leyes conservan sus algoritmos.
+//! Boundary control by steps; Newton and the laws retain their algorithms.
 use super::*;
 use crate::{analysis_input::Analysis, input::Object};
 use engine_analysis::newton::{NewtonElement, NewtonSystem, StaticNewton};
@@ -59,8 +59,8 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
         "accepted_factor": null, "tolerance": o.tolerance, "max_iterations": o.max_iterations,
         "force_scale": options.force_scale, "displacement_tolerance": options.displacement_tolerance, "energy_tolerance": options.energy_tolerance,
         "displacement_scale": options.displacement_scale, "energy_scale": options.energy_scale, "steps": []});
-    // Valida todos los productos λF antes del primer paso aceptado, como run
-    // sobre la lista completa; el fraccionamiento solo añade checkpoints.
+    // Validates all λF products before the first accepted step, as run does
+    // over the complete list; splitting only adds checkpoints.
     for &factor in &o.load_factors {
         cancel.check()?;
         system

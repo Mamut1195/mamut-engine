@@ -81,7 +81,7 @@ Keep validated private parameters, a fallible constructor, `Params`, a typed
 `UniaxialFactory` factory and a `LawDescriptor` constant. Reuse the private
 `finite`, `positive` and `vector` validators from `engine-laws`. Validate length before
 indexing and all outputs/intermediates susceptible to overflow.
-Document the public API in Spanish; the library requires `missing_docs`.
+Document the public API in English; the library requires `missing_docs`.
 Do not add `unsafe`, `unwrap`, `expect`, `panic!`, global state, I/O or threads.
 Invoke scalar functions through `engine_core::math`; preserve the
 operation/reduction order of existing methods.

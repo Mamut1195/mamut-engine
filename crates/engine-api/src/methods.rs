@@ -1,4 +1,4 @@
-//! Extensión de dominio sobre descriptores y fábricas de mamut-workflow.
+//! Domain extension over mamut-workflow descriptors and factories.
 use crate::{input::Execution, run, ApiError};
 use mamut_workflow::{
     ContractId, MethodCatalog, MethodDimensions, MethodFactory, MethodRegistry, MethodSelectionV1,
@@ -12,37 +12,37 @@ pub(crate) const RESULTS_CONTRACT: &str = "urn:mamut:engine:results:1.0.0";
 const SLOT: &str = "engine_method";
 const PROFILE: &str = "engine.run";
 
-/// Madurez del método en la fachada; no certifica todos los modelos posibles.
+/// Method maturity in the facade; does not certify every possible model.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub enum MethodStatus {
-    /// Requiere consentimiento explícito en las opciones del job.
+    /// Requires explicit consent in the job options.
     Experimental,
-    /// Habilitado por defecto con evidencia de benchmarks dentro de su alcance.
+    /// Enabled by default with benchmark evidence within its scope.
     Stable,
-    /// Cuenta con los fixtures analíticos indicados, dentro de su alcance.
+    /// Has the specified analytical fixtures, within its scope.
     Validated,
-    /// Se conserva por compatibilidad; su evidencia explica la sustitución.
+    /// Retained for compatibility; its evidence explains the replacement.
     Deprecated,
 }
 
-/// Descriptor method-descriptor/1: registro SDK más evidencia del Engine.
+/// method-descriptor/1 descriptor: SDK registration plus Engine evidence.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct MethodDescriptor {
-    /// Versión del documento de descubrimiento.
+    /// Discovery document version.
     pub schema: &'static str,
-    /// Descriptor genérico registrado en mamut-workflow, sin duplicar su modelo.
+    /// Generic descriptor registered in mamut-workflow, without duplicating its model.
     pub workflow: mamut_workflow::MethodDescriptor,
-    /// Madurez y política de habilitación del método.
+    /// Method maturity and enablement policy.
     pub status: MethodStatus,
-    /// Contrato JSON consumido por el adaptador.
+    /// JSON contract consumed by the adapter.
     pub input_schema: &'static str,
-    /// Contrato JSON producido por el adaptador.
+    /// JSON contract produced by the adapter.
     pub output_schema: &'static str,
-    /// Rutas de pruebas/fixtures propios que delimitan la validación.
+    /// Paths to first-party tests/fixtures delimiting validation coverage.
     pub fixtures: Vec<&'static str>,
-    /// Citas de derivaciones propias, con su sección; sin atribuciones externas.
+    /// Citations of first-party derivations, with their sections; no external attributions.
     pub citations: Vec<&'static str>,
-    /// Rutas de bitácoras clean-room del método y del registro.
+    /// Paths to clean-room logs for the method and registry.
     pub provenance: Vec<&'static str>,
 }
 
@@ -57,8 +57,8 @@ fn contract(text: &str) -> Result<ContractId, ApiError> {
 }
 
 fn dimensions() -> MethodDimensions {
-    // Se transportan documentos completos. Las magnitudes SI y sus unidades
-    // permanecen en engine-input/1 y results/1, no son puertos escalares del SDK.
+    // Complete documents are transported. SI quantities and their units
+    // remain in engine-input/1 and results/1; they are not scalar SDK ports.
     MethodDimensions {
         inputs: vec![QuantityDescriptor::new("document", "1", "1")],
         outputs: vec![QuantityDescriptor::new("document", "1", "1")],
@@ -86,7 +86,7 @@ fn registry() -> Result<MethodRegistry<EngineMethod>, ApiError> {
     Ok(registry)
 }
 
-/// Descriptores en el orden determinista del registro real de mamut-workflow.
+/// Descriptors in the deterministic order of the actual mamut-workflow registry.
 pub fn method_descriptors() -> Result<Vec<MethodDescriptor>, ApiError> {
     let registry = registry()?;
     registry
@@ -101,9 +101,9 @@ pub fn method_descriptors() -> Result<Vec<MethodDescriptor>, ApiError> {
         .collect()
 }
 
-/// Resuelve id y contrato URN (dominio, nombre y mayor), aplicando la política.
-/// Versiones minor/patch compatibles siguen las reglas del compilador SDK.
-/// No ejecuta cálculos ni convierte engine-input/1 en un formato de workflow.
+/// Resolves the id and contract URN (domain, name, and major version), applying policy.
+/// Compatible minor/patch versions follow the SDK compiler rules.
+/// Does not run calculations or convert engine-input/1 to a workflow format.
 pub fn method_descriptor(
     method_id: &str,
     input_contract: &str,
@@ -215,8 +215,8 @@ fn builtin(
                 dimensions: dimensions(),
                 consumes: vec![ContractId::parse(consumes).map_err(|e| e.to_string())?],
                 produces: vec![ContractId::parse(RESULTS_CONTRACT).map_err(|e| e.to_string())?],
-                // Las opciones mecánicas están tipadas en el documento consumido;
-                // no se duplican como NumericParameters del workflow.
+                // Mechanical options are typed in the consumed document;
+                // they are not duplicated as workflow NumericParameters.
                 parameters: vec![],
                 failure: None,
             },

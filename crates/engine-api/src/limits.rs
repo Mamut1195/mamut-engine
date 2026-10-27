@@ -1,21 +1,21 @@
-//! Inspección léxica acotada anterior al parseo serde y al trabajo del motor.
+//! Bounded lexical inspection before serde parsing and engine work.
 use crate::ApiError;
 
-/// Máximo de bytes UTF-8 de entrada (8 MiB), incluidas cadenas y espacios.
+/// Maximum UTF-8 input bytes (8 MiB), including strings and whitespace.
 pub const MAX_INPUT_BYTES: usize = 8 * 1024 * 1024;
-/// Máximo de nodos en `model.nodes`; acota el backend denso de referencia.
+/// Maximum nodes in `model.nodes`; bounds the dense reference backend.
 pub const MAX_NODES: usize = 256;
-/// Máximo de miembros en `model.members`.
+/// Maximum members in `model.members`.
 pub const MAX_MEMBERS: usize = 1024;
-/// Máximo de casos en `cases`.
+/// Maximum cases in `cases`.
 pub const MAX_CASES: usize = 64;
-/// Máximo total de registros de `loads` y `member_loads` de todos los casos.
+/// Maximum total `loads` and `member_loads` records across all cases.
 pub const MAX_LOADS: usize = 16_384;
-/// Máximo de combinaciones en `combinations`.
+/// Maximum combinations in `combinations`.
 pub const MAX_COMBINATIONS: usize = 128;
-/// Máximo de objetos/arrays abiertos simultáneamente; la raíz cuenta como uno.
+/// Maximum simultaneously open objects/arrays; the root counts as one.
 pub const MAX_JSON_DEPTH: usize = 64;
-/// Máximo de entradas de cualquier array, incluidas colecciones auxiliares.
+/// Maximum entries in any array, including auxiliary collections.
 pub const MAX_JSON_ARRAY_ITEMS: usize = 16_384;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -34,7 +34,7 @@ enum Role {
 struct Frame {
     role: Role,
     array: bool,
-    // Array: próximo token inicia una entrada. Objeto: se espera una clave.
+    // Array: the next token starts an entry. Object: a key is expected.
     next: bool,
     key: String,
     items: usize,
@@ -61,8 +61,8 @@ fn child_role(parent: Option<&Frame>, array: bool) -> Role {
     }
 }
 
-/// No construye Values/DTOs ni recurre: solo conserva hasta MAX_JSON_DEPTH marcos.
-/// Serde sigue siendo responsable de la sintaxis y de las claves duplicadas.
+/// Does not build Values/DTOs or recurse: retains only up to MAX_JSON_DEPTH frames.
+/// Serde remains responsible for syntax and duplicate keys.
 pub(crate) fn preflight(input: &str) -> Result<(), ApiError> {
     if input.len() > MAX_INPUT_BYTES {
         return Err(exceeded("MAX_INPUT_BYTES", MAX_INPUT_BYTES));
@@ -154,7 +154,7 @@ pub(crate) fn preflight(input: &str) -> Result<(), ApiError> {
                     }
                 }
                 if let Some(frame) = frames.last_mut().filter(|f| !f.array && f.next) {
-                    // Decodifica también claves escapadas; nunca reserva arrays/modelos.
+                    // Also decodes escaped keys; never allocates arrays/models.
                     frame.key = serde_json::from_str(&input[start..index])
                         .map_err(|e| ApiError::InvalidInput(e.to_string()))?;
                 }
@@ -185,8 +185,8 @@ fn check_number(token: &str) -> Result<(), ApiError> {
             "JSON number is outside the finite f64 range".into(),
         ));
     }
-    // JCS convierte a binary64: impedir pérdida de identidad antes de serde,
-    // incluso para enteros enormes que serde podría convertir a float.
+    // JCS converts to binary64: prevent loss of identity before serde,
+    // even for huge integers that serde might convert to float.
     const MAX_SAFE_INTEGER: i64 = (1_i64 << 53) - 1;
     let valid = token
         .parse::<i64>()

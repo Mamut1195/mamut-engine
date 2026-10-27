@@ -1,11 +1,11 @@
-//! DTO privados: ninguna dependencia serde atraviesa engine-model.
+//! Private DTOs: no serde dependency crosses engine-model.
 use crate::ApiError;
 use engine_core::{Dim, Dof, MemberId, NodeId};
 use engine_model as domain;
 use serde::{de::DeserializeOwned, Deserialize, Deserializer};
 use serde_json::Value;
 
-// Serde acepta structs posicionales como arrays; el contrato exige objetos JSON.
+// Serde accepts positional structs as arrays; the contract requires JSON objects.
 pub(crate) struct Object<T>(pub T);
 
 impl<'de, T: DeserializeOwned> Deserialize<'de> for Object<T> {
@@ -20,7 +20,7 @@ impl<'de, T: DeserializeOwned> Deserialize<'de> for Object<T> {
     }
 }
 
-// Las etiquetas son solo strings; se rechaza la forma externa {"D2": null}.
+// Tags are strings only; the external form {"D2": null} is rejected.
 macro_rules! string_enum {
     ($name:ident { $($variant:ident => $label:literal),+ $(,)? }) => {
         #[derive(Clone, Copy)]
@@ -124,7 +124,7 @@ struct Member {
     winkler: Option<Object<crate::extensions::Winkler>>,
 }
 
-// Ausencia permitida; null explícito no pertenece al esquema del vector.
+// Absence is allowed; explicit null is outside the vector schema.
 fn orientation<'de, D: Deserializer<'de>>(d: D) -> Result<Option<[f64; 3]>, D::Error> {
     <[f64; 3]>::deserialize(d).map(Some)
 }

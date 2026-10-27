@@ -1,4 +1,4 @@
-//! Extensión aislada del parser SDK y temporizador cooperativo nativo.
+//! Isolated SDK parser extension and native cooperative timer.
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -38,8 +38,8 @@ pub(crate) fn parse_global_args(
             return Err(FailureKind::Usage);
         } else {
             forwarded.push(arg.clone());
-            // La base consume el siguiente token de estos flags como valor,
-            // incluso si luego lo rechaza. No reinterpretarlo como timeout.
+            // The base consumes the next token of these flags as a value,
+            // even if it later rejects it. Do not reinterpret it as timeout.
             if matches!(
                 arg.as_str(),
                 "--catalog" | "--workflow" | "--progress" | "--input"
@@ -50,7 +50,7 @@ pub(crate) fn parse_global_args(
             }
         }
     }
-    // El flag prevalece incluso sobre una variable inválida o no Unicode.
+    // The flag takes precedence even over an invalid or non-Unicode variable.
     if timeout.is_none() {
         if let Some(value) = std::env::var_os("MAMUT_ENGINE_TIMEOUT") {
             timeout = Some(parse_seconds(value.to_str().ok_or(FailureKind::Usage)?)?);
@@ -67,8 +67,8 @@ fn parse_seconds(value: &str) -> Result<f64, FailureKind> {
     Ok(seconds)
 }
 
-// El deadline solo clasifica una cancelación observada. Un resultado terminal
-// ya obtenido conserva su semántica aunque el reloj venza antes de comprobarlo.
+// The deadline only classifies an observed cancellation. A terminal result
+// already obtained retains its semantics even if the clock expires before the check.
 pub(crate) fn resolve<T>(result: Result<T, FailureKind>, expired: bool) -> Result<T, FailureKind> {
     result.map_err(|kind| {
         if expired && kind == FailureKind::Cancelled {
@@ -101,8 +101,8 @@ impl Timer {
             .name("mamut-engine-timeout".into())
             .spawn(move || {
                 loop {
-                    // Si la plataforma no representa el deadline en Instant,
-                    // esperar por tramos dentro del plazo validado.
+                    // If the platform cannot represent the deadline as an Instant,
+                    // wait in chunks within the validated time limit.
                     let wait = match deadline {
                         Some(deadline) => deadline.saturating_duration_since(Instant::now()),
                         None => match Duration::try_from_secs_f64(
@@ -142,7 +142,7 @@ impl Timer {
 
 impl Drop for Timer {
     fn drop(&mut self) {
-        // Despertar y recoger el hilo también al terminar mucho antes del plazo.
+        // Wake and join the thread even when finishing long before the deadline.
         let _ = self.stop.send(());
         if let Some(thread) = self.thread.take() {
             let _ = thread.join();
@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn terminal_result_survives_deadline_before_post_dispatch_check() {
-        // Vencimiento ya visible al comprobar un dispatch terminado, sin sleeps.
+        // Expiration already visible when checking a completed dispatch, without sleeps.
         assert_eq!(resolve(Ok(42), true), Ok(42));
         for kind in [
             FailureKind::Usage,

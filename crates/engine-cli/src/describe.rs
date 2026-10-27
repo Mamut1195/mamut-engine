@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! Autodescripción y consultas de la fachada, sin E/S de archivos ni ejecución.
+//! Facade self-description and queries, without file I/O or execution.
 use std::io::Write;
 
 use mamut_workflow_cli::{ExitCodes, FailureKind, MAX_DOCUMENT_BYTES};
@@ -29,7 +29,7 @@ pub(crate) fn dispatch(
         ["capabilities"] => write_json(stdout, &engine_api::capabilities()),
         ["schema", id] => engine_api::schema(id)
             .map_err(|_| FailureKind::Usage)
-            // No añadir newline ni volver a serializar: son los bytes de la API.
+            // Do not add a newline or reserialize: these are the API bytes.
             .and_then(|text| {
                 stdout
                     .write_all(text.as_bytes())
@@ -188,8 +188,8 @@ fn schema_inventory() -> Result<Vec<Value>, FailureKind> {
     let index: Value = serde_json::from_str(INDEX).map_err(|_| FailureKind::Internal)?;
     let entries = index["schemas"].as_array().ok_or(FailureKind::Internal)?;
     let mut inventory = Vec::with_capacity(entries.len());
-    // El índice publicado contiene las huellas de los bytes originales, no de
-    // una reserialización. --check y los tests verifican su correspondencia.
+    // The published index contains fingerprints of the original bytes, not of
+    // a reserialization. --check and tests verify their correspondence.
     for entry in entries {
         let id = entry["id"].as_str().ok_or(FailureKind::Internal)?;
         let version = entry["version"].as_u64().ok_or(FailureKind::Internal)?;

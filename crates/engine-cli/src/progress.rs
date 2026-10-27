@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! Transporte local de eventos completos, compartido con el observador del SDK.
+//! Local transport for complete events, shared with the SDK observer.
 
 use std::{cell::RefCell, io, io::Write, rc::Rc};
 
@@ -64,7 +64,7 @@ impl<'a, E: Write> Output<'a, E> {
         let value = json!({"schema":"progress/1", "index":index,
             "operation":event.operation, "stage":event.stage,
             "completed":event.completed, "total":event.total});
-        // Mismo canonizador y formato numérico que results/1.
+        // Same canonicalizer and numerical format as results/1.
         let line = engine_api::canonical_json(&value.to_string());
         match line {
             Ok(line) => {
@@ -96,7 +96,7 @@ impl<E: Write> Write for Output<'_, E> {
 
     fn write_fmt(&mut self, args: std::fmt::Arguments<'_>) -> io::Result<()> {
         let mut sink = self.inner.borrow_mut();
-        // Reutilizar el escritor de main también para las líneas del SDK.
+        // Reuse the main writer for SDK lines as well.
         let result = EventWriter(&mut *sink.writer).write_fmt(args);
         sink.failed |= result.is_err();
         result
@@ -110,9 +110,9 @@ impl<E: Write> Write for Output<'_, E> {
     }
 }
 
-// El SDK pide Method sin préstamos. La fábrica se invoca dentro de started /
-// finished: ejecutar allí permite usar el stderr prestado durante cada callback,
-// sin hilos, estado global ni retener etapas hasta el final del paso.
+// The SDK requests Method without borrows. The factory is invoked within started /
+// finished: executing there allows using borrowed stderr during each callback,
+// without threads, global state, or retaining stages until the end of the step.
 pub(crate) fn completed(result: Result<Value, String>) -> Box<dyn Method> {
     Box::new(Completed(Some(result)))
 }

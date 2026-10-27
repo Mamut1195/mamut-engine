@@ -1,34 +1,34 @@
-//! Consultas sin recalcular el análisis ni modificar el documento original.
+//! Queries without recomputing the analysis or modifying the original document.
 use crate::{ApiError, Outcome};
 use engine_core::{MemberId, NodeId};
 use serde_json::{Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
 
-/// Selección de entidades y proyección de campos de un `Outcome`.
+/// Entity selection and field projection for an `Outcome`.
 ///
-/// `None` selecciona todo; `Some(&[])` no selecciona nada. Los IDs se aplican a
-/// identidades, casos, combinaciones, formas modales, respuestas espectrales y
-/// envolventes. Conserva orden y referencias geométricas, diagnósticos,
-/// procedencia y magnitudes agregadas (p. ej. cortante basal/fuerzas equivalentes).
-/// No recalcula esas magnitudes para el subconjunto seleccionado.
+/// `None` selects everything; `Some(&[])` selects nothing. IDs apply to
+/// identities, cases, combinations, mode shapes, spectrum responses, and
+/// envelopes. Preserves order and geometric references, diagnostics,
+/// provenance, and aggregate quantities (e.g. base shear/equivalent forces).
+/// Does not recompute those quantities for the selected subset.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ResultQuery<'a> {
-    /// IDs de nodos, aplicados también a `modes[].shape`.
+    /// Node IDs, also applied to `modes[].shape`.
     pub node_ids: Option<&'a [NodeId]>,
-    /// IDs de miembros, independientes de la selección de nodos.
+    /// Member IDs, independent of node selection.
     pub member_ids: Option<&'a [MemberId]>,
-    /// Rutas separadas por puntos, por ejemplo `cases.nodes.displacements` o
-    /// `cases.members.stations.forces_local`. Atraviesan arrays sin índices;
-    /// seleccionar una rama incluye sus descendientes. Conserva `id` en objetos
-    /// proyectados. Rutas ausentes no aportan campos; rutas mal formadas dan error.
-    /// Una proyección es un fragmento JSON, sin garantía de satisfacer results/1.
+    /// Dot-separated paths, for example `cases.nodes.displacements` or
+    /// `cases.members.stations.forces_local`. They traverse arrays without indices;
+    /// selecting a branch includes its descendants. Preserves `id` in projected
+    /// objects. Absent paths contribute no fields; malformed paths cause an error.
+    /// A projection is a JSON fragment, without any guarantee of satisfying results/1.
     pub fields: Option<&'a [&'a str]>,
 }
 
 impl Outcome {
-    /// Consulta el documento ya calculado; el original y su huella no cambian.
-    /// Sin proyección de campos devuelve el sobre completo con entidades filtradas.
-    /// No aplica los límites de entrada a la salida, que puede ser más grande.
+    /// Queries the already computed document; the original and its fingerprint do not change.
+    /// Without field projection, returns the full envelope with filtered entities.
+    /// Does not apply input limits to the output, which may be larger.
     pub fn query(&self, query: &ResultQuery<'_>) -> Result<Value, ApiError> {
         let mut value: Value = serde_json::from_str(&self.document)
             .map_err(|e| ApiError::InvalidInput(format!("results/1: {e}")))?;
@@ -72,7 +72,7 @@ fn filter(value: &mut Value, node_ids: &Option<BTreeSet<u64>>, member_ids: &Opti
                 if let Value::Array(items) = child {
                     match name.as_str() {
                         "nodes" | "shape" => {
-                            // members[].nodes son IDs de extremos, no filas de respuesta.
+                            // members[].nodes are endpoint IDs, not response rows.
                             if let Some(ids) = node_ids
                                 .as_ref()
                                 .filter(|_| items.iter().all(Value::is_object))

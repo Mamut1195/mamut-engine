@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! Adaptador nativo de engine-api sobre el parser y despacho de mamut-workflow-cli.
+//! Native engine-api adapter over the mamut-workflow-cli parser and dispatch.
 #![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
@@ -32,16 +32,16 @@ mod signals;
 mod timeout;
 use error::report_failure;
 
-/// Catálogo propio; también disponible como archivo `catalog.json` del crate.
+/// Adapter catalog; also available as the crate's `catalog.json` file.
 pub const CATALOG: &str = include_str!("../catalog.json");
 
-/// Workflow predeterminado de ejecución de engine-input/1.
+/// Default workflow for running engine-input/1.
 pub const RUN_WORKFLOW: &str = include_str!("../run.workflow.json");
 
-/// Workflow predeterminado de validación de engine-input/1.
+/// Default workflow for validating engine-input/1.
 pub const VALIDATE_WORKFLOW: &str = include_str!("../validate.workflow.json");
 
-/// Cancelación compartida del workflow y del motor, sin señales ni hilos implícitos.
+/// Shared workflow and engine cancellation, without implicit signals or threads.
 #[derive(Clone, Debug, Default)]
 pub struct Control {
     flag: CancelFlag,
@@ -50,26 +50,26 @@ pub struct Control {
 }
 
 impl Control {
-    /// Observe la presencia de una ruta local como solicitud de cancelación.
-    /// Se consulta entre pasos y tras cada callback del motor, sin hilos ni señales.
+    /// Watches for the presence of a local path as a cancellation request.
+    /// Checked between steps and after each engine callback, without threads or signals.
     #[must_use]
     pub fn with_cancel_file(mut self, path: PathBuf) -> Self {
         self.cancel_file = Some(path);
         self
     }
 
-    /// Solicita cancelación en ambas fronteras.
+    /// Requests cancellation at both boundaries.
     pub fn cancel(&self) {
         self.flag.cancel();
         self.token.cancel();
     }
 
-    /// Flag de la base; se sincroniza con el token en cada callback del motor.
+    /// Base flag; synchronized with the token at each engine callback.
     pub fn flag(&self) -> CancelFlag {
         self.flag.clone()
     }
 
-    /// Token del motor; puede compartirse con un hilo del anfitrión.
+    /// Engine token; can be shared with a host thread.
     pub fn token(&self) -> Arc<CancelToken> {
         Arc::clone(&self.token)
     }
@@ -97,9 +97,9 @@ mod progress;
 
 type EngineProgress<'a> = Rc<RefCell<Box<dyn FnMut(Progress) + 'a>>>;
 
-/// Configuración del anfitrión, transporte de entrada y timeout sobre la base.
-/// `--input` tiene prioridad sobre la ruta de compatibilidad del constructor.
-/// Una invocación reutiliza un único documento engine-input/1 para todos sus pasos.
+/// Host configuration, input transport, and timeout over the base.
+/// `--input` takes precedence over the constructor's compatibility path.
+/// An invocation reuses a single engine-input/1 document for all its steps.
 pub struct EngineCli {
     input: Option<PathBuf>,
     control: Control,
@@ -109,7 +109,7 @@ pub struct EngineCli {
 }
 
 impl EngineCli {
-    /// Configura la ruta de entrada del motor; `None` falla solo al ejecutar métodos.
+    /// Configures the engine input path; `None` fails only when running methods.
     pub fn new(input: Option<PathBuf>) -> Self {
         Self {
             input,
@@ -120,7 +120,7 @@ impl EngineCli {
         }
     }
 
-    /// Conecta cancelación cooperativa, incluida cancelación durante engine-api.
+    /// Connects cooperative cancellation, including cancellation during engine-api execution.
     #[must_use]
     pub fn with_control(mut self, control: Control) -> Self {
         self.control = control;
@@ -137,18 +137,18 @@ impl EngineCli {
         self
     }
 
-    /// Observa etapas de engine-api. Puede cancelar mediante un `Control` clonado.
-    /// El NDJSON incluye estas etapas entre started/finished del workflow.
+    /// Observes engine-api stages. Can cancel through a cloned `Control`.
+    /// NDJSON includes these stages between workflow started/finished events.
     #[must_use]
     pub fn with_engine_progress(mut self, progress: impl FnMut(Progress) + 'static) -> Self {
         self.progress = Rc::new(RefCell::new(Box::new(progress)));
         self
     }
 
-    /// Extrae timeout, luego `--input`, y configura documentos embebidos para la base.
-    /// Acepta segundos finitos en (0, 31536000]; fuera de rango es uso inválido (2).
-    /// Añade resultados completos y semántica Engine al sobre terminal de `run`.
-    /// stdout contiene resultados; stderr contiene NDJSON y errores sanitizados.
+    /// Extracts timeout, then `--input`, and configures embedded documents for the base.
+    /// Accepts finite seconds in (0, 31536000]; out of range is invalid usage (2).
+    /// Adds complete results and Engine semantics to the terminal envelope of `run`.
+    /// stdout contains results; stderr contains NDJSON and sanitized errors.
     pub fn run<R: Read, O: Write, E: Write>(
         &self,
         args: &[String],
@@ -195,7 +195,7 @@ impl EngineCli {
             }
         };
         let command = match command {
-            // La forma explícita sigue validando/compilando solo el workflow.
+            // The explicit form still validates/compiles only the workflow.
             Command::Validate { catalog, workflow } if prepared.embedded.is_some() => {
                 Command::Run {
                     catalog,
@@ -234,8 +234,8 @@ impl EngineCli {
                     Err(kind) => return report_failure(kind, operation, None, stderr),
                 }
             }
-            // Conservar la clasificación y el momento del fallo de la vía antigua:
-            // solo se informa al ejecutar el método, después de la cancelación.
+            // Preserve the failure classification and timing of the legacy path:
+            // report it only when running the method, after cancellation.
             None if is_run => {
                 EngineInput::Document(read_engine_path(self.input.as_deref()).map(Rc::from))
             }
@@ -267,7 +267,7 @@ impl EngineCli {
                 state: Rc::clone(&state),
             });
         let mut buffered = Vec::new();
-        // Solo se retiene el sobre terminal. MCP y NDJSON conservan streaming.
+        // Only the terminal envelope is retained. MCP and NDJSON keep streaming.
         let mut output: &mut dyn Write = if is_run { &mut buffered } else { stdout };
         let result = dispatch(command, stdin, &mut output, &mut stderr, &config);
         if stderr.failed() {
@@ -312,7 +312,7 @@ impl EngineCli {
             config.exit_codes.ok
         };
         envelope["exitCode"] = json!(code);
-        // No se altera el manifiesto sellado ni su recordFingerprint.
+        // The sealed manifest and its recordFingerprint are not changed.
         envelope["engineResults"] = json!(state.results);
         if writeln!(stdout, "{envelope}").is_err() {
             return report_failure(FailureKind::Internal, operation, None, &mut stderr);
@@ -341,7 +341,7 @@ impl EngineCli {
             Ok(diagnostics) => diagnostics,
             Err(error @ (ApiError::InvalidInput(_) | ApiError::UnsupportedSchema(_))) => {
                 vec![Diagnostic {
-                    // JSON, DTO y límites son rechazos del contrato de entrada.
+                    // JSON, DTO, and limit failures are input contract rejections.
                     code: "ENG-E-0009",
                     severity: "error",
                     entities: Vec::new(),
@@ -375,8 +375,8 @@ fn validation_report(diagnostics: &[Diagnostic]) -> (u8, Value) {
     )
 }
 
-// El SDK emite cada evento mediante writeln!. Materializar todo el formato
-// antes de escribir evita exponer fragmentos JSON durante la serialización.
+// The SDK emits each event through writeln!. Materializing the entire format
+// before writing avoids exposing JSON fragments during serialization.
 struct EventWriter<'a, W: ?Sized>(&'a mut W);
 
 impl<W: Write + ?Sized> Write for EventWriter<'_, W> {
@@ -399,8 +399,8 @@ struct PreparedArgs {
     args: Vec<String>,
     input: Option<String>,
     direct_validation: bool,
-    // La base solo admite archivos o stdin. Mantener los documentos hasta
-    // terminar dispatch; sus rutas nunca forman parte del manifiesto.
+    // The base only accepts files or stdin. Keep the documents until
+    // dispatch finishes; their paths are never part of the manifest.
     embedded: Option<EmbeddedDocuments>,
 }
 
@@ -423,7 +423,7 @@ impl PreparedArgs {
         let mut workflow = None;
         let mut rest = args[1..].iter();
         while let Some(arg) = rest.next() {
-            // Igual que la base: no hay sintaxis --flag=valor ni separador --.
+            // Same as the base: no --flag=value syntax or -- separator.
             if arg == "--" || arg.starts_with("--input=") {
                 return Err(FailureKind::Usage);
             }
@@ -441,7 +441,7 @@ impl PreparedArgs {
                 }
             } else {
                 forwarded.push(arg.clone());
-                // Respetar los valores de flags de la base: no reinterpretarlos.
+                // Respect the base flag values: do not reinterpret them.
                 if matches!(arg.as_str(), "--catalog" | "--workflow" | "--progress") {
                     if let Some(value) = rest.next() {
                         if arg == "--catalog" {
@@ -460,7 +460,7 @@ impl PreparedArgs {
         let direct_validation =
             args[0] == "validate" && input.is_some() && catalog.is_none() && workflow.is_none();
         if direct_validation {
-            // Esta forma no admite flags del workflow ni necesita temporales.
+            // This form does not accept workflow flags or need temporary files.
             if forwarded.len() != 1 {
                 return Err(FailureKind::Usage);
             }
@@ -506,8 +506,8 @@ impl EmbeddedDocuments {
     }
 
     fn new_in(root: &Path, next: &AtomicUsize, workflow: &str) -> Result<Self, FailureKind> {
-        // create es exclusivo; el contador nunca se reinicia entre llamadas.
-        // PID separa procesos, y los reintentos toleran residuos de un PID reutilizado.
+        // create is exclusive; the counter is never reset between calls.
+        // PID separates processes, and retries tolerate residue from a reused PID.
         for _ in 0..128 {
             let path = root.join(format!(
                 "mamut-engine-{}-{}",
@@ -564,7 +564,7 @@ fn identity() -> CliIdentity {
 
 #[derive(Default)]
 struct State {
-    // MCP entrega sus propios frames: no retener documentos entre llamadas.
+    // MCP supplies its own frames: do not retain documents between calls.
     capture_results: bool,
     results: Vec<Value>,
     warning: bool,
@@ -700,7 +700,7 @@ fn fingerprint_view(mut document: Value) -> Value {
 #[derive(Clone)]
 enum EngineInput {
     Document(Result<Rc<str>, FailureKind>),
-    // MCP conserva la lectura por llamada de su transporte de compatibilidad.
+    // MCP retains per-call reading from its compatibility transport.
     Path(Option<PathBuf>),
 }
 
@@ -797,8 +797,8 @@ mod tests {
             }
         }
         let mut stderr = CompleteLines::default();
-        // Mismo despacho dinámico de Write que usa el SDK; Value::fmt produce
-        // muchos fragmentos, pero el escritor solo recibe la línea completa.
+        // Same dynamic Write dispatch as the SDK; Value::fmt produces
+        // many fragments, but the writer receives only the complete line.
         let mut writer = EventWriter(&mut stderr);
         let writer: &mut dyn Write = &mut writer;
         writeln!(writer, "{}", json!({"phase":"started", "index":0})).unwrap();
@@ -838,7 +838,7 @@ mod tests {
         let root = EmbeddedDocuments::new(RUN_WORKFLOW)?;
         let prefix = format!("mamut-engine-{}-", std::process::id());
         let next = AtomicUsize::new(0);
-        // Contador local: este test no modifica ni reinicia el contador global.
+        // Local counter: this test does not modify or reset the global counter.
         for index in 0..8 {
             fs::create_dir(root.0.join(format!("{prefix}{index}")))
                 .map_err(|_| FailureKind::Internal)?;
@@ -899,8 +899,8 @@ mod tests {
 
     impl Read for GuardedReader {
         fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
-            // Generador sin EOF. El fusible deja observar un byte de exceso y
-            // aborta después para que incluso la mutación termine con poca memoria.
+            // Generator without EOF. The fuse allows observing one excess byte and
+            // then aborts so that even the mutation terminates with low memory use.
             let remaining = engine_api::MAX_INPUT_BYTES + 2 - self.consumed;
             if remaining == 0 {
                 return Err(io::Error::other("Lectura más allá del límite de prueba"));
@@ -942,8 +942,8 @@ mod tests {
 
     #[test]
     fn validate_eng_e_0013_maps_to_exit_three() {
-        // validate_with hoy solo emite diagnósticos topológicos. Inyectamos el
-        // diagnóstico en el clasificador privado que consume su resultado.
+        // validate_with currently emits only topological diagnostics. Inject the
+        // diagnostic into the private classifier that consumes its result.
         let diagnostics = [Diagnostic {
             code: "ENG-E-0013",
             severity: "error",

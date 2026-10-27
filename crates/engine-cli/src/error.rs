@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! Sobre terminal del adaptador. No modifica documentos ni manifiestos del motor.
+//! Terminal envelope for the adapter. Does not modify engine documents or manifests.
 
 use std::io::Write;
 
 use mamut_workflow_cli::{ExitCodes, FailureKind};
 use serde_json::{json, Value};
 
-/// Nombre público conocido; nunca refleja argumentos arbitrarios en stderr.
+/// Known public name; never echoes arbitrary arguments to stderr.
 pub(crate) fn operation(args: &[String]) -> &str {
     let mut args = args.iter();
     let mut command = args.next();
@@ -97,7 +97,7 @@ pub(crate) fn report_failure_in(
         "messageKey": message_key,
         "error": {"code": code, "message": message},
         "diagnostics": diagnostics,
-        // Las entidades del motor no identifican una ubicación JSON inequívoca.
+        // Engine entities do not identify an unambiguous JSON location.
         "pointer": null,
         "hint": primary.and_then(|d| d["hint"].as_str()),
     });

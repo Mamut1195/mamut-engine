@@ -9,7 +9,7 @@ fn main() -> std::process::ExitCode {
         .collect::<Result<Vec<_>, _>>()
     {
         Ok(args) => args,
-        // El parser clasifica el argumento inválido sin reflejar bytes privados.
+        // The parser classifies the invalid argument without echoing private bytes.
         Err(_) => vec![String::new()],
     };
     let mut control = engine_cli::Control::default();

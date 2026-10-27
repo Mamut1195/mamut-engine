@@ -1,4 +1,4 @@
-//! Adaptadores de datos geotécnicos; las unidades conservan sus prefijos explícitos.
+//! Geotechnical data adapters; units retain their explicit prefixes.
 use crate::{
     analysis_input::Analysis,
     extensions::optional,
@@ -9,21 +9,21 @@ use engine_geo::{
 };
 use serde::Deserialize;
 
-/// Trabajo máximo de consolidation1d: suma de subpasos de toda la historia
-/// (partida también en tiempos de salida) por número total de elementos.
-/// La validación rechaza valores mayores con API-E-CONSOLIDATION-WORK.
+/// Maximum consolidation1d work: sum of substeps over the entire history
+/// (also split at output times) multiplied by the total number of elements.
+/// Validation rejects larger values with API-E-CONSOLIDATION-WORK.
 pub const MAX_CONSOLIDATION_WORK: u128 = 50_000_000;
 
-/// Coste denso máximo: Σ intervalos n³ + Σ subpasos n², con n nodos libres.
-/// Se cuentan todos los quiebres de carga y salidas de toda la historia, sin
-/// descontar factores reutilizados. u128 saturante; API-E-CONSOLIDATION-COST.
-/// Calibrado en release con margen respecto a 5 s; véase ENG-SFC-010, r3.
+/// Maximum dense cost: Σ intervals n³ + Σ substeps n², with n free nodes.
+/// Counts all load breakpoints and outputs over the entire history, without
+/// discounting reused factors. Saturating u128; API-E-CONSOLIDATION-COST.
+/// Calibrated in release mode with margin below 5 s; see ENG-SFC-010, r3.
 pub const MAX_CONSOLIDATION_COST: u128 = 500_000_000;
-/// Máximo de intervalos al unir historia y salidas (también limita la historia
-/// a 257 puntos). Superarlo produce API-E-CONSOLIDATION-COST.
+/// Maximum intervals when merging history and outputs (also limits the history
+/// to 257 points). Exceeding this produces API-E-CONSOLIDATION-COST.
 pub const MAX_CONSOLIDATION_SEGMENTS: u128 = 256;
-/// Máximo agregado de subpasos, incluso con una sola incógnita; limita el
-/// coste fijo por paso. Superarlo produce API-E-CONSOLIDATION-COST.
+/// Maximum aggregate substeps, even with a single unknown; limits the fixed
+/// cost per step. Exceeding this produces API-E-CONSOLIDATION-COST.
 pub const MAX_CONSOLIDATION_SUBSTEPS: u128 = 100_000;
 
 #[derive(Deserialize)]
@@ -228,7 +228,7 @@ impl Consolidation {
                     outputs.next();
                 }
                 let stop = outputs.peek().copied().unwrap_or(end).min(end);
-                // La conversión satura incluso si el cociente llega a infinito.
+                // The conversion saturates even if the quotient becomes infinite.
                 let steps = ((stop - time) / self.max_step_s).ceil().max(1.0) as u128;
                 substeps = substeps.saturating_add(steps);
                 segments = segments.saturating_add(1);
@@ -241,7 +241,7 @@ impl Consolidation {
                 time = stop;
             }
         }
-        // free_range del dominio elimina un dren o dos de elements+1 nodos.
+        // The domain free_range removes one or two drains from elements+1 nodes.
         let n = elements.saturating_sub(u128::from(matches!(self.drainage, Drainage::Double)));
         let square = n.saturating_mul(n);
         let cost = segments

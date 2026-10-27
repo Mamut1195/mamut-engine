@@ -1,4 +1,4 @@
-//! Adaptadores de los métodos del dominio, sin recuperación P-Delta de miembros.
+//! Adapters for domain methods, without P-Delta member recovery.
 use super::*;
 use crate::analysis_input::{Analysis, MassSource, Table};
 use engine_analysis::{modal::Modal, pdelta, spectrum};
@@ -24,8 +24,8 @@ fn bounded_steps(n: usize) -> Result<(), Failure> {
     }
     Ok(())
 }
-// Los callbacks del dominio usan EResult; la fachada traduce la cancelación
-// antes de propagar su marcador interno, conservando status/código propios.
+// Domain callbacks use EResult; the facade translates cancellation
+// before propagating its internal marker, preserving its own status/code.
 fn checkpoint(
     cancel: &CancelToken,
     progress: &mut dyn FnMut(Progress),
@@ -155,8 +155,8 @@ pub(crate) fn pdelta(context: MethodContext<'_>) -> Result<(), Failure> {
     };
 
     bounded_steps(o.max_iterations)?;
-    // geometric_producer recupera N de deformaciones; no recibe cargas
-    // de miembro para corregir acciones de extremo del caso de gravedad.
+    // geometric_producer recovers N from deformations; it does not receive member
+    // loads to correct end actions for the gravity case.
     if execution
         .model
         .cases
