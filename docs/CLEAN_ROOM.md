@@ -1,149 +1,149 @@
-# Protocolo clean-room del Engine (ENG-GOV-002)
+# Engine clean-room protocol (ENG-GOV-002)
 
-- **Versión:** 0.1 (borrador para aprobación de Jonathan)
-- **Ticket:** ENG-GOV-002 · **Depende de:** ENG-GOV-001
-- **Nombre del proyecto:** provisional (DESCONOCIDO el definitivo)
-- **Aviso:** este documento es un protocolo operativo, no asesoría legal. El aviso legal y la postura de licencia viven solo en Notion (ENG-GOV-004). Los puntos marcados **PENDIENTE** requieren decisión o revisión externa.
+- **Version:** 0.1 (draft for Jonathan's approval)
+- **Ticket:** ENG-GOV-002 · **Depends on:** ENG-GOV-001
+- **Project name:** provisional (final name UNKNOWN)
+- **Notice:** this document is an operational protocol, not legal advice. The legal notice and licensing position reside only in Notion (ENG-GOV-004). Items marked **PENDING** require a decision or external review.
 
-## 1. Objetivo
+## 1. Objective
 
-Que cada línea del motor se pueda rastrear hasta una fuente permitida (libro, paper o derivación propia), con evidencia escrita. El motor se escribe desde cero en Rust.
+To ensure that every line of the engine can be traced to a permitted source (book, paper or a derivation of one's own), with written evidence. The engine is written from scratch in Rust.
 
-## 2. Regla de oro
+## 2. Golden rule
 
-Quien escribe código o especificaciones del motor **no abre** el código fuente de OpenSees, de Frame3DD, de Stabileo ni de ningún derivado. OpenSees, Frame3DD y Stabileo solo se **ejecutan** como cajas negras (entran modelos, salen números), de forma interna, desde el repo hermano privado `mamut-engine-oracles`, bajo §5.1 y §8.
+Anyone writing engine code or specifications **must not open** the source code of OpenSees, Frame3DD, Stabileo or any derivative. OpenSees, Frame3DD and Stabileo are only **run** as black boxes (models in, numbers out), internally, from the private sibling repository `mamut-engine-oracles`, under §5.1 and §8.
 
-Q2 asume el rol de **operador de oráculo** de §3 bajo la opción A de §5.1: no especifica ni implementa métodos ni escribe fixtures del Engine; J4 audita. El veto permanente por ver informes o salidas (§5.1) prevalece sobre cualquier cambio de rol o sesión limpia previsto en §3.
+Q2 assumes the **oracle operator** role in §3 under option A of §5.1: Q2 does not specify or implement methods or write Engine fixtures; J4 audits. The permanent bar resulting from viewing reports or outputs (§5.1) takes precedence over any role change or clean session provided for in §3.
 
 ## 3. Roles
 
-| Rol | Puede ver | No puede ver | Hace |
+| Role | May view | Must not view | Duties |
 |---|---|---|---|
-| **Especificador** (persona o IA) | Fuentes permitidas (§4), contratos Rust | Código de OpenSees, Frame3DD, Stabileo y las rutas del §5 | Escribe la ficha del método (ecuaciones y citas) y los fixtures de benchmark |
-| **Implementador** (persona o IA) | Contrato Rust, ficha del método, plantilla de método, fixtures, bitácora | Lo mismo que el especificador, y otros motores FEM no permisivos | Implementa en Rust y hace pasar conformidad y benchmarks |
-| **Operador de oráculo** (interno) | Repo hermano, binarios de OpenSees y Frame3DD, manuales de usuario de OpenSees y Frame3DD para armar el modelo, Stabileo (paquete npm/WASM ejecutado en el harness) y su documentación de API | Código fuente de OpenSees, Frame3DD y Stabileo. No escribe código ni fixtures del motor | Corre OpenSees, Frame3DD y Stabileo como cajas negras y compara con nuestro CLI; resultados solo en el repo hermano |
-| **Auditor** | Todo, solo para comparar | — | Corre similitud de código y revisa bitácoras. Nunca escribe código del motor ni dice al implementador «cómo lo hace OpenSees» |
+| **Specifier** (person or AI) | Permitted sources (§4), Rust contracts | Code of OpenSees, Frame3DD, Stabileo and the paths in §5 | Writes the method specification (equations and citations) and the benchmark fixtures |
+| **Implementer** (person or AI) | Rust contract, method specification, method template, fixtures, log | The same as the specifier, and other FEM engines without permissive licensing | Implements in Rust and makes conformance checks and benchmarks pass |
+| **Oracle operator** (internal) | Sibling repository, OpenSees and Frame3DD binaries, OpenSees and Frame3DD user manuals for building the model, Stabileo (npm/WASM package run in the harness) and its API documentation | OpenSees, Frame3DD and Stabileo source code. Does not write engine code or fixtures | Runs OpenSees, Frame3DD and Stabileo as black boxes and compares with our CLI; results only in the sibling repository |
+| **Auditor** | Everything, only for comparison | — | Runs code similarity checks and reviews logs. Never writes engine code or tells the implementer “how OpenSees does it” |
 
-Una misma persona o sesión no puede combinar los roles de operador de oráculo o auditor con los de especificador o implementador del mismo método. Quien haya visto código o rutas prohibidas (§5) no puede escribir fichas, fixtures ni código de ningún método; solo puede actuar como auditor u operador de oráculo. Pasar de auditor a especificador exige una sesión nueva y limpia, registrada en la bitácora.
+The same person or session must not combine the oracle operator or auditor roles with the specifier or implementer roles for the same method. Anyone who has viewed prohibited code or paths (§5) must not write specifications, fixtures or code for any method; they may only act as an auditor or oracle operator. Moving from auditor to specifier requires a new, clean session, recorded in the log.
 
-## 4. Fuentes permitidas
+## 4. Permitted sources
 
-- Teoría, ecuaciones y algoritmos en prosa o pseudocódigo: libros de texto, papers y reportes publicados. Los papers de autores de OpenSees están permitidos: es ciencia publicada; lo prohibido es el código.
-- Derivaciones propias, documentadas en la ficha del método.
-- Documentación (no código) de dependencias con licencia permisiva verificada.
-- Soluciones cerradas y ejemplos publicados, citados en cada fixture.
-- Libros de referencia: la lista canónica está en Notion (`02_PROTOCOLO_CLEAN_ROOM`, §3). **PENDIENTE:** decidir si se copia al repo.
-- No se copian listados de código de libros salvo que su licencia lo permita y quede registrado.
-- Documentos con copyright (p. ej. API RP 2GEO): se adquiere copia legal, se implementan ecuaciones, no se copia texto (**PENDIENTE** ENG-GOV-004).
-  - **Dispensa ENG-GOV-004 limitada a API RP 2GEO en ENG-GEO-004 (MAM-45).** El 2026-10-20 Jonathan (vía J0) confirmó que su copia de API RP 2GEO, 1.ª edición (2011) con Addendum 1 (2014), es legal, autorizó implementar con código propio las curvas t-z y Q-z de §8.4.2 (Fig. 2, Tabla 2) y §8.4.3 (Fig. 3), citando sección, figura y tabla, sin copiar texto ni figuras, incluidos los vértices numéricos que definen las curvas, como constantes del código, y dispensó el memo ENG-GOV-004 **solo** para este uso. La dispensa no cubre otras secciones de API RP 2GEO, otros tickets ni otros documentos con copyright; el PDF no entra en ningún repositorio. Evidencia: `provenance/ENG-GEO-004.md`; la fusión de este cambio por Jonathan es su aprobación directa (§5.1).
-- Código permisivo de terceros: por defecto no se copia. Copiar un fragmento requiere aprobación de Jonathan, registro en `THIRD_PARTY_NOTICES` y nota en la bitácora.
-- Dependencias de álgebra lineal: solo con licencia permisiva aceptada por `cargo-deny` (ENG-GOV-005).
+- Theory, equations and algorithms in prose or pseudocode: textbooks, papers and published reports. Papers by OpenSees authors are permitted: they are published science; it is the code that is prohibited.
+- Derivations of one's own, documented in the method specification.
+- Documentation (not code) of dependencies with a verified permissive license.
+- Closed-form solutions and published examples, cited in each fixture.
+- Reference books: the canonical list is in Notion (`02_PROTOCOLO_CLEAN_ROOM`, §3). **PENDING:** decide whether to copy it to the repository.
+- Code listings from books must not be copied unless their license permits it and it is recorded.
+- Copyrighted documents (e.g. API RP 2GEO): a lawful copy is obtained, equations are implemented, text is not copied (**PENDING** ENG-GOV-004).
+  - **ENG-GOV-004 waiver limited to API RP 2GEO in ENG-GEO-004 (MAM-45).** On 2026-10-20 Jonathan (via J0) confirmed that his copy of API RP 2GEO, 1st edition (2011) with Addendum 1 (2014), is lawful, authorized implementing the t-z and Q-z curves from §8.4.2 (Fig. 2, Table 2) and §8.4.3 (Fig. 3) in our own code, citing section, figure and table, without copying text or figures, including the numerical vertices that define the curves, as code constants, and waived the ENG-GOV-004 memo **only** for this use. The waiver does not cover other sections of API RP 2GEO, other tickets or other copyrighted documents; the PDF must not enter any repository. Evidence: `provenance/ENG-GEO-004.md`; Jonathan's merge of this change constitutes his direct approval (§5.1).
+- Third-party code under permissive licenses: by default, it is not copied. Copying a fragment requires Jonathan's approval, an entry in `THIRD_PARTY_NOTICES` and a note in the log.
+- Linear algebra dependencies: only with a permissive license accepted by `cargo-deny` (ENG-GOV-005).
 
-## 5. Fuentes y rutas prohibidas (no abrir)
+## 5. Prohibited sources and paths (must not be opened)
 
-- Repo `OpenSees/OpenSees`, sus forks y derivados (Xara, OpenSeesPy, Tessera, `openseesjs`…), su wiki de desarrolladores y fragmentos de código fuente en foros.
-- Código fuente de Frame3DD: no se abre ni se lee; solo se permite ejecutar su binario externo según §5.1.
-- `lambdaclass/stabileo` (crate `dedaliano-engine`) y `node_modules/stabileo-*`: abrir o leer su código, incluido el contenido de `node_modules/stabileo-*`, sigue prohibido. Instalar y ejecutar Stabileo en el harness dedicado del repo privado `mamut-engine-oracles` está permitido según §5.1.
-- Dentro de MAMUT: `mamut-structures/src/stabileo-adapter`, `motor-fem/engine`, `/workspace/opensees-web/spike/` y la parte de `motor-geo` que usa groundhog.
-- Otros motores con licencia GPL, LGPL, AGPL, desconocida o sin licencia (CalculiX, code_aster, OOFEM, carapace, anaStruct). Kratos solo con aprobación.
-- Bibliotecas de álgebra lineal numérica cuyo código no se consulta ni se copia: LAPACK, Eigen, faer y nalgebra (solo prosa/teoría; las dependencias se rigen por ENG-GOV-005).
-- El manual de comandos de OpenSees **como especificación**: no define formato ni nombres. Solo lo usa el operador de oráculo.
-- Los listados de código de Davis (*Direct Methods for Sparse Linear Systems*, CSparse): se lee la prosa, no se copia el código.
+- The `OpenSees/OpenSees` repository, its forks and derivatives (Xara, OpenSeesPy, Tessera, `openseesjs`…), its developer wiki and source code fragments in forums.
+- Frame3DD source code: it must not be opened or read; only running its external binary is permitted under §5.1.
+- `lambdaclass/stabileo` (crate `dedaliano-engine`) and `node_modules/stabileo-*`: opening or reading their code, including the contents of `node_modules/stabileo-*`, remains prohibited. Installing and running Stabileo in the dedicated harness in the private repository `mamut-engine-oracles` is permitted under §5.1.
+- Within MAMUT: `mamut-structures/src/stabileo-adapter`, `motor-fem/engine`, `/workspace/opensees-web/spike/` and the part of `motor-geo` that uses groundhog.
+- Other engines with GPL, LGPL, AGPL or unknown licenses, or no license (CalculiX, code_aster, OOFEM, carapace, anaStruct). Kratos only with approval.
+- Numerical linear algebra libraries whose code must not be consulted or copied: LAPACK, Eigen, faer and nalgebra (prose/theory only; dependencies are governed by ENG-GOV-005).
+- The OpenSees command manual **as a specification**: it does not define format or names. Only the oracle operator uses it.
+- Code listings by Davis (*Direct Methods for Sparse Linear Systems*, CSparse): the prose is read, the code is not copied.
 
-La lista machine-readable vivirá en `clean-room/forbidden_paths.txt` y `clean-room/forbidden_identifiers.txt` (**PENDIENTE**, se crea con ENG-GOV-005, que las consume en CI).
+The machine-readable list will reside in `clean-room/forbidden_paths.txt` and `clean-room/forbidden_identifiers.txt` (**PENDING**, to be created under ENG-GOV-005, which consumes them in CI).
 
-### 5.1 Excepción: benchmark comparativo externo (ENG-BENCH-001) — aprobada
+### 5.1 Exception: external comparative benchmark (ENG-BENCH-001) — approved
 
-Registro de aprobación: Jonathan (cuenta Mamut1195) fusionó personalmente el PR #74 en GitHub (commit 2613271, 2026-10-13 19:11 ECT), y confirmó el 2026-10-14 10:53 ECT (vía J0) que esa fusión es su aprobación directa; la cuenta compartida le impide aprobar como reviewer, por lo que la fusión hecha por él es la evidencia de aprobación directa.
+Approval record: Jonathan (account Mamut1195) personally merged PR #74 on GitHub (commit 2613271, 2026-10-13 19:11 ECT), and confirmed on 2026-10-14 10:53 ECT (via J0) that this merge constitutes his direct approval; the shared account prevents him from approving as a reviewer, so his merge is the evidence of direct approval.
 
-Antecedentes (no constituyen aprobación según §5.1; los relays solos no cuentan): el 2026-10-13 J0 relayó que Jonathan Torres (Mamut1195) escribió «APRUBO» (sic) a las 18:16 ECT y lo confirmó a las 18:22 ECT en el chat de J0.
+Background (does not constitute approval under §5.1; relayed messages alone do not count): on 2026-10-13 J0 relayed that Jonathan Torres (Mamut1195) wrote «APRUBO» (sic) at 18:16 ECT and confirmed it at 18:22 ECT in J0's chat.
 
-Referencia: issue #66. Esta excepción exceptúa §5 para el uso descrito de OpenSees, Frame3DD y Stabileo; §8 sigue rigiendo la validación.
+Reference: issue #66. This exception provides an exemption from §5 for the described use of OpenSees, Frame3DD and Stabileo; §8 continues to govern validation.
 
-Registro de aprobación de la ampliación a Frame3DD y de la opción A: la fusión personal por Jonathan (cuenta Mamut1195) de este PR #178 en GitHub es su aprobación directa (commit y fecha: se registran al fusionar).
+Approval record for the extension to Frame3DD and option A: Jonathan's personal merge (account Mamut1195) of this PR #178 on GitHub constitutes his direct approval (commit and date: recorded upon merging).
 
-Antecedentes (no constituyen aprobación según §5.1; los relays solos no cuentan): decisión de Jonathan relayada por J0 (BENCH-001, MAM-253, 2026-10-20). Origen de la opción A: [provenance/ENG-BENCH-001-SMOKE-VPS.md](../provenance/ENG-BENCH-001-SMOKE-VPS.md), que no menciona Frame3DD. Nota de referencia: ENG-VAL-006 / MAM-855.
+Background (does not constitute approval under §5.1; relayed messages alone do not count): Jonathan's decision relayed by J0 (BENCH-001, MAM-253, 2026-10-20). Origin of option A: [provenance/ENG-BENCH-001-SMOKE-VPS.md](../provenance/ENG-BENCH-001-SMOKE-VPS.md), which does not mention Frame3DD. Reference note: ENG-VAL-006 / MAM-855.
 
-- El benchmark vive exclusivamente en el repo hermano privado `mamut-engine-oracles`, en un harness dedicado (§8). No se admite ningún directorio ni workflow de este benchmark en `mamut-engine`. Solo compara **a posteriori** desplazamientos, fuerzas internas/reacciones, periodos y tiempos de cómputo.
-- OpenSees y Frame3DD (GPL, release 20140514 o posterior) se ejecutan como binarios/ejecutables externos. El operador fija una versión concreta y el hash SHA-256 del binario de cada uno por cada campaña y los registra en el repo hermano antes de ejecutarlos; cambiar la versión requiere registrarla de nuevo con su hash y la auditoría de J4. Stabileo se distribuye como **npm/WASM (AGPL)**, no como binario: se carga en el harness dedicado y corre en un proceso aparte, nunca en `node_modules` de `mamut-engine`, `mamut-structures` ni de ningún repo o paquete de MAMPRO, salvo en el harness dedicado del repo privado `mamut-engine-oracles`, único lugar donde puede instalarse. Su uso interno requiere revisión de la licencia AGPL (ENG-GOV-004).
-- No se enlazan, empaquetan ni distribuyen con el Engine ni con paquetes de MAMPRO; los WASM no se redistribuyen. No se lee ni se copia su código: la prohibición de abrir fuentes de §5 sigue vigente.
-- **Opción A:** Q2 ejecuta los oráculos de §5.1: OpenSees y Frame3DD, y Stabileo cuando ENG-GOV-004 habilite su uso (hasta entonces Stabileo sigue pendiente de ENG-GOV-004), como operador de oráculo (§2/§3), en una sesión aislada, y J4 audita. J2 y J0 solo reciben «difiere en caso X», sin valores. **Solo Q2** puede usar los manuales de usuario de OpenSees y Frame3DD y la documentación de API de Stabileo para armar modelos; nunca como especificación del Engine. Sus scripts de entrada (Tcl/JS/Python) permanecen en el repo hermano y nunca entran en repositorios del Engine.
-- Las salidas y los informes se archivan en la carpeta `results/` del harness del repo privado `mamut-engine-oracles`. Solo Q2 y J4 (para auditar) acceden a `results/` (salidas e informes); J2, J0 y las sesiones autoras (especificador o implementador) nunca. La cuenta GitHub `Mamut1195` y la máquina de agentes son compartidas: el aislamiento es un **control declarativo más auditoría de J4**, no una barrera técnica de acceso.
-- Quien vea un informe de benchmark o sus salidas queda **vetado permanentemente para implementar o corregir ese método**, incluso en tickets posteriores o sesiones nuevas. Una discrepancia solo permite abrir un ticket «difiere en caso X», sin valores; la corrección debe surgir de una derivación analítica propia, en una sesión limpia, por un autor no vetado.
-- Ningún código, dato, informe ni salida de estos programas puede alimentar especificaciones, pruebas, fixtures o implementación del Engine. Se prohíbe también su uso indirecto para ajustar tolerancias, elegir o descartar casos de prueba o calibrar valores por defecto.
-- Ningún método se da por validado por esta comparación. La validación del Engine usa soluciones analíticas y ejemplos publicados versionados (§8), nunca salidas de estos programas.
+- The benchmark resides exclusively in the private sibling repository `mamut-engine-oracles`, in a dedicated harness (§8). No directory or workflow for this benchmark is permitted in `mamut-engine`. It only compares displacements, internal forces/reactions, periods and computation times **a posteriori**.
+- OpenSees and Frame3DD (GPL, release 20140514 or later) are run as external binaries/executables. The operator pins a specific version and the SHA-256 hash of each binary for each campaign and records them in the sibling repository before running them; changing the version requires recording it again with its hash and an audit by J4. Stabileo is distributed as **npm/WASM (AGPL)**, not as a binary: it is loaded in the dedicated harness and runs in a separate process, never in the `node_modules` of `mamut-engine`, `mamut-structures` or any MAMPRO repository or package, except in the dedicated harness in the private repository `mamut-engine-oracles`, the only place where it may be installed. Its internal use requires review of the AGPL license (ENG-GOV-004).
+- They must not be linked, packaged or distributed with the Engine or with MAMPRO packages; the WASM files must not be redistributed. Their code must not be read or copied: the prohibition on opening source code in §5 remains in force.
+- **Option A:** Q2 runs the oracles in §5.1: OpenSees and Frame3DD, and Stabileo when ENG-GOV-004 authorizes its use (until then Stabileo remains pending ENG-GOV-004), as oracle operator (§2/§3), in an isolated session, and J4 audits. J2 and J0 only receive “differs in case X”, without values. **Only Q2** may use the OpenSees and Frame3DD user manuals and Stabileo API documentation to build models; never as an Engine specification. Their input scripts (Tcl/JS/Python) remain in the sibling repository and never enter Engine repositories.
+- Outputs and reports are archived in the `results/` folder of the harness in the private repository `mamut-engine-oracles`. Only Q2 and J4 (for auditing) access `results/` (outputs and reports); J2, J0 and authoring sessions (specifier or implementer) never do. The GitHub account `Mamut1195` and the agent machine are shared: isolation is a **declarative control plus an audit by J4**, not a technical access barrier.
+- Anyone who views a benchmark report or its outputs is **permanently barred from implementing or correcting that method**, even in subsequent tickets or new sessions. A discrepancy only permits opening a “differs in case X” ticket, without values; the correction must arise from an original analytical derivation, in a clean session, by an author who is not barred.
+- No code, data, report or output from these programs may feed into Engine specifications, tests, fixtures or implementation. Their indirect use to adjust tolerances, select or discard test cases or calibrate default values is also prohibited.
+- No method is deemed validated by this comparison. Engine validation uses versioned analytical solutions and published examples (§8), never outputs from these programs.
 
-## 6. Nombres y formato propios
+## 6. Own names and format
 
-- Formato JSON propio (`mamut.engine.model/1`); sin comandos Tcl ni estructura de script.
-- No aparecen en schemas, CLI, MCP ni `kind` los identificadores de OpenSees. Lista inicial:
-  - Comandos: `geomTransf`, `uniaxialMaterial`, `nDMaterial`, `eleLoad`, `timeSeries`, `fix`, `equalDOF`, `rigidDiaphragm`, `recorder`, `numberer`, `integrator`, `algorithm`, `analyze`.
-  - Elementos: `elasticBeamColumn`, `dispBeamColumn`, `forceBeamColumn`, `zeroLength`.
-  - Materiales: `Steel01`, `Steel02`, `Concrete01`, `Concrete02`, `PySimple1`, `TzSimple1`, `QzSimple1`, `PressureDependMultiYield`.
+- Own JSON format (`mamut.engine.model/1`); no Tcl commands or script structure.
+- OpenSees identifiers must not appear in schemas, CLI, MCP or `kind`. Initial list:
+  - Commands: `geomTransf`, `uniaxialMaterial`, `nDMaterial`, `eleLoad`, `timeSeries`, `fix`, `equalDOF`, `rigidDiaphragm`, `recorder`, `numberer`, `integrator`, `algorithm`, `analyze`.
+  - Elements: `elasticBeamColumn`, `dispBeamColumn`, `forceBeamColumn`, `zeroLength`.
+  - Materials: `Steel01`, `Steel02`, `Concrete01`, `Concrete02`, `PySimple1`, `TzSimple1`, `QzSimple1`, `PressureDependMultiYield`.
   - Solvers: `ProfileSPD`, `BandGeneral`, `UmfPack`, `LoadControl`, `DisplacementControl`.
-- Los modelos se nombran por autor y física: `steel.menegotto_pinto`, `concrete.kent_park`, `py.matlock_soft_clay`, `py.reese_sand`.
-- Importar `.tcl`/`.py` o exportar scripts a OpenSees: no se planifica antes del memo ENG-GOV-004 (**PENDIENTE**).
+- Models are named by author and physics: `steel.menegotto_pinto`, `concrete.kent_park`, `py.matlock_soft_clay`, `py.reese_sand`.
+- Importing `.tcl`/`.py` or exporting scripts to OpenSees: not planned before the ENG-GOV-004 memo (**PENDING**).
 
-## 7. Registro de procedencia
+## 7. Provenance record
 
-Por ticket, `provenance/ENG-XXX.md` a partir de `provenance/TEMPLATE.md`. La CI (ENG-GOV-005, en desarrollo) rechazará un PR que toque `crates/` sin bitácora; hasta que esté activa y protegida, el revisor lo comprueba a mano.
+For each ticket, `provenance/ENG-XXX.md` based on `provenance/TEMPLATE.md`. CI (ENG-GOV-005, under development) will reject a PR that touches `crates/` without a log; until it is active and protected, the reviewer checks this manually.
 
-## 8. Verificación contra oráculos libres
+## 8. Verification against free oracles
 
-- **Validación del Engine (en este repo):** soluciones analíticas y ejemplos publicados en libros u otras fuentes permitidas (§4), versionados como fixtures con `source` y cita; nunca salidas de OpenSees, Frame3DD o Stabileo.
-- **Comparación complementaria:** OpenSees, Frame3DD y Stabileo como cajas negras en `mamut-engine-oracles` (privado, uso interno), con las mismas reglas de §5.1. El benchmark no es dependencia de código, CI ni release del Engine; no tiene directorios ni workflows en `mamut-engine`.
-- Ningún método se da por validado por esta comparación.
-- Uso interno y viabilidad de estos programas, incluida la revisión de la licencia AGPL de Stabileo: **PENDIENTE** del memo ENG-GOV-004.
+- **Engine validation (in this repository):** analytical solutions and examples published in books or other permitted sources (§4), versioned as fixtures with `source` and a citation; never outputs from OpenSees, Frame3DD or Stabileo.
+- **Supplementary comparison:** OpenSees, Frame3DD and Stabileo as black boxes in `mamut-engine-oracles` (private, internal use), under the same rules as §5.1. The benchmark is not a code, CI or release dependency of the Engine; it has no directories or workflows in `mamut-engine`.
+- No method is deemed validated by this comparison.
+- Internal use and feasibility of these programs, including review of Stabileo's AGPL license: **PENDING** the ENG-GOV-004 memo.
 
-## 9. Auditoría de similitud
+## 9. Similarity audit
 
-Antes de cada release, el auditor compara el código del motor con OpenSees, Frame3DD y Stabileo con una herramienta de similitud y revisa manualmente los casos marcados. Herramienta y umbral: **PENDIENTE**. El resultado se archiva en un repo privado.
+Before each release, the auditor compares the engine code with OpenSees, Frame3DD and Stabileo using a similarity tool and manually reviews flagged cases. Tool and threshold: **PENDING**. The result is archived in a private repository.
 
-## 10. Sesiones de agentes IA
+## 10. AI agent sessions
 
-- Cada sesión de implementación empieza con contexto limpio, en un checkout que no contiene rutas prohibidas.
-- Los agentes que ya vieron código de OpenSees/Stabileo (p. ej. el del spike del 2026-10-07) no implementan el motor.
-- Un modelo pudo haber visto código en su entrenamiento: se mitiga con §9; el riesgo residual lo valora un abogado (**PENDIENTE** legal).
-- Registrar en la bitácora el agente y el modelo usados.
-- **Codex corre siempre sin red y sin herramienta web, como autor y como revisor** (incidente registrado en `provenance/ENG-GOV-002.md`). El sandbox solo limita la shell; la herramienta web del modelo es independiente. Con `codex-cli 0.162.0` hace falta desactivar ambas cosas:
-  - En `~/.codex/config.toml`: `web_search = "disabled"`, `[sandbox_workspace_write] network_access = false` y `[features] apps = false`.
-  - Por línea de comandos, siempre: `codex exec -c web_search=disabled -c sandbox_workspace_write.network_access=false --disable apps …`. `web_search=disabled` por sí solo no basta (verificado: la sesión seguía abriendo páginas); con `--disable apps` la sesión queda sin herramienta web y la shell sigue funcionando.
-  - Los revisores usan `-s read-only` y los autores `-s workspace-write`, ambos con lo anterior. No se usa `--search`.
-  - Antes de confiar en una sesión nueva se comprueba que no dispone de herramienta web (p. ej. pedirle abrir `https://example.com`: debe responder que no puede).
-- **OpenCode (revisor) sigue la misma regla:** se invoca de forma no interactiva (`opencode run … </dev/null`), solo sobre archivos locales del checkout (diff y ficha), sin pedirle abrir URL y con permisos restringidos en su configuración: `"permission": {"webfetch": "deny", "websearch": "deny", "edit": "deny", "bash": "deny"}` (alternativa: allowlist estricta de bash solo con `git diff`, `git show`, `git log`, `rg` y `ls`; nada que ejecute código: ni `python`, `node`, `curl`, `wget` ni `cargo`). **Bloquear solo `webfetch` y `websearch` no alcanza**: bash sigue teniendo red. La garantía real es del sistema operativo: el usuario del agente solo puede conectarse a `token-plan.ap-southeast-1.maas.aliyuncs.com:443` (nftables/iptables por UID o un proxy). Se comprueba con un `webfetch` y con un `python -c "import urllib.request…"`, que deben fallar. Aplicarlo: **PENDIENTE** de decisión de Jonathan. La única conexión permitida es la del proveedor del modelo; no descarga ni consulta código ni documentación externa.
-- **Codex y OpenCode nunca abren código de OpenSees, CalculiX ni LAPACK** (ni ninguna otra ruta del §5), tampoco para «comparar similitud»: la auditoría de similitud (§9) la hace J4 o una persona, nunca la sesión autora o revisora.
-- Ni autores ni revisores consultan fuentes externas: ni repos, ni foros, ni documentación en línea. Trabajan solo con lo que hay en el checkout y en la ficha del método. Si hace falta una fuente externa permitida (§4), la aporta una persona como texto en la ficha.
-- Un incumplimiento (sesión con acceso web o que abrió una ruta del §5) se registra en la bitácora de ENG-GOV-002 con hechos: sesión, rol, URL abiertas y si el intento tuvo éxito.
+- Each implementation session starts with a clean context, in a checkout that contains no prohibited paths.
+- Agents that have already viewed OpenSees/Stabileo code (e.g. the one from the 2026-10-07 spike) must not implement the engine.
+- A model may have seen code during training: this is mitigated by §9; a lawyer assesses the residual risk (legal review **PENDING**).
+- Record the agent and model used in the log.
+- **Codex always runs without network access and without a web tool, both as author and as reviewer** (incident recorded in `provenance/ENG-GOV-002.md`). The sandbox only restricts the shell; the model's web tool is independent. With `codex-cli 0.162.0`, both must be disabled:
+  - In `~/.codex/config.toml`: `web_search = "disabled"`, `[sandbox_workspace_write] network_access = false` and `[features] apps = false`.
+  - On the command line, always: `codex exec -c web_search=disabled -c sandbox_workspace_write.network_access=false --disable apps …`. `web_search=disabled` alone is not enough (verified: the session was still opening pages); with `--disable apps` the session has no web tool and the shell continues to work.
+  - Reviewers use `-s read-only` and authors use `-s workspace-write`, both with the above. `--search` must not be used.
+  - Before trusting a new session, check that it has no web tool (e.g. ask it to open `https://example.com`: it must respond that it cannot).
+- **OpenCode (reviewer) follows the same rule:** it is invoked non-interactively (`opencode run … </dev/null`), only on local checkout files (diff and method specification), without asking it to open URLs and with restricted permissions in its configuration: `"permission": {"webfetch": "deny", "websearch": "deny", "edit": "deny", "bash": "deny"}` (alternative: a strict bash allowlist with only `git diff`, `git show`, `git log`, `rg` and `ls`; nothing that executes code: no `python`, `node`, `curl`, `wget` or `cargo`). **Blocking only `webfetch` and `websearch` is not enough**: bash still has network access. The actual guarantee comes from the operating system: the agent's user may only connect to `token-plan.ap-southeast-1.maas.aliyuncs.com:443` (nftables/iptables by UID or a proxy). This is checked with a `webfetch` and a `python -c "import urllib.request…"`, which must fail. Applying this: **PENDING** Jonathan's decision. The only permitted connection is to the model provider; it does not download or consult external code or documentation.
+- **Codex and OpenCode never open OpenSees, CalculiX or LAPACK code** (or any other path in §5), even to “compare similarity”: the similarity audit (§9) is performed by J4 or a person, never by the authoring or reviewing session.
+- Neither authors nor reviewers consult external sources: no repositories, forums or online documentation. They work only with what is in the checkout and in the method specification. If a permitted external source (§4) is needed, a person supplies it as text in the specification.
+- A violation (a session with web access or one that opened a path in §5) is recorded in the ENG-GOV-002 log with facts: session, role, URLs opened and whether the attempt succeeded.
 
-**Instrucción estándar (pegar al inicio de cada sesión):**
+**Standard instruction (paste at the start of each session):**
 
 ```text
-Vas a implementar <método> en Rust para este repo, bajo protocolo clean-room (docs/CLEAN_ROOM.md).
-Fuentes permitidas: solo las citadas en la ficha del método y en docs/CLEAN_ROOM.md §4.
-PROHIBIDO: buscar, abrir, citar, recordar o reproducir código fuente de OpenSees, Frame3DD, Stabileo
-o cualquier derivado o motor de las rutas del §5, y usar sus nombres de comandos, elementos,
-materiales o solvers (§6). No navegues a esos repos ni a foros con fragmentos de su código.
-Si no puedes implementar algo solo con las fuentes permitidas, DETENTE y reporta la duda;
-no improvises desde memoria de otro motor. No copies código de libros ni de crates.
-Al terminar, completa provenance/ENG-XXX.md con fuentes, derivaciones y declaración.
+You will implement <method> in Rust for this repository, under the clean-room protocol (docs/CLEAN_ROOM.md).
+Permitted sources: only those cited in the method specification and in docs/CLEAN_ROOM.md §4.
+PROHIBITED: searching for, opening, citing, recalling or reproducing source code of OpenSees, Frame3DD, Stabileo
+or any derivative or engine from the paths in §5, and using their command, element,
+material or solver names (§6). Do not browse those repositories or forums with fragments of their code.
+If you cannot implement something using only the permitted sources, STOP and report the uncertainty;
+do not improvise from memory of another engine. Do not copy code from books or crates.
+When finished, complete provenance/ENG-XXX.md with sources, derivations and declaration.
 ```
 
-## 11. Checklist de PR
+## 11. PR checklist
 
-La plantilla está en `.github/PULL_REQUEST_TEMPLATE.md`. Resumen:
+The template is in `.github/PULL_REQUEST_TEMPLATE.md`. Summary:
 
-- [ ] Bitácora completa y firmada por un revisor
-- [ ] Ninguna ruta prohibida en el diff ni en el historial de la sesión
-- [ ] Prueba de nombres prohibidos en verde (ENG-GOV-005)
-- [ ] `cargo-deny` verde
-- [ ] CLA firmado si el autor es externo (ENG-GOV-007)
-- [ ] Fixtures con `source` y cita
-- [ ] Conformidad y benchmarks en verde en nativo y wasm
-- [ ] «Sí» explícito de Jonathan para el merge
+- [ ] Log completed and signed by a reviewer
+- [ ] No prohibited paths in the diff or session history
+- [ ] Prohibited names test passing (ENG-GOV-005)
+- [ ] `cargo-deny` passing
+- [ ] CLA signed if the author is external (ENG-GOV-007)
+- [ ] Fixtures with `source` and a citation
+- [ ] Conformance checks and benchmarks passing on native and wasm
+- [ ] Jonathan's explicit “Yes” to the merge
 
-## 12. Pendientes y dudas abiertas
+## 12. Pending items and open questions
 
-- Nombre definitivo y visibilidad del repo (ENG-GOV-001).
-- Herramienta y umbral de similitud.
-- Memo legal (ENG-GOV-004) y posterior actualización de este protocolo.
-- CLA (ENG-GOV-007) y CI (ENG-GOV-005).
+- Final name and repository visibility (ENG-GOV-001).
+- Similarity tool and threshold.
+- Legal memo (ENG-GOV-004) and subsequent update of this protocol.
+- CLA (ENG-GOV-007) and CI (ENG-GOV-005).
