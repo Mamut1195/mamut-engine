@@ -2,6 +2,7 @@ name: Rust
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   push:
     branches: [main]
 
@@ -19,6 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          fetch-depth: 0
           persist-credentials: false
       - name: Entorno aislado del job (HOME, CARGO_HOME y toolchain de solo lectura)
         run: |
@@ -41,6 +43,12 @@ jobs:
             f3834d26669b03f6855fa54bd2381443123e860167bc0c7a8dd137e5cf6e5e4f /opt/rust/bin/rustc \
             e951141cc55a6cd7b9876d187bd30a3720e6086b99413af95e3b8de1cdd72f14 /opt/rust/bin/cargo \
             | sha256sum -c -
+      - name: Changelog
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          CHANGELOG_RELEASE: ${{ contains(github.event.pull_request.labels.*.name, 'release') && '1' || '' }}
+        run: bash scripts/changelog-check.sh "$BASE"
       - name: Formato
         run: cargo fmt --all -- --check
       - name: Clippy
