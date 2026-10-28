@@ -4,6 +4,8 @@ Bindings PyO3/maturin para Python >=3.10 sobre `engine-api`. El adaptador no
 implementa cálculos numéricos: validación, análisis, códigos, capacidades y
 contratos proceden de la fachada Rust.
 
+Consulta la [guía de usuario en español](docs/GUIA_USUARIO.md) para instalación local, notebooks y límites de validación.
+
 Los metadatos declaran `AGPL-3.0-only`. La wheel incluye `LICENSE` y `NOTICE`.
 Titular: MAMPRO SAS (ADR-001, 2026-10-15). Texto de la licencia comercial, aviso
 definitivo, texto del CLA y registro de firmas: **PENDIENTES** (ENG-GOV-004 /
