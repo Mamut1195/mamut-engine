@@ -1,5 +1,5 @@
 //! Public vocabulary guard; imports no code and queries no other engines.
-use std::{fs, path::Path};
+use std::{collections::BTreeSet, fs, path::Path};
 
 const FORBIDDEN: &str = include_str!("../../../clean-room/forbidden_identifiers.txt");
 const COMMAND_KEYS: &[&str] = &["ops", "pattern", "constraints", "system", "test", "element"];
@@ -40,9 +40,10 @@ const SCHEMA_KEYWORDS: &[&str] = &[
     "examples",
 ];
 
-// Exceptions PENDING a decision: $defs names published in #88,
-// referenced by $ref. They preserve the contract; they authorize neither camelCase fields
-// nor new definitions. They apply only directly under $defs of the indicated $id.
+// Frozen by MAM-480 until a major contract change (results/2, engine-input/2 or
+// aliases): these $defs names published in #88 and referenced by $ref must not grow.
+// They authorize neither camelCase fields nor new definitions and apply only
+// directly under $defs of the indicated $id.
 const LEGACY_DEFS: &[(&str, &[&str])] = &[
     (
         "urn:mamut:engine-input:1",
@@ -104,6 +105,49 @@ fn ascii_name(name: &str) -> bool {
     let mut bytes = name.bytes();
     bytes.next().is_some_and(|b| b.is_ascii_lowercase())
         && bytes.all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
+}
+
+fn format_character(c: char) -> bool {
+    // Unicode General_Category=Cf (15.1); explicit ranges avoid a new dependency.
+    matches!(
+        c,
+        '\u{00ad}'
+            | '\u{0600}'..='\u{0605}'
+            | '\u{061c}'
+            | '\u{06dd}'
+            | '\u{070f}'
+            | '\u{0890}'..='\u{0891}'
+            | '\u{08e2}'
+            | '\u{180e}'
+            | '\u{200b}'..='\u{200f}'
+            | '\u{202a}'..='\u{202e}'
+            | '\u{2060}'..='\u{2064}'
+            | '\u{2066}'..='\u{206f}'
+            | '\u{feff}'
+            | '\u{fff9}'..='\u{fffb}'
+            | '\u{110bd}'
+            | '\u{110cd}'
+            | '\u{13430}'..='\u{1343f}'
+            | '\u{1bca0}'..='\u{1bca3}'
+            | '\u{1d173}'..='\u{1d17a}'
+            | '\u{e0001}'
+            | '\u{e0020}'..='\u{e007f}'
+    )
+}
+
+fn cyrillic_letter(c: char) -> bool {
+    // Cyrillic and its phonetic, modifier and supplementary letters.
+    // Greek mathematical notation and other non-ASCII text stay valid.
+    c.is_alphabetic()
+        && matches!(
+            c,
+            '\u{0400}'..='\u{052f}'
+                | '\u{1c80}'..='\u{1c8a}'
+                | '\u{1d2b}'
+                | '\u{1d78}'
+                | '\u{a640}'..='\u{a69f}'
+                | '\u{1e030}'..='\u{1e06d}'
+        )
 }
 
 // Name tree: preserves duplicate keys and does not convert numbers to f64/u64.
@@ -270,7 +314,12 @@ fn inspect<'a>(
             path.pop();
             violation
         }
-        Node::String(value) => forbidden_word(value, names),
+        Node::String(value) => forbidden_word(value, names).or_else(|| {
+            value
+                .chars()
+                .any(|c| format_character(c) || cyrillic_letter(c))
+                .then(|| value.clone())
+        }),
         Node::Scalar => None,
     }
 }
@@ -329,6 +378,71 @@ fn schemas_fixtures_and_public_input_field_names_are_clean() {
         let schema = engine_api::schema(kind).unwrap();
         assert_eq!(violation(schema, true), None, "{kind}");
         let _: serde_json::Value = serde_json::from_str(schema).unwrap();
+    }
+}
+
+#[test]
+fn legacy_definitions_are_frozen_by_mam_480() {
+    let expected: &[(&str, &[&str])] = &[
+        (
+            "urn:mamut:engine-input:1",
+            &[
+                "uniformLoad",
+                "dofValue",
+                "massSource",
+                "pDeltaOptions",
+                "modalOptions",
+                "spectrumTable",
+                "spectrumDirection",
+                "spectrumOptions",
+            ],
+        ),
+        (
+            "urn:mamut:results:1",
+            &[
+                "nodeIdentity",
+                "memberIdentity",
+                "fieldExtremes",
+                "spectrumResponse",
+                "caseFactor",
+                "pDeltaIteration",
+                "pDeltaConvergence",
+            ],
+        ),
+    ];
+    assert_eq!(
+        LEGACY_DEFS, expected,
+        "frozen contract IDs, order and names"
+    );
+    let names: Vec<_> = LEGACY_DEFS.iter().flat_map(|(_, defs)| *defs).collect();
+    assert_eq!(names.len(), 15);
+    assert_eq!(
+        names.iter().collect::<BTreeSet<_>>().len(),
+        15,
+        "no duplicate legacy names"
+    );
+}
+
+#[test]
+fn frozen_legacy_definitions_exist_in_the_published_schemas() {
+    for (kind, &(id, names)) in ["engine-input/1", "results/1"].into_iter().zip(LEGACY_DEFS) {
+        let schema: serde_json::Value =
+            serde_json::from_str(engine_api::schema(kind).unwrap()).unwrap();
+        assert_eq!(schema["$id"], id, "{kind}");
+        let defs = schema["$defs"].as_object().expect("published root $defs");
+        for name in names {
+            assert!(defs.contains_key(*name), "{kind}: missing /$defs/{name}");
+        }
+        let non_snake_case: BTreeSet<_> = defs
+            .keys()
+            .map(String::as_str)
+            .filter(|name| !ascii_name(name))
+            .collect();
+        assert_eq!(
+            non_snake_case,
+            names.iter().copied().collect(),
+            "{kind}: no other non-snake_case definitions"
+        );
     }
 }
 
@@ -513,6 +627,110 @@ fn legacy_definition_exceptions_are_scoped_to_the_published_contracts() {
             let nested_def = serde_json::json!({"$id": id, "$defs": {"nested": {"$defs": {name: {"type": "object"}}}}});
             assert_eq!(violation(&nested_def.to_string(), true), Some(name.into()));
         }
+    }
+}
+
+fn rejects_string_value(value: &str) {
+    // Test decoded scalars as well as JSON Unicode escapes, including surrogate pairs.
+    let escaped = value
+        .encode_utf16()
+        .map(|unit| format!("\\u{unit:04x}"))
+        .collect::<String>();
+    for encoded in [
+        serde_json::to_string(value).unwrap(),
+        format!("\"{escaped}\""),
+    ] {
+        for (text, schema) in [
+            (
+                format!(r#"{{"nested":{{"description":{encoded}}}}}"#),
+                false,
+            ),
+            (format!(r#"{{"nested":[{encoded}]}}"#), false),
+            (
+                format!(r#"{{"properties":{{"field":{{"description":{encoded}}}}}}}"#),
+                true,
+            ),
+            (format!(r#"{{"examples":[{encoded}]}}"#), true),
+        ] {
+            assert_eq!(violation(&text, schema), Some(value.into()), "{text}");
+        }
+    }
+}
+
+#[test]
+fn string_values_reject_cyrillic_confusables() {
+    rejects_string_value("descripti\u{043e}n");
+    for c in [
+        '\u{0501}',
+        '\u{1c80}',
+        '\u{1d2b}',
+        '\u{1d78}',
+        '\u{a641}',
+        '\u{1e030}',
+    ] {
+        rejects_string_value(&format!("a{c}b"));
+    }
+}
+
+#[test]
+fn descriptions_allow_greek_mathematical_notation() {
+    for text in [
+        r#"{"description":"δ/γ/φ"}"#,
+        r#"{"description":"\u03b4/\u03b3/\u03c6"}"#,
+    ] {
+        assert_eq!(violation(text, true), None, "{text}");
+        assert_eq!(violation(text, false), None, "{text}");
+    }
+}
+
+#[test]
+fn string_values_reject_zero_width_and_bidi_characters() {
+    rejects_string_value("a\u{200b}b");
+    rejects_string_value("\u{202e}text");
+    for c in ['\u{200c}', '\u{200d}', '\u{2060}', '\u{feff}']
+        .into_iter()
+        .chain('\u{202a}'..='\u{202e}')
+        .chain('\u{2066}'..='\u{2069}')
+    {
+        rejects_string_value(&format!("a{c}b"));
+    }
+}
+
+#[test]
+fn string_values_reject_other_format_characters() {
+    for c in [
+        '\u{00ad}',
+        '\u{0600}',
+        '\u{061c}',
+        '\u{06dd}',
+        '\u{070f}',
+        '\u{0890}',
+        '\u{08e2}',
+        '\u{180e}',
+        '\u{200e}',
+        '\u{200f}',
+        '\u{2061}',
+        '\u{206f}',
+        '\u{fff9}',
+        '\u{110bd}',
+        '\u{110cd}',
+        '\u{13430}',
+        '\u{1bca0}',
+        '\u{1d173}',
+        '\u{e0001}',
+        '\u{e0020}',
+        '\u{e007f}',
+    ] {
+        rejects_string_value(&format!("a{c}b"));
+    }
+}
+
+#[test]
+fn string_values_allow_other_non_ascii_text() {
+    for value in ["descripción", "café", "m² · m³ − 1", "Mᵀ", "\u{03e2}"] {
+        let text = serde_json::json!({"description": value}).to_string();
+        assert_eq!(violation(&text, true), None, "{text}");
+        assert_eq!(violation(&text, false), None, "{text}");
     }
 }
 

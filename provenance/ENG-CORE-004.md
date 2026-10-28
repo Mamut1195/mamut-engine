@@ -54,6 +54,34 @@ and `PATH=/home/box/.cargo/bin:$PATH`:
   no changes to library, schemas, dependencies or protected files.
 - Human clean-room review: PENDING (J4).
 
+## MAM-480 · ENG-CORE-004-FU
+
+- `LEGACY_DEFS` is frozen without growth: exactly the ordered lists documented
+  below for `urn:mamut:engine-input:1` (8) and `urn:mamut:results:1` (7),
+  15 names in total, without duplicates. In `tests/input_names.rs`,
+  `legacy_definitions_are_frozen_by_mam_480` pins the IDs, order and content;
+  `frozen_legacy_definitions_exist_in_the_published_schemas` checks their
+  presence under published root `$defs` and rejects other non-snake_case names.
+- Renaming remains pending a major contract change (`results/2`,
+  `engine-input/2` or aliases); when: DESCONOCIDO.
+- Existing `element` scope tests are preserved: `model.members[].element`,
+  engine-input/1 `/$defs/member/properties/element` and results/1
+  `/$defs/memberIdentity/properties/element`, with rejections elsewhere.
+- String values now reject Unicode Cf characters (including zero-width and
+  bidi controls) and Cyrillic letters, including decoded JSON escapes,
+  nested objects and arrays. Greek is allowed in all string values, without
+  path exceptions. Existing accented Latin text and mathematical symbols
+  remain unchanged; no dependencies or contract files are changed.
+- Initial audit: the previous guard passed all 25 tests. Four published
+  descriptions already contain legitimate Greek mathematics: engine-input/1
+  `/$defs/spring/description` (δ, θ), `/$defs/soil_options/description` (γ),
+  `/$defs/consolidation_options/description` (γ, Σ), and results/1
+  `/description` (φ). Fixtures contain no non-ASCII string values. Greek is
+  not rejected because these published descriptions use it as mathematical
+  notation. Known limitation: Greek confusables in string values remain
+  undetected. The positive description test accepts δ/γ/φ, both literal and
+  JSON-escaped; negative tests retain nested Cyrillic and Cf values.
+
 ## J4 r23 corrections
 
 - Date: 2026-10-14 (America/Guayaquil).
