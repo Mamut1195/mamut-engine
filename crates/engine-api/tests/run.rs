@@ -1,4 +1,4 @@
-//! Oráculos SI derivados a mano, sin implementación ni datos de otros motores.
+//! Hand-derived SI oracles, without implementation or data from other engines.
 use engine_api::{canonical_json, exit_code, CancelToken, Outcome, Status};
 use engine_core::math;
 use serde_json::{json, Value};
@@ -35,7 +35,7 @@ fn close(v: &Value, expected: f64) {
 
 #[test]
 fn cantilever_tip_point_load_analytical_displacement_and_fixed_moment() {
-    // Equilibrio: R=P, M=PL. Integrando EI y''=−P(L−x), y(0)=y'(0)=0:
+    // Equilibrium: R=P, M=PL. Integrating EI y''=−P(L−x), y(0)=y'(0)=0:
     // y(L)=−PL³/(3EI). E=200, I=3, L=4, P=12.
     let (o, d) = solve(&input());
     assert_eq!(o.status, Status::Ok);
@@ -53,8 +53,8 @@ fn cantilever_tip_point_load_analytical_displacement_and_fixed_moment() {
 
 #[test]
 fn simply_supported_uniform_load_analytical_peak_and_reactions() {
-    // ΣF=0, simetría: R_i=R_j=wL/2. M(x)=w x(L−x)/2,
-    // M'(x)=w(L/2−x)=0 en L/2, Mmax=wL²/8.
+    // ΣF=0, symmetry: R_i=R_j=wL/2. M(x)=w x(L−x)/2,
+    // M'(x)=w(L/2−x)=0 at L/2, Mmax=wL²/8.
     let mut v = input();
     v["model"]["supports"] = json!([
         {"id": "pin", "node": 1, "restrained": ["Ux","Uy"]},
@@ -344,7 +344,7 @@ fn exit_code_mapping_is_complete_including_reserved_timeout() {
 
 #[test]
 fn diaphragm_output_always_has_explicit_recovery_warning() {
-    // Smoke de frontera; no se declara cerrada la cobertura de dominio de #84.
+    // Boundary smoke test; domain coverage of #84 is not declared complete.
     let mut v = input();
     v["model"]["nodes"] = json!([
         {"id":1,"dim":"D3","coordinates":[0.0,0.0,0.0],"dofs":["Ux","Uy","Uz","Rx","Ry","Rz"]},
@@ -416,7 +416,7 @@ fn spatial_frame_cantilever_uses_z_load_and_y_bending_inertia() {
         -12.0 * 64.0 / (3.0 * 200.0 * 3.0),
     );
     close(&d["cases"][0]["nodes"][0]["reactions"][2], 12.0);
-    // r × F = +PL e_y; el apoyo ejerce −PL e_y.
+    // r × F = +PL e_y; the support exerts −PL e_y.
     close(&d["cases"][0]["nodes"][0]["reactions"][4], -48.0);
     close(&d["cases"][0]["members"][0]["end_forces_local"][4], -48.0);
 }
@@ -437,7 +437,7 @@ fn spatial_truss_selection_recovers_axial_analytical_response() {
     let (o, d) = solve(&v);
     assert_eq!(o.exit_code(), 0, "{}", o.document);
     assert_eq!(d["members"][0]["element"], "truss3d.linear");
-    // EA δ/L = P → δ=PL/EA; equilibrio axial R=−P.
+    // EA δ/L = P → δ=PL/EA; axial equilibrium R=−P.
     close(
         &d["cases"][0]["nodes"][1]["displacements"][0],
         12.0 * 4.0 / (200.0 * 2.0),
@@ -509,7 +509,7 @@ fn combinations_share_stations_when_individual_critical_points_differ() {
     assert_eq!(o.exit_code(), 1, "{}", o.document);
     let stations_a = d["cases"][0]["members"][0]["stations"].as_array().unwrap();
     let stations_b = d["cases"][1]["members"][0]["stations"].as_array().unwrap();
-    assert!(stations_a.len() > 5); // Incluye la raíz distinta del segundo caso.
+    assert!(stations_a.len() > 5); // Includes the distinct root of the second case.
     assert_eq!(
         stations_a
             .iter()

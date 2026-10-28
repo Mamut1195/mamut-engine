@@ -595,7 +595,7 @@ fn numerical_libraries_have_no_hash_collections_or_threads() -> std::io::Result<
         }
     }
     paths.sort();
-    assert!(!paths.is_empty(), "La guardia no encontró fuentes");
+    assert!(!paths.is_empty(), "The guard found no sources");
     // Includes engine-api: currently needs no serialization exception.
     // Only the CLI cancellation monitors may use thread; no numerical kernel may do so.
     for path in paths {
@@ -604,7 +604,7 @@ fn numerical_libraries_have_no_hash_collections_or_threads() -> std::io::Result<
                 &fs::read_to_string(&path)?,
                 path.strip_prefix(&root).unwrap()
             ),
-            "Colección hash o concurrencia prohibida en {}",
+            "Hash collection or concurrency prohibited in {}",
             path.display()
         );
     }
@@ -669,7 +669,7 @@ fn engine_crates_use_only_the_central_scalar_module() -> std::io::Result<()> {
     let mut paths = Vec::new();
     files(&crates, &mut paths)?;
     paths.sort();
-    assert!(!paths.is_empty(), "La guardia no encontró fuentes");
+    assert!(!paths.is_empty(), "The guard found no sources");
     // An included .rs must also be within the inventory, even if it
     // uses ../ or a symbolic link. math.rs is not excluded from these checks.
     let inspected = paths
@@ -681,12 +681,12 @@ fn engine_crates_use_only_the_central_scalar_module() -> std::io::Result<()> {
         let relative = path.strip_prefix(&crates).map_err(std::io::Error::other)?;
         assert!(
             !scalar_source_violation(&source, relative),
-            "Función escalar, FMA, include! o #[path] fuera de política en {}",
+            "Scalar function, FMA, include!, or #[path] outside policy in {}",
             path.display()
         );
         assert!(
             !code_paths_violation(&source, path, &inspected),
-            "include! o #[path] fuera del inventario Rust en {}",
+            "include! or #[path] outside the Rust inventory in {}",
             path.display()
         );
     }
@@ -706,7 +706,7 @@ fn engine_crates_reject_ffi_and_require_safe_libraries() -> std::io::Result<()> 
         .map_err(std::io::Error::other)?;
     assert!(
         !exception_inventory_violation(&relative_paths),
-        "Excepción de tests/examples sin archivo inspeccionado o justificación"
+        "Test/example exception without inspected file or justification"
     );
     let mut libraries = 0;
     for path in paths {
@@ -714,26 +714,26 @@ fn engine_crates_reject_ffi_and_require_safe_libraries() -> std::io::Result<()> 
         let source = fs::read_to_string(&path)?;
         assert!(
             !ffi_violation(&source, relative),
-            "Construcción prohibida o excepción obsoleta en {}",
+            "Prohibited construct or obsolete exception in {}",
             path.display()
         );
         if relative.components().count() == 3 && relative.ends_with("src/lib.rs") {
             libraries += 1;
             assert!(
                 !library_unsafe_policy_violation(&source, relative),
-                "Biblioteca sin #![forbid(unsafe_code)] en {}",
+                "Library without #![forbid(unsafe_code)] in {}",
                 path.display()
             );
         }
     }
-    assert!(libraries > 0, "La guardia no encontró bibliotecas");
+    assert!(libraries > 0, "The guard found no libraries");
     let python = crates.join("../bindings/python/src/lib.rs");
     assert!(
         !library_unsafe_policy_violation(
             &fs::read_to_string(python)?,
             Path::new("bindings/python/src/lib.rs")
         ),
-        "Binding Python sin #![forbid(unsafe_code)]"
+        "Python binding without #![forbid(unsafe_code)]"
     );
     Ok(())
 }

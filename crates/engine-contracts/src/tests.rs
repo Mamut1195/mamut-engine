@@ -24,7 +24,7 @@ fn detected(diagnostics: Vec<Diagnostic>, text: &str) {
         diagnostics
             .iter()
             .any(|d| d.hint.as_ref().is_some_and(|h| h.contains(text))),
-        "No detectó {text}: {diagnostics:#?}"
+        "Did not detect {text}: {diagnostics:#?}"
     );
 }
 
@@ -69,7 +69,7 @@ fn every_physical_example_and_factory_passes_conformance() {
 
 #[test]
 fn analytic_hooke_section_and_ea_over_l() {
-    // Derivación propia; referencia bibliográfica y limitación en la bitácora.
+    // Own derivation; bibliographic reference and limitation in the log.
     assert_eq!(
         LinearElastic::new(200.0)
             .unwrap()
@@ -114,7 +114,7 @@ fn analytic_hooke_section_and_ea_over_l() {
                 .flat_map(|i| [axis, axis + 3].into_iter().map(move |j| (*i, j)))
                 .map(|(i, j)| mass.get(i, j).unwrap())
                 .sum();
-            assert_eq!(total, 12.0); // ρAL=2×3×2 por cada dirección.
+            assert_eq!(total, 12.0); // ρAL=2×3×2 per direction.
         }
     }
 }
@@ -348,14 +348,14 @@ impl Element for BadElement {
         let mut r = self.bar.respond(c, u, s)?;
         if self.mode == 0 {
             r.internal_force[0] += 1.0;
-        } // Fuerza espuria incluso en cuerpo rígido.
+        } // Spurious force even in a rigid body.
         if self.mode == 1 {
             r.tangent = DMat::zeros(6, 6)?;
-        } // Derivada falsa.
+        } // False derivative.
         if self.mode == 2 && (c.coords[1][1] - c.coords[0][1]).abs() > 1e-12 {
             r.internal_force.iter_mut().for_each(|v| *v *= 2.0);
             r.tangent = DMat::new(6, 6, r.tangent.values().iter().map(|v| v * 2.0).collect())?;
-            // Pasa FD y modos, falla covarianza.
+            // Passes FD and modes, fails covariance.
         }
         if self.mode == 4 {
             r.internal_force.pop();
@@ -631,7 +631,7 @@ fn matrices_only_store_valid_finite_sized_data() {
     assert_eq!(DMat::zeros(1, 1).unwrap().get(1, 0), None);
 }
 
-// Formulación espacial independiente para cubrir los seis modos del kit genérico.
+// Independent spatial formulation to cover all six modes of the generic kit.
 struct SpatialBar {
     locked_component: Option<usize>,
 }

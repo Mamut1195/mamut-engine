@@ -88,15 +88,15 @@ impl Drop for Files {
 }
 fn write_child_stdin(child: &mut Child, input: &str) {
     let mut stdin = child.stdin.take().unwrap();
-    // El hijo puede terminar sin leer stdin; los asserts comprobarán su salida.
+    // The child may exit without reading stdin; the assertions check its output.
     if let Err(error) = stdin.write_all(input.as_bytes()) {
         assert_eq!(
             error.kind(),
             io::ErrorKind::BrokenPipe,
-            "Error al escribir stdin del hijo: {error}"
+            "Error writing child stdin: {error}"
         );
     }
-    // Al salir se cierra stdin antes de esperar al hijo con wait_with_output.
+    // On exit, stdin is closed before waiting for the child with wait_with_output.
 }
 fn value(bytes: &[u8]) -> Value {
     serde_json::from_slice(bytes).unwrap()
@@ -109,7 +109,7 @@ fn assert_code(output: &Output, code: i32) {
         assert!(output.stderr.is_empty());
     } else if code > 1 {
         error_schema::assert_error_stream(&output.stderr, code);
-        assert!(output.stdout.is_empty(), "stdout de fallo debe estar vacío");
+        assert!(output.stdout.is_empty(), "failure stdout must be empty");
     }
     assert_eq!(
         output.status.code(),
@@ -119,9 +119,9 @@ fn assert_code(output: &Output, code: i32) {
     );
 }
 
-// Derivada del fixture «consolidation» de engine-api/tests/support/sfc010.rs.
-// 80 elementos, 64 intervalos y 72000 subpasos; permanece bajo las cotas
-// públicas de trabajo y coste denso. Sin datos ni solvers externos.
+// Derived from the «consolidation» fixture in engine-api/tests/support/sfc010.rs.
+// 80 elements, 64 intervals, and 72000 substeps; remains below the public
+// work and dense cost bounds. No external data or solvers.
 fn heavy_consolidation() -> String {
     let mut input: Value = serde_json::from_str(include_str!(
         "../../engine-api/fixtures/input/valid/sfc010-consolidation.json"
@@ -169,7 +169,7 @@ fn timed_run(files: &Files, timeout: &str, from_env: bool, progress: bool) -> Ou
         if start.elapsed() >= limit {
             let _ = child.kill();
             let output = child.wait_with_output().unwrap();
-            panic!("El timeout no terminó en {limit:?}: {output:?}");
+            panic!("The timeout did not finish within {limit:?}: {output:?}");
         }
         std::thread::sleep(Duration::from_millis(5));
     }
@@ -186,7 +186,7 @@ fn timed_run(files: &Files, timeout: &str, from_env: bool, progress: bool) -> Ou
 fn timeout_flag_and_environment_cancel_heavy_consolidation_with_six() {
     let files = Files::new();
     files.write("input.json", &heavy_consolidation());
-    // Confirma que la entrada es ejecutable y no dispara las cotas de trabajo.
+    // Confirms that the input is executable and does not trigger the work bounds.
     let start = Instant::now();
     let baseline = files.run(RUN, false);
     assert_code(&baseline, 0);
@@ -339,7 +339,7 @@ fn timeout_with_ndjson_emits_only_complete_json_lines_and_timeout_last() {
     let files = Files::new();
     files.write("input.json", &heavy_consolidation());
     let mut saw_started = false;
-    // Incluye vencimientos durante el arranque y durante el método pesado.
+    // Includes deadlines expiring during startup and during the heavy method.
     for from_env in [false, true] {
         for timeout in ["0.000000001", "0.0001", "0.001", "0.15"] {
             let output = timed_run(&files, timeout, from_env, true);
@@ -350,7 +350,7 @@ fn timeout_with_ndjson_emits_only_complete_json_lines_and_timeout_last() {
             let lines: Vec<Value> = stderr
                 .lines()
                 .map(|line| {
-                    serde_json::from_str(line).expect("Línea stderr debe ser JSON completo")
+                    serde_json::from_str(line).expect("The stderr line must be complete JSON")
                 })
                 .collect();
             let (envelope, events) = lines.split_last().unwrap();
@@ -376,10 +376,7 @@ fn timeout_with_ndjson_emits_only_complete_json_lines_and_timeout_last() {
             assert!(envelope.get("engineResults").is_none());
         }
     }
-    assert!(
-        saw_started,
-        "Debe comprobarse también un evento de progreso"
-    );
+    assert!(saw_started, "A progress event must also be checked");
 }
 
 #[test]
@@ -590,7 +587,7 @@ fn input_stdin_and_path_match_legacy_bytes_with_embedded_and_explicit_documents(
     for explicit in [false, true] {
         let mut command = files.command();
         command.current_dir(&files.0);
-        // Una variable inválida comprueba que --input tiene prioridad.
+        // An invalid variable checks that --input takes precedence.
         command.env("MAMUT_ENGINE_INPUT", files.path("missing.json"));
         command
             .args(["run", "--input"])
@@ -755,7 +752,7 @@ fn validate_model_errors_have_deterministic_reports_and_eng_diagnostics() {
         let output = with_input_stdin(&files, &["validate", "--input", "-"], input.as_bytes());
         assert_code(&output, 2);
         assert!(output.stderr.is_empty());
-        let report = value(&output.stdout); // Rechaza documentos JSON adicionales.
+        let report = value(&output.stdout); // Rejects additional JSON documents.
         assert_validate_report(&report);
         assert_eq!(report["status"], "invalid");
         let diagnostics = report["diagnostics"].as_array().unwrap();
@@ -1113,7 +1110,7 @@ fn stdin_workflow_ndjson_and_complete_api_result_preserve_manifest() {
     let api = engine_api::run(INPUT, &engine_api::CancelToken::new(), |_| {});
     assert_eq!(envelope["engineResults"][0], value(api.document.as_bytes()));
     assert!(envelope["engineResults"][0]["cases"][0]["nodes"].is_array());
-    // La extensión no modifica el manifiesto ni la huella calculada por la base.
+    // The extension does not alter the manifest or the fingerprint computed by the base.
     let mut base_stdout = Vec::new();
     let config = mamut_workflow_cli::CliConfig::new().with_provider(ApiProvider);
     assert_eq!(
@@ -1128,7 +1125,7 @@ fn stdin_workflow_ndjson_and_complete_api_result_preserve_manifest() {
     );
     let mut expected = value(&base_stdout);
     assert_eq!(envelope["data"], expected["data"]);
-    // Reconstruye los bytes del adaptador anterior a ENG-CONT-001 a partir del SDK.
+    // Reconstructs the bytes of the adapter preceding ENG-CONT-001 from the SDK.
     expected["engineId"] = json!("mamut-engine");
     expected["engineVersion"] = engine_api::version()["engine_version"].clone();
     expected["operation"] = json!("run");
@@ -1256,7 +1253,7 @@ fn actual_engine_warning_unsupported_and_unstable_exit_one_three_four() {
                 .map(|line| serde_json::from_str(line).unwrap())
                 .filter(|event: &Value| event["schema"] != "progress/1")
                 .collect();
-            assert_eq!(lines.len(), 2); // started + fallo; sin finished.
+            assert_eq!(lines.len(), 2); // started + failure; no finished.
             lines[1].clone()
         };
         assert_eq!(envelope["exitCode"], code);
@@ -1377,7 +1374,7 @@ fn cancellation_before_workflow_and_during_engine_stages_returns_five() {
         assert_eq!(value(&stderr)["code"], "CLI-E-CANCELLED");
         if via_file {
             fs::remove_file(files.path("cancel")).unwrap();
-            // Quitar el marcador no revoca una cancelación ya sincronizada.
+            // Removing the marker does not revoke an already synchronized cancellation.
             assert!(control.is_cancelled());
         }
     }
@@ -1447,7 +1444,7 @@ fn cancellation_marker_returns_five_from_binary_before_and_after_spawn() {
         let mut child = files
             .command()
             .env("MAMUT_ENGINE_CANCEL_FILE", files.path("cancel"))
-            // La cancelación debe preceder incluso al fallo de lectura de entrada.
+            // Cancellation must precede even input read failure.
             .env_remove("MAMUT_ENGINE_INPUT")
             .args(["run", "--catalog"])
             .arg(files.path("catalog.json"))
@@ -1457,7 +1454,7 @@ fn cancellation_marker_returns_five_from_binary_before_and_after_spawn() {
             .stderr(Stdio::piped())
             .spawn()
             .unwrap();
-        // El proceso espera EOF del workflow: no depende de sleeps ni carreras.
+        // The process waits for workflow EOF: it does not depend on sleeps or races.
         if !before_spawn {
             files.write("cancel", "");
         }
@@ -1488,7 +1485,7 @@ fn closed_stdout_pipe_returns_internal_seventy_from_binary() {
         .stderr(Stdio::piped())
         .spawn()
         .unwrap();
-    // El workflow por stdin impide escribir antes de cerrar el lector de stdout.
+    // The workflow via stdin prevents writing before closing the stdout reader.
     drop(child.stdout.take());
     write_child_stdin(&mut child, RUN);
     let output = child.wait_with_output().unwrap();
@@ -1621,7 +1618,7 @@ fn binary_failures_without_progress_have_exactly_one_error_line() {
         files.write("input.json", &input);
         let output = files.run(RUN, false);
         assert_code(&output, exit_code);
-        let envelope = value(&output.stderr); // falla también si hay varias líneas
+        let envelope = value(&output.stderr); // also fails if there are multiple lines
         assert_eq!(envelope["code"], code);
         assert_eq!(envelope["operation"], "run");
         assert!(!String::from_utf8_lossy(&output.stderr).contains("private-invalid-json"));

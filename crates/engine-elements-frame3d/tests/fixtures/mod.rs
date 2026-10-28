@@ -1,5 +1,5 @@
-//! Fixtures propios SI y herramientas del backend interno; fuentes externas: ninguna.
-#![allow(dead_code)] // Helpers compartidos por dos binarios de integración.
+//! In-house SI fixtures and internal backend tools; external sources: none.
+#![allow(dead_code)] // Helpers shared by two integration binaries.
 use engine_contracts::{ElementCtx, ElementParams, JsonValue, MemberLoad};
 use engine_core::Dim;
 use engine_elements_frame3d::{EulerFrame3D, MomentReleases};

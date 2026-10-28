@@ -1,4 +1,4 @@
-//! Derivación propia: congruencia, trabajo virtual y restricciones exactas.
+//! Own derivation: congruence, virtual work, and exact constraints.
 #[allow(dead_code)]
 #[path = "../../../engine-assembly/tests/fixtures/rigid_cases.rs"]
 mod rigid_cases;
@@ -16,7 +16,7 @@ fn congruence_is_symmetric_and_matches_exact_lagrange_constraints() -> EResult<(
         let system = rigid_cases::system(ReferenceBackend, settlement)?;
         let n = system.stiffness().rows();
         let nf = system.n_free_dofs();
-        // Kg heterogénea: incluye acoplamientos y fuerzas en esclavos/maestro.
+        // Heterogeneous Kg: includes couplings and forces at slaves/master.
         let entries: Vec<_> = (0..n)
             .flat_map(|i| {
                 (0..n).map(move |j| Triplet {
@@ -29,8 +29,8 @@ fn congruence_is_symmetric_and_matches_exact_lagrange_constraints() -> EResult<(
         let kg = SparseMatrix::from_triplets(n, n, &entries)?;
         let projected = reduce(&system, &kg)?;
         let u0 = system.constraints().expand(&vec![0.0; nf])?;
-        // Obtener T por perturbaciones de desplazamiento, sin usar la rutina
-        // de reducción ni las filas dispersas que implementan la proyección.
+        // Obtains T through displacement perturbations, without using the reduction
+        // routine or the sparse rows implementing the projection.
         let columns: Vec<_> = (0..nf)
             .map(|j| {
                 let mut q = vec![0.0; nf];
@@ -66,8 +66,8 @@ fn congruence_is_symmetric_and_matches_exact_lagrange_constraints() -> EResult<(
         )?;
         let u = system.constraints().expand(q.values())?;
 
-        // Sistema KKT [A Cᵀ; C 0], con todos los GDL físicos sin apoyo:
-        // C impone directamente u_sx=u_mx-y*rz, u_sy=u_my+x*rz, rz_s=rz_m.
+        // KKT system [A Cᵀ; C 0], with all physical DOFs unsupported:
+        // C directly imposes u_sx=u_mx-y*rz, u_sy=u_my+x*rz, rz_s=rz_m.
         let physical: Vec<_> = (0..n)
             .filter(|&i| system.constraints().prescribed_values()[i].is_none())
             .collect();
@@ -125,8 +125,8 @@ fn congruence_is_symmetric_and_matches_exact_lagrange_constraints() -> EResult<(
         let (norm, _, ratio) = residual(&system, &total, &u, &internal, &force, 1e-12)?;
         assert!(norm < 1e-10);
         assert!(ratio <= 1.0);
-        // El residuo físico de esclavos contiene fuerzas de restricción:
-        // solo su trabajo virtual proyectado debe anularse.
+        // The physical slave residual contains constraint forces:
+        // only their projected virtual work must vanish.
         assert!(physical
             .iter()
             .any(|&i| (internal[i] - force[i]).abs() > 1.0));

@@ -1,4 +1,4 @@
-//! Contrato results/1 y consultas: fixtures propios, sin oráculos externos.
+//! results/1 contract and queries: in-house fixtures, without external oracles.
 mod support;
 use engine_api::{canonical_json, ApiError, CancelToken, ResultQuery};
 use engine_core::{MemberId, NodeId};
@@ -58,8 +58,8 @@ fn fingerprint_regressions_document_jcs_changes() {
         let outcome = run(input, &CancelToken::new(), |_| {});
         let value: Value = serde_json::from_str(&outcome.document).unwrap();
         if vector["rejected_by_engine"] == true {
-            // Vector histórico de JCS: el SDK no cambia; la frontera Engine
-            // ahora rechaza el entero antes de publicar una huella ambigua.
+            // Historical JCS vector: the SDK is unchanged; the Engine boundary
+            // now rejects the integer before publishing an ambiguous fingerprint.
             assert_eq!(outcome.exit_code(), 2);
             assert!(value["input_sha256"].is_null());
             assert!(matches!(
@@ -94,7 +94,7 @@ fn fingerprint_regressions_document_jcs_changes() {
             vector["previous_sha256"]
         );
     }
-    // Mismas entradas mecánicas con representaciones enteras/decimales.
+    // Same mechanical inputs with integer/decimal representations.
     let integers: Value = serde_json::from_str(INPUTS[0]).unwrap();
     let mut decimals = integers.clone();
     decimals["model"]["nodes"][1]["coordinates"][0] = json!(4.0);
@@ -165,7 +165,7 @@ fn check_entity_arrays(value: &Value, field: &str, ids: &[u64]) {
                 if name == field {
                     if let Some(items) = child.as_array() {
                         for item in items {
-                            // members[].nodes son referencias geométricas, no filas.
+                            // members[].nodes are geometric references, not rows.
                             if item.is_object() {
                                 assert!(ids.contains(&item["id"].as_u64().unwrap()));
                             }
@@ -348,13 +348,13 @@ fn schema_validator_rejects_contract_mutations() {
         changed[field] = replacement;
         assert!(
             !support::conforms(&changed),
-            "No detectó mutación de {field}"
+            "Did not detect mutation of {field}"
         );
     }
     let mut changed = original.clone();
     changed.as_object_mut().unwrap().remove("cases");
     assert!(!support::conforms(&changed));
-    // Compatibilidad con documentos #88 sin los metadatos añadidos.
+    // Compatibility with #88 documents without the added metadata.
     changed = original;
     changed.as_object_mut().unwrap().remove("git_commit");
     changed.as_object_mut().unwrap().remove("target");

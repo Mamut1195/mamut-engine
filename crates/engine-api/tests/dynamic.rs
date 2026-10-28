@@ -1,4 +1,4 @@
-//! Oráculos propios: oscilador y ecuación de viga-columna, sin fuentes externas.
+//! In-house oracles: oscillator and beam-column equation, without external sources.
 use engine_api::{canonical_json, CancelToken, Outcome, Status};
 use engine_core::math;
 use serde_json::{json, Value};
@@ -28,8 +28,8 @@ fn spectrum() -> Value {
             "damping":0.05,"interpolation":"linear","extrapolation":"error"}]}]}}]);
     v
 }
-// Columna Euler E=200, I=3, L=4, ρ=0; solo m=5 en Uy de punta.
-// Axial y giro libres no tienen masa: k=3EI/L³=28.125, λ=k/m=5.625.
+// Euler column E=200, I=3, L=4, ρ=0; only m=5 in tip Uy.
+// Free axial displacement and rotation are massless: k=3EI/L³=28.125, λ=k/m=5.625.
 fn massless_column(spectral: bool) -> Value {
     let mut v = column(1, 0.0);
     v["model"]["masses"] = json!([{"id":"m","node":2,"values":[{"dof":"Uy","value":5.0}]}]);
@@ -93,8 +93,8 @@ fn guyan_massless_mechanism_returns_unstable_with_node_and_dof() {
 }
 
 fn two_oscillators(mut v: Value) -> Value {
-    // Dos barras independientes desde el apoyo, L=4 y L=1, EA=400,
-    // masas 5: autovalores 20 y 80; participación 50% por modo.
+    // Two independent members from the support, L=4 and L=1, EA=400,
+    // masses 5: eigenvalues 20 and 80; participation 50% per mode.
     v["model"]["nodes"]
         .as_array_mut()
         .unwrap()
@@ -201,7 +201,7 @@ fn constant_spectrum_single_dof_displacement_and_base_shear() {
 fn pdelta_cantilever_mesh_convergence_and_euler_amplification() {
     // EI y''''+P y''=0, y(0)=y'(0)=0, y''(L)=0,
     // EI y'''(L)+P y'(L)=−H → A=3(tan α−α)/α³, α=L√(P/EI).
-    // Primer polo α=π/2 → Pcr=π²EI/(4L²).
+    // First pole α=π/2 → Pcr=π²EI/(4L²).
     let ratio = 0.2_f64;
     let alpha = std::f64::consts::FRAC_PI_2 * math::sqrt(ratio);
     let exact = 3.0 * (math::tan(alpha) - alpha) / math::powi(alpha, 3);
@@ -211,8 +211,8 @@ fn pdelta_cantilever_mesh_convergence_and_euler_amplification() {
         assert_eq!(o.exit_code(), 0, "{}", o.document);
         let amp = num(&d["cases"][0]["nodes"][mesh]["displacements"][1]) / (64.0 / (3.0 * 600.0));
         errors.push((amp - exact).abs() / exact);
-        // Aproximación de primer polo difiere <0.4%; malla de 8 limita
-        // por separado el error de discretización a 1e−5 frente a solución exacta.
+        // First-pole approximation differs by <0.4%; a mesh of 8 separately limits
+        // discretization error to 1e−5 against the exact solution.
         assert!((amp - 1.0 / (1.0 - ratio)).abs() / (1.0 / (1.0 - ratio)) < 0.004);
         assert_eq!(d["cases"][0]["members"], json!([]));
         assert_eq!(d["convergence"]["status"], "ok");
@@ -258,7 +258,7 @@ fn inertia_two_by_two_followup_is_visible_even_on_failure() {
     }
     assert!(
         observed,
-        "El fixture debe activar bloques 2×2; no valida copysign de #78"
+        "The fixture must activate 2×2 blocks; does not validate copysign from #78"
     );
 }
 #[test]
@@ -305,11 +305,11 @@ fn masses_from_system_case_include_member_equivalent_forces() {
     v["analyses"][0]["options"]["mass_source"] = json!({"method":"system_case","case":"weight","factor":1.0,"direction":[1.0,0.0,0.0],"gravity":2.0});
     let (o, d) = solve(&v);
     assert_eq!(o.exit_code(), 1, "{}", o.document);
-    // q L/2=10 por nodo, m=10/g=5; apoyo aporta denominador global.
+    // q L/2=10 per node, m=10/g=5; the support contributes to the global denominator.
     close(&d["modes"][0]["eigenvalue"], 20.0);
     close(&d["modes"][0]["participation"][0]["mass_fraction"], 0.5);
     v["analyses"][0]["options"]["mass_source"]["method"] = json!("masses_from_case");
-    assert_eq!(solve(&v).0.exit_code(), 4); // Caso nodal vacío → M_ff=0.
+    assert_eq!(solve(&v).0.exit_code(), 4); // Empty nodal case → M_ff=0.
 }
 #[test]
 fn two_modes_and_directional_factors_preserve_analytical_responses() {
@@ -348,7 +348,7 @@ fn mass_projection_off_axis_warns_and_ambiguous_sources_are_invalid() {
     let mut v = oscillator();
     v["cases"] = json!([{"name":"G","loads":[{"node":2,"values":[{"dof":"Ux","value":20.0}]}]}]);
     v["analyses"][0]["options"]["mass_source"] = json!({"method":"masses_from_case","case":"G","factor":0.5,"direction":[1.0,1.0,0.0],"gravity":2.0});
-    assert_eq!(solve(&v).0.exit_code(), 2); // No mezcla con masas declaradas.
+    assert_eq!(solve(&v).0.exit_code(), 2); // No mixing with declared masses.
     v["model"]["masses"] = json!([]);
     let (o, d) = solve(&v);
     assert_eq!(o.exit_code(), 1, "{}", o.document);

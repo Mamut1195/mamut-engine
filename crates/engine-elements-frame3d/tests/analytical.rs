@@ -1,4 +1,4 @@
-//! Soluciones cerradas propias y ensamblaje real; sin oráculos ni fuentes externas.
+//! Own closed-form solutions and actual assembly; no oracles or external sources.
 mod fixtures;
 use engine_assembly::{
     assemble::assemble_matrix, DofMap, ElementContribution, ElementLoad, LinearSystem,
@@ -101,7 +101,7 @@ fn cantilever_biaxial_and_torsion_closed_forms_with_real_assembly() {
             close(value, expected);
         }
     }
-    // El productor se registra y el sistema evalúa el axial del estado total.
+    // The producer is registered and the system evaluates axial force from the total state.
     system
         .set_geometric_producers(vec![geometric_producer(b, &c, location).unwrap()])
         .unwrap();
@@ -160,7 +160,7 @@ fn uniform_fixed_end_reactions_and_section_equilibrium() {
         close(out.stations[1].forces_local[a], -out.end_forces_local[a]);
     }
     assert_eq!(out.stations[2], out.stations[3]);
-    // Dos elementos para dejar GDL interiores libres en el ensamblador.
+    // Two elements to leave free interior DOFs in the assembler.
     let nodes = [[0.0; 3], [L / 2.0, 0.0, 0.0], [L, 0.0, 0.0]];
     let mut model = Model::new();
     for (i, &coord) in nodes.iter().enumerate() {
@@ -259,7 +259,7 @@ fn releases_uniform_pinned_and_propped_in_both_planes() {
             }
         }
     }
-    // Torsión uniforme con un extremo libre: todo el par llega al conservado.
+    // Uniform torsion with one free end: the entire torque reaches the retained end.
     for end in [0, 1] {
         let mut r = MomentReleases::default();
         if end == 0 {

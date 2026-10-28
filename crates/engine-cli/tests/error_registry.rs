@@ -7,9 +7,9 @@ use serde_json::{json, Value};
 const REGISTRY: &str = include_str!("../../../docs/contracts/error-codes-1.json");
 const LOCK: &str = include_str!("../../../docs/contracts/error-codes-1.lock");
 
-// Ancla independiente del registro y del lock. Cada alta exige añadir aquí su
-// definición completa, sin reescribir las anteriores. Se compara texto semántico
-// exacto: sin hashes débiles ni dependencias nuevas. No generar en tiempo de test.
+// Anchor independent of the registry and lock. Each addition requires adding its
+// complete definition here, without rewriting existing ones. Compares exact semantic
+// text: no weak hashes or new dependencies. Does not generate at test time.
 const FROZEN_DEFINITIONS: &[&str] = &[
     r#"{"id":"API-E-CONSOLIDATION-COST","exitCode":2,"outcome":"invalid_input","description":"Consolidation cost, segment count or substep count exceeds its budget.","introduced":"1.0.0","messageKey":"errors.API-E-CONSOLIDATION-COST"}"#,
     r#"{"id":"API-E-CONSOLIDATION-WORK","exitCode":2,"outcome":"invalid_input","description":"Consolidation work exceeds the permitted budget.","introduced":"1.0.0","messageKey":"errors.API-E-CONSOLIDATION-WORK"}"#,
@@ -73,8 +73,8 @@ fn compatible_with_baseline(registry: &Value, lock: &Value, baseline: &Value) ->
     ) else {
         return false;
     };
-    // También impide modificar/borrar registro y lock juntos. Una alta exige
-    // extender explícitamente el ancla de revisión dentro de este test.
+    // Also prevents changing/deleting the registry and lock together. An addition requires
+    // explicitly extending the review anchor in this test.
     lock["codes"] == baseline["codes"]
         && current.keys().eq(locked.keys())
         && locked.into_iter().all(|(id, frozen)| {
@@ -99,7 +99,7 @@ fn frozen_codes_cannot_disappear_or_change_meaning_exit_outcome_key_or_version()
     assert!(lock["codes"].as_array().unwrap().len() >= 32);
     assert!(
         compatible(&registry, &lock),
-        "Código borrado o definición congelada modificada"
+        "Code deleted or frozen definition changed"
     );
 
     for (id, definition) in index(&registry) {
@@ -112,7 +112,7 @@ fn frozen_codes_cannot_disappear_or_change_meaning_exit_outcome_key_or_version()
             Some(5) => &["cancelled"],
             Some(6) => &["timeout"],
             Some(70) => &["internal"],
-            _ => panic!("Salida sin categoría: {definition}"),
+            _ => panic!("Exit without category: {definition}"),
         };
         assert!(allowed_outcomes.contains(&definition["outcome"].as_str().unwrap()));
         assert!(matches!(
@@ -143,7 +143,7 @@ fn frozen_codes_cannot_disappear_or_change_meaning_exit_outcome_key_or_version()
             );
         }
     }
-    // Cada alta queda congelada en este mismo cambio; ningún id queda sin lock.
+    // Each addition is frozen in this same change; no id remains without a lock.
     assert_eq!(
         index(&registry).keys().collect::<Vec<_>>(),
         index(&lock).keys().collect::<Vec<_>>()
@@ -169,13 +169,13 @@ fn freeze_guard_rejects_mutations_and_allows_deprecation_and_appending() {
         changed["codes"][0][field] = value;
         assert!(
             !compatible(&changed, &lock),
-            "Mutación no detectada: {field}"
+            "Mutation not detected: {field}"
         );
     }
     let mut deprecated = registry.clone();
     deprecated["codes"][0]["status"] = json!("deprecated");
     assert!(compatible(&deprecated, &lock));
-    // Deprecated conserva exactamente el mismo significado y sigue reservando id.
+    // Deprecated retains exactly the same meaning and keeps reserving the id.
     for field in [
         "id",
         "description",
@@ -188,7 +188,7 @@ fn freeze_guard_rejects_mutations_and_allows_deprecation_and_appending() {
         reassigned["codes"][0][field] = json!("reassigned");
         assert!(
             !compatible(&reassigned, &lock),
-            "Deprecated reutilizado: {field}"
+            "Deprecated reused: {field}"
         );
     }
     for status in ["active", "deprecated"] {
@@ -198,10 +198,10 @@ fn freeze_guard_rejects_mutations_and_allows_deprecation_and_appending() {
         reused["codes"].as_array_mut().unwrap().push(addition);
         assert!(
             !compatible(&reused, &lock),
-            "ID deprecated duplicado: {status}"
+            "Duplicate deprecated ID: {status}"
         );
     }
-    // Alta nueva: añadir en registro, lock y ancla es una revisión explícita.
+    // New addition: adding to the registry, lock, and anchor is an explicit review.
     let mut extended_lock = lock.clone();
     let mut baseline = frozen_definitions();
     let mut addition = registry["codes"][0].clone();
@@ -249,7 +249,7 @@ fn embedded_anchor_rejects_coordinated_registry_and_lock_edits() {
             rewritten["codes"][position][field] = value;
             assert!(
                 !compatible(&changed, &rewritten),
-                "Edición coordinada: {position}/{field}"
+                "Coordinated edit: {position}/{field}"
             );
         }
     }
@@ -308,7 +308,7 @@ fn production_literals(source: &str) -> Vec<Literal<'_>> {
                 + 1
                 + source[quote + 1..]
                     .find(&terminator)
-                    .expect("raw string sin cierre");
+                    .expect("unclosed raw string");
             if !test_item {
                 literals.push(Literal {
                     text: &source[quote + 1..end],
@@ -431,7 +431,7 @@ fn check_sources(path: &Path, registered: &BTreeMap<&str, &Value>, count: &mut u
             for code in emitted_codes(&source) {
                 assert!(
                     registered.contains_key(code.as_str()),
-                    "Código sin registro en {}: {code}",
+                    "Unregistered code in {}: {code}",
                     path.display()
                 );
                 *count += 1;
@@ -452,10 +452,7 @@ fn every_production_emitter_in_workspace_uses_registered_codes() {
             check_sources(&source, &registered, &mut count);
         }
     }
-    assert!(
-        count > 100,
-        "El inventario de emisores quedó vacío o incompleto"
-    );
+    assert!(count > 100, "The emitter inventory is empty or incomplete");
 }
 
 #[test]

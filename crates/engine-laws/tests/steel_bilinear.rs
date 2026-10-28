@@ -1,5 +1,5 @@
-//! Fixtures analíticos propios, sin oráculos ni fuentes externas.
-//! Cita: provenance/ENG-MAT-003.md, derivación y ciclo de histéresis.
+//! In-house analytical fixtures, without oracles or external sources.
+//! Citation: provenance/ENG-MAT-003.md, derivation and hysteresis cycle.
 
 use engine_contracts::{conformance::check_uniaxial_law, UniaxialLaw};
 use engine_core::{ContractId, Diagnostic, EResult, Real};
@@ -11,7 +11,7 @@ use engine_laws::uniaxial::{
 fn close(actual: Real, expected: Real) {
     assert!(
         (actual - expected).abs() <= 1e-12 + 1e-12 * expected.abs(),
-        "actual={actual}, esperado={expected}"
+        "actual={actual}, expected={expected}"
     );
 }
 
@@ -19,16 +19,16 @@ fn code<T>(result: EResult<T>, expected: &str) {
     assert!(Diagnostic::from_code(expected).is_some());
     match result {
         Err(error) => assert_eq!(error.code, expected, "{error}"),
-        Ok(_) => panic!("Se esperaba {expected}"),
+        Ok(_) => panic!("Expected {expected}"),
     }
 }
 
 #[test]
 fn full_hysteresis_cycle_matches_hand_table() -> EResult<()> {
-    // Fuente: derivación propia de retorno 1D; E=200, fy=1, H=200/9.
-    // Cita: provenance/ENG-MAT-003.md, tabla analítica del ciclo.
-    // Columnas: ε objetivo, σ, α, ε_p, tangente. Se evitan las inversiones
-    // sobre la superficie, donde el redondeo puede decidir la rama.
+    // Source: own 1D return derivation; E=200, fy=1, H=200/9.
+    // Citation: provenance/ENG-MAT-003.md, analytical cycle table.
+    // Columns: target ε, σ, α, ε_p, tangent. Reversals on the surface
+    // are avoided, where rounding can determine the branch.
     let table = [
         (0.0, 0.0, 0.0, 0.0, 200.0),
         (0.0025, 0.5, 0.0, 0.0, 200.0),
@@ -55,7 +55,7 @@ fn full_hysteresis_cycle_matches_hand_table() -> EResult<()> {
         close(trial.tangent, tangent);
         close(trial.stress, 200.0 * (strain - trial.trial_state[0]));
         close(trial.trial_state[1], (200.0 / 9.0) * trial.trial_state[0]);
-        // Repetir una deformación aceptada reproduce tensión e historia.
+        // Repeating an accepted strain reproduces stress and history.
         let repeated = law.respond(strain, &trial.trial_state)?;
         close(repeated.stress, trial.stress);
         for (&actual, &expected) in repeated.trial_state.iter().zip(&trial.trial_state) {
@@ -98,8 +98,8 @@ fn closed_cycle_energy_is_hand_calculated_parallelogram_area() -> EResult<()> {
     let mut committed = first.trial_state.clone();
     let (mut strain_previous, mut stress_previous) = (0.02, first.stress);
     let (mut work, mut plastic_dissipation) = (0.0, 0.0);
-    // Vértices A→B→C→D→A del paralelogramo, no incluye la carga inicial.
-    // Cada lado es lineal: la regla trapezoidal integra exactamente σ dε.
+    // Vertices A→B→C→D→A of the parallelogram, excluding initial loading.
+    // Each side is linear: the trapezoidal rule integrates σ dε exactly.
     for strain in [0.01, -0.02, -0.01, 0.02] {
         let trial = law.respond(strain, &committed)?;
         work += 0.5 * (trial.stress + stress_previous) * (strain - strain_previous);
@@ -108,7 +108,7 @@ fn closed_cycle_energy_is_hand_calculated_parallelogram_area() -> EResult<()> {
         (strain_previous, stress_previous) = (strain, trial.stress);
     }
     // A=(.02,1.3), B=(.01,-.7), C=(-.02,-1.3), D=(-.01,.7).
-    // Área = 4fy(1−b)(ε_max−fy/E) = 4*.9*.015 = .054 Pa.
+    // Area = 4fy(1−b)(ε_max−fy/E) = 4*.9*.015 = .054 Pa.
     close(work, 0.054);
     close(plastic_dissipation, 0.054);
     close(stress_previous, first.stress);
@@ -155,10 +155,10 @@ fn trial_history_is_owned_and_acceptance_is_explicit() -> EResult<()> {
     let mut discarded_state = first.trial_state.clone();
     discarded_state.fill(42.0);
     assert_eq!(first, law.respond(0.02, &committed)?);
-    committed = first.trial_state; // único punto de aceptación
+    committed = first.trial_state; // sole acceptance point
     let accepted_snapshot = committed.clone();
     close(law.respond(0.015, &committed)?.stress, 0.3);
-    law.respond(-0.02, &committed)?; // prueba descartada
+    law.respond(-0.02, &committed)?; // discarded trial
     assert_eq!(committed, accepted_snapshot);
     close(law.respond(0.015, &committed)?.stress, 0.3);
     Ok(())
@@ -269,17 +269,17 @@ fn extreme_scales_avoid_unnecessary_hardening_and_yield_strain_overflow() -> ERe
     close(elastic.stress, 1.0);
     assert_eq!(elastic.tangent, 1e300);
     assert_eq!(elastic.trial_state, law.initial_state());
-    // H y E+H no son representables; σ y la tangente sí lo son.
+    // H and E+H are not representable; σ and the tangent are.
     let law = SteelBilinearKinematic::new(1e300, 1.0, 1.0 - Real::EPSILON)?;
     let plastic = law.respond(2e-300, &law.initial_state())?;
     close(plastic.stress, 1.0 + law.params().b);
     assert_eq!(plastic.tangent, law.params().b * 1e300);
     assert!(plastic.trial_state[0] > 0.0 && plastic.trial_state[0].is_finite());
     close(plastic.trial_state[1], law.params().b);
-    // fy/E desbordaría aunque la respuesta elástica sea representable.
+    // fy/E would overflow although the elastic response is representable.
     let law = SteelBilinearKinematic::new(1e-300, Real::MAX, 0.1)?;
     close(law.respond(1e300, &law.initial_state())?.stress, 1.0);
-    // No se pierde la meseta por cancelar σ_tr−EΔγ a escala 1e300.
+    // The plateau is not lost through cancellation of σ_tr−EΔγ at scale 1e300.
     let law = SteelBilinearKinematic::new(1e300, 1.0, 0.0)?;
     assert_eq!(law.respond(1.0, &law.initial_state())?.stress, 1.0);
     Ok(())

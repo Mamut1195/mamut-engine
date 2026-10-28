@@ -47,8 +47,8 @@ fn assert_diagnostic<T: std::fmt::Debug>(result: GeoResult<T>, code: &str, field
     );
 }
 
-// Fuente y cálculos propios: provenance/ENG-GEO-001.md, casos A–E.
-// Los números siguientes son literales obtenidos a mano, no por el código probado.
+// Own source and calculations: provenance/ENG-GEO-001.md, cases A–E.
+// The following numbers are hand-calculated literals, not obtained from the tested code.
 #[test]
 fn homogeneous_dry_profile_and_inclusive_endpoints() {
     let p = profile(vec![layer(10.0, 18.0, None)], 10.0);
@@ -104,7 +104,7 @@ fn groundwater_below_profile_has_no_pore_pressure_or_saturated_requirement() {
 
 #[test]
 fn continuity_at_dry_and_submerged_interfaces() {
-    // Caso F: zw cruza la segunda de tres capas; tercera totalmente sumergida.
+    // Case F: zw crosses the second of three layers; the third is fully submerged.
     let p = profile(
         vec![
             layer(2.0, 16.0, None),
@@ -167,7 +167,7 @@ fn empty_profile_and_nonpositive_thickness_or_weights_are_rejected() {
             "water_unit_weight_kn_m3",
         );
     }
-    // Un γsat aportado se valida aun cuando no se utilice.
+    // A supplied γsat is validated even when unused.
     assert_diagnostic(
         StratifiedProfile::new(
             vec![layer(2.0, 18.0, Some(-1.0))],
@@ -239,13 +239,13 @@ fn every_required_missing_parameter_is_identified_without_defaults() {
         "ENG-E-0003",
         "water_unit_weight_kn_m3",
     );
-    // γsat también es obligatorio cuando zw cruza una capa.
+    // γsat is also required when zw crosses a layer.
     assert_diagnostic(
         StratifiedProfile::new(vec![layer(2.0, 18.0, None)], Some(m(1.0)), Some(m(10.0))),
         "ENG-E-0003",
         "gamma_sat_kn_m3",
     );
-    // Validación del perfil entero, aun si se pensaba consultar solo la capa 0.
+    // Validation of the entire profile, even if only layer 0 was to be queried.
     assert_diagnostic(
         StratifiedProfile::new(
             vec![layer(2.0, 16.0, None), layer(3.0, 18.0, None)],
@@ -255,7 +255,7 @@ fn every_required_missing_parameter_is_identified_without_defaults() {
         "ENG-E-0003",
         "layers[1].gamma_sat_kn_m3",
     );
-    // γ sigue siendo obligatorio para una capa totalmente sumergida.
+    // γ remains required for a fully submerged layer.
     assert_diagnostic(
         StratifiedProfile::new(
             vec![Layer::new(2.0, None, Some(m(20.0)))],
@@ -280,7 +280,7 @@ fn assumed_parameters_report_all_provided_data_in_stable_order() {
     .unwrap();
     let expected = vec![
         ParameterId::LayerGamma { layer_index: 0 },
-        ParameterId::LayerGammaSat { layer_index: 0 }, // aportado, aunque no usado
+        ParameterId::LayerGammaSat { layer_index: 0 }, // supplied, although unused
         ParameterId::LayerGammaSat { layer_index: 1 },
         ParameterId::GroundwaterDepth,
         ParameterId::WaterUnitWeight,
@@ -289,7 +289,7 @@ fn assumed_parameters_report_all_provided_data_in_stable_order() {
         assert_eq!(p.stresses_at(z).unwrap().assumed_parameters, expected);
     }
     assert_stresses(&p, 5.0, 95.0, 30.0, 65.0);
-    // Modificar el resultado no modifica el perfil.
+    // Changing the result does not change the profile.
     p.stresses_at(0.0).unwrap().assumed_parameters.clear();
     assert_eq!(p.stresses_at(0.0).unwrap().assumed_parameters, expected);
     let all_measured = profile(vec![layer(2.0, 18.0, Some(20.0))], 0.0);
@@ -298,7 +298,7 @@ fn assumed_parameters_report_all_provided_data_in_stable_order() {
         .unwrap()
         .assumed_parameters
         .is_empty());
-    // Assumed también identifica γ de una capa totalmente sumergida (caso G).
+    // Assumed also identifies γ of a fully submerged layer (case G).
     let submerged = StratifiedProfile::new(
         vec![Layer::new(2.0, Some(a(18.0)), Some(m(20.0)))],
         Some(m(0.0)),
@@ -314,14 +314,14 @@ fn assumed_parameters_report_all_provided_data_in_stable_order() {
 
 #[test]
 fn saturated_weight_need_not_exceed_gamma_and_effective_stress_is_not_clamped() {
-    // Caso H, deliberadamente fuera de valores físicos usuales: no se imponen.
+    // Case H, deliberately outside usual physical values: these are not imposed.
     let p = profile(vec![layer(2.0, 18.0, Some(8.0))], 0.0);
     assert_stresses(&p, 2.0, 16.0, 20.0, -4.0);
 }
 
 #[test]
 fn f64_precision_limit_near_1e16_is_pinned() {
-    // Paso entre f64 consecutivos en 1e16 es 2 m: 1e16 + 1 colapsa y se rechaza.
+    // Spacing between consecutive f64 values at 1e16 is 2 m: 1e16 + 1 collapses and is rejected.
     assert_diagnostic(
         StratifiedProfile::new(
             vec![layer(1e16, 1.0, None), layer(1.0, 1.0, None)],
@@ -331,7 +331,7 @@ fn f64_precision_limit_near_1e16_is_pinned() {
         "ENG-E-0010",
         "thickness_m",
     );
-    // 1e16 + 3 se redondea a 1e16 + 4: se acepta con la cota inferior redondeada.
+    // 1e16 + 3 rounds to 1e16 + 4: accepted with the rounded lower bound.
     let rounded = profile(vec![layer(1e16, 1.0, None), layer(3.0, 1.0, None)], 1e17);
     assert_eq!(rounded.total_depth_m(), 1e16 + 4.0);
 }

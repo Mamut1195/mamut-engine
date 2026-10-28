@@ -1,4 +1,4 @@
-//! Límites y rangos comprobados antes del árbol JSON y de callbacks del motor.
+//! Limits and ranges checked before the JSON tree and engine callbacks.
 use engine_api::{
     canonical_json, input_sha256, run, validate, validate_with, ApiError, CancelToken, Status,
     MAX_CASES, MAX_COMBINATIONS, MAX_INPUT_BYTES, MAX_JSON_ARRAY_ITEMS, MAX_JSON_DEPTH, MAX_LOADS,
@@ -43,7 +43,7 @@ fn bytes_are_utf8_bytes_and_checked_before_any_json_syntax() {
     let at_limit = format!("\"{}\"", "é".repeat((MAX_INPUT_BYTES - 2) / 2));
     assert_eq!(at_limit.len(), MAX_INPUT_BYTES);
     assert!(canonical_json(&at_limit).is_ok());
-    // Incluso texto inválido obtiene el error de tamaño, antes que el de sintaxis.
+    // Even invalid text gets the size error before the syntax error.
     invalid_before_parse(&"x".repeat(MAX_INPUT_BYTES + 1), "MAX_INPUT_BYTES");
 }
 
@@ -81,8 +81,8 @@ fn each_entity_limit_accepts_boundary_and_rejects_next_before_parsing() {
         assert!(canonical_json(&format!("{prefix}{}{suffix}", items(limit))).is_ok());
         let oversized = format!("{prefix}{}{suffix}", items(limit + 1));
         invalid_before_parse(&oversized, name);
-        // Sin cierres: la inspección debe detenerse al superar el límite, sin
-        // intentar construir el árbol ni devolver primero el error de sintaxis.
+        // Without closing delimiters: inspection must stop when the limit is exceeded, without
+        // attempting to build the tree or returning the syntax error first.
         invalid_before_parse(&format!("{prefix}{}", items(limit + 1)), name);
     }
 }
@@ -150,7 +150,7 @@ fn integers_outside_jcs_safe_range_are_never_rounded_to_float() {
         "99999999999999999999999999999999999999999999999999",
     ] {
         invalid_before_parse(token, "JSON integer is outside");
-        // También se rechaza en un campo f64 antes de la conversión del DTO.
+        // Also rejected in an f64 field before DTO conversion.
         invalid_before_parse(
             &format!(r#"{{"model":{{"nodes":[{{"coordinates":[{token},0,0]}}]}}}}"#),
             "JSON integer is outside",
@@ -169,8 +169,8 @@ fn safe_integer_boundaries_are_accepted_in_engine_input() {
         "../fixtures/input/valid/cantilever-linear-static.json"
     ))
     .unwrap();
-    // Carga sobre el apoyo: prueba el parseo sin grandes desplazamientos ni
-    // cancelación numérica en la recuperación del miembro.
+    // Load on the support: tests parsing without large displacements or
+    // numerical cancellation in member recovery.
     input["cases"][0]["loads"][0]["node"] = 1.into();
     for n in [9007199254740991_i64, -9007199254740991] {
         input["cases"][0]["loads"][0]["values"][0]["value"] = n.into();
@@ -181,7 +181,7 @@ fn safe_integer_boundaries_are_accepted_in_engine_input() {
         let document: Value = serde_json::from_str(&outcome.document).unwrap();
         assert_eq!(document["input_sha256"], input_sha256(&source).unwrap());
     }
-    // bool es JSON válido, pero nunca un id ni contador entero.
+    // bool is valid JSON, but never an integer id or count.
     input["model"]["nodes"][0]["id"] = true.into();
     assert!(matches!(
         validate(&input.to_string()),

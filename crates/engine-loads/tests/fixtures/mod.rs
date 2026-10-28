@@ -1,4 +1,4 @@
-//! Fixtures propios; ecuaciones y fracciones derivadas en la bitácora del ticket.
+//! In-house fixtures; equations and fractions derived in the ticket log.
 pub const SOURCE: &str =
     "analítico: interpolación axial lineal y Hermite cúbica; trabajo virtual y equilibrio";
 pub const CITATION: &str =
@@ -9,6 +9,6 @@ pub fn close(actual: f64, expected: f64) {
     let tol = 2e-12 * expected.abs().max(1.0);
     assert!(
         (actual - expected).abs() <= tol,
-        "{actual} != {expected}, tolerancia {tol}"
+        "{actual} != {expected}, tolerance {tol}"
     );
 }

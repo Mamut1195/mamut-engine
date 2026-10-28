@@ -1,4 +1,4 @@
-//! Contratos de resolución SDK, política del job y evidencia de descubrimiento.
+//! SDK solve contracts, job policy, and discovery evidence.
 use engine_api::{
     capabilities, explain, method_descriptor, method_descriptors, run, schema, CancelToken,
     MethodStatus, Status,
@@ -128,8 +128,8 @@ fn capabilities_are_deterministic_compatible_and_backed_by_evidence() {
         assert_eq!(a["methods"][id], json!({"engine": true, "run": true}));
     }
     assert_eq!(a["combinations"], json!({"run": true}));
-    // Las claves históricas camelCase de methods se conservan; toda extensión
-    // nueva usa la gramática de nombres aprobada, sin ampliar LEGACY_DEFS.
+    // Historical camelCase method keys are preserved; every new extension
+    // uses the approved naming grammar, without expanding LEGACY_DEFS.
     ascii_keys(&a["method_descriptors"]);
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     for d in descriptors {

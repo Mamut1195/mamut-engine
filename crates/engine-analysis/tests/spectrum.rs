@@ -1,5 +1,5 @@
-//! SOURCE: derivación propia y fórmulas de la petición ENG-ANL-004.
-//! CITATION: provenance/ENG-ANL-004.md. Sin valores publicados ni oráculos.
+//! SOURCE: own derivation and formulas from request ENG-ANL-004.
+//! CITATION: provenance/ENG-ANL-004.md. No published values or oracles.
 use engine_analysis::spectrum::{
     combine_directions, combine_modal, cqc_correlation, DirectionalCombination, Extrapolation,
     Interpolation, ModalCombination, Spectrum, SpectrumDirection, SpectrumOptions, SpectrumUnits,
@@ -48,7 +48,7 @@ fn support(model: &mut Model, node: u32, dofs: &[Dof]) {
         restrained: dofs.to_vec(),
     });
 }
-// V=½k Σ(q_j−q_{j−1})², q_0=0 y techo libre, igual a ENG-ANL-002.
+// V=½k Σ(q_j−q_{j−1})², q_0=0 and free roof, as in ENG-ANL-002.
 fn shear(n: usize, k: f64, m: f64) -> LinearSystem<ReferenceBackend> {
     let mut model = Model::new();
     for j in 0..=n {
@@ -122,7 +122,7 @@ fn interpolation_si_conversion_and_explicit_extrapolation() {
         Extrapolation::Plateau,
     )
     .unwrap();
-    // Sa=2T², derivada aquí; T=2 ⇒ Sa=8.
+    // Sa=2T², derived here; T=2 ⇒ Sa=8.
     close(log.acceleration(2.0).unwrap(), 8.0, 1e-14);
     assert_eq!(log.acceleration(0.0).unwrap(), 2.0);
     let frequency = TabulatedSpectrum::new(
@@ -135,7 +135,7 @@ fn interpolation_si_conversion_and_explicit_extrapolation() {
     .unwrap();
     assert_eq!(frequency.input_units(), FREQUENCY_SI);
     assert_eq!(frequency.period_points(), &[(1.0, 2.0), (4.0, 32.0)]);
-    // Interpola en T: a=(2−1)/(4−1), no en f.
+    // Interpolates in T: a=(2−1)/(4−1), not in f.
     assert_eq!(frequency.acceleration(2.0).unwrap(), 12.0);
     assert_eq!(
         table(&[(0.0, 0.0), (1.0, 1.0)], 0.0)
@@ -300,7 +300,7 @@ fn cqc_tends_to_srss_far_modes_and_keeps_signed_cross_terms() {
     let srss = combine_modal(&values, &frequencies, &zeta, ModalCombination::Srss).unwrap();
     let cqc = combine_modal(&values, &frequencies, &zeta, ModalCombination::Cqc).unwrap();
     assert_eq!(srss, 5.0);
-    // Tolerancia relativa declarada 1e−6 con r=1000 y ζ=0.05.
+    // Declared relative tolerance 1e−6 with r=1000 and ζ=0.05.
     assert!((cqc / srss - 1.0).abs() < 1e-6);
     let closer = cqc_correlation(1.0, 1.01, 0.05, 0.05).unwrap();
     assert!(closer > 0.9);
@@ -391,7 +391,7 @@ fn shear_building_own_closed_form_constant_and_linear_tables_all_modes() {
                 basal_squared += basal * basal;
             }
             close(mass_sum, n as f64 * m, 3e-11);
-            // Derivación propia: V_b,SRSS²=Σ(M*_n Sa_n)², NO Σ M*_n Sa_n.
+            // Own derivation: V_b,SRSS²=Σ(M*_n Sa_n)², NOT Σ M*_n Sa_n.
             close(
                 math::powi(result.directions[0].combined.base_shear, 2),
                 basal_squared,
@@ -460,7 +460,7 @@ fn direction_normalization_reversal_oblique_and_user_factors() {
     opt.directional_combination = DirectionalCombination::Srss;
     let srss = Spectrum::run(&mut system, &inputs, &opt).unwrap();
     close(srss.combined.base_shear, math::sqrt(1.09_f64) * x, 1e-14);
-    // Factores totalmente del usuario, sin 100%/30% incorporado.
+    // Entirely user-supplied factors, without built-in 100%/30%.
     assert_eq!(
         combine_directions(
             &[10.0, 20.0],
@@ -718,7 +718,7 @@ fn combination_errors_are_fallible() {
 
 #[test]
 fn multiple_supports_combine_basal_after_signed_sum() {
-    // Dos osciladores independientes: m=(2,3), k=(18,48), ω=(3,4).
+    // Two independent oscillators: m=(2,3), k=(18,48), ω=(3,4).
     let mut model = Model::new();
     for j in 0..4 {
         let mut node = Node::new(NodeId(j + 1), Dim::D2, [j as f64, 0.0, 0.0]);
@@ -765,7 +765,7 @@ fn multiple_supports_combine_basal_after_signed_sum() {
         spectra: &spectra,
     }];
     let result = Spectrum::run(&mut system, &inputs, &options(2, vec![1.0])).unwrap();
-    // V=(4,6) ⇒ V_SRSS=√52; sumar envolventes de apoyos daría 10.
+    // V=(4,6) ⇒ V_SRSS=√52; summing support envelopes would give 10.
     close(result.combined.base_shear, math::sqrt(52.0_f64), 1e-14);
     let sum_envelopes: f64 = result
         .combined
@@ -792,7 +792,7 @@ fn rigid_modes_rejected_and_log_log_numerical_ranges() {
             .code,
         "ENG-E-0010"
     );
-    // Periodos distinguibles cuyo ln redondeado sería idéntico.
+    // Distinct periods whose rounded ln would be identical.
     let low = 1e100_f64;
     let high = f64::from_bits(low.to_bits() + 4);
     let mid = f64::from_bits(low.to_bits() + 2);

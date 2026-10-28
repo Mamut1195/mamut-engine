@@ -1,11 +1,11 @@
-//! Guardia del vocabulario público; no importa código ni consulta otros motores.
+//! Public vocabulary guard; imports no code and queries no other engines.
 use std::{fs, path::Path};
 
 const FORBIDDEN: &str = include_str!("../../../clean-room/forbidden_identifiers.txt");
 const COMMAND_KEYS: &[&str] = &["ops", "pattern", "constraints", "system", "test", "element"];
 
-// Palabras clave del dialecto JSON Schema 2020-12 usado por los contratos.
-// Se enumeran explícitamente: una clave desconocida nunca se trata como keyword.
+// Keywords of the JSON Schema 2020-12 dialect used by the contracts.
+// Explicitly enumerated: an unknown key is never treated as a keyword.
 const SCHEMA_KEYWORDS: &[&str] = &[
     "$schema",
     "$id",
@@ -40,9 +40,9 @@ const SCHEMA_KEYWORDS: &[&str] = &[
     "examples",
 ];
 
-// Excepciones PENDIENTES de decisión: nombres de $defs publicados en #88,
-// referenciados por $ref. Preservan el contrato; no autorizan campos camelCase
-// ni definiciones nuevas. Solo valen directamente bajo $defs del $id indicado.
+// Exceptions PENDING a decision: $defs names published in #88,
+// referenced by $ref. They preserve the contract; they authorize neither camelCase fields
+// nor new definitions. They apply only directly under $defs of the indicated $id.
 const LEGACY_DEFS: &[(&str, &[&str])] = &[
     (
         "urn:mamut:engine-input:1",
@@ -77,10 +77,7 @@ fn identifiers() -> Vec<&'static str> {
         .map(str::trim)
         .filter(|line| !line.is_empty() && !line.starts_with('#'))
         .collect();
-    assert!(
-        !names.is_empty(),
-        "La lista clean-room no puede estar vacía"
-    );
+    assert!(!names.is_empty(), "The clean-room list cannot be empty");
     names
 }
 
@@ -93,7 +90,7 @@ fn normalized(name: &str) -> String {
 
 fn forbidden_word(text: &str, names: &[&str]) -> Option<String> {
     text.split(|c: char| !c.is_ascii_alphanumeric() && c != '_' && c != '-')
-        // Conserva la detección previa de palabras separadas por guion en texto.
+        // Preserves the previous detection of hyphen-separated words in text.
         .chain(text.split(|c: char| !c.is_ascii_alphanumeric() && c != '_'))
         .find(|word| {
             names
@@ -109,10 +106,10 @@ fn ascii_name(name: &str) -> bool {
         && bytes.all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
 }
 
-// Árbol de nombres: conserva claves duplicadas y no convierte números a f64/u64.
-// Así se inspeccionan también los fixtures negativos con 1e400 y overflow entero.
-// serde_json decodifica strings/escapes y valida escalares con IgnoredAny;
-// validate/run comprueba por separado la validez del contrato de los fixtures.
+// Name tree: preserves duplicate keys and does not convert numbers to f64/u64.
+// This also inspects negative fixtures with 1e400 and integer overflow.
+// serde_json decodes strings/escapes and validates scalars with IgnoredAny;
+// validate/run separately checks the validity of the fixture contract.
 #[derive(Debug)]
 enum Node {
     Object(Vec<(String, Node)>),
@@ -131,7 +128,7 @@ fn parse_string(text: &str) -> (String, &str) {
         }
         end += 1;
     }
-    assert!(end < bytes.len(), "String JSON sin cierre");
+    assert!(end < bytes.len(), "Unclosed JSON string");
     end += 1;
     (serde_json::from_str(&text[..end]).unwrap(), &text[end..])
 }
@@ -201,8 +198,8 @@ fn element_allowed(path: &[&str], context: Context, schema_id: &str) -> bool {
         Context::Names => {
             (schema_id == "urn:mamut:engine-input:1"
                 && path == ["$defs", "member", "properties"])
-                // Excepción contractual PENDIENTE: #88 publica también el kind
-                // del miembro en results/1. Solo esta propiedad, sin ampliación.
+                // Contract exception PENDING: #88 also publishes the member kind
+                // in results/1. Only this property, without extension.
                 || (schema_id == "urn:mamut:results:1"
                     && path == ["$defs", "memberIdentity", "properties"])
         }
@@ -284,10 +281,7 @@ fn violation(text: &str, schema: bool) -> Option<String> {
         return Some(name);
     }
     let (node, rest) = parse_node(text);
-    assert!(
-        rest.trim().is_empty(),
-        "Contenido después del documento JSON"
-    );
+    assert!(rest.trim().is_empty(), "Content after the JSON document");
     let schema_id = match &node {
         Node::Object(fields) if schema => fields
             .iter()
@@ -315,7 +309,7 @@ fn check_tree(path: &Path, schema: bool) {
         .map(|entry| entry.unwrap().path())
         .collect();
     entries.sort();
-    assert!(!entries.is_empty(), "{path:?}: faltan documentos");
+    assert!(!entries.is_empty(), "{path:?}: missing documents");
     for entry in entries {
         if entry.is_dir() {
             check_tree(&entry, schema);

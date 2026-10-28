@@ -1,4 +1,4 @@
-//! Contratos y diagnósticos de ENG-GEO-004; fuente publicada en el harness.
+//! Contracts and diagnostics of ENG-GEO-004; published source in the harness.
 #[path = "support/axial_benchmarks.rs"]
 mod benchmarks;
 use engine_core::EngineError;
@@ -27,7 +27,7 @@ fn error<T: std::fmt::Debug>(result: Result<T, EngineError>, code: &str, name: &
 
 #[test]
 fn published_vertices_and_hand_interpolation() {
-    assert_eq!(benchmarks::run_all().expect("Fixtures axiales"), 5);
+    assert_eq!(benchmarks::run_all().expect("Axial fixtures"), 5);
 }
 
 #[test]
@@ -396,7 +396,7 @@ fn adapter_requires_explicit_scales_and_checks_numerics() {
 
 #[test]
 fn adapter_rejects_resistance_reduced_to_zero_by_area() {
-    // Tabla artificial: pendientes finitas; Q/A subdesborda a cero.
+    // Artificial table: finite slopes; Q/A underflows to zero.
     let tip = qz::user(
         Some(vec![(-1.0, 0.0), (0.0, 0.0), (1.0, 1e-300)]),
         tz::UserTraction::Explicit,

@@ -1,4 +1,4 @@
-//! Conformidad, energía, covarianza explícita, extremos numéricos y diagnósticos.
+//! Conformance, energy, explicit covariance, numerical extremes, and diagnostics.
 use engine_contracts::{
     conformance::{check_element, check_element_factory},
     Element, ElementCtx, ElementFactory, ElementParams, JsonValue, MassKind, MemberLoad, ModelView,
@@ -9,13 +9,13 @@ use engine_elements_spring::{LinearSpring, SpringAxes, SpringConnection, SpringF
 use engine_linalg::{DMat, LinAlgBackend, ReferenceBackend, SymMatrix};
 use std::collections::BTreeMap;
 
-const TOL: f64 = 1e-10; // Absoluta en unidades SI de fuerzas/matrices de estos casos.
+const TOL: f64 = 1e-10; // Absolute in SI force/matrix units for these cases.
 const I: [[f64; 3]; 3] = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
 fn close(a: f64, b: f64) {
     assert!((a - b).abs() <= TOL, "{a} != {b}");
 }
 fn code<T>(r: EResult<T>, expected: &str) {
-    assert_eq!(r.err().expect("debe fallar").code, expected);
+    assert_eq!(r.err().expect("must fail").code, expected);
 }
 fn spring(dim: Dim, ground: bool, k: f64, dofs: &[Dof], axes: SpringAxes) -> LinearSpring {
     LinearSpring::new(
@@ -76,7 +76,7 @@ fn element_and_factory_conformance_compatible_rigid_modes() {
         let c = ctx(dim, &coords, &p);
         let nodes = [(NodeId(1), coords[0]), (NodeId(2), coords[1])];
         let m = ModelView { dim, nodes: &nodes };
-        // Subconjunto axial: el kit no infiere una rotación de ejes propios.
+        // Axial subset: the kit does not infer a rotation of its own axes.
         for dofs in [&[Dof::Ux][..], &[Dof::Rz][..]] {
             let s = spring(dim, false, 120.0, dofs, SpringAxes::Global);
             let samples = [vec![0.0; 2], vec![0.002, -0.003], vec![-0.004, 0.001]];
@@ -106,7 +106,7 @@ fn element_and_factory_conformance_compatible_rigid_modes() {
 #[test]
 fn coupled_dofs_rank_one_energy_force_recovery_and_rigid_translation() {
     let p = ElementParams::default();
-    let coords = [[0.0; 3]; 2]; // Se admiten nodos coincidentes.
+    let coords = [[0.0; 3]; 2]; // Coincident nodes are allowed.
     for (dim, dofs) in [
         (Dim::D2, vec![Dof::Uy, Dof::Ux]),
         (Dim::D3, vec![Dof::Ry, Dof::Rx]),
@@ -201,7 +201,7 @@ fn ground_and_oblique_variants_consistent_tangent_and_null_mass_kg() {
             }
         }
     }
-    // En apoyo k=0 sí aplica el kit completo, incluidos sus modos rígidos.
+    // For support k=0 the full kit does apply, including its rigid modes.
     let s = spring(Dim::D2, true, 0.0, &[Dof::Ux], SpringAxes::Global);
     let issues = check_element(
         &s,
@@ -266,7 +266,7 @@ fn oblique_axis_reversal_scaling_and_spatial_rotation_covariance() {
     for (a, b) in r.internal_force.iter().zip(rotated_force) {
         close(*a, b);
     }
-    // Congruencia independiente Q K Qᵀ, bloque por nodo.
+    // Independent congruence Q K Qᵀ, block per node.
     for i in 0..6 {
         for j in 0..6 {
             let mut expected = 0.0;
@@ -324,7 +324,7 @@ fn rotation_matrix_matches_direction_and_coupled_local_components() {
     }
     close(out.stations[0].forces_local[0], 0.6);
     close(out.stations[0].forces_local[1], 0.6);
-    // Giro local Rx oblicuo en D3 usa la misma congruencia que traslaciones.
+    // Oblique local Rx rotation in D3 uses the same congruence as translations.
     let cs = 0.6;
     let sn = 0.8;
     let q3 = [[cs, 0.0, sn], [0.0, 1.0, 0.0], [-sn, 0.0, cs]];
@@ -379,7 +379,7 @@ fn huge_tiny_zero_stiffness_and_extreme_direction_without_panics() {
         &[Dof::Ux, Dof::Uy],
         SpringAxes::Rotation(q),
     );
-    code(coupled.respond(&c, &[0.0; 4], &[]), "ENG-E-0008"); // 2k no representable.
+    code(coupled.respond(&c, &[0.0; 4], &[]), "ENG-E-0008"); // 2k is not representable.
 }
 
 #[test]
@@ -625,7 +625,7 @@ fn factory_empty_dofs_reports_exactly_one_dof_required() {
         let error = SpringFactory::new(dim)
             .build(&JsonValue::Object(params(&[])), &model)
             .err()
-            .expect("la fábrica debe rechazar una lista vacía de GDL");
+            .expect("the factory must reject an empty DOF list");
         assert_eq!(error.code, "ENG-E-0010");
         assert_eq!(
             error.message,
@@ -636,7 +636,7 @@ fn factory_empty_dofs_reports_exactly_one_dof_required() {
 
 #[test]
 fn factory_rejects_multi_dof_springs_that_would_couple_dofs() {
-    // J4 r7: con varios GDL el resorte es de rango uno (K=k·bbᵀ) y acopla.
+    // J4 r7: with multiple DOFs the spring is rank one (K=k·bbᵀ) and couples them.
     let model_nodes = [(NodeId(1), [0.0; 3]), (NodeId(2), [1.0, 0.0, 0.0])];
     for dim in [Dim::D2, Dim::D3] {
         let model = ModelView {
@@ -646,8 +646,8 @@ fn factory_rejects_multi_dof_springs_that_would_couple_dofs() {
         let f = SpringFactory::new(dim);
         let one = JsonValue::Object(params(&[Dof::Ux]));
         assert!(f.build(&one, &model).is_ok());
-        // Se conserva el diagnóstico para 2..3 GDL en D2 y 2..6 en D3,
-        // incluso si la lista mezcla traslaciones y giros.
+        // The diagnostic is preserved for 2..3 DOFs in D2 and 2..6 in D3,
+        // even if the list mixes translations and rotations.
         for count in 2..=dim.dofs().len() {
             let many = JsonValue::Object(params(&dim.dofs()[..count]));
             code(f.build(&many, &model), "ENG-E-0013");

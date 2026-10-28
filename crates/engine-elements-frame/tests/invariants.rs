@@ -1,4 +1,4 @@
-//! Conformidad element/1, derivaciones energéticas y entradas negativas.
+//! element/1 conformance, energy derivations, and negative inputs.
 use engine_contracts::{
     conformance::{check_element, check_element_factory},
     Element, ElementCtx, ElementFactory, ElementParams, JsonValue, MassKind, MemberLoad, ModelView,
@@ -12,7 +12,7 @@ use std::collections::BTreeMap;
 const SOURCE: &str = "analítico: energía e integración polinómica propias";
 const CITATION: &str =
     "provenance/ENG-ELM-002.md, Derivaciones propias; bibliografía exacta PENDIENTE";
-const TOL: f64 = 1e-10; // absoluto, unidades SI de cada entrada de matrices/fuerzas.
+const TOL: f64 = 1e-10; // absolute, SI units of each matrix/force entry.
 const RELEASES: [MomentReleases; 4] = [
     MomentReleases { i: false, j: false },
     MomentReleases { i: true, j: false },
@@ -23,7 +23,7 @@ fn close(a: f64, b: f64) {
     assert!((a - b).abs() <= TOL, "{a} != {b}, tol={TOL}");
 }
 fn code<T>(r: EResult<T>, expected: &str) {
-    assert_eq!(r.err().expect("debe fallar").code, expected);
+    assert_eq!(r.err().expect("must fail").code, expected);
 }
 fn beam(releases: MomentReleases) -> EulerFrame2D {
     EulerFrame2D::new(200.0, 2.0, 3.0, 3.0, releases).unwrap()
@@ -166,7 +166,7 @@ fn matrices_from_independent_polynomial_energy_integrals() {
     let second: Vec<_> = first.iter().map(|v| derivative(v)).collect();
     let k = b.respond(&c, &[0.0; 6], &[]).unwrap().tangent;
     let m = b.mass(&c, MassKind::Consistent).unwrap().unwrap();
-    // δu=0.06 => N=12 N, tracción.
+    // δu=0.06 => N=12 N, tension.
     let g = b
         .geometric_stiffness(&c, &[0.0, 0.0, 0.0, 0.06, 0.0, 0.0], &[])
         .unwrap()
@@ -608,8 +608,8 @@ fn unsupported_loads_nonfinite_loads_and_numeric_overflows() {
     let b = EulerFrame2D::new(1e300, 1.0, 1.0, 0.0, RELEASES[0]).unwrap();
     let ec = [[0.0; 3], [1e-11, 0.0, 0.0]];
     code(b.respond(&ctx(&ec, &p), &[0.0; 6], &[]), "ENG-E-0008");
-    // Giros aislados de un miembro doblemente liberado: mecanismo explícito,
-    // nunca una regularización artificial dentro del elemento.
+    // Isolated rotations of a member released at both ends: explicit mechanism,
+    // never artificial regularization inside the element.
     let k = beam(RELEASES[3])
         .respond(&c, &[0.0; 6], &[])
         .unwrap()
@@ -716,8 +716,8 @@ fn factory_validates_required_fields_optional_releases_and_model() {
 
 #[test]
 fn double_release_with_huge_ei_has_no_spurious_shear() {
-    // J4 (#31): EI = 1e20, doble liberación, L = 3.1: el cortante y el momento
-    // deben ser exactamente los de la carga (sin ruido de redondeo ~64 N / 198 N·m).
+    // J4 (#31): EI = 1e20, double release, L = 3.1: shear and moment
+    // must exactly match those of the load (without rounding noise ~64 N / 198 N·m).
     let p = ElementParams::default();
     let coords = [[0.0; 3], [3.1, 0.0, 0.0]];
     let c = ctx(&coords, &p);
@@ -731,7 +731,7 @@ fn double_release_with_huge_ei_has_no_spurious_shear() {
         assert_eq!(s.forces_local[1], 0.0);
         assert_eq!(s.forces_local[5], 0.0);
     }
-    // Con carga uniforme q: V extremos = ±qL/2 (equilibrio de viga articulada).
+    // With uniform load q: end V = ±qL/2 (pinned beam equilibrium).
     let load = uniform([0.0, -6.0, 0.0], 0.0);
     let out = b
         .recover(&c, &u, &[], std::slice::from_ref(&load), &[0.5])
@@ -743,10 +743,10 @@ fn double_release_with_huge_ei_has_no_spurious_shear() {
 
 #[test]
 fn double_release_shear_is_exact_for_ei_1e12_and_1e30() {
-    // Seguimiento de #41 (J4): el test con EI=1e20 pasaba también sin el arreglo
-    // en algunos redondeos. Aquí se barren EI y longitudes y estados u arbitrarios:
-    // sin poner a cero la flexión elástica condensada aparece cortante espurio
-    // (~EI/L³·ε), con el arreglo es exactamente cero.
+    // Follow-up to #41 (J4): the test with EI=1e20 also passed without the correction
+    // under some rounding. Here EI, lengths, and arbitrary u states are swept:
+    // without zeroing condensed elastic bending, spurious shear appears
+    // (~EI/L³·ε); with the correction it is exactly zero.
     let p = ElementParams::default();
     let mut cases_checked = 0;
     for ei in [1e12, 1e20, 1e30] {

@@ -17,7 +17,7 @@ fn case() -> CaseRef {
 }
 fn code<T>(result: EResult<T>, expected: &str) {
     match result {
-        Ok(_) => panic!("Se esperaba {expected}"),
+        Ok(_) => panic!("Expected {expected}"),
         Err(e) => assert_eq!(e.code, expected, "{e}"),
     }
 }
@@ -29,7 +29,7 @@ fn close(actual: &[f64], expected: &[f64]) {
 }
 fn model(count: usize) -> Model {
     let mut m = Model::new();
-    // Subconjunto axial Ux; el ensamblador no inventa elementos de resorte/barra.
+    // Axial Ux subset; the assembler does not invent spring/member elements.
     for i in 0..count {
         let mut n = Node::new(NodeId(i as u32 + 1), Dim::D2, [i as f64, 0.0, 0.0]);
         n.dofs = vec![Dof::Ux];

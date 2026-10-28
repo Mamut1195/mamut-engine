@@ -64,7 +64,7 @@ fn entity_key(entity: &EntityRef) -> String {
         EntityRef::Member(id) => format!("miembro:{}", id.0),
         EntityRef::Case(name) => format!("caso:{name}"),
         EntityRef::Law(name) => format!("ley:{name}"),
-        EntityRef::Dof(_) => panic!("El modelo no emite referencias a índices globales"),
+        EntityRef::Dof(_) => panic!("The model does not emit global index references"),
     }
 }
 

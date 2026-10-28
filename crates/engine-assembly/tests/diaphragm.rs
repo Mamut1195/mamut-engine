@@ -21,7 +21,7 @@ fn close(a: f64, b: f64, tolerance: f64) {
 }
 fn code<T>(result: EResult<T>, expected: &str) {
     match result {
-        Ok(_) => panic!("Se esperaba {expected}"),
+        Ok(_) => panic!("Expected {expected}"),
         Err(e) => assert_eq!(e.code, expected, "{e}"),
     }
 }
@@ -585,7 +585,7 @@ fn two_floors_stiff_slabs_converge_to_rigid_diaphragms() {
             );
         }
     }
-    assert!(errors[1] < errors[0] / 100.0, "convergencia: {errors:?}");
+    assert!(errors[1] < errors[0] / 100.0, "convergence: {errors:?}");
 }
 
 #[test]

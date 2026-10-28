@@ -38,7 +38,7 @@ fn cancellation_callback_checks_every_substep_and_preserves_result_bits() {
     let history = [point(0.0, 100.0), point(0.5, 80.0), point(1.0, 120.0)];
     let outputs = [0.0, 0.25, 0.75, 1.0];
     let options = ConsolidationOptions::new(0.125);
-    // El backend explícito conserva la ruta sin caché como referencia por bits.
+    // The explicit backend preserves the uncached path as a bitwise reference.
     let expected = model
         .solve_with_backend(
             &mut engine_linalg::ReferenceBackend,
@@ -54,9 +54,9 @@ fn cancellation_callback_checks_every_substep_and_preserves_result_bits() {
             false
         })
         .unwrap();
-    // Ocho subpasos, cuatro intervalos y una sola factorización (dt idéntico),
-    // más validación (7), ensamblaje (4), salidas (4), integración (16)
-    // y sustitución cooperativa (8 × 10).
+    // Eight substeps, four intervals, and a single factorization (identical dt),
+    // plus validation (7), assembly (4), outputs (4), integration (16),
+    // and cooperative substitution (8 × 10).
     assert_eq!(calls, 124);
     assert_eq!(actual.depths_m, expected.depths_m);
     assert_eq!(actual.assumed_parameters, expected.assumed_parameters);
@@ -126,7 +126,7 @@ fn cached_and_uncached_reference_factors_preserve_every_output_bit() {
                     drainage,
                 );
                 let history = [point(0.0, 100.0), point(0.5, -20.0), point(1.0, 0.0)];
-                // dt=0.125 repetido y luego 0.0625: reutilización e invalidación.
+                // Repeated dt=0.125 followed by 0.0625: reuse and invalidation.
                 let outputs = [0.0, 0.25, 0.75, 0.9375, 1.0];
                 let options = ConsolidationOptions {
                     theta,
@@ -221,10 +221,10 @@ fn load_knots_are_integrated_even_without_output_at_the_knots() {
     };
     let sparse = model
         .solve(&loads, &[1.0], options)
-        .expect("sin salidas intermedias");
+        .expect("without intermediate outputs");
     let dense = model
         .solve(&loads, &[0.2, 0.35, 0.5, 1.0], options)
-        .expect("con salidas en quiebres");
+        .expect("with outputs at breakpoints");
     assert_eq!(
         sparse.states[0].excess_pore_pressure_kpa,
         dense.states[3].excess_pore_pressure_kpa
@@ -367,7 +367,7 @@ fn middle_layer_cv_discrepancy_is_rejected_without_substitution() {
     })
     .collect();
     ConsolidationProfile::new(layers.clone(), Some(p(10.0)), Drainage::Top)
-        .expect("las tres capas compatibles deben aceptarse");
+        .expect("all three compatible layers must be accepted");
     for factor in [1e-1, 10.0] {
         let mut incompatible = layers.clone();
         incompatible[1].cv_m2_s = Some(p(2.25 * factor));
@@ -376,7 +376,7 @@ fn middle_layer_cv_discrepancy_is_rejected_without_substitution() {
                 "cv intermedio incompatible debe rechazarse, sin sustituirlo por k/(mv γw)",
             );
         assert_eq!(error.code, "ENG-E-0010");
-        let hint = error.hint.as_deref().expect("contexto de discrepancia");
+        let hint = error.hint.as_deref().expect("mismatch context");
         assert!(hint.contains("layers[1]") && hint.contains("cv is incompatible"));
     }
 }
@@ -406,11 +406,11 @@ fn cv_consistency_relative_tolerance_boundary() {
         };
         let result = ConsolidationProfile::new(vec![l], Some(p(water)), Drainage::Top);
         if accepted {
-            result.expect("razón 1+5e-11 debe aceptarse");
+            result.expect("ratio 1+5e-11 must be accepted");
         } else {
             let error = result.expect_err("razón 1+2e-10 debe rechazarse");
             assert_eq!(error.code, "ENG-E-0010");
-            let hint = error.hint.as_deref().expect("contexto de discrepancia");
+            let hint = error.hint.as_deref().expect("mismatch context");
             assert!(hint.contains("layers[0]") && hint.contains("cv is incompatible"));
         }
     }

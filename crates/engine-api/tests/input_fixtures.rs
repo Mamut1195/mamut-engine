@@ -1,4 +1,4 @@
-//! Ejemplos del contrato publicado; conserva los códigos y avisos de ENG-API-001.
+//! Published contract examples; preserves the codes and warnings of ENG-API-001.
 use engine_api::{run, validate, ApiError, CancelToken, Status};
 use serde::Deserialize;
 use serde_json::Value;
@@ -14,13 +14,13 @@ fn fixtures(category: &str) -> Vec<PathBuf> {
         match path.extension().and_then(|s| s.to_str()) {
             Some("json") => paths.push(path),
             Some("expect") if category == "invalid" => {
-                assert!(path.with_extension("json").is_file(), "{path:?}: huérfano");
+                assert!(path.with_extension("json").is_file(), "{path:?}: orphan");
             }
-            _ => panic!("Fixture inesperado: {path:?}"),
+            _ => panic!("Unexpected fixture: {path:?}"),
         }
     }
     paths.sort();
-    assert!(!paths.is_empty(), "{category}: faltan fixtures");
+    assert!(!paths.is_empty(), "{category}: missing fixtures");
     paths
 }
 
@@ -38,8 +38,8 @@ fn valid_fixtures_validate_and_run() {
             assert_eq!(outcome.exit_code(), 0, "{path:?}");
             assert_eq!(document["diagnostics"], serde_json::json!([]), "{path:?}");
         } else {
-            // #85: los apoyos se publican como prescritos cero. La combinación
-            // se resuelve, pero ENG-API-001 conserva este aviso y salida 1.
+            // #85: supports are published as zero prescribed displacements. The combination
+            // is solved, but ENG-API-001 retains this warning and exit code 1.
             assert_eq!(outcome.status, Status::Warning, "{path:?}: {document}");
             assert_eq!(outcome.exit_code(), 1, "{path:?}");
             let diagnostics = document["diagnostics"].as_array().unwrap();
@@ -48,7 +48,7 @@ fn valid_fixtures_validate_and_run() {
             assert_eq!(
                 document["combinations"].as_array().unwrap().len(),
                 input["combinations"].as_array().unwrap().len(),
-                "{path:?}: faltan resultados combinados"
+                "{path:?}: missing combined results"
             );
         }
     }
@@ -88,7 +88,7 @@ fn invalid_fixtures_report_expected_code_and_exit() {
                     "{path:?}: {diagnostics:?}"
                 );
             }
-            (actual, kind) => panic!("{path:?}: validate {actual:?}; esperado {kind:?}"),
+            (actual, kind) => panic!("{path:?}: validate {actual:?}; expected {kind:?}"),
         }
         let outcome = run(&input, &CancelToken::new(), |_| {});
         assert_eq!(outcome.status, Status::Invalid, "{path:?}");
@@ -100,7 +100,7 @@ fn invalid_fixtures_report_expected_code_and_exit() {
                 .unwrap()
                 .iter()
                 .any(|d| d["code"] == expected.code && d["severity"] == "error"),
-            "{path:?}: esperado {}, recibido {document}",
+            "{path:?}: expected {}, received {document}",
             expected.code
         );
     }

@@ -10,7 +10,7 @@ use engine_model::{DofValue, Model, NodalMass, Node, Support};
 
 fn code<T>(r: EResult<T>, expected: &str) {
     match r {
-        Ok(_) => panic!("Se esperaba {expected}"),
+        Ok(_) => panic!("Expected {expected}"),
         Err(e) => assert_eq!(e.code, expected, "{e}"),
     }
 }
@@ -50,7 +50,7 @@ fn geometric_rejects_states_other_than_reference() {
     assert_eq!(out.dense().values(), &[3.0]);
     out = SymMatrix::zeros(1).unwrap();
     code(s.geometric(&[0.5], &mut out), "ENG-E-0013");
-    assert_eq!(out.dense().values(), &[0.0], "salida intacta ante error");
+    assert_eq!(out.dense().values(), &[0.0], "output intact on error");
     s.set_geometric_reference(&[0.5]).unwrap();
     s.geometric(&[0.5], &mut out).unwrap();
     assert_eq!(out.dense().values(), &[3.0]);
@@ -129,7 +129,7 @@ fn symmetry_tolerance_is_explicit_and_relative() {
     let k =
         assemble_matrix_with_tolerance(&mut ReferenceBackend, 2, &[(&loc, &skew)], 1e-6).unwrap();
     let d = k.to_dense().unwrap();
-    assert_eq!(d.get(0, 1), d.get(1, 0), "se simetriza con la media");
+    assert_eq!(d.get(0, 1), d.get(1, 0), "symmetrized with the mean");
     assert_eq!(d.get(0, 1), Some(2.0 + 0.5e-9));
     for bad in [-1.0, f64::NAN, f64::INFINITY] {
         code(

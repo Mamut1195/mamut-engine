@@ -1,4 +1,4 @@
-//! Fixtures SI propios de resistencia de materiales y análisis estructural clásico.
+//! In-house SI fixtures from strength of materials and classical structural analysis.
 pub const SOURCE: &str = "analítico: integración propia de EI v''''=q y equilibrio del pórtico";
 pub const CITATION: &str = "provenance/ENG-ELM-002.md, Derivaciones propias; cita bibliográfica exacta de resistencia de materiales/análisis estructural clásico PENDIENTE";
 pub const E: f64 = 200.0;
@@ -20,8 +20,8 @@ pub const STATIC: Fixture = Fixture {
     id: "frame2d.static.closed_forms",
     source: SOURCE,
     citation: CITATION,
-    displacement_tolerance: 1e-12, // m/rad absoluto, fixtures pequeños SI.
-    force_tolerance: 1e-9,         // N y N·m absoluto, incluido equilibrio.
+    displacement_tolerance: 1e-12, // absolute m/rad, small SI fixtures.
+    force_tolerance: 1e-9,         // absolute N and N·m, including equilibrium.
 };
 pub const BUCKLING: Fixture = Fixture {
     id: "frame2d.euler.pinned",

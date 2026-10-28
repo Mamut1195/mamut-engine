@@ -1,5 +1,5 @@
-//! Benchmarks lineales de derivación propia, embebidos y sin E/S para wasm.
-//! Fórmulas, hipótesis y tolerancias: provenance/ENG-ANL-001.md.
+//! In-house linear benchmarks, embedded and without I/O for wasm.
+//! Formulas, assumptions, and tolerances: provenance/ENG-ANL-001.md.
 #[path = "../../engine-assembly/tests/fixtures/counting.rs"]
 mod counting;
 use counting::CountingBackend;
@@ -126,7 +126,7 @@ fn balanced(results: &StaticResults) {
 
 #[test]
 fn symmetric_two_bar_truss_cases_superposition_one_factorization() {
-    // V=EA/(2L) Σ(d·u)². Para c=4/5,s=3/5:
+    // V=EA/(2L) Σ(d·u)². For c=4/5,s=3/5:
     // Kxx=2(EA/5)c²=102.4; Kyy=2(EA/5)s²=57.6; Kxy=0.
     let mut m = model(
         &[[-4.0, 0.0, 0.0], [4.0, 0.0, 0.0], [0.0, 3.0, 0.0]],
@@ -180,7 +180,7 @@ fn symmetric_two_bar_truss_cases_superposition_one_factorization() {
 
 #[test]
 fn bar_settlement_physical_support_loads_and_affine_superposition() {
-    // EA/L=100,200; 300u2=200s+factor P. s=.03 da u2=.02.
+    // EA/L=100,200; 300u2=200s+factor P. s=.03 gives u2=.02.
     let mut m = model(
         &[[0.0; 3], [4.0, 0.0, 0.0], [6.0, 0.0, 0.0]],
         Dim::D2,
@@ -253,7 +253,7 @@ fn beam_model() -> (Model, Vec<ElementContribution>) {
 
 #[test]
 fn frame_cantilever_tip_deflection_rotation_reaction_and_global_moments() {
-    // EI v''=−P(L−x); integración con v(0)=v'(0)=0.
+    // EI v''=−P(L−x); integration with v(0)=v'(0)=0.
     let (m, e) = beam_model();
     let mut s = LinearSystem::from_model(ReferenceBackend, &m, &e, &[]).unwrap();
     let r = StaticLinear::run(&mut s, &cases(&["P", "q"])).unwrap();
@@ -269,7 +269,7 @@ fn frame_cantilever_tip_deflection_rotation_reaction_and_global_moments() {
     );
     close(reaction(&r.cases[0], 1, Dof::Rz), P * L, 1e-9);
     close(reaction(&r.cases[0], 1, Dof::Uy), P, 1e-9);
-    // Los pares solos no equilibran: el brazo de la fuerza cancela PL.
+    // The couples alone do not balance: the force lever arm cancels PL.
     close(r.cases[0].equilibrium.residual_force[5], P * L, 1e-9);
     close(r.cases[0].equilibrium.residual_moment[2], 0.0, 1e-9);
     close(
@@ -292,7 +292,7 @@ fn frame_cantilever_tip_deflection_rotation_reaction_and_global_moments() {
 
 #[test]
 fn symmetric_portal_closed_form_lateral_equilibrium() {
-    // La energía en Δ,θ,v se deriva en la procedencia; EA es finito.
+    // The energy in Δ,θ,v is derived in the provenance; EA is finite.
     let h: f64 = 3.0;
     let span: f64 = 4.0;
     let ei = E * I;
@@ -342,7 +342,7 @@ fn spatial_bar_all_components_and_nodal_couples() {
             (2, Dof::Rz, 9.0),
         ],
     );
-    m.nodes.reverse(); // Numeración por id, independiente del orden de entrada.
+    m.nodes.reverse(); // Numbering by id, independent of input order.
     let bar = LinearTruss::new(Dim::D3, E, A, 0.0).unwrap();
     let element = contribution(&m, &bar, 1, 2, &[]);
     let mut s = LinearSystem::from_model(ReferenceBackend, &m, &[element], &[]).unwrap();
@@ -434,14 +434,14 @@ fn reports_detect_solver_error_and_moment_reference_translation() {
     let mut s = LinearSystem::from_model(backend, &m, &e, &[]).unwrap();
     let r = StaticLinear::run(&mut s, &cases(&["P"])).unwrap();
     let shifted = StaticLinear::run_about(&mut s, &cases(&["P"]), [2.0, 1.0, 0.0]).unwrap();
-    // u/2 => R_y=P/2, R_m=PL/2; residual físico Fy=−P/2.
+    // u/2 => R_y=P/2, R_m=PL/2; physical residual Fy=−P/2.
     close(r.cases[0].free_residual_norm, P / 2.0, 1e-9);
     close(r.cases[0].relative_free_residual, 0.5, 1e-12);
     close(r.cases[0].equilibrium.residual_force[1], -P / 2.0, 1e-9);
     close(r.cases[0].equilibrium.relative_residual, 1.0 / 3.0, 1e-12);
     let e0 = &r.cases[0].equilibrium;
     let e1 = &shifted.cases[0].equilibrium;
-    // M(p)=M(0)−p×ΣF; el desplazamiento del punto sí cambia el residual.
+    // M(p)=M(0)−p×ΣF; the point displacement does change the residual.
     close(
         e1.residual_moment[2],
         e0.residual_moment[2] - 2.0 * e0.residual_force[1] + e0.residual_force[0],

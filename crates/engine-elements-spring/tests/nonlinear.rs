@@ -1,6 +1,6 @@
-//! source: derivación propia; citation: provenance/ENG-ELM-005.md.
-//! Usa la ley real `MultilinearElastic` de engine-laws (MAT-002) como
-//! dev-dependency interna; sin copias ni adaptadores.
+//! source: own derivation; citation: provenance/ENG-ELM-005.md.
+//! Uses the actual `MultilinearElastic` law from engine-laws (MAT-002) as an
+//! internal dev-dependency; without copies or adapters.
 use engine_contracts::{
     conformance::check_element, Element, ElementCtx, ElementParams, MassKind, MemberLoad,
     UniaxialLaw, UniaxialResponse,
@@ -32,7 +32,7 @@ fn close(a: Real, b: Real) {
     assert!((a - b).abs() < 1e-9, "{a} != {b}");
 }
 fn code<T>(r: EResult<T>, expected: &str) {
-    assert_eq!(r.err().expect("Debe producir diagnóstico").code, expected);
+    assert_eq!(r.err().expect("Must produce a diagnostic").code, expected);
 }
 fn bilinear() -> Arc<dyn UniaxialLaw> {
     Arc::new(
@@ -95,7 +95,7 @@ fn bilinear_force_and_tangent_closed_form() {
             (0.3, 14.0, 20.0),
             (0.7, 22.0, 20.0),
         ] {
-            // Se incluyen desplazamientos uniformes y coordenadas coincidentes.
+            // Includes uniform displacements and coincident coordinates.
             let u = if connection == SpringConnection::Ground {
                 vec![delta]
             } else {
@@ -161,10 +161,10 @@ fn manual_newton_ground_equilibrium_crosses_bilinear_corner() {
         let mut converged = false;
         for _ in 0..8 {
             let r = s.respond(&ctx, &[u], &accepted).unwrap();
-            assert_eq!(accepted, original); // Ninguna iteración acepta la prueba.
+            assert_eq!(accepted, original); // No iteration accepts the trial.
             let residual = load - r.internal_force[0];
             if residual.abs() < 1e-10 {
-                accepted = r.trial_state; // Commit explícito solo al converger.
+                accepted = r.trial_state; // Explicit commit only upon convergence.
                 converged = true;
                 break;
             }
@@ -287,8 +287,8 @@ fn axis_rotation_covariance_force_tangent_and_local_recovery() {
     }
 }
 
-// Ley plástica analítica propia de pruebas: retorno a |F|≤10 N, k=100 N/m,
-// historia = desplazamiento plástico. Hace observable el commit y el revert.
+// In-house analytical plastic test law: return to |F|≤10 N, k=100 N/m,
+// history = plastic displacement. Makes commit and revert observable.
 struct Plastic;
 impl UniaxialLaw for Plastic {
     fn kind(&self) -> &'static str {
@@ -333,7 +333,7 @@ fn nonempty_history_trial_commit_and_revert_are_explicit() {
     close(trial.trial_state[0], 0.1);
     assert_eq!(accepted, initial);
     assert_eq!(trial, s.respond(&ctx, &[0.2], &accepted).unwrap());
-    // Revert: se descarta la prueba; δ=0 sigue sin fuerza ni plasticidad.
+    // Revert: the trial is discarded; δ=0 still has no force or plasticity.
     close(
         s.respond(&ctx, &[0.0], &accepted).unwrap().internal_force[0],
         0.0,
@@ -567,7 +567,7 @@ fn invalid_inputs_and_wrong_history_lengths_return_diagnostics() {
     code(s.respond(&ctx, &[Real::MAX], &[]), "ENG-E-0008");
 }
 
-// Ley deliberadamente inválida para comprobar la frontera del elemento.
+// Deliberately invalid law to check the element boundary.
 struct BadLaw(u8);
 impl UniaxialLaw for BadLaw {
     fn kind(&self) -> &'static str {

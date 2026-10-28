@@ -1,5 +1,5 @@
-//! Validador de pruebas compartido del subconjunto Draft 2020-12.
-//! Sin red; rechaza keywords y patrones desconocidos.
+//! Shared test validator for the Draft 2020-12 subset.
+//! No network; rejects unknown keywords and patterns.
 use serde_json::Value;
 
 pub fn conforms(value: &Value, root: &Value) -> bool {
@@ -37,7 +37,7 @@ fn audit(schema: &Value) {
                 }
             }
             "items" | "contains" | "additionalProperties" | "if" | "then" | "else" => audit(value),
-            _ => panic!("Keyword de schema no soportada: {key}"),
+            _ => panic!("Unsupported schema keyword: {key}"),
         }
     }
 }
@@ -60,21 +60,21 @@ fn valid(root: &Value, schema: &Value, value: &Value) -> bool {
                 } else {
                     external
                         .pointer(fragment.strip_prefix('#').unwrap())
-                        .expect("Referencia externa local ausente")
+                        .expect("Missing local external reference")
                 };
                 return valid(&external, child, value);
             }
             let reference = reference.strip_prefix('#').unwrap();
             valid(
                 root,
-                root.pointer(reference).expect("Referencia local ausente"),
+                root.pointer(reference).expect("Missing local reference"),
                 value,
             )
         }
         "type" => match rule {
             Value::Array(types) => types.iter().any(|t| has_type(t.as_str().unwrap(), value)),
             Value::String(name) => has_type(name, value),
-            _ => panic!("type inválido"),
+            _ => panic!("invalid type"),
         },
         "const" => equal_json(rule, value),
         "enum" => rule
@@ -152,7 +152,7 @@ fn valid(root: &Value, schema: &Value, value: &Value) -> bool {
                 .get(branch)
                 .is_none_or(|child| valid(root, child, value))
         }
-        _ => panic!("Keyword de schema no soportada: {key}"),
+        _ => panic!("Unsupported schema keyword: {key}"),
     })
 }
 
@@ -165,11 +165,11 @@ fn has_type(name: &str, value: &Value) -> bool {
         "string" => value.is_string(),
         "array" => value.is_array(),
         "object" => value.is_object(),
-        _ => panic!("Tipo de schema no soportado: {name}"),
+        _ => panic!("Unsupported schema type: {name}"),
     }
 }
 
-// JSON Schema compara números por valor (0 y 0.0 satisfacen el mismo const).
+// JSON Schema compares numbers by value (0 and 0.0 satisfy the same const).
 fn equal_json(a: &Value, b: &Value) -> bool {
     match (a, b) {
         (Value::Number(_), Value::Number(_)) => a.as_f64() == b.as_f64(),
@@ -223,6 +223,6 @@ fn matches_pattern(expression: &str, value: &str) -> bool {
             }
             true
         }
-        _ => panic!("Expresión de schema no soportada: {expression}"),
+        _ => panic!("Unsupported schema expression: {expression}"),
     }
 }

@@ -1,4 +1,4 @@
-//! Casos propios: hash de bits binary64, sin pasar por JSON ni tolerancias.
+//! In-house cases: binary64 bit hash, without JSON or tolerances.
 use engine_core::math;
 use engine_loads::Beam2D;
 
@@ -93,7 +93,7 @@ pub fn hash(index: usize) -> Result<[u8; 32], String> {
             }
         }
         3 => {
-            // Ejercita sin_cos a través de una ruta pública del motor.
+            // Exercises sin_cos through a public engine path.
             for angle in [-0.375, 0.0, 0.375, 1e20] {
                 let beam = Beam2D::new(3.75, angle).map_err(|e| e.to_string())?;
                 values.extend(
@@ -103,8 +103,8 @@ pub fn hash(index: usize) -> Result<[u8; 32], String> {
             }
         }
         4 => {
-            // Par explícito (seno, coseno): ceros firmados, subnormales y
-            // reducción de argumento cerca de cuadrantes y para ángulos grandes.
+            // Explicit (sine, cosine) pair: signed zeros, subnormals, and
+            // argument reduction near quadrants and for large angles.
             for x in [
                 -1e300,
                 -1e20,

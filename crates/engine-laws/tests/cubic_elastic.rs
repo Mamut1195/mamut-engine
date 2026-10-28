@@ -1,6 +1,6 @@
-//! Benchmark analítico propio y conformidad del piloto ENG-CORE-011.
-//! Cita: Codex gpt-6.1-sol high, Elasticidad cúbica conservativa, 2026-10-20,
-//! docs/METHODS_GUIDE.md §5, ecuaciones (1)–(3) y tabla analítica.
+//! In-house analytical benchmark and conformance of the ENG-CORE-011 pilot.
+//! Citation: Codex gpt-6.1-sol high, Conservative cubic elasticity, 2026-10-20,
+//! docs/METHODS_GUIDE.md §5, equations (1)–(3) and analytical table.
 
 use engine_contracts::{conformance::check_uniaxial_law, UniaxialLaw};
 use engine_core::{ContractId, Diagnostic, EResult, Real};
@@ -17,8 +17,8 @@ struct Fixture {
     relative: Real,
 }
 
-// Evaluaciones independientes fijadas en la ficha antes de implementar:
-// E=8 Pa, C=16 Pa; ε=1/4 da σ=2+1/4, K=8+3=11, etc.
+// Independent evaluations recorded in the worksheet before implementation:
+// E=8 Pa, C=16 Pa; ε=1/4 gives σ=2+1/4, K=8+3=11, etc.
 const FIXTURE: Fixture = Fixture {
     source: "analytical",
     citation: "Codex gpt-6.1-sol high. Elasticidad cúbica conservativa, 2026-10-20; docs/METHODS_GUIDE.md §5, (1)–(3) y tabla propia.",
@@ -35,7 +35,7 @@ const FIXTURE: Fixture = Fixture {
         (-1.0, -24.0, 56.0),
         (0.0, 0.0, 8.0),
     ],
-    // Pa y adimensional; holgura sobre pocas operaciones f64. Véase la ficha.
+    // Pa and dimensionless; margin over a few f64 operations. See the worksheet.
     absolute: 1e-12,
     relative: 1e-12,
 };
@@ -45,7 +45,7 @@ fn close(actual: Real, expected: Real) {
     let limit = FIXTURE.absolute.max(FIXTURE.relative * expected.abs());
     assert!(
         (actual - expected).abs() <= limit,
-        "{actual} frente a {expected}, límite={limit}; {}: {}",
+        "{actual} versus {expected}, limit={limit}; {}: {}",
         FIXTURE.source,
         FIXTURE.citation
     );
@@ -101,11 +101,11 @@ fn factory_descriptor_and_state_ownership() -> EResult<()> {
     let committed = law.initial_state();
     let snapshot = committed.clone();
     let first = law.respond(0.5, &committed)?;
-    law.respond(-1.0, &committed)?; // Prueba descartada, sin aceptación.
+    law.respond(-1.0, &committed)?; // Discarded trial, without acceptance.
     assert_eq!(committed, snapshot);
     assert_eq!(first, law.respond(0.5, &committed)?);
     let mut discarded = first.trial_state.clone();
-    discarded.push(42.0); // Vector independiente, no altera la ley.
+    discarded.push(42.0); // Independent vector, does not alter the law.
     assert_eq!(first, law.respond(0.5, &committed)?);
     assert_eq!(first, law.respond(0.5, &first.trial_state)?);
     let concrete = CubicElastic::new(FIXTURE.params.e, FIXTURE.params.c)?;
@@ -137,11 +137,11 @@ fn symmetry_and_linear_limit() -> EResult<()> {
         assert!(positive.tangent >= cubic.initial_tangent());
         assert_eq!(linear.respond(strain, &[])?, existing.respond(strain, &[])?);
     }
-    // ε² desbordaría; C=0 y la respuesta lineal siguen siendo representables.
+    // ε² would overflow; C=0 and the linear response remain representable.
     let small = CubicElastic::new(1e-300, 0.0)?;
     close(small.respond(1e300, &[])?.stress, 1.0);
     assert_eq!(small.respond(1e300, &[])?.tangent, 1e-300);
-    // Cε² es representable aunque ε² no lo sea.
+    // Cε² is representable even though ε² is not.
     let scaled = CubicElastic::new(1e-300, 1e-300)?.respond(1e200, &[])?;
     assert!((scaled.stress / 1e300 - 1.0).abs() < 1e-14);
     assert!((scaled.tangent / 3e100 - 1.0).abs() < 1e-14);
@@ -173,7 +173,7 @@ fn invalid_parameters_and_inputs_use_catalog() -> EResult<()> {
 
 #[test]
 fn product_and_sum_overflows_are_errors() -> EResult<()> {
-    // Cε, Cε², E+q, σ, 3q y E+3q, respectivamente.
+    // Cε, Cε², E+q, σ, 3q, and E+3q, respectively.
     for (e, c, strain) in [
         (1.0, Real::MAX, 2.0),
         (1.0, 1.0, 1e200),

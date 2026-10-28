@@ -1,4 +1,4 @@
-//! Solo se deserializa runs[].engine_input; los demás campos se ignoran.
+//! Only runs[].engine_input is deserialized; other fields are ignored.
 use engine_api::{validate, CancelToken, Status};
 use serde::Deserialize;
 use serde_json::Value;
@@ -32,7 +32,7 @@ fn validate_is_at_least_ten_times_faster_than_run_on_e1() {
         assert!(matches!(outcome.status, Status::Ok | Status::Warning));
         black_box(outcome);
     };
-    // Calentar ambos caminos y alternar el orden para reducir sesgos de caché.
+    // Warms up both paths and alternates the order to reduce bias.
     check_validate();
     check_run();
     let mut validation = Vec::new();

@@ -352,7 +352,7 @@ fn cancellation_at_each_boundary_stops_further_steps() {
         assert_eq!(result, Err(ApiError::Cancelled));
         assert_eq!(events.len(), boundary);
     }
-    // Cancelar después del parseo impide incluso el mapeo inválido siguiente.
+    // Cancellation after parsing prevents even the following invalid mapping.
     let cancel = CancelToken::new();
     assert_eq!(
         validate_with(r#"{"schema":"engine-input/1"}"#, &cancel, |_| cancel

@@ -1,4 +1,4 @@
-//! MAM-835: la función exportada WASM se ejecuta también de forma nativa.
+//! MAM-835: the exported WASM function also runs natively.
 #[path = "../../engine-api/tests/support/sfc010.rs"]
 mod fixtures;
 #[test]

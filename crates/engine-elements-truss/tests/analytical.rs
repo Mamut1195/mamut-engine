@@ -1,4 +1,4 @@
-//! Integración de elementos reales con ensamblaje y backend; solo soluciones cerradas.
+//! Integration of actual elements with assembly and backend; closed-form solutions only.
 mod fixtures;
 use engine_assembly::{DofMap, ElementContribution, ElementLoad, LinearSystem};
 use engine_contracts::{
@@ -10,20 +10,20 @@ use engine_elements_truss::LinearTruss;
 use engine_linalg::{ReferenceBackend, SymMatrix};
 use engine_model::{DofValue, LoadCase, Model, NodalLoad, Node, Support};
 
-const FORCE_TOL: f64 = 1e-9; // N absoluta, incluido ΣF por dirección.
-const DISP_TOL: f64 = 1e-12; // m absoluta en estos fixtures pequeños.
+const FORCE_TOL: f64 = 1e-9; // absolute N, including ΣF per direction.
+const DISP_TOL: f64 = 1e-12; // absolute m in these small fixtures.
 
 fn close(a: f64, b: f64, tol: f64) {
     assert!((a - b).abs() <= tol, "{a} != {b}; tol={tol}");
 }
 fn rotation(p: [f64; 3], spatial: bool) -> [f64; 3] {
     if spatial {
-        // Rotación no trivial alrededor de Y; todas las bases del trípode fijas.
+        // Nontrivial rotation about Y; all tripod bases restrained.
         let (s, c) = math::sin_cos(0.73_f64);
         [c * p[0] + s * p[2], p[1], -s * p[0] + c * p[2]]
     } else {
         [-p[1], p[0], p[2]]
-    } // 90° en XY: rodillo Uy pasa a Ux.
+    } // 90° in XY: Uy roller becomes Ux.
 }
 
 fn solve_fixture(
@@ -132,7 +132,7 @@ fn solve_fixture(
             FORCE_TOL,
         );
     }
-    // Equilibrio de momentos en los tres ejes; producto vectorial r×F.
+    // Moment equilibrium about all three axes; cross product r×F.
     let mut moment = [0.0; 3];
     for (i, p) in coords.iter().enumerate() {
         let f: [f64; 3] =
@@ -252,8 +252,8 @@ fn isostatic_tripod_and_rotated_model() {
 
 #[test]
 fn distributed_axial_load_assembly_reactions_and_geometric_snapshot() {
-    // source: equilibrio propio con carga terminal P=12 N y q=4 N/m.
-    // citation: provenance/ENG-ELM-001.md, Derivaciones propias; bibliografía PENDIENTE.
+    // source: own equilibrium with end load P=12 N and q=4 N/m.
+    // citation: provenance/ENG-ELM-001.md, own derivations; bibliography PENDING.
     // L=2 m: F_j=12+4=16 N, u_j=16/200=0.08 m, R_i=-20 N.
     // N(x/L)=16+4(1-2x/L); N(0)=20, N(0.5)=16, N(1)=12 N.
     fixtures::cited(&fixtures::AXIAL);
@@ -361,6 +361,6 @@ fn distributed_axial_load_assembly_reactions_and_geometric_snapshot() {
         close(reduced.dense().get(0, 0).unwrap(), 6.0, FORCE_TOL);
         system.mass(MassKind::Consistent, &mut reduced).unwrap();
         close(reduced.dense().get(0, 0).unwrap(), 4.0, FORCE_TOL);
-        // Kg no se consulta vía SystemView::geometric(u): ver bitácora (ASM-001 la ignora u).
+        // Kg is not queried via SystemView::geometric(u): see the log (ASM-001 ignores u).
     }
 }

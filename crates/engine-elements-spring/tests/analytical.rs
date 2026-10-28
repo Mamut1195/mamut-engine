@@ -1,4 +1,4 @@
-//! Ensamblaje real y solución con backend frente a formas cerradas propias.
+//! Actual assembly and backend solution against own closed forms.
 mod fixtures;
 use engine_assembly::{DofMap, ElementContribution, LinearSystem};
 use engine_contracts::{CaseRef, Element, ElementCtx, ElementParams, MassKind};
@@ -8,8 +8,8 @@ use engine_elements_spring::{LinearSpring, SpringAxes, SpringConnection};
 use engine_linalg::ReferenceBackend;
 use engine_model::{DofValue, LoadCase, Model, NodalLoad, Node, Support};
 
-const DISP_TOL: f64 = 1e-12; // m absoluta.
-const FORCE_TOL: f64 = 1e-9; // N absoluta.
+const DISP_TOL: f64 = 1e-12; // absolute m.
+const FORCE_TOL: f64 = 1e-9; // absolute N.
 fn close(a: f64, b: f64, tol: f64) {
     assert!((a - b).abs() <= tol, "{a} != {b}; tol={tol}");
 }
@@ -193,8 +193,8 @@ fn elastic_ground_support_u_equals_f_over_k() {
 #[test]
 fn oblique_ground_support_covariance_of_assembled_solution() {
     fixtures::cited();
-    // El resorte perpendicular elimina el mecanismo transversal sin cambiar
-    // la solución u=(F/k1)d del resorte solicitado.
+    // The perpendicular spring removes the transverse mechanism without changing
+    // the requested spring's solution u=(F/k1)d.
     for angle in [0.43_f64, 1.16, -0.71] {
         let (sn, cs) = math::sin_cos(angle);
         let d = [cs, sn, 0.0];

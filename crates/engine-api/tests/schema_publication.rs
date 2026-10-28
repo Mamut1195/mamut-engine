@@ -15,16 +15,16 @@ fn published_schemas_match_the_complete_api() -> Result<(), Box<dyn std::error::
         .as_object()
         .ok_or("schemas ausente")?;
     for kind in advertised.keys() {
-        assert!(documents.contains_key(kind.as_str()), "{kind} sin publicar");
+        assert!(documents.contains_key(kind.as_str()), "{kind} unpublished");
     }
-    // Detecta también un archivo fuente añadido sin entrada en el registro API.
+    // Also detects a newly added source file without an API registry entry.
     let mut sources = BTreeSet::new();
     for entry in std::fs::read_dir(root.join("crates/engine-api/schemas"))? {
         let path = entry?.path();
         assert_eq!(path.extension().and_then(|s| s.to_str()), Some("json"));
         assert!(
             sources.insert(std::fs::read_to_string(path)?),
-            "fuente duplicada"
+            "duplicate source"
         );
     }
     assert_eq!(
@@ -42,7 +42,7 @@ fn published_schemas_match_the_complete_api() -> Result<(), Box<dyn std::error::
         .take()
         .ok_or("stdin ausente")?
         .write_all(&serde_json::to_vec(&documents)?)?;
-    assert!(child.wait()?.success(), "árbol de esquemas desactualizado");
+    assert!(child.wait()?.success(), "outdated schema tree");
     Ok(())
 }
 

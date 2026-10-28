@@ -1,4 +1,4 @@
-//! Fixtures portables: misma tabla analítica en engine-geo, validación y wasm.
+//! Portable fixtures: the same analytical table in engine-geo, validation, and wasm.
 use engine_core::{EResult, EngineError};
 use engine_geo::{qz, tz};
 
@@ -7,7 +7,7 @@ const TZ_CITATION: &str =
     "§8.4.2, figura 2 y tabla 2; interpolación lineal y tracción: derivación propia ENG-GEO-004";
 const QZ_CITATION: &str =
     "§8.4.3, figura 3; interpolación lineal y punta sin tracción: derivación propia ENG-GEO-004";
-// Tolerancia solo de redondeo binary64: no hay discretización ni calibración.
+// Tolerance only for binary64 rounding: no discretization or calibration.
 const RELATIVE_TOLERANCE: f64 = 2e-14;
 
 fn require(ok: bool, message: &str) -> EResult<()> {
@@ -35,11 +35,11 @@ fn params() -> tz::ApiTzParams {
     }
 }
 
-/// Cinco fixtures: arena, arcilla, punta API y dos tablas de usuario.
+/// Five fixtures: sand, clay, API tip, and two user tables.
 pub fn run_all() -> EResult<usize> {
     let sand = tz::api_sand(params())?;
     let clay = tz::api_clay(params(), Some(0.8))?;
-    // Vértices esperados expresados directamente en SI, no desde el generador.
+    // Expected vertices expressed directly in SI, not from the generator.
     let ascending = [
         (0.0, 0.0),
         (0.0016, 15_000.0),
@@ -62,13 +62,13 @@ pub fn run_all() -> EResult<usize> {
             check(curve.at(-z)?, -t * 0.6, TZ_CITATION)?;
         }
     }
-    // Medio de (0.0016,15000)-(0.0031,25000): (0.00235,20000).
+    // Midpoint of (0.0016,15000)-(0.0031,25000): (0.00235,20000).
     check(sand.at(0.00235)?, 20_000.0, TZ_CITATION)?;
     check(sand.at(-0.00235)?, -12_000.0, TZ_CITATION)?;
     check(sand.at(0.03)?, 50_000.0, TZ_CITATION)?;
     check(sand.at(1.0)?, 50_000.0, TZ_CITATION)?;
     check(sand.at(-1.0)?, -30_000.0, TZ_CITATION)?;
-    // Medio pico-residual: (50000+40000)/2 = 45000 Pa.
+    // Peak-residual midpoint: (50000+40000)/2 = 45000 Pa.
     check(clay.at(0.015)?, 45_000.0, TZ_CITATION)?;
     check(clay.at(0.02)?, 40_000.0, TZ_CITATION)?;
     check(clay.at(0.03)?, 40_000.0, TZ_CITATION)?;
@@ -95,14 +95,14 @@ pub fn run_all() -> EResult<usize> {
     for &(z, q) in &tip_vertices {
         require(tip.at(z)? == q, "Evaluación exacta en vértice q-z")?;
     }
-    // Medio de (0.002,250000)-(0.013,500000): Q = 375000 N.
+    // Midpoint of (0.002,250000)-(0.013,500000): Q = 375000 N.
     check(tip.at(0.0075)?, 375_000.0, QZ_CITATION)?;
     check(tip.at(1.0)?, 1_000_000.0, QZ_CITATION)?;
     for z in [-1.0, -0.1, -0.001] {
         check(tip.at(z)?, 0.0, QZ_CITATION)?;
     }
 
-    // Derivación propia: interpolar una tabla artificial con ablandamiento.
+    // Own derivation: interpolates an artificial table with softening.
     let custom = tz::user(
         Some(vec![(-0.02, -8.0), (0.0, 0.0), (0.01, 20.0), (0.02, 10.0)]),
         tz::UserTraction::Explicit,

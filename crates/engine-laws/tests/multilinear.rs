@@ -1,4 +1,4 @@
-//! Fixtures analíticos propios; pruebas en memoria sin oráculos externos.
+//! In-house analytical fixtures; in-memory tests without external oracles.
 
 use engine_contracts::{conformance::check_uniaxial_law, UniaxialLaw};
 use engine_core::{catalog, ContractId, EResult, Real};
@@ -18,7 +18,7 @@ const POINTS: &[(Real, Real)] = &[
 struct Fixture {
     source: &'static str,
     citation: &'static str,
-    // (ε, σ, tangente), con datos binarios exactos.
+    // (ε, σ, tangent), with exact binary data.
     samples: &'static [(Real, Real, Real)],
 }
 
@@ -51,7 +51,7 @@ fn code<T>(result: EResult<T>, expected: &str) {
             assert!(catalog::lookup(error.code).is_some());
             assert!(!error.message.is_empty());
         }
-        Ok(_) => panic!("Se esperaba {expected}"),
+        Ok(_) => panic!("Expected {expected}"),
     }
 }
 
@@ -385,8 +385,8 @@ fn stateless_repetition_and_factory_follow_existing_contract() {
 
 #[test]
 fn uniaxial_conformance_uses_differentiable_samples_and_checks_initial_tangent() {
-    // El kit exige ε ± h diferenciable. Excluir quiebres no altera el kit:
-    // este comprueba por separado respond(0).tangent == initial_tangent().
+    // The kit requires differentiable ε ± h. Excluding kinks does not alter the kit:
+    // it separately checks respond(0).tangent == initial_tangent().
     let samples = [-4.0, -2.0, -0.5, 0.5, 2.0, 4.0, -0.5, 0.5];
     for mode in [
         MultilinearMode::Both,
@@ -396,7 +396,7 @@ fn uniaxial_conformance_uses_differentiable_samples_and_checks_initial_tangent()
         let diagnostics = check_uniaxial_law(&law(mode), &samples, 1e-6);
         assert!(diagnostics.is_empty(), "{mode:?}: {diagnostics:?}");
     }
-    // En una recta, el origen sí tiene derivada bilateral y puede muestrearse.
+    // On a straight line, the origin does have a two-sided derivative and can be sampled.
     let linear =
         MultilinearElastic::new(vec![(0.0, 0.0), (1.0, 2.0)], MultilinearMode::Both).unwrap();
     let diagnostics = check_uniaxial_law(&linear, &[0.0, -2.0, 0.5, 2.0], 1e-6);

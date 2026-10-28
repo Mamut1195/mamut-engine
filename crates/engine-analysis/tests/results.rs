@@ -1,5 +1,5 @@
-//! Validación analítica propia del postproceso; sin red, archivos ni oráculos.
-//! Derivaciones SI y convenciones en provenance/ENG-RES-001.md.
+//! In-house analytical validation of postprocessing; no network, files, or oracles.
+//! SI derivations and conventions in provenance/ENG-RES-001.md.
 use engine_analysis::{
     results::{CaseResults, Field, MemberRecovery, MemberResult, DEFAULT_STATIONS},
     StaticCaseResult, StaticLinear,
@@ -189,7 +189,7 @@ fn simply_supported_uniform_exact_peak_outside_requested_stations() -> EResult<(
     let loads = [uniform()];
     let params = ElementParams::default();
     let (system, solution) = solve(&m, &[contribution(&m, &beam, &IDS, &loads)?], &[], 1.0)?;
-    let requested = [0.8, 0.2, 0.2]; // Sin centro ni extremos, desordenadas y repetidas.
+    let requested = [0.8, 0.2, 0.2]; // Without center or ends, unordered and repeated.
     let r = CaseResults::recover(
         &solution,
         &system,
@@ -209,7 +209,7 @@ fn simply_supported_uniform_exact_peak_outside_requested_stations() -> EResult<(
     close(shear.min.at_station, 0.0);
     close(shear.max.value, W * L / 2.0);
     close(shear.max.at_station, 1.0);
-    // Se comprueba la parábola en una estación solicitada, no interpolación de extremos.
+    // Checks the parabola at a requested station, not interpolation from the ends.
     close(
         station(m, 0.2)?.forces_local[5],
         W * L * L * 0.2 * 0.8 / 2.0,
@@ -252,11 +252,11 @@ fn cantilever_nodal_point_load_exact_n_v_m_and_node_reactions() -> EResult<()> {
     support(&mut m, IDS[0], &DOFS);
     nodal(&mut m, IDS[1], Dof::Ux, 5.0)?;
     nodal(&mut m, IDS[1], Dof::Uy, -P)?;
-    nodal(&mut m, IDS[0], Dof::Uy, -7.0)?; // Carga directamente sobre apoyo.
+    nodal(&mut m, IDS[0], Dof::Uy, -7.0)?; // Load directly on the support.
     let beam = beam()?;
     let params = ElementParams::default();
     let (system, mut solution) = solve(&m, &[contribution(&m, &beam, &IDS, &[])?], &[], 1.0)?;
-    // Global es la fuente de verdad: no se usan estas dos copias.
+    // Global is the source of truth: these two copies are not used.
     solution.free_displacements.clear();
     solution.reactions.clear();
     let r = CaseResults::recover(&solution, &system, &[view(&beam, &params, &[], None)])?;
@@ -287,7 +287,7 @@ fn cantilever_nodal_point_load_exact_n_v_m_and_node_reactions() -> EResult<()> {
     close(extremes(member, Field::Mz)?.min.value, -P * L);
     close(extremes(member, Field::Mz)?.min.at_station, 0.0);
     close(extremes(member, Field::Mz)?.max.at_station, 1.0);
-    close(extremes(member, Field::N)?.min.at_station, 0.0); // Empate determinista.
+    close(extremes(member, Field::N)?.min.at_station, 0.0); // Deterministic tie.
     close(r.nodes[0].reactions[0], -5.0);
     close(r.nodes[0].reactions[1], P + 7.0);
     close(r.nodes[0].reactions[5], P * L);
@@ -311,7 +311,7 @@ fn fixed_fixed_uniform_exact_end_and_center_moments() -> EResult<()> {
     let mut m = simple_model();
     m.supports.clear();
     support(&mut m, IDS[0], &DOFS);
-    // Fijo en flexión; Ux_j libre sin carga axial conserva una ecuación.
+    // Restrained in bending; free Ux_j without axial load retains one equation.
     support(&mut m, IDS[1], &[Dof::Uy, Dof::Rz]);
     let beam = beam()?;
     let params = ElementParams::default();
@@ -439,7 +439,7 @@ fn two_bar_truss_axial_static_equilibrium_and_queries() -> EResult<()> {
 }
 
 fn assert_code<T>(result: EResult<T>, expected: &str) {
-    assert!(result.is_err(), "Se esperaba {expected}");
+    assert!(result.is_err(), "Expected {expected}");
     if let Err(e) = result {
         assert_eq!(e.code, expected);
         assert!(engine_core::catalog::lookup(e.code).is_some());
@@ -460,7 +460,7 @@ fn interior_peak_moves_with_nodal_end_couple() -> EResult<()> {
         &[view(&beam, &params, &loads, Some(&[0.1, 0.9]))],
     )?;
     let m = member(&r)?;
-    // M(x)=14x−3x²; la raíz no está en la mitad ni en las estaciones pedidas.
+    // M(x)=14x−3x²; the root is neither at the midpoint nor at the requested stations.
     let peak = extremes(m, Field::Mz)?.max;
     close(peak.at_station, 7.0 / 12.0);
     close(peak.value, 14.0 * 14.0 / (2.0 * W));
@@ -472,7 +472,7 @@ fn interior_peak_moves_with_nodal_end_couple() -> EResult<()> {
 
 #[test]
 fn rotated_uniform_beam_sum_loads_and_positive_negative_zero_factors() -> EResult<()> {
-    // Viga vertical local y=−X: carga +X => qy=−W. Dos cargas se suman.
+    // Vertical beam with local y=−X: load +X => qy=−W. Two loads are summed.
     let mut m = model(
         &[(IDS[0], [2.0, 1.0, 0.0]), (IDS[1], [2.0, 1.0 + L, 0.0])],
         Dim::D2,
@@ -526,7 +526,7 @@ fn distributed_couple_adds_shear_zero_and_true_moment_extreme() -> EResult<()> {
     let mut m = simple_model();
     m.supports.clear();
     support(&mut m, IDS[0], &DOFS);
-    // Fijo en flexión; Ux_j libre sin carga axial conserva una ecuación.
+    // Restrained in bending; free Ux_j without axial load retains one equation.
     support(&mut m, IDS[1], &[Dof::Uy, Dof::Rz]);
     let beam = beam()?;
     let params = ElementParams::default();
@@ -687,7 +687,7 @@ fn invalid_inputs_catalog_diagnostics_without_panics() -> EResult<()> {
 #[test]
 fn recovery_rejects_omitted_or_changed_loads_and_members() -> EResult<()> {
     let mut m = simple_model();
-    // Incluye carga nodal directa en apoyo y en un GDL libre (par).
+    // Includes direct nodal load on a support and on a free DOF (couple).
     nodal(&mut m, IDS[0], Dof::Uy, -7.0)?;
     nodal(&mut m, IDS[1], Dof::Rz, 8.0)?;
     let beam = beam()?;
@@ -718,7 +718,7 @@ fn recovery_rejects_omitted_or_changed_loads_and_members() -> EResult<()> {
         assert_code(result, "ENG-E-0010");
     }
     assert_code(CaseResults::recover(&solution, &system, &[]), "ENG-E-0010");
-    // Elemento con rigidez distinta a la ensamblada también rompe equilibrio.
+    // An element with stiffness differing from the assembled stiffness also breaks equilibrium.
     let wrong_beam = EulerFrame2D::new(400.0, 2.0, 3.0, 0.0, MomentReleases::default())?;
     assert_code(
         CaseResults::recover(
@@ -744,7 +744,7 @@ fn omitted_load_probe_errors_while_uniform_analytic_peak_is_twelve() -> EResult<
     let params = ElementParams::default();
     let loads = [uniform()];
     let (system, solution) = solve(&m, &[contribution(&m, &beam, &IDS, &loads)?], &[], 1.0)?;
-    // Sonda #69: antes, omitir loads producía Mmax=8 en vez de wL²/8=12.
+    // Probe #69: previously, omitting loads produced Mmax=8 instead of wL²/8=12.
     assert_code(
         CaseResults::recover(&solution, &system, &[view(&beam, &params, &[], None)]),
         "ENG-E-0010",
@@ -770,8 +770,8 @@ enum OutputFault {
     LoadSize,
 }
 
-// Elemento propio de prueba: delega física al frame del repo y altera solo
-// la frontera de salida indicada; no consulta implementaciones externas.
+// In-house test element: delegates physics to the repository frame and alters only
+// the indicated output boundary; does not query external implementations.
 struct FaultyElement {
     beam: EulerFrame2D,
     fault: OutputFault,
@@ -868,7 +868,7 @@ fn negative_zero_input_and_output_are_canonical_and_ties_choose_smallest_station
         let m = member(&r)?;
         assert_eq!(m.stations[0].position.to_bits(), 0.0_f64.to_bits());
         assert_eq!(m.stations.iter().filter(|s| s.position == 0.0).count(), 1);
-        // N, Vz, T y My son exactamente constantes: empate en todas las estaciones.
+        // N, Vz, T, and My are exactly constant: ties at every station.
         for field in [Field::N, Field::Vz, Field::T, Field::My] {
             let e = extremes(m, field)?;
             assert_eq!(e.min.at_station.to_bits(), 0.0_f64.to_bits());

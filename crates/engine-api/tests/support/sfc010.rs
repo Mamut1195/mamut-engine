@@ -1,5 +1,5 @@
-//! Entradas compartidas por las pruebas de frontera de MAM-835.
-//! Fuentes y derivaciones: provenance/ENG-SFC-010.md.
+//! Shared inputs for the boundary tests of MAM-835.
+//! Sources and derivations: provenance/ENG-SFC-010.md.
 pub const FIXTURES: &[(&str, &str)] = &[
     (
         "spring-series",

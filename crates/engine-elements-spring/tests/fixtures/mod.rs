@@ -1,4 +1,4 @@
-//! Fixtures SI propios: equilibrio F=kδ y suma de energías elásticas.
+//! In-house SI fixtures: equilibrium F=kδ and sum of elastic energies.
 pub const SOURCE: &str = "analítico: equilibrio y energía, derivación propia";
 pub const CITATION: &str = "provenance/ENG-ELM-004.md, Derivaciones propias";
 pub const K1: f64 = 120.0; // N/m.

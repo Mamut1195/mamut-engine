@@ -1,4 +1,4 @@
-//! Soluciones analíticas propias: provenance/ENG-LOAD-002.md. Sin oráculos.
+//! In-house analytical solutions: provenance/ENG-LOAD-002.md. No oracles.
 use engine_analysis::{
     combination::{combine, envelope, EnvelopeInput, ResultId},
     results::{CaseResults, Field, MemberRecovery, MemberResult, NodeResult, StationResult},
@@ -47,7 +47,7 @@ fn fixture(name: &str, value: f64) -> CaseResults {
                     }),
                 })
                 .collect(),
-            // Se ignora este caché; la API debe recalcular los extremos.
+            // This cache is ignored; the API must recompute the extremes.
             extremes: vec![],
         }],
     }
@@ -82,7 +82,7 @@ fn close_scaled(actual: f64, expected: f64, scale: f64) {
     let tolerance = 128.0 * f64::EPSILON * expected.abs().max(scale).max(1.0);
     assert!(
         (actual - expected).abs() <= tolerance,
-        "{actual} != {expected}, tolerancia {tolerance}"
+        "{actual} != {expected}, tolerance {tolerance}"
     );
 }
 
@@ -90,7 +90,7 @@ fn close_scaled(actual: f64, expected: f64, scale: f64) {
 fn weighted_sum_bits_negative_zero_and_already_scaled_case() {
     let a = fixture("A", 0.75);
     let mut b = fixture("B", -1.25);
-    b.factor = 8.0; // Metadato, sus valores ya son el resultado escalado.
+    b.factor = 8.0; // Metadata, its values are already the scaled result.
     let c = fixture("Z", 1000.0);
     let cases = [a, b, c];
     for factors in [[2.0, -0.5, 0.0], [0.125, 4.0, -2.0], [1.3, -0.7, 0.0]] {
@@ -133,8 +133,8 @@ fn extrema_are_recomputed_after_cancellation() {
     }
 }
 
-// Voladizo L=2, E=16, A=2, I=2, apoyos homogéneos. A: axial 48;
-// B: fuerza transversal -48 y, opcionalmente, uniforme -24. D: cargas combinadas.
+// Cantilever L=2, E=16, A=2, I=2, homogeneous supports. A: axial 48;
+// B: transverse force -48 and, optionally, uniform -24. D: combined loads.
 fn cantilever(factors: [f64; 2], with_uniform: bool) -> EResult<Vec<CaseResults>> {
     let mut model = Model::new();
     model.nodes = vec![
@@ -236,7 +236,7 @@ fn cantilever(factors: [f64; 2], with_uniform: bool) -> EResult<Vec<CaseResults>
     Ok(results)
 }
 
-// Viga con giros nulos, uy(0)=0, uy(L)=δ; ux(L) libre permite resolver.
+// Beam with zero rotations, uy(0)=0, uy(L)=δ; free ux(L) allows solving.
 // v=δ(3(x/L)²−2(x/L)³) => M=6EIδ/L²(1−2x/L), V=12EIδ/L³.
 fn fixed_end_settlement(name: &str, axial: f64, delta: f64) -> EResult<CaseResults> {
     let coords = [[0.0; 3], [2.0, 0.0, 0.0]];
@@ -330,7 +330,7 @@ fn repeated_settlement_rejected_against_fixed_end_beam_oracle() -> EResult<()> {
             moment * other_delta / delta,
         );
         if other_delta == delta {
-            // La implementación anterior produciría 2.8 M y 2.8 δ.
+            // The previous implementation would produce 2.8 M and 2.8 δ.
             close(
                 1.2 * d.members[0].stations[0].forces_local[5]
                     + 1.6 * l.members[0].stations[0].forces_local[5],
@@ -391,7 +391,7 @@ fn dedicated_settlement_case_counted_once_with_explicit_factor() -> EResult<()> 
         for (actual, expected) in components(&c.results).into_iter().zip(components(&direct)) {
             close(actual, expected);
         }
-        // Un resultado combinado conserva los prescritos para otra combinación.
+        // A combined result retains prescribed displacements for another combination.
         let nested = combine(
             &declaration(&[("C", 1.0), ("S", 1.0)]),
             &[c.results.clone(), cases[2].clone()],
@@ -402,8 +402,8 @@ fn dedicated_settlement_case_counted_once_with_explicit_factor() -> EResult<()> 
             assert_eq!(nested.unwrap_err().code, "ENG-E-0010");
         }
     }
-    // Un solo término con asentamiento conserva el escalado explícito íntegro;
-    // los casos no referenciados no deben activar el rechazo.
+    // A single term with settlement retains the full explicit scaling;
+    // unreferenced cases must not trigger rejection.
     let lone = combine(&declaration(&[("S", 2.0)]), &cases)?;
     close(
         lone.results.members[0].stations[0].forces_local[5],
@@ -450,7 +450,7 @@ fn accumulation_follows_term_order_with_cancellation() -> EResult<()> {
             station.forces_local.fill(value);
         }
     }
-    cases.reverse(); // El repositorio no define el orden de acumulación.
+    cases.reverse(); // The repository does not define the accumulation order.
     for (terms, expected) in [
         ([("A", 1.0), ("B", 1.0), ("C", 1.0)], 1.0),
         ([("A", 1.0), ("C", 1.0), ("B", 1.0)], 0.0),
@@ -471,8 +471,8 @@ fn accumulation_follows_term_order_with_cancellation() -> EResult<()> {
 fn superposition_matches_direct_static_linear_and_closed_form() -> EResult<()> {
     for factors in [[2.0, 0.5], [-0.5, 2.0], [0.0, -0.5], [1.3, -0.7]] {
         let cases = cantilever(factors, false)?;
-        // Fórmulas derivadas: ux=P L/EA; uy=P L³/(3EI)+qL⁴/(8EI),
-        // rz=P L²/(2EI)+qL³/(6EI). Sin uniforme: A ux=3; B uy=-4, rz=-3.
+        // Derived formulas: ux=P L/EA; uy=P L³/(3EI)+qL⁴/(8EI),
+        // rz=P L²/(2EI)+qL³/(6EI). Without uniform load: A ux=3; B uy=-4, rz=-3.
         close(cases[0].nodes[1].displacements[0], 3.0);
         close(cases[1].nodes[1].displacements[1], -4.0);
         close(cases[1].nodes[1].displacements[5], -3.0);
@@ -485,13 +485,13 @@ fn superposition_matches_direct_static_linear_and_closed_form() -> EResult<()> {
             .zip(components(&cases[2]))
             .enumerate()
         {
-            // Con axial nulo, recuperar N=−Ni puede producir −0 frente al
-            // +0 de la suma desde cero. El cero se verifica algebraicamente.
+            // With zero axial force, recovering N=−Ni can produce −0 versus
+            // +0 from summing from zero. Zero is checked algebraically.
             if factors != [1.3, -0.7] && factors[0] != 0.0 {
                 assert_eq!(
                     actual.to_bits(),
                     direct.to_bits(),
-                    "factores={factors:?}, componente={index}: {actual} != {direct}"
+                    "factors={factors:?}, component={index}: {actual} != {direct}"
                 );
             } else {
                 close(actual, direct);
@@ -521,8 +521,8 @@ fn combined_nodal_and_member_loads_match_direct_and_analytical_diagram() -> ERes
             &declaration(&[("A", factors[0]), ("B", factors[1])]),
             &cases,
         )?;
-        // Igualdad exacta con los campos de entrada; la resolución directa
-        // admite redondeo proporcional a la escala de cada campo del miembro.
+        // Exact equality with the input fields; the direct solve
+        // allows rounding proportional to the scale of each member field.
         let a = components(&cases[0]);
         let b = components(&cases[1]);
         for (i, actual) in components(&c.results).into_iter().enumerate() {
@@ -620,7 +620,7 @@ fn envelope_governs_by_component_sign_station_and_kind() {
         &[a.clone(), b.clone()],
     )
     .unwrap();
-    // Mismo nombre que un caso, identidades distintas.
+    // Same name as a case, distinct identities.
     c.id = "A".into();
     let e = envelope(&[
         EnvelopeInput::Case(&a),
@@ -678,7 +678,7 @@ fn envelope_governs_by_component_sign_station_and_kind() {
         assert_eq!(m.extremes[i].max.extreme.at_station, 0.5);
         assert_eq!(m.extremes[i].min.extreme.at_station, 0.5);
     }
-    // Una combinación también puede gobernar.
+    // A combination can also govern.
     let c = combine(&declaration(&[("A", -4.0)]), std::slice::from_ref(&a)).unwrap();
     let e = envelope(&[EnvelopeInput::Case(&a), EnvelopeInput::Combination(&c)]).unwrap();
     assert_eq!(

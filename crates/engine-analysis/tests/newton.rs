@@ -1,5 +1,5 @@
-//! source: derivaciones propias; citation: provenance/ENG-SOL-001.md.
-//! Soluciones cerradas SI, sin fuentes externas ni oráculos.
+//! source: own derivations; citation: provenance/ENG-SOL-001.md.
+//! Closed-form SI solutions, without external sources or oracles.
 #[path = "../../engine-assembly/tests/fixtures/counting.rs"]
 mod counting;
 use counting::CountingBackend;
@@ -187,7 +187,7 @@ fn two_nonlinear_springs_in_series_closed_form_each_segment() {
         ],
     )
     .unwrap();
-    // δ1=P/100 (P≤10), o .1+(P−10)/20; δ2=P/200 (P≤20), o .1+(P−20)/40.
+    // δ1=P/100 (P≤10), or .1+(P−10)/20; δ2=P/200 (P≤20), or .1+(P−20)/40.
     for (lambda, delta1, delta2) in [(1.0 / 6.0, 0.04, 0.02), (0.5, 0.2, 0.06), (1.0, 0.8, 0.2)] {
         let r = run(&mut s, &[lambda], NewtonOptions::default());
         assert_eq!(r.status, Status::Completed);
@@ -229,7 +229,7 @@ fn compression_gap_closes_from_open_state_with_physical_parallel_spring() {
         vec![binding(&m, &[1], gap)],
     )
     .unwrap();
-    // Abierto: K=10, u1=−2. Cerrado: 10u+100(u+.25)=−20.
+    // Open: K=10, u1=−2. Closed: 10u+100(u+.25)=−20.
     let r = run(&mut s, &[1.0], NewtonOptions::default());
     assert_eq!(r.status, Status::Completed);
     assert_eq!(r.steps[0].iterations, 2);
@@ -297,8 +297,8 @@ fn nonlinear_prescribed_displacement_is_not_scaled() {
     close(r.global_displacements[1], 0.43);
 }
 
-// Ley propia de prueba: plasticidad con endurecimiento cinemático H=25,
-// k=100 y límite |F−Hp|=10; tangent elastoplástica = kH/(k+H)=20.
+// In-house test law: plasticity with kinematic hardening H=25,
+// k=100 and limit |F−Hp|=10; elastoplastic tangent = kH/(k+H)=20.
 struct Hardening;
 impl UniaxialLaw for Hardening {
     fn kind(&self) -> &'static str {
@@ -363,7 +363,7 @@ fn max_one_rolls_back_last_step_history_and_stops_without_hidden_retries() {
     close(r.steps[1].displacement_norm, 0.12);
     close(r.steps[1].energy_norm, 0.576);
     assert_eq!(s.linear_system().trial_displacement(), r.free_displacements);
-    // Primero aceptar plasticidad observable; un intento posterior la conserva.
+    // First accepts observable plasticity; a later attempt preserves it.
     let accepted = run(&mut s, &[1.0], NewtonOptions::default());
     close(accepted.free_displacements[0], 0.4);
     close(accepted.element_states[0][0], 0.24);
@@ -415,7 +415,7 @@ fn multiple_absolute_factors_finish_at_total_load_and_allow_explicit_unloading()
 
 #[test]
 fn force_displacement_energy_independent_with_explicit_scales() {
-    // Primera corrección u=.16: F=11.2, R=4.8, Δu=.16, |Δu R|=.768.
+    // First correction u=.16: F=11.2, R=4.8, Δu=.16, |Δu R|=.768.
     for (force, disp, energy, scale, tolerance, norm) in [
         (true, false, false, 2.0, 2.40000000001, 4.8),
         (false, true, false, 2.0, 0.08000000001, 0.16),
@@ -602,7 +602,7 @@ fn invalid_options_factors_missing_case_and_overflows_are_catalog_errors() {
         assert_eq!(s.accepted_factor(), None);
         assert_eq!(s.linear_system().accepted_displacement(), &[0.0]);
     }
-    // Un backend inexacto que devuelve infinito no puede aceptar un paso.
+    // An inaccurate backend returning infinity cannot accept a step.
     let m = model(1, 16.0);
     let backend = CountingBackend {
         solution_scale: Real::INFINITY,
@@ -634,8 +634,8 @@ fn full_newton_cycle_exhausts_exact_budget_without_changing_load_factor() {
     )
     .unwrap();
     let accepted = run(&mut s, &[1.0], NewtonOptions::default());
-    // Desde u=.4, descargar directamente a cero oscila entre ±.4 con K=20.
-    // La lista del usuario no contiene pasos intermedios: se informa el fallo.
+    // From u=.4, unloading directly to zero oscillates between ±.4 with K=20.
+    // The user's list contains no intermediate steps: failure is reported.
     let before = factors.get();
     let r = run(
         &mut s,
@@ -699,7 +699,7 @@ fn element_error_after_accepted_step_preserves_nonempty_history() {
 
 #[test]
 fn tolerance_equality_is_inclusive_for_each_criterion() {
-    // Backend a 1/2: carga 8, K=2, Δu=2, R=4 y |ΔuR|=8, todos exactos.
+    // Backend at 1/2: load 8, K=2, Δu=2, R=4 and |ΔuR|=8, all exact.
     for (force, disp, energy) in [
         (true, false, false),
         (false, true, false),

@@ -1,5 +1,5 @@
-//! ENG-BENCH-002: benchmarks publicados de P-Delta/P-δ (fuentes en provenance/ENG-BENCH-002.md).
-//! Sistema de unidades consistente kip, in (como la referencia).
+//! ENG-BENCH-002: published P-Delta/P-δ benchmarks (sources in provenance/ENG-BENCH-002.md).
+//! Consistent kip, in unit system (as in the reference).
 use engine_analysis::pdelta::{
     geometric_producer, PDelta, PDeltaOptions, PDeltaOutcome, PDeltaResult,
 };
@@ -12,19 +12,19 @@ use engine_linalg::ReferenceBackend;
 use engine_model::{DofValue, LoadCase, Model, NodalLoad, Node, Support};
 use std::sync::Arc;
 
-// W14x48 eje fuerte (AISC 360-16 Comm. C2, Figs. C-C2.2/C-C2.3).
+// W14x48 strong axis (AISC 360-16 Comm. C2, Figs. C-C2.2/C-C2.3).
 const E: f64 = 29_000.0; // ksi
 const A: f64 = 14.1; // in²
 const I: f64 = 484.0; // in⁴
 const L: f64 = 28.0 * 12.0; // in
-const W: f64 = 0.200 / 12.0; // kip/in (caso 1)
-const H: f64 = 1.0; // kip (caso 2)
-/// Tolerancias declaradas antes de correr: AISC 360-16 Comm. C2.1, p. 16.1-291.
+const W: f64 = 0.200 / 12.0; // kip/in (case 1)
+const H: f64 = 1.0; // kip (case 2)
+/// Tolerances declared before running: AISC 360-16 Comm. C2.1, p. 16.1-291.
 const TOL_M: f64 = 0.03;
 const TOL_D: f64 = 0.05;
-/// Tolerancia frente a la solución cerrada de la ecuación diferencial con la malla declarada.
+/// Tolerance against the closed-form differential equation solution with the declared mesh.
 const TOL_EXACT: f64 = 1e-3;
-/// Malla declarada para el benchmark (elementos por miembro).
+/// Declared benchmark mesh (elements per member).
 const MESH: u32 = 8;
 
 fn options() -> PDeltaOptions {
@@ -100,7 +100,7 @@ fn member(
         producer,
     )
 }
-/// Barra en x de n elementos; devuelve el resultado P-Delta (G = axial, H = lateral).
+/// Member along x with n elements; returns the P-Delta result (G = axial, H = lateral).
 fn solve(
     n: u32,
     supports: &[(u32, &[Dof])],
@@ -145,11 +145,11 @@ fn uy(r: &PDeltaResult, node: u32) -> f64 {
     r.global_displacements.as_ref().unwrap()[((node - 1) * 3 + 1) as usize]
 }
 
-/// Caso 1: simplemente apoyada, carga uniforme w (cargas nodales consistentes), axial P.
+/// Case 1: simply supported, uniform load w (consistent nodal loads), axial P.
 fn case1(n: u32, p: f64) -> (f64, f64) {
     let dx = L / n as f64;
     let mut h: Vec<_> = (2..=n).map(|i| (i, Dof::Uy, W * dx)).collect();
-    // Las medias cargas en los apoyos completan el vector consistente de w.
+    // The half loads at the supports complete the consistent vector for w.
     h.push((1, Dof::Uy, W * dx / 2.0));
     h.push((n + 1, Dof::Uy, W * dx / 2.0));
     h.push((1, Dof::Rz, W * dx * dx / 12.0));
@@ -161,7 +161,7 @@ fn case1(n: u32, p: f64) -> (f64, f64) {
         h,
     );
     let d = uy(&r, n / 2 + 1);
-    // Estática en la configuración deformada (cuerpo libre de media barra).
+    // Statics in the deformed configuration (free body of half the member).
     let m = W * L * L / 8.0 + p * d;
     (m, d)
 }
@@ -175,7 +175,7 @@ fn case1_exact(p: f64) -> (f64, f64) {
     let d = W / (ei() * math::powi(k, 4)) * (1.0 / math::cos(u) - 1.0) - W * L * L / (8.0 * p);
     (m, d)
 }
-/// Caso 2: voladizo empotrado, H en la punta, axial P. M = -Rz_base para H > 0.
+/// Case 2: clamped cantilever, H at the tip, axial P. M = -Rz_base for H > 0.
 fn case2(n: u32, p: f64) -> (f64, f64) {
     let r = solve(
         n,
@@ -201,7 +201,7 @@ fn case2_exact(p: f64) -> (f64, f64) {
         H * (math::tan(k * L) - k * L) / (p * k),
     )
 }
-/// Simplemente apoyada con Q en el centro; derivación y atribución pendiente en provenance.
+/// Simply supported with Q at the center; derivation and attribution pending in provenance.
 fn tg(n: u32, p: f64, q: f64) -> (f64, f64) {
     let r = solve(
         n,
@@ -224,7 +224,7 @@ fn err(a: f64, b: f64) -> f64 {
     (a / b - 1.0).abs()
 }
 
-// Valores publicados sin deformación por cortante (entre corchetes en las figuras).
+// Published values without shear deformation (in brackets in the figures).
 const C1: [(f64, f64, f64); 4] = [
     (0.0, 235.0, 0.197),
     (150.0, 269.0, 0.224),
@@ -270,7 +270,7 @@ fn timoshenko_gere_midspan_point_load_closed_form() {
         let d0 = math::powi(L, 3) / (48.0 * ei());
         println!("TG P/Pe={ratio} M={m:.3} exact={me:.3} err={:.4}% | D={d:.5} exact={de:.5} err={:.4}% | D/D0={:.4} 1/(1-P/Pe)={amp:.4}", 100.0 * err(m, me), 100.0 * err(d, de), d / d0);
         assert!(err(m, me) <= TOL_EXACT && err(d, de) <= TOL_EXACT);
-        // Se comprueba la aproximación 1/(1-P/Pe) a menos del 2% en estos cuatro cocientes.
+        // Checks the 1/(1-P/Pe) approximation within 2% for these four ratios.
         assert!(err(d / d0, amp) <= 0.02);
     }
 }

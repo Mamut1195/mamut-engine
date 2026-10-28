@@ -26,14 +26,14 @@ fn schema_rejects_missing_fields_wrong_types_unknown_codes_and_invalid_pointers(
             .remove(field.as_str().unwrap());
         assert!(
             !schema::conforms(&missing),
-            "Campo obligatorio no comprobado: {field}"
+            "Required field not checked: {field}"
         );
     }
     for (field, value) in [
         ("schema", json!("cli-run/1")),
         ("exitCode", json!(0)),
         ("exitCode", json!("2")),
-        ("exitCode", json!(3)), // incompatibilidad outcome/exit
+        ("exitCode", json!(3)), // outcome/exit incompatibility
         ("outcome", json!("unknown")),
         ("code", json!("WF-E-0002")),
         ("diagnostics", Value::Null),
@@ -54,7 +54,7 @@ fn schema_rejects_missing_fields_wrong_types_unknown_codes_and_invalid_pointers(
         invalid[field] = value;
         assert!(
             !schema::conforms(&invalid),
-            "Mutación no detectada: {invalid}"
+            "Mutation not detected: {invalid}"
         );
     }
     for pointer in ["", "/", "/nodes/0", "/a~1b/~0/ñ"] {

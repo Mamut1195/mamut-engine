@@ -29,7 +29,7 @@ struct CountingThread;
 impl CountingThread {
     fn enter() -> Self {
         COUNTING.with(|counting| {
-            assert!(!counting.replace(true), "medición anidada");
+            assert!(!counting.replace(true), "nested measurement");
         });
         Self
     }
@@ -221,7 +221,7 @@ fn charged_bounds_cover_actual_factorize_and_eigen_heap_peaks() {
         );
         assert!(
             retained <= budget.used(),
-            "factor retenido n={n}: {retained}"
+            "retained factor n={n}: {retained}"
         );
         let old_bound = 2 * n * n * 8 + 40 * n;
         if [8, 64, 256].contains(&n) {
@@ -234,7 +234,7 @@ fn charged_bounds_cover_actual_factorize_and_eigen_heap_peaks() {
     }
     assert!(
         old_bound_failed,
-        "la cota vieja debe subestimar algún pico medido"
+        "the old bound must underestimate some measured peak"
     );
 
     for n in [0, 1, 3, 8, 9, 64, 65, 256] {
@@ -255,7 +255,7 @@ fn charged_bounds_cover_actual_factorize_and_eigen_heap_peaks() {
         );
         assert!(
             retained <= budget.used(),
-            "modos retenidos n={n}: {retained}"
+            "retained modes n={n}: {retained}"
         );
         if [8, 64, 256].contains(&n) {
             eprintln!("generalized_eigen n={n}: pico={measured} B, carga={charged} B");

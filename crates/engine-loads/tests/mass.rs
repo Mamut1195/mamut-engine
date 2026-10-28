@@ -1,4 +1,4 @@
-//! Fixtures analíticos propios; ninguna fuente externa ni oráculo.
+//! In-house analytical fixtures; no external source or oracle.
 use engine_assembly::{DofMap, ElementContribution, ElementLoad, LinearSystem};
 use engine_contracts::{CaseRef, Element, ElementCtx, ElementParams, MassKind};
 use engine_core::{Dim, Dof, DofIndex, EResult, EntityRef, NodeId};
@@ -52,7 +52,7 @@ fn close(actual: f64, expected: f64) {
 
 fn model(dim: Dim, coords: [[f64; 3]; 2], dofs: &[Dof]) -> Model {
     let mut m = Model::new();
-    // Entrada invertida para verificar que la masa sigue DofMap, no la lista.
+    // Reversed input to check that mass follows DofMap, not the list.
     for i in [1, 0] {
         let mut node = Node::new(NodeId(i as u32 + 1), dim, coords[i]);
         node.dofs = dofs.to_vec();
@@ -102,7 +102,7 @@ fn contribution(
 #[test]
 fn bar_rho_a_l_each_direction_both_kinds_and_rotations() -> EResult<()> {
     let bar = LinearTruss::new(Dim::D3, 200.0, 2.0, 3.0)?;
-    // Cada vector tiene longitud 4; rotación y traslación conservan rho A L=24.
+    // Each vector has length 4; rotation and translation preserve rho A L=24.
     for end in [
         [4.0, 0.0, 0.0],
         [0.0, -4.0, 0.0],
@@ -163,7 +163,7 @@ fn beam_consistent_closed_entries_and_invariant_total() -> EResult<()> {
                 close(mass.get(1, 4).unwrap(), 24.0 * 54.0 / 420.0);
                 close(mass.get(1, 2).unwrap(), 24.0 * 22.0 * 4.0 / 420.0);
                 close(mass.get(2, 2).unwrap(), 24.0 * 4.0 * 16.0 / 420.0);
-                // La traza traslacional consistente NO es la masa física.
+                // The consistent translational trace is NOT the physical mass.
                 assert!((mass.get(1, 1).unwrap() + mass.get(4, 4).unwrap() - 24.0).abs() > 1.0);
             }
         }
@@ -227,7 +227,7 @@ fn load_case_quarter_factor_minus_z_and_complete_system_case() -> EResult<()> {
                     },
                 ],
             },
-            // Ambos nodos tienen peso en la dirección de gravedad.
+            // Both nodes have weight in the gravity direction.
             NodalLoad {
                 node: NodeId(2),
                 values: vec![DofValue {
@@ -270,7 +270,7 @@ fn load_case_quarter_factor_minus_z_and_complete_system_case() -> EResult<()> {
         [0.0, 0.0, -1.0],
         10.0,
     )?;
-    // Fuerzas netas -100 y -40: 2.5 + 1 = 3.5 kg en cada dirección.
+    // Net forces -100 and -40: 2.5 + 1 = 3.5 kg in each direction.
     close(
         total_mass(
             &map,
@@ -282,7 +282,7 @@ fn load_case_quarter_factor_minus_z_and_complete_system_case() -> EResult<()> {
     for kind in [MassKind::Lumped, MassKind::Consistent] {
         close(system_total_mass(&system, kind, [0.0, 0.0, 1.0])?, 5.0);
     }
-    // Al añadir la fuente explícitamente se ensambla una vez, con ids únicos.
+    // Adding the source explicitly assembles it once, with unique ids.
     m.masses = complete;
     e.loads.clear();
     let system = LinearSystem::from_model(ReferenceBackend, &m, &[e], &[])?;
@@ -320,7 +320,7 @@ fn force_projection_rotation_and_user_gravity() -> EResult<()> {
         0.25,
     );
     close(
-        // Componentes simétricas: la cancelación es cero exacto en f64.
+        // Symmetric components: cancellation is exactly zero in f64.
         mass_from_force([4.0, 4.0, 0.0], 0.25, [-1.0, 1.0, 0.0], 10.0)?,
         0.0,
     );
@@ -332,7 +332,7 @@ fn force_projection_rotation_and_user_gravity() -> EResult<()> {
 }
 
 fn rejects_suction<T: std::fmt::Debug>(result: EResult<T>, entities: &[EntityRef]) {
-    // Oráculos derivados a mano en provenance/ENG-MASS-001-FU.md, (1)-(3).
+    // Hand-derived oracles in provenance/ENG-MASS-001-FU.md, (1)-(3).
     let error = result.unwrap_err();
     assert_eq!(error.code, "ENG-E-0010");
     assert_eq!(error.entities.len(), entities.len());
@@ -340,20 +340,20 @@ fn rejects_suction<T: std::fmt::Debug>(result: EResult<T>, entities: &[EntityRef
         match (actual, expected) {
             (EntityRef::Node(a), EntityRef::Node(b)) => assert_eq!(a, b),
             (EntityRef::Case(a), EntityRef::Case(b)) => assert_eq!(a, b),
-            _ => panic!("Entidad inesperada: {actual:?}; se esperaba {expected:?}"),
+            _ => panic!("Unexpected entity: {actual:?}; expected {expected:?}"),
         }
     }
 }
 
 #[test]
 fn suction_force_projection_rejects_every_negative_sign() -> EResult<()> {
-    // W=120 N, g=10 m/s²: m=W/g=12 kg; d se normaliza a -Z.
+    // W=120 N, g=10 m/s²: m=W/g=12 kg; d is normalized to -Z.
     close(
         mass_from_force([0.0, 0.0, -120.0], 1.0, [0.0, 0.0, -7.0], 10.0)?,
         12.0,
     );
-    // Sin tolerancia: hasta el menor subnormal negativo debe rechazarse,
-    // antes de multiplicar por un factor que pudiera llevarlo a cero.
+    // No tolerance: even the smallest negative subnormal must be rejected,
+    // before multiplication by a factor that could reduce it to zero.
     for upward in [120.0, f64::MIN_POSITIVE, f64::from_bits(1)] {
         for factor in [0.0, 0.25, 1.0] {
             rejects_suction(
@@ -380,7 +380,7 @@ fn suction_load_vector_rejects_a_node_despite_gravitational_global_sum() -> ERes
     let z2 = map.global_index(NodeId(2), Dof::Uz)?.0 as usize;
     forces[z1] = -120.0;
     forces[z2] = 80.0;
-    // El total -40 N no puede ocultar la proyección -80 N del nodo 2.
+    // The total -40 N cannot hide node 2's projection of -80 N.
     for factor in [0.0, 0.25] {
         rejects_suction(
             masses_from_load_vector(&map, &forces, factor, [0.0, 0.0, -1.0], 10.0, "peso"),
@@ -418,7 +418,7 @@ fn suction_case_uses_signed_net_projection_with_node_and_case() -> EResult<()> {
             ],
         }],
     };
-    // d̂=(3/5,4/5,0): q=(9-16)/5=-1.4 N, sin absolutos por componente.
+    // d̂=(3/5,4/5,0): q=(9-16)/5=-1.4 N, without componentwise absolute values.
     for factor in [0.0, 1.0] {
         rejects_suction(
             masses_from_case(&map, &case, factor, [3.0, 4.0, 0.0], 10.0),
@@ -430,7 +430,7 @@ fn suction_case_uses_signed_net_projection_with_node_and_case() -> EResult<()> {
     }
     case.loads[0].values[0].value = 4.0;
     case.loads[0].values[1].value = -2.0;
-    // Una componente opuesta sí se admite: q=(12-8)/5=0.8 N, m=0.08 kg.
+    // An opposing component is allowed: q=(12-8)/5=0.8 N, m=0.08 kg.
     let masses = masses_from_case(&map, &case, 1.0, [3.0, 4.0, 0.0], 10.0)?;
     for value in &masses[0].values {
         close(value.value, 0.08);
@@ -457,7 +457,7 @@ fn suction_system_case_sums_nodal_and_element_forces_before_projection() -> ERes
     });
     let map = DofMap::new(&m.nodes)?;
     let z2 = map.global_index(NodeId(2), Dof::Uz)?;
-    // El aporte elemental ascendente se resta del peso nodal ANTES de proyectar:
+    // The upward element contribution is subtracted from nodal weight BEFORE projection:
     // -80+40=-40 N -> 4 kg; -80+80=0 -> 0 kg; -80+100=+20 N -> error.
     for (upward, expected) in [(40.0, Some(4.0)), (80.0, Some(0.0)), (100.0, None)] {
         let e = ElementContribution {
@@ -499,7 +499,7 @@ fn m13_negative_directional_total_with_positive_diagonal() -> EResult<()> {
     let map = DofMap::new(&m.nodes)?;
     let x1 = map.global_index(NodeId(1), Dof::Ux)?.0 as usize;
     let x2 = map.global_index(NodeId(2), Dof::Ux)?.0 as usize;
-    // Oráculo propio (4), ENG-MASS-001-FU: [1,1] [[1,-2],[-2,1]] [1,1]ᵀ=-2 kg.
+    // Own oracle (4), ENG-MASS-001-FU: [1,1] [[1,-2],[-2,1]] [1,1]ᵀ=-2 kg.
     let matrix = SparseMatrix::from_triplets(
         map.len(),
         map.len(),
@@ -544,7 +544,7 @@ fn m24_z_direction_in_xy_model_rejected_by_mass_adapters() -> EResult<()> {
     let map = DofMap::new(&m.nodes)?;
     let system = LinearSystem::from_model(ReferenceBackend, &m, &[], &[])?;
     let z = [0.0, 0.0, 1.0];
-    // Oráculo propio (5), ENG-MASS-001-FU: Uz no pertenece a {Ux,Uy}.
+    // Own oracle (5), ENG-MASS-001-FU: Uz does not belong to {Ux,Uy}.
     for result in [
         masses_from_load_vector(&map, &vec![0.0; map.len()], 1.0, z, 10.0, "xy"),
         masses_from_case(&map, &case, 1.0, z, 10.0),

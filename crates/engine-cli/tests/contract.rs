@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! ENG-CONT-002: stdout real, schema publicado y golden de bytes, sin oráculos.
+//! ENG-CONT-002: actual stdout, published schema, and byte golden, without oracles.
 
 #[path = "../../engine-api/tests/support/schema.rs"]
 mod schema;
@@ -23,13 +23,13 @@ fn value(bytes: &[u8]) -> Value {
     serde_json::from_slice(bytes).unwrap()
 }
 fn hash(value: &Value) -> String {
-    // API pública de JCS/SHA-256, sin ejecutar física ni implementar otro hash.
+    // Public JCS/SHA-256 API, without running physics or implementing another hash.
     engine_api::input_sha256(&value.to_string()).unwrap()
 }
 
-// MAM-836: las huellas cubren códigos y datos, nunca texto de mensajes. La
-// proyección elimina solo `cause` y `hint` de cada diagnóstico y se calcula aquí
-// de forma independiente del adaptador; el resto del resultado queda intacto.
+// MAM-836: fingerprints cover codes and data, never message text. The
+// projection removes only `cause` and `hint` from each diagnostic and is computed here
+// independently of the adapter; the rest of the result remains intact.
 fn fingerprint_view(result: &Value) -> Value {
     let mut view = result.clone();
     if let Some(diagnostics) = view.get_mut("diagnostics").and_then(Value::as_array_mut) {
@@ -55,7 +55,7 @@ fn fixtures() -> Vec<(String, String)> {
             .filter(|path| path.extension().is_some_and(|ext| ext == "json"))
             .collect();
         paths.sort();
-        assert!(!paths.is_empty(), "grupo de fixtures vacío: {group}");
+        assert!(!paths.is_empty(), "empty fixture group: {group}");
         for path in paths {
             let source = fs::read_to_string(&path).unwrap();
             assert_eq!(value(source.as_bytes())["schema"], "engine-input/1");
@@ -65,7 +65,7 @@ fn fixtures() -> Vec<(String, String)> {
             ));
         }
     }
-    // Solo se extrae engine_input: ni expectativas numéricas ni referencias externas.
+    // Only engine_input is extracted: no numerical expectations or external references.
     let e1: Value = value(
         &fs::read(root.join("../../docs/validation-report/fixtures/val032/E1-v1.1.2.json"))
             .unwrap(),
@@ -104,9 +104,9 @@ fn binary(input: &Path, workflow: &str, catalog: &Path) -> std::process::Output 
     child.wait_with_output().unwrap()
 }
 
-// Se lleva stdout a la procedencia del manifiesto sin reserializarlo. Antes se
-// comprueban los metadatos contra engine-api compilado y todas las preimágenes.
-// Solo cambian target/git_commit y sus huellas dependientes; el resto son bytes exactos.
+// stdout is carried into the manifest provenance without reserializing it. First,
+// metadata is checked against the compiled engine-api and all preimages are checked.
+// Only target/git_commit and their dependent fingerprints change; the rest are exact bytes.
 fn materialize(stdout: &str, compiled: &Value, reference: &Value) -> String {
     let original = value(stdout.as_bytes());
     let mut expected = original.clone();
@@ -114,7 +114,7 @@ fn materialize(stdout: &str, compiled: &Value, reference: &Value) -> String {
     let mut replacements = Vec::new();
     for result in results.iter_mut().filter(|r| r["schema"] == "results/1") {
         for key in ["target", "git_commit"] {
-            assert_eq!(result.get(key), compiled.get(key), "metadato: {key}");
+            assert_eq!(result.get(key), compiled.get(key), "metadata: {key}");
             replacements.push((
                 format!("\"{key}\":{}", result[key]),
                 format!("\"{key}\":{}", reference[key]),
@@ -146,20 +146,20 @@ fn materialize(stdout: &str, compiled: &Value, reference: &Value) -> String {
     replacements.push((old.to_string(), json!(hash(&expected["data"])).to_string()));
     let mut bytes = stdout.to_owned();
     for (old, new) in replacements {
-        assert!(bytes.contains(&old), "token de stdout ausente: {old}");
+        assert!(bytes.contains(&old), "missing stdout token: {old}");
         bytes = bytes.replace(&old, &new);
     }
     bytes
 }
 
 fn assert_lf(bytes: &[u8]) {
-    assert_eq!(bytes.last(), Some(&b'\n'), "stdout debe terminar con LF");
+    assert_eq!(bytes.last(), Some(&b'\n'), "stdout must end with LF");
     assert_eq!(bytes.iter().filter(|&&b| b == b'\n').count(), 1);
-    assert!(!bytes.contains(&b'\r'), "stdout no admite CRLF");
+    assert!(!bytes.contains(&b'\r'), "stdout does not allow CRLF");
 }
 
-// hashlib calcula SHA-256 de bytes crudos, incluido LF; nunca JCS. Python 3 ya
-// forma parte del entorno de paridad. No se cambian dependencias de Cargo.
+// hashlib computes SHA-256 of raw bytes, including LF; never JCS. Python 3 is already
+// part of the parity environment. No Cargo dependencies change.
 fn stdout_sha256(bytes: &[u8]) -> String {
     let mut child = Command::new(if cfg!(windows) { "python" } else { "python3" })
         .args([
@@ -170,7 +170,7 @@ fn stdout_sha256(bytes: &[u8]) -> String {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .expect("SHA-256 de stdout requiere Python 3 (véase README)");
+        .expect("SHA-256 of stdout requires Python 3 (see README)");
     child.stdin.take().unwrap().write_all(bytes).unwrap();
     let output = child.wait_with_output().unwrap();
     assert!(output.status.success(), "{:?}", output.stderr);
@@ -209,11 +209,11 @@ fn all_accepted_fixtures_match_schema_and_stdout_golden() {
         Ok(value) if value == "1" => {
             assert!(
                 std::env::var_os("CI").is_none() && std::env::var_os("GITHUB_ACTIONS").is_none(),
-                "La regeneración de golden está prohibida en CI"
+                "Golden regeneration is prohibited in CI"
             );
             true
         }
-        _ => panic!("MAMUT_UPDATE_CLI_GOLDENS solo admite 1 o ausencia"),
+        _ => panic!("MAMUT_UPDATE_CLI_GOLDENS only allows 1 or absence"),
     };
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let temp = Temp(
@@ -224,7 +224,7 @@ fn all_accepted_fixtures_match_schema_and_stdout_golden() {
     let catalog_path = temp.0.join("catalog.json");
     fs::write(&catalog_path, engine_cli::CATALOG).unwrap();
     let spec = value(SCHEMA.as_bytes());
-    // Metadatos independientes del stdout sometido a prueba, del mismo engine-api compilado.
+    // Metadata independent of the stdout under test, from the same compiled engine-api.
     let metadata = value(
         engine_api::run(INPUT, &engine_api::CancelToken::new(), |_| {})
             .document
@@ -238,12 +238,12 @@ fn all_accepted_fixtures_match_schema_and_stdout_golden() {
     } else {
         value(&fs::read(&manifest_path).unwrap_or_else(|error| {
             panic!(
-                "{}: {error}; véase README para regenerar",
+                "{}: {error}; see README to regenerate",
                 manifest_path.display()
             )
         }))
     };
-    assert_eq!(manifest["version"], 1, "versión de manifiesto no soportada");
+    assert_eq!(manifest["version"], 1, "unsupported manifest version");
     assert_eq!(manifest["buildMetadata"].as_object().unwrap().len(), 2);
     assert!(manifest["buildMetadata"]["target"].is_string());
     assert!(manifest["buildMetadata"].get("git_commit").is_some());
@@ -264,7 +264,7 @@ fn all_accepted_fixtures_match_schema_and_stdout_golden() {
             let document = value(&output.stdout);
             assert!(
                 schema::conforms(&document, &spec),
-                "{name}/{operation}: fuera de cli-run/1"
+                "{name}/{operation}: outside cli-run/1"
             );
             assert_eq!(document["exitCode"], code);
             assert_eq!(
@@ -294,19 +294,22 @@ fn all_accepted_fixtures_match_schema_and_stdout_golden() {
                     .unwrap()
                     .iter()
                     .find(|entry| entry["name"] == name)
-                    .unwrap_or_else(|| panic!("caso ausente: {name}; véase README para regenerar"));
+                    .unwrap_or_else(|| panic!("missing case: {name}; see README to regenerate"));
                 if expected != &actual {
                     dump_failure(&name, &output.stdout, comparable.as_bytes());
                     panic!(
-                        "{name}: SHA-256 esperado {}, obtenido {}; bytes esperados {}, obtenidos {}",
-                        expected["sha256"], digest, expected["bytes"], comparable.len()
+                        "{name}: expected SHA-256 {}, got {}; expected bytes {}, got {}",
+                        expected["sha256"],
+                        digest,
+                        expected["bytes"],
+                        comparable.len()
                     );
                 }
             }
-            // Repetición real: cubre bytes completos, incluidas procedencia y huellas.
+            // Actual repeat: covers complete bytes, including provenance and fingerprints.
             let repeated = binary(&input_path, workflow, &catalog_path);
             assert_eq!(repeated.status.code(), Some(code));
-            assert_eq!(repeated.stdout, output.stdout, "{name}: no determinista");
+            assert_eq!(repeated.stdout, output.stdout, "{name}: nondeterministic");
         }
     }
     assert_eq!(codes, [0, 1].into_iter().collect());
@@ -324,16 +327,12 @@ fn all_accepted_fixtures_match_schema_and_stdout_golden() {
         .iter()
         .map(|entry| entry["name"].as_str().unwrap().to_owned())
         .collect();
-    assert_eq!(
-        stored.len(),
-        entries.len(),
-        "casos duplicados en manifiesto"
-    );
-    assert_eq!(names, stored, "golden ausente u obsoleto");
+    assert_eq!(stored.len(), entries.len(), "duplicate cases in manifest");
+    assert_eq!(names, stored, "missing or obsolete golden");
     assert_eq!(
         fs::read_dir(root.join("tests/golden")).unwrap().count(),
         1,
-        "solo se versiona stdout-sha256.json"
+        "only stdout-sha256.json is versioned"
     );
 }
 
@@ -345,7 +344,7 @@ fn schema_rejects_breaking_changes_and_accepts_sdk_extensions() {
     for key in ["data", "engineResults", "engineId", "exitCode"] {
         let mut bad = original.clone();
         bad.as_object_mut().unwrap().remove(key);
-        assert!(!schema::conforms(&bad, &spec), "campo obligatorio: {key}");
+        assert!(!schema::conforms(&bad, &spec), "required field: {key}");
     }
     for (pointer, replacement) in [
         ("/exitCode", json!(1)),
@@ -362,7 +361,7 @@ fn schema_rejects_breaking_changes_and_accepts_sdk_extensions() {
         *bad.pointer_mut(pointer).unwrap() = replacement;
         assert!(
             !schema::conforms(&bad, &spec),
-            "mutación aceptada: {pointer}"
+            "mutation accepted: {pointer}"
         );
     }
     let mut extended = original.clone();

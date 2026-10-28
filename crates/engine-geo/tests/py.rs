@@ -1,4 +1,4 @@
-//! Conformidad y fronteras de la API p-y. Oráculos: provenance/ENG-GEO-003.md.
+//! Conformance and boundaries of the p-y API. Oracles: provenance/ENG-GEO-003.md.
 use engine_core::{EResult, Real};
 use engine_geo::py::*;
 use engine_geo::{Layer, Parameter, Provenance, StratifiedProfile};
@@ -55,7 +55,7 @@ fn matlock_landmarks_plateau_symmetry_and_secant() -> EResult<()> {
         close(result.curve.at(y)?, p);
         close(result.curve.at(-y)?, -p);
     }
-    close(result.curve.at(0.0015625)?, 12500.0); // Primer tramo secante, no cúbica.
+    close(result.curve.at(0.0015625)?, 12500.0); // First secant segment, not cubic.
     assert!(result.curve.points().contains(&(0.2, 100000.0)));
     code(result.curve.at(0.401), "ENG-E-0010");
     code(result.curve.at(Real::NAN), "ENG-E-0008");
@@ -63,9 +63,9 @@ fn matlock_landmarks_plateau_symmetry_and_secant() -> EResult<()> {
 }
 #[test]
 fn matlock_non_unit_diameter_uses_j_x_over_d() -> EResult<()> {
-    // Cálculo propio en forma cerrada de J2: Matlock (1970), OTC 1204,
-    // Ec. 1, 3, 5 y curva estática. Np=3+15000/30000+0.5·3/0.5=6.5<9;
-    // el mutante J·(x·d) daría 4.25. pu=Np·c·d=97500 N/m,
+    // Own closed-form calculation from J2: Matlock (1970), OTC 1204,
+    // Eq. 1, 3, 5 and static curve. Np=3+15000/30000+0.5·3/0.5=6.5<9;
+    // the J·(x·d) mutant would give 4.25. pu=Np·c·d=97500 N/m,
     // yc=2.5·ε50·d=0.0125 m, 8yc=0.1 m.
     // p(yc/8)=0.5·pu·(1/8)^(1/3)=24375 N/m; p(yc)=pu/2.
     let params = MatlockParams {
@@ -249,7 +249,7 @@ fn reese_branches_landmarks_and_continuity() -> EResult<()> {
         close(r.curve.at(-y)?, -p);
         assert!(r.curve.points().iter().any(|&(v, _)| v == y));
     }
-    // Muestras a ambos lados de las uniones, comparadas entre sí a escala SI.
+    // Samples on both sides of the junctions, compared with each other at SI scale.
     let s = Sampling {
         positive_y_m: vec![
             yk * (1.0 - 1e-8),
@@ -267,13 +267,13 @@ fn reese_branches_landmarks_and_continuity() -> EResult<()> {
             (dense.curve.at(y * (1.0 + 1e-8))? - dense.curve.at(y * (1.0 - 1e-8))?).abs() < 0.01
         );
     }
-    // La selección profunda usa Ec. 8 y no prolonga Ec. 5.
+    // The deep selection uses Eq. 8 and does not extend Eq. 5.
     let mut p = reese();
     p.depth_m = Some(10.0);
     close(reese_sand(&p, &sampling())?.ultimate_n_m, 2874512.763574932);
     p.depth_m = Some(4.0);
     close(reese_sand(&p, &sampling())?.ultimate_n_m, 642092.2925088706);
-    // También se admite el α=φ/2 propuesto por el método, siempre explícito.
+    // The method's proposed α=φ/2 is also allowed, always explicitly.
     p.depth_m = Some(2.0);
     p.alpha_rad = Some(std::f64::consts::PI / 12.0);
     let proposed = reese_sand(&p, &sampling())?;
@@ -289,13 +289,13 @@ fn reese_surface_is_null_and_degenerate_parameters_are_errors() -> EResult<()> {
     assert_eq!(r.yk_m, None);
     assert!(r.curve.points().iter().all(|&(_, v)| v == 0.0));
     for a in [0.5, 0.4, 1.125, 2.0] {
-        // A≤B, n=1 y n<1.
+        // A≤B, n=1 and n<1.
         p.a = Some(a);
         code(reese_sand(&p, &sampling()), "ENG-E-0010");
     }
     p = reese();
     for k in [100.0, 2807846.09690] {
-        // yk>ym, incluido un k apenas inferior al umbral.
+        // yk>ym, including k just below the threshold.
         p.subgrade_modulus_n_m3 = Some(k);
         code(reese_sand(&p, &sampling()), "ENG-E-0010");
     }

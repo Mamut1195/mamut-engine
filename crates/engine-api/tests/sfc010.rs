@@ -1,5 +1,5 @@
-//! MAM-835: oráculos analíticos propios y diagnósticos de las nuevas fronteras.
-//! Citas, ecuaciones, unidades y tolerancias: provenance/ENG-SFC-010.md.
+//! MAM-835: in-house analytical oracles and diagnostics for the new boundaries.
+//! Citations, equations, units, and tolerances: provenance/ENG-SFC-010.md.
 #[path = "support/sfc010.rs"]
 mod fixtures;
 mod support;
@@ -59,7 +59,7 @@ fn series_ground_between_and_spatial_springs_match_equilibrium() {
     close(&d["cases"][0]["nodes"][0]["displacements"][0], 0.16);
     close(&d["cases"][0]["nodes"][0]["displacements"][1], 0.0);
     close(&d["cases"][0]["nodes"][0]["displacements"][2], 0.0);
-    // La curva entre nodos aporta δ=0.4 además del resorte lineal δ=0.16.
+    // The curve between nodes contributes δ=0.4 in addition to the linear spring δ=0.16.
     let mut v = input("multilinear");
     v["model"]["nodes"]
         .as_array_mut()
@@ -311,7 +311,7 @@ fn consolidation_rejects_total_work_quickly_and_without_overflow() {
     options["history"] = json!([0, 800_000, 1_600_000]
         .map(|t| json!({"time_s":t,"delta_stress_kpa":{"value":20,"provenance":"measured"}})));
     options["max_step_s"] = json!(1);
-    // Se cuenta toda la historia, incluso si solo se solicita la salida inicial.
+    // The entire history is counted, even if only initial output is requested.
     options["output_times_s"] = json!([0]);
     let source = v.to_string();
     let start = Instant::now();
@@ -319,7 +319,7 @@ fn consolidation_rejects_total_work_quickly_and_without_overflow() {
     assert!(start.elapsed() < Duration::from_secs(2));
     assert_eq!(diagnostics[0].code, "API-E-CONSOLIDATION-WORK");
     rejects_exact(&v, "API-E-CONSOLIDATION-WORK", Status::Invalid, 2);
-    // Un cociente infinito también debe rechazarse sin desbordar.
+    // An infinite ratio must also be rejected without overflowing.
     v["analyses"][0]["options"]["max_step_s"] = json!(f64::MIN_POSITIVE);
     rejects_exact(&v, "API-E-CONSOLIDATION-WORK", Status::Invalid, 2);
 }
@@ -331,9 +331,9 @@ fn consolidation_retains_work_limit_independently_of_the_dense_budget() {
     options["history"][1]["time_s"] = json!(1_250_000);
     options["output_times_s"] = json!([0, 625_000, 1_250_000]);
     options["max_step_s"] = json!(1);
-    // La cota r2 exacta sigue permitiendo este trabajo; r3 lo rechaza por coste.
+    // The exact r2 bound still allows this work; r3 rejects it due to cost.
     rejects_exact(&v, "API-E-CONSOLIDATION-COST", Status::Invalid, 2);
-    // ceil(0.5) + ceil(624999.5) + ceil(625000) añade un subpaso.
+    // ceil(0.5) + ceil(624999.5) + ceil(625000) adds one substep.
     v["analyses"][0]["options"]["output_times_s"] = json!([0, 0.5, 625_000, 1_250_000]);
     rejects_exact(&v, "API-E-CONSOLIDATION-WORK", Status::Invalid, 2);
 }
@@ -377,7 +377,7 @@ fn dense_cost_rejects_large_meshes_below_the_r2_work_limit_in_under_two_seconds(
 #[test]
 fn dense_cost_counts_free_nodes_output_splits_and_the_exact_limit() {
     assert_eq!(engine_api::MAX_CONSOLIDATION_COST, 500_000_000);
-    // n=100: 100³ + 49900·100² = 500000000 exactamente.
+    // n=100: 100³ + 49900·100² = 500000000 exactly.
     let mut v = dense_consolidation(100, 1, 1);
     v["analyses"][0]["options"]["history"][1]["time_s"] = json!(49_900);
     v["analyses"][0]["options"]["output_times_s"] = json!([0, 49_900]);
@@ -389,7 +389,7 @@ fn dense_cost_counts_free_nodes_output_splits_and_the_exact_limit() {
     rejects_exact(&v, "API-E-CONSOLIDATION-COST", Status::Invalid, 2);
     v["analyses"][0]["options"]["drainage"] = json!("double");
     assert!(validate(&v.to_string()).unwrap().is_empty());
-    // También se cobra la historia posterior a la última salida.
+    // History after the last output is also charged.
     v["analyses"][0]["options"]["output_times_s"] = json!([0]);
     v["analyses"][0]["options"]["history"][1]["time_s"] = json!(49_901);
     rejects_exact(&v, "API-E-CONSOLIDATION-COST", Status::Invalid, 2);
@@ -411,7 +411,7 @@ fn dense_budget_bounds_history_output_intervals_and_small_system_substeps() {
     let mut v = dense_consolidation(1, 1, 1);
     v["analyses"][0]["options"]["history"][1]["time_s"] = json!(257);
     v["analyses"][0]["options"]["output_times_s"] = json!((0..=256).collect::<Vec<_>>());
-    // 256 salidas positivas/iniciales más el tramo conservador posterior.
+    // 256 positive/initial outputs plus the subsequent conservative interval.
     rejects_exact(&v, "API-E-CONSOLIDATION-COST", Status::Invalid, 2);
     v["analyses"][0]["options"]["output_times_s"] = json!([0, 257]);
     v["analyses"][0]["options"]["history"][1]["time_s"] = json!(100_000);
@@ -430,7 +430,7 @@ fn dense_budget_bounds_history_output_intervals_and_small_system_substeps() {
 #[test]
 fn near_dense_cost_limit_completes_in_release_within_five_seconds() {
     let v = dense_consolidation(793, 1, 2);
-    // 793³ + 2·793² = 499934955; un tercer subpaso supera el presupuesto.
+    // 793³ + 2·793² = 499934955; a third substep exceeds the budget.
     assert!(validate(&v.to_string()).unwrap().is_empty());
     let start = std::time::Instant::now();
     let d = result(&v);
@@ -460,7 +460,7 @@ fn consolidation_cancels_a_long_valid_run_with_the_existing_diagnostic() {
     let source = v.to_string();
     assert!(validate(&source).unwrap().is_empty());
     let token = Arc::new(CancelToken::new());
-    // El callback de progreso model precede al despacho geotécnico.
+    // The model progress callback precedes geotechnical dispatch.
     let mut worker = None;
     let start = Instant::now();
     let o = run(&source, &token, |p| {

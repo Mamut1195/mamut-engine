@@ -1,12 +1,12 @@
-//! Vibración Euler–Bernoulli: esperados cerrados, sin oráculos ni fuentes externas.
+//! Euler–Bernoulli vibration: closed-form expectations, without oracles or external sources.
 use engine_contracts::{Element, ElementCtx, ElementParams, MassKind};
 use engine_core::math;
 use engine_core::Dim;
 use engine_elements_frame::{EulerFrame2D, MomentReleases};
 use engine_linalg::{DMat, LinAlgBackend, ReferenceBackend, SymMatrix};
 
-// Ensambla exclusivamente uy/rz: la viga horizontal desacopla flexión y axial.
-// E=ρ=A=I=L=1 ⇒ ω=β²; f=ω/(2π). Masa consistente, sin inercia rotatoria.
+// Assembles only uy/rz: the horizontal beam decouples bending and axial behavior.
+// E=ρ=A=I=L=1 ⇒ ω=β²; f=ω/(2π). Consistent mass, without rotary inertia.
 fn beam_matrices(elements: usize, cantilever: bool) -> (SymMatrix, SymMatrix) {
     let beam = EulerFrame2D::new(1.0, 1.0, 1.0, 1.0, MomentReleases::default()).unwrap();
     let params = ElementParams::default();
@@ -14,9 +14,9 @@ fn beam_matrices(elements: usize, cantilever: bool) -> (SymMatrix, SymMatrix) {
     let free: Vec<_> = (0..total)
         .filter(|&dof| {
             if cantilever {
-                dof >= 2 // Empotramiento: uy=rz=0 en x=0.
+                dof >= 2 // Clamped end: uy=rz=0 at x=0.
             } else {
-                dof != 0 && dof != 2 * elements // Apoyos: uy=0 en ambos extremos.
+                dof != 0 && dof != 2 * elements // Supports: uy=0 at both ends.
             }
         })
         .collect();
@@ -78,18 +78,18 @@ fn check_refinement(cantilever: bool, beta: [f64; 3]) {
         let exact = math::powi(beta[mode], 2) / (2.0 * std::f64::consts::PI);
         let coarse_error = (coarse[mode] / exact - 1.0).abs();
         let fine_error = (fine[mode] / exact - 1.0).abs();
-        // Tolerancia relativa 3e−4 en frecuencia con 12 elementos Hermite.
-        // La malla de 4 debe mejorar al menos ×10: se verifica refinamiento,
-        // no solo coincidencia con una tolerancia arbitraria.
+        // Relative frequency tolerance 3e−4 with 12 Hermite elements.
+        // The mesh of 4 must improve by at least ×10: checks refinement,
+        // not just agreement within an arbitrary tolerance.
         assert!(
             fine_error < 3e-4,
-            "modo {}: f={}, exacta={exact}, error={fine_error}",
+            "mode {}: f={}, exact={exact}, error={fine_error}",
             mode + 1,
             fine[mode]
         );
         assert!(
             fine_error < coarse_error / 10.0,
-            "refinamiento modo {}: gruesa={coarse_error}, fina={fine_error}",
+            "mode refinement {}: coarse={coarse_error}, fine={fine_error}",
             mode + 1
         );
     }
@@ -103,8 +103,8 @@ fn simply_supported_beam_converges_to_pi_n() {
 
 #[test]
 fn cantilever_converges_to_closed_form_roots() {
-    // Raíces de cos(β) cosh(β)=−1; los valores 1.8751, 4.6941, 7.8548
-    // solicitados se conservan con más cifras para no dominar el error de malla.
+    // Roots of cos(β) cosh(β)=−1; the requested values 1.8751, 4.6941, 7.8548
+    // retain more digits to avoid dominating the mesh error.
     check_refinement(
         true,
         [

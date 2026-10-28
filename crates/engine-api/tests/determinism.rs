@@ -1,4 +1,4 @@
-//! Diez corridas por entrada; hash del results/1 completo, no del input.
+//! Ten runs per input; hash of the complete results/1, not the input.
 #[path = "support/determinism.rs"]
 mod fixtures;
 use engine_api::{canonical_json, run, CancelToken, Status};
@@ -14,8 +14,8 @@ fn v1_results_are_identical_in_ten_runs() {
             assert_eq!(outcome.document, canonical_json(&outcome.document).unwrap());
             let hash = mamut_canon::sha256_hex(outcome.document.as_bytes());
             if let Some((document, previous_hash)) = &first {
-                assert_eq!(&hash, previous_hash, "{name}, corrida {iteration}");
-                assert_eq!(&outcome.document, document, "{name}, corrida {iteration}");
+                assert_eq!(&hash, previous_hash, "{name}, run {iteration}");
+                assert_eq!(&outcome.document, document, "{name}, run {iteration}");
             } else {
                 first = Some((outcome.document, hash));
             }
@@ -96,8 +96,8 @@ fn spatial_fixtures_exercise_static_recovery_and_rotated_modes() {
                 assert_eq!(mode["shape"].as_array().unwrap().len(), 3);
             }
         }
-        // Iy != Iz: cambiar la orientación debe cambiar resultados mecánicos,
-        // además del input_sha256, en ambos análisis.
+        // Iy != Iz: changing orientation must change mechanical results,
+        // as well as input_sha256, in both analyses.
         let mut unrotated: Value = serde_json::from_str(input).unwrap();
         for member in unrotated["model"]["members"].as_array_mut().unwrap() {
             member["orientation"] = serde_json::json!([0.0, 0.0, 1.0]);
@@ -107,7 +107,7 @@ fn spatial_fixtures_exercise_static_recovery_and_rotated_modes() {
         let changed: Value = serde_json::from_str(&changed.document).unwrap();
         assert_ne!(
             document[field], changed[field],
-            "{name}: orientación ignorada"
+            "{name}: orientation ignored"
         );
     }
 }

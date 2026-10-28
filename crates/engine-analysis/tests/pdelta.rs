@@ -1,4 +1,4 @@
-//! Soluciones analíticas propias; fórmulas y tolerancias en ENG-ANL-003.md.
+//! In-house analytical solutions; formulas and tolerances in ENG-ANL-003.md.
 #[path = "../../engine-assembly/tests/fixtures/counting.rs"]
 mod counting;
 use counting::CountingBackend;
@@ -148,7 +148,7 @@ fn exact_compression(ratio: f64) -> f64 {
     linear_tip() * 3.0 * (math::tan(z) - z) / math::powi(z, 3)
 }
 
-// W14x48, kip e in: fixture del ticket de cancelación del residual.
+// W14x48, kip and in: fixture from the residual cancellation ticket.
 const W14_E: f64 = 29_000.0;
 const W14_A: f64 = 14.1;
 const W14_I: f64 = 484.0;
@@ -192,9 +192,9 @@ fn w14x48_in_units(mesh: u32, force: f64, length: f64) -> LinearSystem<Reference
 
 #[test]
 fn w14x48_convergence_is_invariant_between_kip_in_and_newton_metre() {
-    // Conversiones exactas: el mismo P=200 kip (~0.65 Pcr) en ambos sistemas.
-    // La carga lateral pequeña deja referencias < 1 en kip/in y hace observable
-    // una regresión a max(1, ref_g), aun manteniendo el criterio de cambio de u.
+    // Exact conversions: the same P=200 kip (~0.65 Pcr) in both systems.
+    // The small lateral load leaves references < 1 in kip/in and exposes
+    // a regression to max(1, ref_g), even while retaining the u change criterion.
     const KIP_TO_NEWTON: f64 = 4448.2216152605;
     const INCH_TO_METRE: f64 = 0.0254;
     for lateral_factor in [1.0, 1e-6] {
@@ -219,10 +219,10 @@ fn w14x48_convergence_is_invariant_between_kip_in_and_newton_metre() {
         assert_eq!(
             si.iterations.len(),
             imperial.iterations.len(),
-            "factor lateral={lateral_factor}"
+            "lateral factor={lateral_factor}"
         );
-        // Indicador adimensional: se comprueba al principio para evitar que la
-        // cancelación cerca del equilibrio domine la comparación entre unidades.
+        // Dimensionless indicator: checked first to prevent
+        // cancellation near equilibrium from dominating the unit comparison.
         close(
             si.iterations[0].residual_convergence_ratio
                 / imperial.iterations[0].residual_convergence_ratio,
@@ -251,8 +251,8 @@ fn w14x48_convergence_is_invariant_between_kip_in_and_newton_metre() {
 fn w14x48_cantilever_converges_with_separate_force_and_moment_references() {
     let k = math::sqrt(W14_P / (W14_E * W14_I));
     let exact = W14_H * (math::tan(k * W14_L) - k * W14_L) / (W14_P * k);
-    // El error de discretización cúbica con 8 elementos es 2.51e-6;
-    // bajar la tolerancia iterativa no lo reduce. Véase ENG-ANL-003.md.
+    // Cubic discretization error with 8 elements is 2.51e-6;
+    // lowering the iterative tolerance does not reduce it. See ENG-ANL-003.md.
     for (mesh, tolerance, mesh_error) in [(32, 1e-10, 1e-6), (8, 1e-12, 3e-6)] {
         let mut s = w14x48(mesh);
         let settings = PDeltaOptions {
@@ -273,8 +273,8 @@ fn w14x48_cantilever_converges_with_separate_force_and_moment_references() {
         assert!(last.relative_displacement_change <= tolerance);
         assert!(last.residual_convergence_ratio <= 1.0);
 
-        // Resolución directa independiente de la iteración: comprueba que
-        // el criterio no oculta error iterativo ni error de discretización.
+        // Direct solve independent of iteration: checks that
+        // the criterion hides neither iterative nor discretization error.
         let n = s.n_free_dofs();
         let mut kg = SymMatrix::zeros(n).unwrap();
         s.geometric(&r.gravity.free_displacements, &mut kg).unwrap();
@@ -332,7 +332,7 @@ fn w14x48_cantilever_converges_with_separate_force_and_moment_references() {
 fn near_euler_exact_solution_mesh_refinement_and_declared_amplification_tolerance() {
     // EI v''''+P v''=0, v(0)=v'(0)=0, v''(L)=0,
     // EI v'''(L)+P v'(L)=-H => v(L)=H/P [tan(kL)/k-L].
-    // 1/(1-r) es aproximado; el coeficiente del polo exacto es 96/π⁴.
+    // 1/(1-r) is approximate; the exact pole coefficient is 96/π⁴.
     for ratio in [0.9, 0.95] {
         let exact = exact_compression(ratio);
         let mut previous_error = f64::INFINITY;
@@ -353,11 +353,11 @@ fn near_euler_exact_solution_mesh_refinement_and_declared_amplification_toleranc
                 assert!((tip(&r) / approximate - 1.0).abs() < 0.02);
             }
             let last = r.iterations.last().unwrap();
-            // El residual mixto histórico puede exceder la tolerancia por
-            // cancelación; el criterio nuevo usa referencias por tipo y piso.
+            // The historical mixed residual can exceed the tolerance due to
+            // cancellation; the new criterion uses references by type and floor.
             assert!(last.residual_convergence_ratio <= 1.0);
             assert!(last.relative_displacement_change <= options().tolerance);
-            // Cada miembro recibe el mismo axial N=-P de la gravedad recuperada.
+            // Each member receives the same axial force N=-P from recovered gravity.
             let dx = L / mesh as f64;
             for i in 0..mesh as usize {
                 let u = &r.gravity.global_displacements;
@@ -387,7 +387,7 @@ fn supercritical_returns_unstable_with_inertia_counts() {
         assert!(r.global_displacements.is_none());
         assert!(r.reactions.is_empty());
     }
-    // El elemento cúbico único sobrestima Pcr; el refinamiento resuelve el cruce.
+    // The single cubic element overestimates Pcr; refinement resolves the crossing.
     assert_eq!(
         run(&mut cantilever(ReferenceBackend, 1, 1.001 * pcr(), &[])).outcome,
         PDeltaOutcome::NotConverged
@@ -402,8 +402,8 @@ fn supercritical_returns_unstable_with_inertia_counts() {
 
 #[test]
 fn zero_axial_reproduces_static_linear_including_prescribed_values_and_reactions() {
-    // Traslación rígida de la base: no genera axiales de gravedad; prueba Kg_fp
-    // y prescritos no escalados al comparar con static.linear lateral.
+    // Rigid base translation: generates no gravity axial forces; tests Kg_fp
+    // and unscaled prescribed displacements against lateral static.linear.
     let prescribed = [PrescribedDof {
         node: NodeId(1),
         dof: Dof::Uy,
@@ -433,7 +433,7 @@ fn zero_axial_reproduces_static_linear_including_prescribed_values_and_reactions
 
 #[test]
 fn tension_positive_kg_stiffens_and_matches_closed_form() {
-    // Continuación hiperbólica: v(L)=H/T [L-tanh(kL)/k], k²=T/EI.
+    // Hyperbolic continuation: v(L)=H/T [L-tanh(kL)/k], k²=T/EI.
     let ratio = 0.5;
     let t = ratio * pcr();
     let z = math::sqrt(t / (E * I)) * L;
@@ -566,7 +566,7 @@ fn fixed_point_iteration_count_history_residual_and_no_hidden_retry() {
     let r = PDelta::run(&mut s, &(case("G"), 1.0), &(case("H"), 1.0), settings).unwrap();
     assert_eq!(r.outcome, PDeltaOutcome::Completed);
     assert_eq!(r.iterations.len(), 10);
-    assert_eq!(factors.get(), 3); // gravedad, inercia total, K del punto fijo
+    assert_eq!(factors.get(), 3); // gravity, total inertia, K at the fixed point
     assert_eq!(solves.get(), 1 + r.iterations.len());
     assert_eq!(s.accepted_displacement(), &[0.7]);
     assert_eq!(s.trial_displacement(), &[0.8]);
@@ -631,7 +631,7 @@ fn roundoff_floor_accepts_stationary_solution_with_prescribed_shift() {
     let last = r.iterations.last().unwrap();
     assert_eq!(last.relative_displacement_change, 0.0);
     assert!(last.relative_free_residual > settings.tolerance);
-    // Fila libre [-75, 75]: |Kt||u| incluye el prescrito de 0.03.
+    // Free row [-75, 75]: |Kt||u| includes the prescribed displacement of 0.03.
     let u = r.global_displacements.as_ref().unwrap();
     let absolute_product = 75.0 * u[0].abs() + 75.0 * u[1].abs();
     let floor = 64.0 * 2.0 * f64::EPSILON * absolute_product;
@@ -648,8 +648,8 @@ fn roundoff_floor_accepts_stationary_solution_with_prescribed_shift() {
 
 #[test]
 fn force_and_moment_references_cannot_mask_each_others_residual() {
-    // Dos resortes independientes, Ux y Rz. La carga grande ya equilibrada
-    // no debe ocultar el residual del otro grupo aunque el cambio global pase.
+    // Two independent springs, Ux and Rz. The large load already in equilibrium
+    // must not hide the other group's residual even if the global change passes.
     for small in 0..2 {
         let mut m = Model::new();
         for id in 1..=2 {
@@ -727,7 +727,7 @@ fn force_and_moment_references_cannot_mask_each_others_residual() {
 
 #[test]
 fn stable_tension_can_reach_limit_without_retrying_or_accepting() {
-    // Punto fijo u_new=0.1-2u: radio espectral 2, aunque K+Kg=300>0.
+    // Fixed point u_new=0.1-2u: spectral radius 2, although K+Kg=300>0.
     let mut s = scalar(ReferenceBackend, 200.0, 0.0);
     let r = PDelta::run(
         &mut s,
@@ -849,7 +849,7 @@ fn invalid_parameters_cases_finiteness_and_mechanism_use_catalog() {
         .entities
         .iter()
         .any(|e| matches!(e, EntityRef::Node(NodeId(2)))));
-    // El mecanismo elástico de gravedad se detecta antes de evaluar Kg.
+    // The elastic gravity mechanism is detected before evaluating Kg.
     let mut m = Model::new();
     let mut n = Node::new(NodeId(1), Dim::D2, [0.0; 3]);
     n.dofs = vec![Dof::Ux];
@@ -884,7 +884,7 @@ fn nonfinite_geometric_evaluation_and_total_overflow_are_errors_without_state_ch
     assert_eq!(s.trial_displacement(), &[0.0]);
 }
 
-// El camino de estabilidad debe usar FactorInfo y nunca generalized_eigen.
+// The stability path must use FactorInfo and never generalized_eigen.
 struct InfoBackend {
     mode: u8,
     calls: Rc<Cell<usize>>,
@@ -971,8 +971,8 @@ fn missing_inertia_is_explicit_and_invalid_inertia_is_rejected() {
 
 #[test]
 fn ldlt_two_by_two_block_inertia_reaches_unstable_result() {
-    // K_ff=I, Kg_ff=[-1,2;2,-1] => total=[0,2;2,0], espectro ±2.
-    // Ambos pivotes diagonales son cero: contar solo diagonales daría mal.
+    // K_ff=I, Kg_ff=[-1,2;2,-1] => total=[0,2;2,0], spectrum ±2.
+    // Both diagonal pivots are zero: counting only diagonals would be wrong.
     let mut m = Model::new();
     let mut n = Node::new(NodeId(1), Dim::D2, [0.0; 3]);
     n.dofs = vec![Dof::Ux, Dof::Uy];
@@ -1046,7 +1046,7 @@ fn producer_adapter_invalid_inputs_and_static_reference_guard() {
         global.to_dense().unwrap().get(4, 4),
         reduced.dense().get(1, 1)
     );
-    // Una Kg estática no se puede reutilizar silenciosamente fuera de referencia.
+    // A static Kg cannot be silently reused outside its reference.
     let mut m = Model::new();
     let mut n = Node::new(NodeId(1), Dim::D2, [0.0; 3]);
     n.dofs = vec![Dof::Ux];

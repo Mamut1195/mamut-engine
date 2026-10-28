@@ -1,19 +1,19 @@
-//! Entradas SI propias, compartidas por repetibilidad y cruce nativo/wasm.
+//! In-house SI inputs, shared by repeatability and native/wasm comparison.
 pub mod scalar_cases;
 
 use engine_api::{canonical_json, run, CancelToken, Status};
 
-// El SDK hashea los bytes sin canonicalizarlos. Decodificar hex conserva el
-// mismo digest de 32 bytes que usaba sha2, incluido el ABI de prueba wasm.
+// The SDK hashes the bytes without canonicalizing them. Decoding hex preserves the
+// same 32-byte digest previously used by sha2, including the wasm test ABI.
 pub fn sha256(bytes: &[u8]) -> [u8; 32] {
     let hex = mamut_canon::sha256_hex(bytes);
     std::array::from_fn(|i| {
-        u8::from_str_radix(&hex[2 * i..2 * i + 2], 16).expect("SHA-256 hexadecimal del SDK")
+        u8::from_str_radix(&hex[2 * i..2 * i + 2], 16).expect("SDK hexadecimal SHA-256")
     })
 }
 
-// target es procedencia específica de la compilación: se valida antes de
-// excluirlo exclusivamente del cruce. Los demás campos conservan sus bytes.
+// target is build-specific provenance: it is validated before being
+// excluded solely from the comparison. Other fields retain their bytes.
 pub fn comparison_document(document: &str) -> Result<String, String> {
     let mut value: serde_json::Value = serde_json::from_str(document).map_err(|e| e.to_string())?;
     if value["target"] != env!("MAMUT_ENGINE_TARGET") {

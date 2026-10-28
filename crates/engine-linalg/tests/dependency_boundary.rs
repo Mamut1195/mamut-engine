@@ -149,7 +149,7 @@ fn only_linalg_can_import_numeric_providers() {
         };
         assert!(
             !violation,
-            "Proveedor numérico fuera de engine-linalg: {}",
+            "Numerical provider outside engine-linalg: {}",
             path.display()
         );
     }

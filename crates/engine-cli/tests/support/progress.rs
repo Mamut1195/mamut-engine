@@ -176,7 +176,7 @@ struct LineWriter {
 
 impl Write for LineWriter {
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-        // Una llamada al escritor recibe siempre una línea JSON completa.
+        // A writer call always receives a complete JSON line.
         assert_eq!(bytes.last(), Some(&b'\n'));
         let event = value(bytes);
         if self.fail_progress && event["schema"] == "progress/1" {

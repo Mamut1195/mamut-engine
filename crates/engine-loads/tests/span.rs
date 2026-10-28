@@ -26,7 +26,7 @@ fn trapezoid(qi: [f64; 2], qj: [f64; 2], a: Option<f64>, b: Option<f64>) -> Span
     }
 }
 
-// Equilibrio del miembro bloqueado, con fuerzas exteriores aplicadas + reacciones.
+// Equilibrium of the restrained member, with applied exterior forces + reactions.
 fn equilibrium(beam: &Beam2D, load: &SpanLoad, total: [f64; 2], first_moment: f64) {
     let reactions = fixed(beam, load).unwrap();
     close(reactions[0] + reactions[3] + total[0], 0.0);
@@ -91,7 +91,7 @@ fn general_trapezoid_and_both_triangles() -> EResult<()> {
             l * l * (qi + 2.0 * qj) / 6.0,
         );
     }
-    // Triangular creciente: axial wL/6 y wL/3; cortante 3wL/20 y 7wL/20.
+    // Increasing triangular load: axial wL/6 and wL/3; shear 3wL/20 and 7wL/20.
     let w = 6.0;
     vector(
         equivalent(&beam, &trapezoid([0.0; 2], [w; 2], None, None))?,
@@ -131,7 +131,7 @@ fn center_asymmetric_and_endpoint_point_tables() -> EResult<()> {
         );
         equilibrium(&beam, &load, [px, p], p * a);
     }
-    // En el centro, cada cortante es P/2; cada momento tiene magnitud PL/8.
+    // At the center, each shear is P/2; each moment has magnitude PL/8.
     vector(
         equivalent(
             &beam,
@@ -177,7 +177,7 @@ fn partial_uniform_and_triangular_closed_tables() -> EResult<()> {
         ],
     );
     equilibrium(&beam, &triangular, [w * l / 4.0; 2], 7.0 * w * l * l / 48.0);
-    // Opciones independientes: a=None o b=None son los extremos respectivos.
+    // Independent options: a=None or b=None are the respective ends.
     for load in [
         trapezoid([w; 2], [w; 2], None, Some(l / 2.0)),
         trapezoid([w; 2], [w; 2], Some(l / 2.0), None),
@@ -264,7 +264,7 @@ fn rotated_local_global_and_frame_element_agree() -> EResult<()> {
             for (a, b) in own.into_iter().zip(existing) {
                 close(a, b);
             }
-            // Las acciones recuperadas a u=0 son las reacciones de empotramiento.
+            // Recovered actions at u=0 are the restrained-end reactions.
             let recovered = element.recover(&ctx, &[0.0; 6], &[], &[member_load], &[])?;
             for (a, b) in fixed(&beam, load)?
                 .into_iter()
@@ -381,7 +381,7 @@ fn extreme_inputs_do_not_panic_or_return_nonfinite_success() -> EResult<()> {
             .code,
         "ENG-E-0008"
     );
-    // Carga cero con L extremo tampoco genera 0·infinito.
+    // Zero load with extreme L does not generate 0·infinity either.
     vector(
         equivalent(
             &Beam2D::new(1e308, 0.0)?,

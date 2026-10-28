@@ -63,7 +63,7 @@ fn springs(n: usize) -> SymMatrix {
 }
 fn check_error<T>(result: Result<T, EngineError>, code: &str) -> EngineError {
     match result {
-        Ok(_) => panic!("Se esperaba {code}"),
+        Ok(_) => panic!("Expected {code}"),
         Err(error) => {
             assert_eq!(error.code, code);
             assert!(!error.message.is_empty());

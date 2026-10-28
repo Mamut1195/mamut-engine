@@ -15,7 +15,7 @@ fn repo_root() -> PathBuf {
 
 fn read_repo(relative: &str) -> String {
     std::fs::read_to_string(repo_root().join(relative)).unwrap_or_else(|error| {
-        panic!("no se pudo leer {relative}: {error}");
+        panic!("could not read {relative}: {error}");
     })
 }
 
@@ -93,7 +93,7 @@ fn mass_inertia_and_spectrum_follow_the_published_formulas() {
     }
     let plateau = spectral_acceleration_m_s2((corner_t0() + corner_tc()) / 2.0);
     let in_g = plateau / GRAVITY_M_S2;
-    assert!(plateau > 0.5, "Sa debe estar en m/s^2, no en g");
+    assert!(plateau > 0.5, "Sa must be in m/s^2, not in g");
     assert!(in_g < 0.5);
     let tl = corner_tl();
     assert!((spectral_acceleration_m_s2(tl) - spectral_acceleration_m_s2(tl)).abs() < 1e-12);
@@ -314,7 +314,7 @@ fn three_story_results_follow_the_index_pointers() {
     let static_result = solve(&translate(&model, AnalysisKind::Static).unwrap());
     assert_eq!(
         static_result["cases"][1]["case"], "lateral",
-        "el puntero estático apunta al segundo caso"
+        "the static pointer points to the second case"
     );
     assert_eq!(
         walk(&static_result, "/cases/1/nodes/53/id"),

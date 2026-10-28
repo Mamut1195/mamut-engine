@@ -66,7 +66,7 @@ fn check_modes(k: &SymMatrix, m: &SymMatrix, modes: &LowestModes) {
                 }
             }
             let expected = if other == col { 1.0 } else { 0.0 };
-            assert!((dot - expected).abs() < 2e-12, "M-ortogonalidad: {dot}");
+            assert!((dot - expected).abs() < 2e-12, "M-orthogonality: {dot}");
         }
     }
 }
@@ -110,10 +110,7 @@ fn modal_kernel_control_interrupts_every_checkpoint_without_changing_bits() {
             Ok(())
         })
         .unwrap();
-    assert!(
-        checks > 20,
-        "Debe consultar dentro de los kernels: {checks}"
-    );
+    assert!(checks > 20, "Must check inside the kernels: {checks}");
     assert_eq!(
         actual
             .eigenvalues

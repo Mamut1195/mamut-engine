@@ -1,4 +1,4 @@
-//! Soluciones cerradas, ensamblaje real y backend del repo; sin resultados externos.
+//! Closed-form solutions, actual assembly, and repository backend; no external results.
 mod fixtures;
 use engine_assembly::{
     assemble::assemble_matrix, DofMap, ElementContribution, ElementLoad, LinearSystem,
@@ -111,7 +111,7 @@ fn solve(
         };
         r[reaction.node.0 as usize - 1][axis] = reaction.value;
     }
-    // ΣFx,ΣFy y ΣMz alrededor del origen con cargas distribuidas integradas.
+    // ΣFx,ΣFy, and ΣMz about the origin with integrated distributed loads.
     let mut equilibrium = [0.0; 3];
     for (&p, &r) in coords.iter().zip(&r) {
         equilibrium[0] += r[0];
@@ -154,8 +154,8 @@ fn full() -> Vec<Dof> {
 }
 fn beam_fixture(rel_i: bool, rel_j: bool, q: Option<&MemberLoad>, point: f64) -> Solution {
     let coords = [[0.0; 3], [L / 2.0, 0.0, 0.0], [L, 0.0, 0.0]];
-    // Rz exterior liberado no tiene aporte: restringir este GDL desconectado
-    // solo evita singularidad; el giro interno se obtiene mediante recuperación.
+    // Released outer Rz contributes nothing: restraining this disconnected DOF
+    // only avoids singularity; the internal rotation is obtained through recovery.
     solve(
         &coords,
         &[
@@ -223,8 +223,8 @@ fn fixed_fixed_uniform_and_point_load_by_subdivision() {
     );
     close(s.r[0][2], W * math::powi(L, 2) / 12.0, 1e-9);
     close(s.r[2][2], -W * math::powi(L, 2) / 12.0, 1e-9);
-    // Un único tramo empotrado también recupera M parabólico exacto aunque
-    // sus desplazamientos nodales sean cero (no confundir con v interior).
+    // A single clamped span also recovers exact parabolic M even though
+    // its nodal displacements are zero (distinct from interior v).
     let params = ElementParams::default();
     let coords = [[0.0; 3], [L, 0.0, 0.0]];
     let out = beam(MomentReleases::default())
@@ -289,7 +289,7 @@ fn pinned_and_propped_uniform_load_with_released_rotations() {
 }
 #[test]
 fn symmetric_portal_with_finite_axial_stiffness_closed_form() {
-    // source/citation: STATIC. Altura h en Y del plano XY, sin gravedad.
+    // source/citation: STATIC. Height h along Y of the XY plane, without gravity.
     let h: f64 = 3.0;
     let span: f64 = 4.0;
     let ei = E * I;
@@ -326,9 +326,9 @@ fn euler_pinned_column_one_and_two_elements() {
     fixtures::cited(&fixtures::BUCKLING);
     let exact = math::powi(std::f64::consts::PI, 2) * E * I / math::powi(L, 2);
     for (count, tolerance) in [(1, 0.22), (2, 0.008)] {
-        // Hermite Ritz: 1 elemento sobreestima Euler 21.59%; 2, <0.8%.
-        // Soportes articulados mantienen rotaciones nodales libres, condición
-        // natural M=0; no se condensan los giros que representan el modo.
+        // Hermite Ritz: 1 element overestimates Euler by 21.59%; 2, <0.8%.
+        // Pinned supports keep nodal rotations free, the natural condition
+        // M=0; rotations representing the mode are not condensed.
         let order = 3 * (count + 1);
         let params = ElementParams::default();
         let mut kblocks = vec![];
@@ -399,7 +399,7 @@ fn euler_pinned_column_one_and_two_elements() {
                 fixtures::BUCKLING.force_tolerance,
             );
         }
-        // Residual del autovector con tolerancia SI explícita.
+        // Eigenvector residual with explicit SI tolerance.
         let vector = DMat::new(
             ids.len(),
             1,

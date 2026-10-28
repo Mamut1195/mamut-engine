@@ -1,4 +1,4 @@
-//! Benchmarks analíticos propios; solo memoria, aptos para compilar a wasm32.
+//! In-house analytical benchmarks; memory only, suitable for wasm32 compilation.
 
 use engine_contracts::{
     conformance::{check_section_law, check_uniaxial_law},
@@ -114,7 +114,7 @@ fn close(actual: Real, expected: Real) {
 fn code<T>(result: EResult<T>, expected: &str) {
     match result {
         Err(error) => assert_eq!(error.code, expected, "{error}"),
-        Ok(_) => panic!("Se esperaba {expected}"),
+        Ok(_) => panic!("Expected {expected}"),
     }
 }
 
@@ -179,7 +179,7 @@ fn contract_conformance() {
 
 #[test]
 fn every_tangent_component_matches_central_difference() {
-    // Comparación por componente: EA grande no puede ocultar errores en EI/GJ.
+    // Componentwise comparison: large EA cannot hide errors in EI/GJ.
     for f in SECTION_FIXTURES {
         let law = ElasticFrame::new(f.dim, f.params).unwrap();
         let base = law.respond(f.strain, &[]).unwrap();
@@ -254,7 +254,7 @@ fn uniaxial_rejects_invalid_modulus_and_inputs() {
     code(law.respond(Real::MAX, &[]), "ENG-E-0008");
 }
 
-// Modifica cada propiedad por separado, incluidas las inactivas en D2.
+// Changes each property separately, including those inactive in D2.
 fn changed(field: usize, value: Real) -> ElasticFrameParams {
     let mut p = SMALL_PARAMS;
     match field {
@@ -266,7 +266,7 @@ fn changed(field: usize, value: Real) -> ElasticFrameParams {
         5 => p.j = value,
         6 => p.ay = Some(value),
         7 => p.az = Some(value),
-        _ => panic!("Campo de prueba inválido"),
+        _ => panic!("Invalid test field"),
     }
     p
 }

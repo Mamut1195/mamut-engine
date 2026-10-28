@@ -1,4 +1,4 @@
-//! Integración de static.linear con T, cargas excéntricas y maestro prescrito.
+//! Integration of static.linear with T, eccentric loads, and prescribed master displacement.
 #[path = "../../engine-assembly/tests/fixtures/counting.rs"]
 mod counting;
 #[path = "../../engine-assembly/tests/fixtures/rigid_cases.rs"]
@@ -62,8 +62,8 @@ fn static_linear_recovers_diaphragm_and_projected_equilibrium() -> EResult<()> {
 
 #[test]
 fn projected_residual_detects_inexact_solver_with_rigid_slaves() -> EResult<()> {
-    // Las filas físicas libres del maestro son cero. El error del solver solo
-    // aparece en el residual libre al proyectar las fuerzas de los esclavos.
+    // The master's free physical rows are zero. Solver error only
+    // appears in the free residual when projecting slave forces.
     let backend = CountingBackend {
         solution_scale: 0.5,
         ..CountingBackend::default()
@@ -90,9 +90,9 @@ fn pdelta_projects_stability_geometric_force_and_residual_through_diaphragm() ->
     use engine_core::DofIndex;
     use engine_linalg::{DMat, ReferenceBackend};
 
-    // Kg = alpha*K: la solución exacta es StaticLinear(F/(1+alpha)),
-    // incluso con un maestro prescrito. La rigidez física del maestro es cero:
-    // toda la estabilidad, fuerza geométrica y equilibrio llegan de esclavos.
+    // Kg = alpha*K: the exact solution is StaticLinear(F/(1+alpha)),
+    // even with a prescribed master displacement. The master's physical stiffness is zero:
+    // all stability, geometric force, and equilibrium come from slaves.
     for settlement in [None, Some(0.03)] {
         for alpha in [-0.1, 0.2, -1.1] {
             let mut system = rigid_cases::system(ReferenceBackend, settlement)?;

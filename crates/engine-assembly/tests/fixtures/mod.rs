@@ -31,8 +31,8 @@ pub const THREE_SPRINGS: Fixture = Fixture {
     ],
     expected_u: &[0.12, 0.18, 0.22],
 };
-// Barra: E=200 Pa, A=2 m², L_1=2 m, L_2=4 m => EA/L=200 y 100 N/m.
-// De ε=Δu/L, σ=Eε y N=Aσ se obtiene la misma energía cuadrática.
+// Member: E=200 Pa, A=2 m², L_1=2 m, L_2=4 m => EA/L=200 and 100 N/m.
+// From ε=Δu/L, σ=Eε, and N=Aσ, the same quadratic energy is obtained.
 // P=12 N => u_2=12/200=0.06 m, u_3=0.06+12/100=0.18 m.
 pub const AXIAL_BAR: Fixture = Fixture {
     source: "analítico: derivación propia N=EA Δu/L para dos segmentos axiales",

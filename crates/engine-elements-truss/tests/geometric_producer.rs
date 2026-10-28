@@ -1,5 +1,5 @@
-//! P-Delta local: derivaciones propias, provenance/ENG-ASM-001-KG.md.
-//! Fuentes externas: ninguna. Cita bibliográfica precisa: PENDIENTE.
+//! Local P-Delta: own derivations, provenance/ENG-ASM-001-KG.md.
+//! External sources: none. Precise bibliographic citation: PENDING.
 use engine_assembly::{DofMap, ElementContribution, LinearSystem, PrescribedDof};
 use engine_contracts::{
     conformance::check_system_view, CaseRef, Element, ElementCtx, ElementParams, SystemView,
@@ -10,9 +10,9 @@ use engine_elements_truss::{geometric_producer, LinearTruss};
 use engine_linalg::{DMat, ReferenceBackend, SymMatrix};
 use engine_model::{LoadCase, Model, Node, Support};
 
-const ABS_TOL: f64 = 1e-12; // N/m: fórmula cerrada frente a ensamblaje.
-const FD_REL_TOL: f64 = 1e-6; // Norma máxima relativa, derivada incremental.
-const FD_STEP: f64 = 1e-5; // m, diferencias centradas de fuerza analítica.
+const ABS_TOL: f64 = 1e-12; // N/m: closed-form formula against assembly.
+const FD_REL_TOL: f64 = 1e-6; // Relative maximum norm, incremental derivative.
+const FD_STEP: f64 = 1e-5; // m, central differences of analytical force.
 
 fn close(a: f64, b: f64) {
     assert!((a - b).abs() <= ABS_TOL, "{a} != {b}; tol={ABS_TOL}");
@@ -58,7 +58,7 @@ fn contribution(
 
 #[test]
 fn axial_state_changes_transverse_kg_in_2d_and_3d_and_passes_kit() {
-    // EA=400 N, L=2 m => N=200δ N, Kg transversal=100δ N/m.
+    // EA=400 N, L=2 m => N=200δ N, transverse Kg=100δ N/m.
     for dim in [Dim::D2, Dim::D3] {
         let coords = [[0.0; 3], [2.0, 0.0, 0.0]];
         let params = ElementParams::default();
@@ -86,11 +86,11 @@ fn axial_state_changes_transverse_kg_in_2d_and_3d_and_passes_kit() {
         s.set_geometric_producers(vec![geometric_producer(bar, &ctx, location).unwrap()])
             .unwrap();
         s.geometric(&vec![0.0; axes], &mut out).unwrap();
-        assert_eq!(out, static_zero, "Kg(0) coincide con la estática nula");
+        assert_eq!(out, static_zero, "Kg(0) matches the zero static matrix");
         for delta in [0.06, -0.04, 0.0] {
             let mut u = vec![0.0; axes];
             u[0] = delta;
-            // Un desplazamiento transversal no cambia la extensión proyectada.
+            // A transverse displacement does not change the projected extension.
             u[1] = 0.3;
             s.geometric(&u, &mut out).unwrap();
             for i in 0..axes {
@@ -115,7 +115,7 @@ fn axial_state_changes_transverse_kg_in_2d_and_3d_and_passes_kit() {
 
 #[test]
 fn prescribed_extension_is_seen_even_at_reduced_zero() {
-    // Nodo i se desplaza -0.06 m; u_j=0 => N=12 N => Kg_yy=6 N/m.
+    // Node i moves -0.06 m; u_j=0 => N=12 N => Kg_yy=6 N/m.
     let coords = [[0.0; 3], [2.0, 0.0, 0.0]];
     let params = ElementParams::default();
     let ctx = ElementCtx {
@@ -148,7 +148,7 @@ fn prescribed_extension_is_seen_even_at_reduced_zero() {
     s.geometric(&[0.0, 0.0], &mut out).unwrap();
     assert_eq!(
         out, static_reference,
-        "Kg(0) coincide también con estática no nula"
+        "Kg(0) also matches the nonzero static matrix"
     );
     close(out.dense().get(1, 1).unwrap(), 6.0);
 }
@@ -184,11 +184,11 @@ fn oblique_3d_producer_returns_global_projector() {
     }
 }
 
-// Fuerza exacta de barras preesforzadas bajo perturbación incremental v del
-// vértice. k=EA/L fijo, l0=L−N/k; f(v)=Σ k(l(v)−l0) r(v)/l(v).
-// En v=0 el axial es N obtenido del u base, con la geometría fija del crate.
-// Esta fuerza analítica independiente tiene derivada K+Kg; NO se diferencia
-// respond lineal, cuya derivada es solamente K. Ver alcance en la bitácora.
+// Exact force in prestressed members under incremental perturbation v of the
+// apex. Constant k=EA/L, l0=L−N/k; f(v)=Σ k(l(v)−l0) r(v)/l(v).
+// At v=0 the axial force is N obtained from base u, with the crate's constant geometry.
+// This independent analytical force has derivative K+Kg; it does NOT differentiate
+// linear respond, whose derivative is only K. See scope in the log.
 fn arch_force(v: [f64; 2], a: f64, h: f64, ea: f64, axial: f64) -> [f64; 2] {
     let length = math::hypot(a, h);
     let k = ea / length;
@@ -207,8 +207,8 @@ fn arch_force(v: [f64; 2], a: f64, h: f64, ea: f64, axial: f64) -> [f64; 2] {
 
 #[test]
 fn symmetric_two_bar_arch_tangent_and_analytic_critical_multiplier() {
-    // Bases (-a,0),(a,0), vértice (0,h): s=h/L,c=a/L,k=EA/L.
-    // N=k s w<0; P=-2Ns>0 sobre -Y (vertical local del fixture).
+    // Bases (-a,0),(a,0), apex (0,h): s=h/L,c=a/L,k=EA/L.
+    // N=k s w<0; P=-2Ns>0 along -Y (fixture local vertical).
     // K=2k diag(c²,s²), Kg=2N/L diag(s²,c²).
     // λ_cr,y=-EA s²/(N c²); λ_cr,x=-EA c²/(N s²).
     let (a, h, ea, w): (f64, f64, f64, f64) = (2.0, 1.0, 400.0, -0.1);
@@ -242,7 +242,7 @@ fn symmetric_two_bar_arch_tangent_and_analytic_critical_multiplier() {
     system.set_geometric_producers(producers).unwrap();
     let mut material = SymMatrix::zeros(2).unwrap();
     let mut geometric = SymMatrix::zeros(2).unwrap();
-    let u = [0.0, w]; // difiere de la referencia reducida nula.
+    let u = [0.0, w]; // differs from the zero reduced reference.
     system.tangent(&u, &mut material).unwrap();
     system.geometric(&u, &mut geometric).unwrap();
     close(axial, -8.0);
@@ -286,12 +286,12 @@ fn symmetric_two_bar_arch_tangent_and_analytic_critical_multiplier() {
         / norm;
     assert!(
         error < FD_REL_TOL,
-        "error relativo={error}, tol={FD_REL_TOL}"
+        "relative error={error}, tol={FD_REL_TOL}"
     );
     let transverse_error = (tangent[3] - fd[3]).abs() / tangent[3].abs();
     assert!(
         transverse_error < FD_REL_TOL,
-        "error transversal={transverse_error}"
+        "transverse error={transverse_error}"
     );
 
     let lambda_cr = -ea * s * s / (axial * c * c);
@@ -315,7 +315,7 @@ fn symmetric_two_bar_arch_tangent_and_analytic_critical_multiplier() {
         .unwrap()
     };
     let critical = combined(lambda_cr);
-    close(critical.dense().get(1, 1).unwrap(), 0.0); // modo [0,1], residual N/m.
+    close(critical.dense().get(1, 1).unwrap(), 0.0); // mode [0,1], residual N/m.
     close(critical.dense().get(0, 1).unwrap(), 0.0);
     assert!(critical.dense().get(0, 0).unwrap() > 0.0);
     assert!(combined(0.99 * lambda_cr).dense().get(1, 1).unwrap() > 0.0);

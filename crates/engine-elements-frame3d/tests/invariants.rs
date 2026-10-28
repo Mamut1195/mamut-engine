@@ -1,4 +1,4 @@
-//! Conformidad element/1, covariancia espacial, energía y diagnósticos.
+//! element/1 conformance, spatial covariance, energy, and diagnostics.
 mod fixtures;
 use engine_contracts::{
     conformance::{check_element, check_element_factory},
@@ -11,7 +11,7 @@ use engine_linalg::{DMat, LinAlgBackend, ReferenceBackend, SymMatrix};
 use fixtures::*;
 
 fn code<T>(result: EResult<T>, expected: &str) {
-    assert_eq!(result.err().expect("debe fallar").code, expected);
+    assert_eq!(result.err().expect("must fail").code, expected);
 }
 fn samples() -> Vec<Vec<f64>> {
     vec![
@@ -32,9 +32,9 @@ fn element_and_factory_pass_existing_kit_isotropic_sections_and_releases() {
         dim: Dim::D3,
         nodes: &nodes,
     };
-    // El kit rota ctx.coords pero no self.orientation. La sección isotrópica
-    // y las liberaciones biaxiales pareadas son independientes del roll local.
-    // Se verifica toda la anisotropía aparte rotando TAMBIÉN la orientación.
+    // The kit rotates ctx.coords but not self.orientation. The isotropic section
+    // and paired biaxial releases are independent of local roll.
+    // Full anisotropy is checked separately by ALSO rotating the orientation.
     for mask in 0..16 {
         let r = MomentReleases {
             i: [mask & 1 != 0, mask & 2 != 0, mask & 2 != 0],
@@ -129,7 +129,7 @@ fn stiffness_symmetry_six_rigid_modes_and_total_mass() {
         }
     }
 }
-// Rodrigues derivado de exp(ángulo [n]×); eje genérico fuera de planos coordenados.
+// Rodrigues derived from exp(angle [n]×); generic axis outside coordinate planes.
 fn rotation() -> [[f64; 3]; 3] {
     let n = [
         1.0 / math::sqrt(14.0_f64),
@@ -211,7 +211,7 @@ fn rigid_rotation_of_complete_model_k_force_load_mass_kg_and_recovery() {
         {
             close(a, b);
         }
-        // En doble torsión se usa m=0: no hay carga neta en su mecanismo libre.
+        // Double torsion uses m=0: there is no net load on its free mechanism.
         let moments = if releases.i[0] && releases.j[0] {
             [0.0; 3]
         } else {
@@ -282,7 +282,7 @@ fn local_load_conversion_and_self_weight() {
     close(f[2] + f[8], -240.0);
 }
 
-// Integra productos de polinomios en t=x/L, independiente de matrices de producción.
+// Integrates polynomial products in t=x/L, independently of production matrices.
 fn integral(a: &[f64], b: &[f64]) -> f64 {
     a.iter()
         .enumerate()
@@ -383,7 +383,7 @@ fn independent_schur_projection_and_loaded_internal_rotations() {
                     release.j[i - 9]
                 }
         };
-        // Doble torsión: fija gauge rx_i=0 y resuelve rx_j; Kc y fc no dependen del gauge.
+        // Double torsion: sets gauge rx_i=0 and solves rx_j; Kc and fc do not depend on the gauge.
         let rr: Vec<_> = (0..12)
             .filter(|&i| is_released(i) && !(both_t && i == 3))
             .collect();
@@ -447,7 +447,7 @@ fn independent_schur_projection_and_loaded_internal_rotations() {
         ] {
             if both_t && std::ptr::eq(matrix, &mass) {
                 continue;
-            } // Masa depende del gauge torsional declarado.
+            } // Mass depends on the declared torsional gauge.
             let left = backend.matmul(&ht, matrix).unwrap();
             let projected = backend.matmul(&left, &h).unwrap();
             for (a, e) in actual.values().iter().zip(projected.values()) {

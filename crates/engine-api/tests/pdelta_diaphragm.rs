@@ -1,4 +1,4 @@
-//! MAM-860: E3 P-Δ+P-δ, referencia independiente de 1/8/16 elementos por columna.
+//! MAM-860: E3 P-Δ+P-δ, independent reference with 1/8/16 elements per column.
 use engine_api::{CancelToken, Status};
 use serde_json::Value;
 
@@ -18,7 +18,7 @@ fn e3_pdelta_converges_and_matches_consistent_geometric_reference() {
         .iter()
         .filter(|run| run["id"] == "E3-pdelta")
         .collect();
-    assert_eq!(runs.len(), 1, "se requiere un único run E3-pdelta");
+    assert_eq!(runs.len(), 1, "A single E3-pdelta run is required");
     let input = &runs[0]["engine_input"];
     let outcome = engine_api::run(
         &serde_json::to_string(input).unwrap(),
@@ -44,14 +44,14 @@ fn e3_pdelta_converges_and_matches_consistent_geometric_reference() {
     assert_eq!(
         reference["fixture_sha256"],
         mamut_canon::sha256_hex(FIXTURE.as_bytes()),
-        "regenerar referencia al cambiar el fixture"
+        "Regenerate the reference when changing the fixture"
     );
     assert_eq!(
         reference["script_sha256"],
         mamut_canon::sha256_hex(REFERENCE_SCRIPT.as_bytes()),
-        "regenerar referencia al cambiar el script independiente"
+        "Regenerate the reference when changing the independent script"
     );
-    // EX se ejecuta también en primer orden: amp no usa un denominador del oráculo.
+    // EX also runs in first order: amp does not use an oracle denominator.
     let linear_input = &fixture["runs"]
         .as_array()
         .unwrap()
@@ -106,7 +106,7 @@ fn e3_pdelta_converges_and_matches_consistent_geometric_reference() {
         let theta = floor["gravity_above_N"].as_f64().unwrap() * linear_drift
             / (floor["shear_above_N"].as_f64().unwrap() * floor["height_m"].as_f64().unwrap());
         let relative = |actual: f64, expected: f64| ((actual - expected) / expected).abs();
-        // Conserva y refuerza los controles de theta y de la deriva existentes.
+        // Preserves and strengthens the existing theta and drift checks.
         assert!(relative(theta, floor["theta_linear"].as_f64().unwrap()) <= 1e-9);
         let theta_pd = theta * amp;
         assert!(relative(theta_pd, floor["theta_pdelta"].as_f64().unwrap()) <= 1e-9);
@@ -122,18 +122,18 @@ fn e3_pdelta_converges_and_matches_consistent_geometric_reference() {
             let tolerance = if count == 1 { 1e-9 } else { 1e-3 };
             assert!(
                 amp_error <= tolerance,
-                "piso {}: {count} elem, amp {amp_error:e}",
+                "floor {}: {count} elem, amp {amp_error:e}",
                 i + 1
             );
             assert!(
                 drift_error <= tolerance,
-                "piso {}: {count} elem, deriva {drift_error:e}",
+                "floor {}: {count} elem, drift {drift_error:e}",
                 i + 1
             );
             assert!(relative(linear_drift, row["linear_drift_m"].as_f64().unwrap()) <= 1e-9);
             errors.push((amp_error, drift_error));
         }
-        // Evidencia de convergencia de la referencia, más estricta que 1e-3.
+        // Reference convergence evidence, stricter than 1e-3.
         for metric in ["amplification", "pdelta_drift_m"] {
             assert!(
                 relative(
@@ -145,7 +145,7 @@ fn e3_pdelta_converges_and_matches_consistent_geometric_reference() {
         let chord_excess = amp * (1.0 - theta) - 1.0;
         assert!(
             (0.0..=5e-2).contains(&chord_excess),
-            "piso {}: {chord_excess:e}",
+            "floor {}: {chord_excess:e}",
             i + 1
         );
         eprintln!(

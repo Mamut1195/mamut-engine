@@ -54,7 +54,7 @@ fn producer(indices: [u32; 2], scale: f64) -> GeometricProducer {
 
 fn code<T>(result: EResult<T>, expected: &str) {
     match result {
-        Ok(_) => panic!("Se esperaba {expected}"),
+        Ok(_) => panic!("Expected {expected}"),
         Err(e) => assert_eq!(e.code, expected, "{e}"),
     }
 }
@@ -87,13 +87,13 @@ fn expands_prescribed_replaces_static_and_overwrites_in_element_order() {
     assert_eq!(s.accepted_displacement(), &[0.0, 0.0]);
     let first = out.clone();
     s.geometric(&[1.0, 3.0], &mut out).unwrap();
-    assert_eq!(out, first, "sobrescribe, no acumula");
+    assert_eq!(out, first, "overwrites, does not accumulate");
     s.geometric(&[0.0, 0.0], &mut out).unwrap();
     assert_eq!(out.dense().values(), &[-2.5, 0.0, 0.0, 0.0]);
     assert_eq!(
         s.global_geometric(),
         &original,
-        "la API global conserva la instantánea"
+        "the global API preserves the snapshot"
     );
     s.rollback();
     assert_eq!(s.trial_displacement(), &[0.0, 0.0]);
@@ -139,7 +139,7 @@ fn registration_validates_and_preserves_existing_producers_on_error() {
         code(
             s.set_geometric_producers(vec![GeometricProducer {
                 location: indices,
-                eval: Box::new(|_| panic!("Ubicación inválida no se evalúa")),
+                eval: Box::new(|_| panic!("Invalid location is not evaluated")),
             }]),
             expected,
         );
@@ -245,7 +245,7 @@ fn standalone_and_ordered_locations_extend_pattern_and_sum_shared_dofs() {
     assert_eq!(out.dense().values(), &[0.0; 4]);
     assert!(
         !s.pattern().contains(0, 1),
-        "el registro reemplaza también el patrón dinámico"
+        "registration also replaces the dynamic pattern"
     );
 }
 

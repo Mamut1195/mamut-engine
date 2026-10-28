@@ -1,4 +1,4 @@
-//! Usa el validador ya existente de engine-api contra el esquema publicado.
+//! Uses the existing engine-api validator against the published schema.
 use serde_json::{json, Value};
 
 use crate::error_schema::schema_validator::conforms;
@@ -8,7 +8,7 @@ fn schema() -> Value {
 }
 
 pub fn assert_validate_report(report: &Value) {
-    assert!(conforms(report, &schema()), "Informe fuera de esquema");
+    assert!(conforms(report, &schema()), "Report outside schema");
 }
 
 #[test]
@@ -28,7 +28,7 @@ fn structural_checker_rejects_contract_mutations_at_every_level() {
                 .as_object_mut()
                 .unwrap()
                 .remove(key);
-            assert!(!conforms(&missing, &schema), "Requerido: {pointer}/{key}");
+            assert!(!conforms(&missing, &schema), "Required: {pointer}/{key}");
         }
         let mut extra = report.clone();
         extra.pointer_mut(pointer).unwrap()["extra"] = json!(true);

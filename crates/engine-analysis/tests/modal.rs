@@ -1,5 +1,5 @@
-//! SOURCE: derivación propia; CITATION: provenance/ENG-ANL-002.md.
-//! Sin valores publicados, fuentes externas ni oráculos.
+//! SOURCE: own derivation; CITATION: provenance/ENG-ANL-002.md.
+//! No published values, external sources, or oracles.
 use engine_analysis::modal::{Modal, ModalResults};
 use engine_assembly::{DofMap, ElementContribution, LinearSystem, PrescribedDof, RigidDiaphragm};
 use engine_contracts::{Element, ElementCtx, ElementParams, MassKind, SystemView};
@@ -80,8 +80,8 @@ fn complete(system: &LinearSystem<ReferenceBackend>, result: &ModalResults) {
     }
 }
 
-// Energía V=½k Σ(q_j−q_{j−1})², q_0=0 y techo libre.
-// El último piso tiene diagonal k, no 2k: NO es una cadena entre extremos fijos.
+// Energy V=½k Σ(q_j−q_{j−1})², q_0=0 and free roof.
+// The top floor has diagonal k, not 2k: this is NOT a chain between restrained ends.
 fn shear(n: usize, k: f64, m: f64) -> LinearSystem<ReferenceBackend> {
     let mut model = Model::new();
     for j in 0..=n {
@@ -233,8 +233,8 @@ fn beam(elements: usize, cantilever: bool, angle: f64) -> LinearSystem<Reference
         support(&mut model, 1, &[Dof::Ux, Dof::Uy]);
         support(&mut model, elements as u32 + 1, &[Dof::Ux, Dof::Uy]);
     }
-    // I=1e−4 hace que los tres primeros modos sean flexionales incluso con
-    // GDL axiales presentes. E=ρ=A=L=1 ⇒ ω=0.01·(βL)².
+    // I=1e−4 makes the first three modes flexural even with
+    // axial DOFs present. E=ρ=A=L=1 ⇒ ω=0.01·(βL)².
     let element = EulerFrame2D::new(1.0, 1.0, 1e-4, 1.0, MomentReleases::default()).unwrap();
     let map = DofMap::new(&model.nodes).unwrap();
     let params = ElementParams::default();
@@ -269,8 +269,8 @@ fn beam(elements: usize, cantilever: bool, angle: f64) -> LinearSystem<Reference
     LinearSystem::from_model(ReferenceBackend, &model, &contributions, &[]).unwrap()
 }
 
-// Raíces derivadas aquí de cos β cosh β + 1=0; bisección de intervalos propios,
-// sin cifras de raíces publicadas ni resultados de otro motor.
+// Roots derived here from cos β cosh β + 1=0; bisection over our own intervals,
+// without published root values or results from another engine.
 fn cantilever_beta() -> [f64; 3] {
     std::array::from_fn(|i| {
         let mut low = i as f64 * PI + 0.1;
@@ -305,7 +305,7 @@ fn frame_beams_converge_to_own_closed_form_solution() {
             let fe = (f.modes[i].angular_frequency / exact - 1.0).abs();
             assert!(
                 fe < 3e-4 && fe < ce / 10.0,
-                "cantilever={cantilever}, modo={i}, errores={ce},{fe}"
+                "cantilever={cantilever}, mode={i}, errors={ce},{fe}"
             );
         }
         orthogonal(&fine, &f, 2e-9);
@@ -377,8 +377,8 @@ fn rotated_model_direction_and_modal_shapes_are_invariant() {
 fn lumped_beam_recovers_massless_rotation_with_analytic_period() {
     let mut system = beam(1, true, 0.0);
     let result = Modal::run(&mut system, 2, MassKind::Lumped, &[[0.0, 1.0, 0.0]]).unwrap();
-    // L=E=A=ρ=1, I=1e−4. Masa traslacional en punta m=ρAL/2=0.5,
-    // giro sin masa: k=12EI/L³−(6EI/L²)²/(4EI/L)=3EI/L³.
+    // L=E=A=ρ=1, I=1e−4. Translational tip mass m=ρAL/2=0.5,
+    // massless rotation: k=12EI/L³−(6EI/L²)²/(4EI/L)=3EI/L³.
     let exact = TAU * math::sqrt(0.5 / (3.0 * 1e-4));
     close(result.modes[0].period.unwrap(), exact, 1e-9 * exact);
     close(
@@ -510,7 +510,7 @@ fn invalid_requests_zero_count_and_rigid_period() {
 
 #[test]
 fn no_massless_dofs_lowest_modes_matches_direct_backend_bits() {
-    // Incluye masa diagonal y consistente acoplada, conteo vacío, parcial y total.
+    // Includes diagonal and coupled consistent mass, empty, partial, and full counts.
     for (mut system, kind) in [
         (shear(3, 17., 3.), MassKind::Lumped),
         (beam(1, true, 0.37), MassKind::Consistent),
@@ -549,7 +549,7 @@ fn consistent_coupled_mass_condenses_and_recovers_full_orthonormal_modes() {
     let mut system =
         LinearSystem::from_model(ReferenceBackend, &model, &[contribution], &[]).unwrap();
     assert!(system.has_massless_dofs(MassKind::Consistent));
-    // Eliminación propia: R=[-1/2,1/4], Kred=[[5,3/2],[3/2,19/4]].
+    // Own elimination: R=[-1/2,1/4], Kred=[[5,3/2],[3/2,19/4]].
     let k = SymMatrix::new(DMat::new(2, 2, vec![5., 1.5, 1.5, 4.75]).unwrap()).unwrap();
     let m = SymMatrix::new(DMat::new(2, 2, vec![2., 0.5, 0.5, 1.]).unwrap()).unwrap();
     let direct = ReferenceBackend.lowest_modes(&k, &m, 2).unwrap();
@@ -582,7 +582,7 @@ fn condensed_diaphragm_modes_follow_rigid_slave_kinematics() {
                 .collect(),
         });
     }
-    // Uz sin masa en ambos nudos, acoplado con Ux del maestro en K.
+    // Massless Uz at both nodes, coupled with master Ux in K.
     let mut k = vec![0.; 64];
     for i in 0..8 {
         k[i * 8 + i] = 10. + i as f64;

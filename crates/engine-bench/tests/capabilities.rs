@@ -1,4 +1,4 @@
-//! Cada archivo de `fixtures/capabilities` cubre una capacidad que los rc3d no usan.
+//! Each file in `fixtures/capabilities` covers a capability that rc3d models do not use.
 use engine_api::{run, CancelToken, Status};
 use engine_bench::{translate, translate_variant, AnalysisKind, BenchModel};
 use serde_json::Value;

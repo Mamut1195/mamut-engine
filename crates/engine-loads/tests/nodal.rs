@@ -149,7 +149,7 @@ fn duplicates_nonfinite_and_broken_references() -> EResult<()> {
         validate_case(&map, &duplicate, &[]).unwrap_err().code,
         "ENG-E-0010"
     );
-    // La unicidad pertenece a cada caso, no a todo el modelo.
+    // Uniqueness belongs to each case, not the entire model.
     let first = case(vec![value.clone()]);
     let mut second = case(vec![value]);
     second.name = "otro".into();

@@ -116,7 +116,7 @@ impl engine_linalg::LinAlgBackend for Panicking {
         unreachable!()
     }
     fn solve_dense(&mut self, _: &DMat, _: &DMat) -> engine_core::EResult<DMat> {
-        panic!("fallo simulado del backend");
+        panic!("simulated backend failure");
     }
     fn factorize(
         &mut self,
@@ -143,15 +143,15 @@ fn recovered_backend_panic_does_not_leave_budget_charged() {
     let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let _ = budget.solve_dense(&mut Panicking, &a, &b);
     }));
-    assert!(r.is_err(), "el pánico se propaga al llamador");
+    assert!(r.is_err(), "the panic propagates to the caller");
     assert_eq!(
         budget.used(),
         before,
-        "used no queda cargado tras el pánico"
+        "used does not remain charged after the panic"
     );
     assert!(
         budget.peak() > before,
-        "peak documenta el conjunto de trabajo cargado"
+        "peak documents the charged working set"
     );
 }
 
@@ -191,10 +191,7 @@ fn factorize_is_charged_keeps_only_the_factorization_and_respects_the_limit() {
     let mut budget = MemoryBudget::new(1 << 20);
     let f = budget.factorize(&mut ReferenceBackend, &a).unwrap();
     assert_eq!(budget.used(), retained);
-    assert!(
-        budget.peak() > retained,
-        "peak incluye el trabajo transitorio"
-    );
+    assert!(budget.peak() > retained, "peak includes transient work");
     let mut b = dmat(8, 1, &[1.0; 8]);
     f.solve_in_place(&mut b).unwrap();
     assert!((b.values()[0] - 0.25).abs() < 1e-14);

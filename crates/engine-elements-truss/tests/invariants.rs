@@ -1,4 +1,4 @@
-//! Invariantes con tolerancias explícitas, conformidad y validación negativa.
+//! Invariants with explicit tolerances, conformance, and negative validation.
 use engine_contracts::{
     conformance::{check_element, check_element_factory},
     Element, ElementCtx, ElementFactory, ElementParams, JsonValue, MassKind, MemberLoad, ModelView,
@@ -9,7 +9,7 @@ use engine_elements_truss::{LinearTruss, TrussFactory};
 use engine_linalg::{DMat, LinAlgBackend, ReferenceBackend, SymMatrix};
 use std::collections::BTreeMap;
 
-const TOL: f64 = 1e-10; // Absoluta para matrices/fuerzas SI de estos fixtures.
+const TOL: f64 = 1e-10; // Absolute for SI matrices/forces in these fixtures.
 const CITATION: &str =
     "provenance/ENG-ELM-001.md, Derivaciones propias; bibliografía exacta PENDIENTE";
 const SOURCE: &str = "analítico: energía axial, integración de formas y equilibrio propios";
@@ -17,7 +17,7 @@ fn close(a: f64, b: f64) {
     assert!((a - b).abs() <= TOL, "{a} != {b}, tol={TOL}");
 }
 fn code<T>(result: EResult<T>, expected: &str) {
-    assert_eq!(result.err().expect("debe fallar").code, expected);
+    assert_eq!(result.err().expect("must fail").code, expected);
 }
 fn bar(dim: Dim) -> LinearTruss {
     LinearTruss::new(dim, 200.0, 2.0, 3.0).unwrap()
@@ -265,7 +265,7 @@ fn uniform_axial_load_recovery_and_vertical_self_weight() {
             0.0,
         );
     }
-    // rho A g=3*2*(-10)=-60 N/m, L=2: -60 N per nodo.
+    // rho A g=3*2*(-10)=-60 N/m, L=2: -60 N per node.
     let element = bar(Dim::D3);
     let coordinates = [[0.0; 3], [0.0, 0.0, 2.0]];
     let c = ctx(Dim::D3, &coordinates, &p);
@@ -553,7 +553,7 @@ fn factory_schema_and_negative_inputs() {
 
 #[test]
 fn geometric_and_load_covariance_and_endpoint_reversal() {
-    // source/citation: SOURCE y CITATION; derivación cerrada P=I-ddᵀ.
+    // source/citation: SOURCE and CITATION; closed-form derivation P=I-ddᵀ.
     let p = ElementParams::default();
     for dim in [Dim::D2, Dim::D3] {
         let element = bar(dim);
@@ -600,7 +600,7 @@ fn geometric_and_load_covariance_and_endpoint_reversal() {
         for (v, e) in rkg.values().iter().zip(expected.values()) {
             close(*v, *e);
         }
-        // q paralelo a la diferencia geométrica; no hace falta calcular d.
+        // q parallel to the geometric difference; computing d is unnecessary.
         let force = std::array::from_fn(|a| 3.0 * (coords[1][a] - coords[0][a]));
         let load = MemberLoad {
             force_per_length: force,
@@ -624,8 +624,8 @@ fn geometric_and_load_covariance_and_endpoint_reversal() {
         for (s, t) in output.stations.iter().zip(rout.stations) {
             close(s.forces_local[0], t.forces_local[0]);
         }
-        // Invertir i/j invierte el eje y q axial, pero conserva N de la misma
-        // sección física y permuta los extremos globales de fuerza y rigidez.
+        // Reversing i/j reverses the axis and axial q, but preserves N in the same
+        // physical section and permutes global force and stiffness ends.
         let reverse_coords = [coords[1], coords[0]];
         let reversectx = ctx(dim, &reverse_coords, &p);
         let reverseu: Vec<_> = u[axes..].iter().chain(&u[..axes]).copied().collect();

@@ -77,7 +77,7 @@ fn one_factorization_all_rhs_and_unchanged_solve() {
     for ((case, factor), expected) in cases.iter().zip(&u) {
         assert_eq!(&s.solve(case, *factor).unwrap(), expected);
     }
-    assert_eq!(factors.get(), 4, "solve sigue factorizando cada llamada");
+    assert_eq!(factors.get(), 4, "solve still factorizes on every call");
 }
 
 #[test]

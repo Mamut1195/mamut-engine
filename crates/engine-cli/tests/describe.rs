@@ -54,7 +54,7 @@ fn checked_json(output: &Output, schema: &str) -> Value {
 }
 
 fn sha256(bytes: &[u8]) -> String {
-    // Python ya es requisito de las pruebas de publicación; solo biblioteca estándar.
+    // Python is already required by the publication tests; standard library only.
     let mut child = Command::new("python3")
         .args([
             "-c",
@@ -252,7 +252,7 @@ fn capabilities_match_the_api_and_its_existing_schema() {
     let output = run(&["capabilities"], 0);
     let mut schema: Value =
         serde_json::from_str(engine_api::schema("capabilities/1").unwrap()).unwrap();
-    // Resolver la única referencia externa con el documento real, sin red.
+    // Resolves the sole external reference with the actual document, without network access.
     let mut descriptor: Value =
         serde_json::from_str(engine_api::schema("method-descriptor/1").unwrap()).unwrap();
     schema["$defs"] = descriptor.as_object_mut().unwrap().remove("$defs").unwrap();
