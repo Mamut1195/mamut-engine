@@ -1,0 +1,20 @@
+{
+  "schema": "engine-input/1",
+  "units": "SI",
+  "model": {
+    "axes": "Z-up",
+    "nodes": [
+      {"id": 1, "dim": "D2", "coordinates": [0, 0, 0], "dofs": ["Ux", "Uy", "Rz"]},
+      {"id": 2, "dim": "D2", "coordinates": [4, 0, 0], "dofs": ["Ux", "Uy", "Rz"]}
+    ],
+    "members": [{"id": 7, "nodes": [1, 2], "section": "s", "law": "elastic", "element": "frame2d.euler_elastic"}],
+    "sections": [{"id": "s", "properties": [{"name": "A", "value": 2}, {"name": "I", "value": 3}]}],
+    "laws": [{"name": "elastic", "parameters": [{"name": "E", "value": 200}, {"name": "rho", "value": 0}]}],
+    "supports": [{"id": "base", "node": 1, "restrained": ["Ux", "Uy", "Rz"]}],
+    "masses": []
+  },
+  "cases": [{"name": "P", "loads": [{"node": 2, "values": [{"dof": "Uy", "value": -12}]}]}],
+  "combinations": [],
+  "analyses": [{"method": "linearStatic"}],
+  "options": {}
+}

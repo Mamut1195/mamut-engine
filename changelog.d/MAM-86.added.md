@@ -1,0 +1,1 @@
+- MAM-86: add a shared analytical conformance matrix for Rust API, CLI, WASM facade, and Python bindings with numerical, unit, sign, SHA-256, and typed error parity checks.

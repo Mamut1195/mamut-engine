@@ -1,0 +1,61 @@
+{
+  "schema": "parity-matrix/1",
+  "tolerance_factor": 64,
+  "cases": [
+    {
+      "input": "cantilever-tip.json",
+      "status": "ok",
+      "cli_exit": 0,
+      "diagnostic": null,
+      "free_dofs": 3,
+      "condition_bound": 41,
+      "checks": [
+        {"pointer": "/cases/0/nodes/0/displacements/1", "fraction": [0, 1], "scale": 1, "unit": "m"},
+        {"pointer": "/cases/0/nodes/0/displacements/5", "fraction": [0, 1], "scale": 1, "unit": "rad"},
+        {"pointer": "/cases/0/nodes/1/displacements/1", "fraction": [-768, 1800], "scale": 1, "unit": "m"},
+        {"pointer": "/cases/0/nodes/1/displacements/5", "fraction": [-192, 1200], "scale": 1, "unit": "rad"},
+        {"pointer": "/cases/0/nodes/0/reactions/0", "fraction": [0, 1], "scale": 12, "unit": "N"},
+        {"pointer": "/cases/0/nodes/0/reactions/1", "fraction": [12, 1], "scale": 12, "unit": "N"},
+        {"pointer": "/cases/0/nodes/0/reactions/5", "fraction": [48, 1], "scale": 48, "unit": "N*m"},
+        {"pointer": "/cases/0/members/0/end_forces_local/1", "fraction": [12, 1], "scale": 12, "unit": "N"},
+        {"pointer": "/cases/0/members/0/end_forces_local/2", "fraction": [48, 1], "scale": 48, "unit": "N*m"},
+        {"pointer": "/cases/0/members/0/end_forces_local/4", "fraction": [-12, 1], "scale": 12, "unit": "N"},
+        {"pointer": "/cases/0/members/0/end_forces_local/5", "fraction": [0, 1], "scale": 48, "unit": "N*m"}
+      ]
+    },
+    {
+      "input": "simply-supported-center.json",
+      "status": "ok",
+      "cli_exit": 0,
+      "diagnostic": null,
+      "free_dofs": 6,
+      "condition_bound": 54,
+      "checks": [
+        {"pointer": "/cases/0/nodes/0/displacements/1", "fraction": [0, 1], "scale": 1, "unit": "m"},
+        {"pointer": "/cases/0/nodes/2/displacements/1", "fraction": [0, 1], "scale": 1, "unit": "m"},
+        {"pointer": "/cases/0/nodes/1/displacements/1", "fraction": [-768, 28800], "scale": 1, "unit": "m"},
+        {"pointer": "/cases/0/nodes/0/displacements/5", "fraction": [-192, 9600], "scale": 1, "unit": "rad"},
+        {"pointer": "/cases/0/nodes/1/displacements/5", "fraction": [0, 1], "scale": 1, "unit": "rad"},
+        {"pointer": "/cases/0/nodes/2/displacements/5", "fraction": [192, 9600], "scale": 1, "unit": "rad"},
+        {"pointer": "/cases/0/nodes/0/reactions/0", "fraction": [0, 1], "scale": 12, "unit": "N"},
+        {"pointer": "/cases/0/nodes/0/reactions/1", "fraction": [6, 1], "scale": 12, "unit": "N"},
+        {"pointer": "/cases/0/nodes/2/reactions/1", "fraction": [6, 1], "scale": 12, "unit": "N"},
+        {"pointer": "/cases/0/nodes/0/reactions/5", "fraction": [0, 1], "scale": 48, "unit": "N*m"},
+        {"pointer": "/cases/0/nodes/2/reactions/5", "fraction": [0, 1], "scale": 48, "unit": "N*m"},
+        {"pointer": "/cases/0/members/0/end_forces_local/2", "fraction": [0, 1], "scale": 48, "unit": "N*m"},
+        {"pointer": "/cases/0/members/0/end_forces_local/5", "fraction": [12, 1], "scale": 48, "unit": "N*m"},
+        {"pointer": "/cases/0/members/1/end_forces_local/2", "fraction": [-12, 1], "scale": 48, "unit": "N*m"},
+        {"pointer": "/cases/0/members/1/end_forces_local/5", "fraction": [0, 1], "scale": 48, "unit": "N*m"}
+      ]
+    },
+    {
+      "input": "unsupported-beam.json",
+      "status": "unstable",
+      "cli_exit": 4,
+      "diagnostic": "ENG-E-0006",
+      "free_dofs": 6,
+      "condition_bound": null,
+      "checks": []
+    }
+  ]
+}
