@@ -36,7 +36,7 @@ This workflow is a description of the planned process; putting it into operation
 
 - **CLA text:** **PENDING** drafting and review by a lawyer.
 - **Location of the contractual text:** only in **Notion**, outside the repository. The specific page or link is **PENDING** definition.
-- **Copyright holder:** **PENDING** definition.
+- **Copyright holder:** **MAMPRO SAS** (confirmed by Jonathan on 2026-10-15; see ADR-001).
 
 The location of the contractual text does not determine where signatures will be recorded; that record remains pending.
 
