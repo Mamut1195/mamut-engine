@@ -1,6 +1,6 @@
 name: Clean-room
 
-# pull_request (no pull_request_target): el código del PR nunca corre con permisos de escritura.
+# pull_request (not pull_request_target): PR code never runs with write permissions.
 on:
   pull_request:
 
@@ -25,7 +25,7 @@ jobs:
             echo "PATH=/opt/rust/bin:/usr/local/bin:/usr/bin:/bin"
             echo "RUSTUP_TOOLCHAIN="
           } >> "$GITHUB_ENV"
-      # Fuente confiable: validador y listas de la rama BASE, en carpeta aparte.
+      # Trusted source: validator and lists from the BASE branch, in a separate directory.
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ github.event.pull_request.base.sha }}
@@ -43,9 +43,9 @@ jobs:
           if [ -f trusted-base/clean-room/check.sh ] && [ -f trusted-base/clean-room/tests/run.sh ]; then
             echo "TRUSTED=$GITHUB_WORKSPACE/trusted-base/clean-room" >> "$GITHUB_ENV"
           else
-            # Arranque: la base aún no tiene validador. Se usa el del PR; el job
-            # protected-review exige aprobación del dueño para ese cambio.
-            echo "::warning::La base no tiene validador clean-room; se usa el del PR (arranque)."
+            # Bootstrap: the base has no validator yet. The PR validator is used; the
+            # protected-review job requires owner approval for that change.
+            echo "::warning::The base has no clean-room validator; using the PR validator (bootstrap)."
             echo "TRUSTED=$GITHUB_WORKSPACE/pr/clean-room" >> "$GITHUB_ENV"
           fi
       - name: Pruebas del validador
@@ -58,7 +58,7 @@ jobs:
       - name: Limpieza final (procesos sobrantes y RUNNER_TEMP)
         if: always()
         run: |
-          # Mata procesos del usuario del runner que no sean el propio runner ni este shell.
+          # Kill processes owned by the runner user, except the runner itself and this shell.
           keep=" $$ $PPID "
           p=$PPID; while [ "$p" -gt 1 ]; do p=$(ps -o ppid= -p "$p" | tr -d ' '); keep="$keep$p "; done
           for pid in $(pgrep -u "$(id -u)"); do
@@ -71,8 +71,8 @@ jobs:
 
 
   protected-review:
-    # Falla si el PR toca clean-room/**, workflows, CODEOWNERS o docs/CLEAN_ROOM.md
-    # sin una aprobación vigente (sobre el último commit) de un dueño.
+    # Fail if the PR touches clean-room/**, workflows, CODEOWNERS or docs/CLEAN_ROOM.md
+    # without current owner approval (on the latest commit).
     runs-on: [self-hosted, contabo, engine]
     timeout-minutes: 10
     permissions:
@@ -102,17 +102,17 @@ jobs:
           OWNER: Mamut1195
         run: |
           changed=$(git diff --no-ext-diff --no-renames --name-only -z "$PR_BASE" HEAD -- | tr '\0' '\n' | grep -E '^(clean-room/|\.github/workflows/|\.github/CODEOWNERS$|docs/CLEAN_ROOM\.md$)' || true)
-          if [ -z "$changed" ]; then echo "Sin archivos protegidos modificados."; exit 0; fi
-          printf 'Archivos protegidos modificados:\n%s\n' "$changed"
+          if [ -z "$changed" ]; then echo "No protected files changed."; exit 0; fi
+          printf 'Changed protected files:\n%s\n' "$changed"
           ok=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" --paginate \
             --jq "[.[] | select(.state==\"APPROVED\" and .user.login==\"$OWNER\" and .commit_id==\"$PR_HEAD\")] | length")
-          if [ "$(printf '%s\n' "$ok" | awk '{t+=$1} END{print t+0}')" -ge 1 ]; then echo "Aprobado por $OWNER."; exit 0; fi
-          echo "::error::Cambios en archivos protegidos sin aprobación vigente de @$OWNER."
+          if [ "$(printf '%s\n' "$ok" | awk '{t+=$1} END{print t+0}')" -ge 1 ]; then echo "Approved by $OWNER."; exit 0; fi
+          echo "::error::Changes to protected files without current approval from @$OWNER."
           exit 1
       - name: Limpieza final (procesos sobrantes y RUNNER_TEMP)
         if: always()
         run: |
-          # Mata procesos del usuario del runner que no sean el propio runner ni este shell.
+          # Kill processes owned by the runner user, except the runner itself and this shell.
           keep=" $$ $PPID "
           p=$PPID; while [ "$p" -gt 1 ]; do p=$(ps -o ppid= -p "$p" | tr -d ' '); keep="$keep$p "; done
           for pid in $(pgrep -u "$(id -u)"); do
