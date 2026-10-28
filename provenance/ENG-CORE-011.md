@@ -1,104 +1,104 @@
-# Bitácora clean-room · ENG-CORE-011
+# Clean-room log · ENG-CORE-011
 
-- Ticket / PR: MAM-25 · ENG-CORE-011, guía de métodos Rust y piloto cúbico.
-- Autor(es): Codex gpt-6.1-sol high, **2026-10-20** (America/Guayaquil).
-- Rol: especificador e implementador; sin operador de oráculo ni auditoría de similitud.
-- Contrato implementado: `uniaxial/1`, kind `elastic.cubic`, método 0.1.0.
-- Fuentes permitidas usadas: docs/CLEAN_ROOM.md §§3–8 y 10; provenance/TEMPLATE.md;
-  engine-core (tipos, catálogo, math); engine-contracts (traits, tipos y
-  conformance, ENG-CORE-007); engine-laws (leyes, fábricas y pruebas locales);
-  engine-validation (README, schema y fixture axial-bar, ENG-CORE-009);
-  provenance/ENG-CORE-007.md, provenance/ENG-CORE-009.md y docs/DETERMINISMO.md.
-  Se leyó clean-room/check.sh como herramienta local de comprobación, sin cambios.
-- Derivaciones propias: Codex gpt-6.1-sol high. *Elasticidad cúbica conservativa*,
-  2026-10-20, [guía §5](../docs/GUIA_METODOS.md#5-piloto-reproducible-elasticidad-cúbica),
-  ecuaciones (1)–(3) y tabla analítica propia. Sin referencias bibliográficas externas.
-- Código de terceros copiado: ninguno. Sin dependencias nuevas ni cambios de manifests/lock.
-- Validación: analítica propia, kit `check_uniaxial_law`, fixture tipado nativo
-  con source/cita y diez filas de tracción, descarga y compresión.
-- Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
-  Tampoco consulté código, resultados o informes de CalculiX, code_aster,
-  LAPACK o derivados; no se abrieron repos hermanos ni fuentes externas.
-  Trabajo sin red, Cargo offline y PIP_NO_INDEX=1.
-- Revisor clean-room: **PENDIENTE (J4)**.
+- Ticket / PR: MAM-25 · ENG-CORE-011, Rust methods guide and cubic pilot.
+- Author(s): Codex gpt-6.1-sol high, **2026-10-20** (America/Guayaquil).
+- Role: specifier and implementer; no oracle operator or similarity audit.
+- Contract implemented: `uniaxial/1`, kind `elastic.cubic`, method 0.1.0.
+- Permitted sources used: docs/CLEAN_ROOM.md §§3–8 and 10; provenance/TEMPLATE.md;
+  engine-core (types, catalog, math); engine-contracts (traits, types and
+  conformance, ENG-CORE-007); engine-laws (laws, factories and local tests);
+  engine-validation (README, schema and axial-bar fixture, ENG-CORE-009);
+  provenance/ENG-CORE-007.md, provenance/ENG-CORE-009.md and docs/DETERMINISMO.md.
+  clean-room/check.sh was read as a local checking tool, without changes.
+- Own derivations: Codex gpt-6.1-sol high. *Elasticidad cúbica conservativa*,
+  2026-10-20, [guide §5](../docs/GUIA_METODOS.md#5-piloto-reproducible-elasticidad-cúbica),
+  equations (1)–(3) and own analytical table. No external bibliographic references.
+- Third-party code copied: none. No new dependencies or manifest/lock changes.
+- Validation: own analytical, `check_uniaxial_law` kit, native typed fixture
+  with source/citation and ten rows of tension, unloading and compression.
+- Comparison with oracle (sibling repo, informational): no.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+  I also did not consult CalculiX, code_aster,
+  LAPACK or derivative code, results or reports; no sibling repos or external sources were opened.
+  Work without network, offline Cargo and PIP_NO_INDEX=1.
+- Clean-room reviewer: **PENDING (J4)**.
 
-## Decisiones y ejecución del piloto
+## Pilot decisions and execution
 
-Se inspeccionaron primero las leyes existentes: elasticidad lineal,
-multilineal (incluye curvas bilineales) y plasticidad bilineal cinemática
-(incluye b = 0). Se eligió una curva suave cúbica que ninguna representa
-exactamente con C > 0. El límite lineal C = 0 sirve como comprobación.
+Existing laws were inspected first: linear elasticity,
+multilinear (includes bilinear curves) and kinematic bilinear plasticity
+(includes b = 0). A smooth cubic curve that none represents
+exactly with C > 0 was chosen. The linear limit C = 0 serves as a check.
 
-La guía y su ficha con esperados se escribieron antes del código del piloto.
-Después se siguieron sus pasos: módulo en engine-laws, parámetros privados
-validados, trait puro sin historia, descriptor, fábrica, exportaciones, pruebas
-de conformidad y fixture analítico nativo. El piloto ejercita la guía en la misma
-sesión autora; no constituye una prueba independiente con otro implementador.
+The guide and its record with expected values were written before the pilot code.
+Its steps were then followed: module in engine-laws, validated private
+parameters, pure trait without history, descriptor, factory, exports, conformance
+tests and native analytical fixture. The pilot exercises the guide in the same
+authoring session; it does not constitute an independent test with another implementer.
 
-Derivación: W = Eε²/2 + Cε⁴/4, σ = dW/dε y K = d²W/dε²; E > 0, C ≥ 0
-en Pa. Se evalúan q = (Cε)ε, σ = (E+q)ε y K = E+3q, exigiendo finitud
-en cada operación. El fixture usa E = 8 Pa, C = 16 Pa y fracciones binarias
-con esperados evaluados directamente en la ficha. Límite de comparación
-max(1e-12 Pa, 1e-12·|esperado|); FD h = 1e-6, error central C h².
-Sin tablas, figuras ni salidas copiadas; sin calibración con otros programas.
+Derivation: W = Eε²/2 + Cε⁴/4, σ = dW/dε and K = d²W/dε²; E > 0, C ≥ 0
+in Pa. q = (Cε)ε, σ = (E+q)ε and K = E+3q are evaluated, requiring finiteness
+at every operation. The fixture uses E = 8 Pa, C = 16 Pa and binary fractions
+with expected values evaluated directly in the record. Comparison limit
+max(1e-12 Pa, 1e-12·|esperado|); FD h = 1e-6, central error C h².
+No copied tables, figures or outputs; no calibration against other programs.
 
-El registro replica el mecanismo actual de las otras leyes: `LawDescriptor`,
-`UniaxialFactory` y `pub use`, sin registro global ni cambios de engine-api.
-El fixture es tipado y nativo porque `fixture/1` de ENG-CORE-009 requiere
-engine-input/1 → results/1 y la API no expone estas leyes no lineales. La
-plantilla JSON se reserva para métodos accesibles por esa frontera; no se
-alteran los cinco JSON de ENG-CORE-009 ni su inventario cerrado.
+Registration replicates the current mechanism of the other laws: `LawDescriptor`,
+`UniaxialFactory` and `pub use`, without a global registry or engine-api changes.
+The fixture is typed and native because ENG-CORE-009 `fixture/1` requires
+engine-input/1 → results/1 and the API does not expose these nonlinear laws. The
+JSON template is reserved for methods accessible through that boundary; the five
+ENG-CORE-009 JSONs and their closed inventory are not altered.
 
-Sin cambios en clean-room/**, docs/CLEAN_ROOM.md, CODEOWNERS,
-.github/workflows, vendor/ o docs/DETERMINISMO.md. No se añadieron unsafe,
-unwrap/expect/panic de biblioteca, E/S, hilos ni estado global.
+No changes to clean-room/**, docs/CLEAN_ROOM.md, CODEOWNERS,
+.github/workflows, vendor/ or docs/DETERMINISMO.md. No unsafe,
+library unwrap/expect/panic, I/O, threads or global state were added.
 
-## Evidencia local
+## Local evidence
 
-Ejecución offline el **2026-10-20**, Rust 1.99.0
-(`b940084d7 2026-09-28`), Node v22.19.0, flags Cargo habituales y
-`MAMUT_ENGINE_GIT_COMMIT` sin definir para reproducir los hashes de referencia.
-Todos los comandos terminaron con salida 0:
+Offline execution on **2026-10-20**, Rust 1.99.0
+(`b940084d7 2026-09-28`), Node v22.19.0, usual Cargo flags and
+`MAMUT_ENGINE_GIT_COMMIT` undefined to reproduce the reference hashes.
+All commands finished with exit 0:
 
-| Comprobación | Resultado |
+| Check | Result |
 | --- | --- |
 | `cargo fmt --all -- --check` | OK. |
-| `cargo clippy --workspace --all-targets --offline -- -D warnings` | OK, sin warnings. |
-| `cargo test --workspace --offline` | **665 passed / 0 failed / 0 ignored**, incluyendo doctests. |
+| `cargo clippy --workspace --all-targets --offline -- -D warnings` | OK, no warnings. |
+| `cargo test --workspace --offline` | **665 passed / 0 failed / 0 ignored**, including doctests. |
 | `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace --offline` | OK. |
-| `cargo check --workspace --offline --target wasm32-unknown-unknown` | OK; compilación, sin ejecución del piloto en wasm. |
-| `bash clean-room/check.sh origin/main` | OK, incluidos los archivos nuevos. |
+| `cargo check --workspace --offline --target wasm32-unknown-unknown` | OK; compilation, no pilot execution in wasm. |
+| `bash clean-room/check.sh origin/main` | OK, including new files. |
 
-El piloto tiene **6 tests nativos passed / 0 failed** y un doctest nuevo
-incluido en el total del workspace. Las pruebas cubren el fixture propio de
-diez filas, conformidad para C = 0/16/1600 Pa, descriptor/fábrica/Send + Sync,
-propiedad del estado, simetría impar de σ y par de K, límite lineal, escalas
-extremas representables y rechazo de parámetros/entradas/historias inválidos.
-Se ejercitan los seis caminos de desbordamiento de productos y sumas.
+The pilot has **6 native tests passed / 0 failed** and one new doctest
+included in the workspace total. Tests cover the own ten-row
+fixture, conformance for C = 0/16/1600 Pa, descriptor/factory/Send + Sync,
+state ownership, odd symmetry of σ and even symmetry of K, linear limit, extreme
+representable scales and rejection of invalid parameters/inputs/histories.
+All six product and sum overflow paths are exercised.
 
-Cruce adicional con los ejemplos `determinism_native` y `determinism_wasm`
-y `scripts/check-determinism.mjs`, en **debug y release**, con diez corridas
-por caso/target/perfil: **16 hashes nativo = wasm**, todos idénticos a la
-tabla vigente de docs/DETERMINISMO.md. Se compararon además las 160 filas
-nativas de cada perfil con esa tabla y las salidas debug/release entre sí:
-idénticas byte a byte. No se actualizó ningún hash de referencia.
+Additional cross-check with the `determinism_native` and `determinism_wasm` examples
+and `scripts/check-determinism.mjs`, in **debug and release**, with ten runs
+per case/target/profile: **16 native = wasm hashes**, all identical to the
+current docs/DETERMINISMO.md table. The 160 native rows of each profile
+were also compared with that table and debug/release outputs with each other:
+byte-for-byte identical. No reference hash was updated.
 
-El control clean-room empleó `GIT_INDEX_FILE` y `GIT_OBJECT_DIRECTORY`
-temporales bajo `$CARGO_TARGET_DIR`, con objetos originales solo como alternos:
-el `.git` del entorno es de solo lectura. Se incluyeron las rutas nuevas con
-ese índice, sin modificar el índice real ni crear commits.
+The clean-room check used temporary `GIT_INDEX_FILE` and `GIT_OBJECT_DIRECTORY`
+under `$CARGO_TARGET_DIR`, with original objects only as alternates:
+the environment's `.git` is read-only. New paths were included with
+that index, without modifying the real index or creating commits.
 
-Logs retenidos bajo `$CARGO_TARGET_DIR/eng-core-011/`:
+Logs retained under `$CARGO_TARGET_DIR/eng-core-011/`:
 `fmt.log`, `clippy.log`, `tests.log`, `doc.log`, `wasm-check.log`,
 `clean-room.log`, `wasm-build-{debug,release}.log`,
-`native-{debug,release}.{log,txt}` y `determinism-{debug,release}.log`.
-Se comprobaron también enlaces locales de los documentos nuevos, ausencia
-de rutas locales absolutas en la documentación del entregable, diff sin
-errores de espacios y ausencia de cambios en las rutas protegidas.
+`native-{debug,release}.{log,txt}` and `determinism-{debug,release}.log`.
+Also checked: local links in the new documents, absence
+of absolute local paths in deliverable documentation, diff without
+whitespace errors and absence of changes to protected paths.
 
-## Pendientes externos
+## External pending items
 
-Revisión clean-room **PENDIENTE (J4)**. La ejecución wasm del piloto no forma
-parte de la validación nativa exigida; compilar wasm no la acredita.
-No quedan comprobaciones técnicas obligatorias pendientes. Cambios sin commit.
+Clean-room review **PENDING (J4)**. Pilot wasm execution is not
+part of the required native validation; compiling wasm does not establish it.
+No mandatory technical checks remain pending. Changes uncommitted.

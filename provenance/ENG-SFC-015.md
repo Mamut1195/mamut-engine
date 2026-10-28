@@ -1,181 +1,181 @@
-# Bitácora clean-room · ENG-SFC-015 · MAM-866
+# Clean-room log · ENG-SFC-015 · MAM-866
 
-- Fecha: 2026-10-21 (America/Guayaquil).
-- Autor: agente Codex, GPT-6; rol: implementador.
-- Base local: origin/main, revisión 7375fa25a34a3cb004bcaec84f645743b864ff89.
-- Contrato implementado: progress/1, transporte NDJSON de etapas del motor.
-- Fuentes permitidas: ticket MAM-866; código propio de engine-api y engine-cli;
-  docs/DETERMINISMO.md; changelog.d/README.md; interfaces locales del SDK
-  vendorizado (parser, configuración, observadores, proveedor y ejecución).
-- Derivación propia: adaptación del callback de la API a un evento con índice
-  del paso, sin cálculos de dominio ni resultados mecánicos nuevos.
-- Código de terceros copiado: ninguno.
-- Declaración: no consulté implementaciones externas de análisis estructural,
-  sus entradas/salidas de referencia, rutas restringidas ni registros de otras
-  sesiones. No se consultó la bitácora restringida indicada en el ticket.
-- Revisor clean-room: pendiente de revisión humana.
+- Date: 2026-10-21 (America/Guayaquil).
+- Author: Codex agent, GPT-6; role: implementer.
+- Local base: origin/main, revision 7375fa25a34a3cb004bcaec84f645743b864ff89.
+- Contract implemented: progress/1, NDJSON transport of engine stages.
+- Permitted sources: ticket MAM-866; own engine-api and engine-cli code;
+  docs/DETERMINISMO.md; changelog.d/README.md; local interfaces of the vendored
+  SDK (parser, configuration, observers, provider and execution).
+- Own derivation: adaptation of the API callback to an event with a step
+  index, without domain calculations or new mechanical results.
+- Third-party code copied: none.
+- Declaration: I did not consult external structural analysis implementations,
+  their reference inputs/outputs, restricted paths or logs from other
+  sessions. The restricted log indicated in the ticket was not consulted.
+- Clean-room reviewer: pending human review.
 
-## Contrato y decisiones
+## Contract and decisions
 
-El tipo real engine_api::Progress contiene operation, stage, completed y total;
-no contiene iteración ni residuo. Se transportan esos cuatro campos y el índice
-del SDK desde cero. No se infiere iteración a partir del contador de etapas.
-El esquema no admite campos adicionales ni números no finitos. Para una futura
-extensión con residuo, el valor no finito se representará como null y se deberá
-revisar el esquema; hoy el campo no existe.
+The actual engine_api::Progress type contains operation, stage, completed and total;
+it contains no iteration or residual. Those four fields and the zero-based SDK
+index are transported. Iteration is not inferred from the stage counter.
+The schema allows no additional fields or non-finite numbers. For a future
+extension with a residual, a non-finite value will be represented as null and the schema
+must be reviewed; today the field does not exist.
 
-El flag existente --progress ndjson incluye progress/1 por defecto, conservando
-los eventos originales del SDK. La README documenta la selección por schema o
-phase para consumidores. No se añade sintaxis al parser vendorizado.
-Se usa el mismo canonizador público que results/1, sin tiempos, para mantener
-el orden de claves y el formato numérico determinista.
+The existing --progress ndjson flag includes progress/1 by default, preserving
+the original SDK events. The README documents selection by schema or
+phase for consumers. No syntax is added to the vendored parser.
+The same public canonicalizer as results/1 is used, without timings, to maintain
+deterministic key order and numeric formatting.
 
-La lógica de transporte se concentra en crates/engine-cli/src/progress.rs.
-El escritor compartido agrupa las escrituras del SDK hasta el salto de línea y
-envía cada evento completo mediante write_all; cada etapa se escribe y vacía
-durante el callback, antes del observador del anfitrión. Los errores de E/S se
-recuerdan para devolver 70 y evitar una salida de éxito en stdout.
+Transport logic is concentrated in crates/engine-cli/src/progress.rs.
+The shared writer groups SDK writes up to the newline and
+sends each complete event through write_all; each stage is written and flushed
+during the callback, before the host observer. I/O errors are
+remembered to return 70 and prevent a success output on stdout.
 
-El SDK exige que Method no contenga préstamos, pero invoca la fábrica dentro
-del intervalo started/finished. La fábrica ejecuta el método local con el
-escritor prestado y devuelve un método que entrega ese resultado una sola vez.
-Así se conserva la secuencia visible, incluidos fallos y cancelación, sin
-añadir hilos, estado global, requisitos Send ni acumulación de etapas por paso.
-La API pública del anfitrión y su callback conservan su firma.
+The SDK requires Method to contain no borrows, but invokes the factory within
+the started/finished interval. The factory executes the local method with the
+borrowed writer and returns a method that delivers that result only once.
+This preserves the visible sequence, including failures and cancellation, without
+adding threads, global state, Send requirements or accumulation of stages per step.
+The public host API and its callback retain their signatures.
 
-## Validación
+## Validation
 
-Las pruebas del binario recorren los fixtures propios lineal, pDelta y modal
-de engine-api/tests/fixtures/determinism y los once fixtures compartidos sfc010,
-incluidos nonlinearStatic/Newton y consolidación. Cada entrada usa tres pasos
-(validación y dos ejecuciones) para comprobar índices y reinicio del contexto.
-Se compara cada evento con los callbacks reales de la API y se valida contra
-el esquema con el validador de pruebas existente, ampliado con una entrada
-genérica de esquema; no se añaden dependencias.
+The binary tests traverse the own linear, pDelta and modal fixtures
+from engine-api/tests/fixtures/determinism and the eleven shared sfc010 fixtures,
+including nonlinearStatic/Newton and consolidation. Each input uses three steps
+(validation and two executions) to check indices and context reset.
+Each event is compared with the actual API callbacks and validated against
+the schema with the existing test validator, extended with a generic schema
+input; no dependencies are added.
 
-Se exige igualdad de stderr entre dos ejecuciones, igualdad de stdout frente a
-la ejecución sin progreso, JSON válido en todas las líneas y orden
-started/etapas/finished por paso. También se prueban el fallo de convergencia
-sin finished, mutaciones rechazadas por el esquema, escritura de líneas
-completas, entrega inmediata al anfitrión y errores de escritura y vaciado.
-No se guardan documentos del SDK como fixtures ni capturas de referencia.
+Equality of stderr between two executions, equality of stdout against the
+execution without progress, valid JSON on every line and
+started/stages/finished order per step are required. Convergence failure
+without finished, mutations rejected by the schema, complete-line writes,
+immediate delivery to the host and write and flush errors are also tested.
+No SDK documents are saved as fixtures or reference captures.
 
-Comprobaciones finales offline, con CARGO_TARGET_DIR=/workspace/.cargo-target/sfc15:
+Final offline checks, with CARGO_TARGET_DIR=/workspace/.cargo-target/sfc15:
 
-| Comprobación | Resultado |
+| Check | Result |
 | --- | --- |
 | cargo fmt --check | OK |
 | cargo clippy --workspace --all-targets --offline -- -D warnings | OK |
-| cargo test --workspace --offline | 753 correctas, 0 fallidas, 0 ignoradas; 115 suites, incluidas pruebas de documentación |
-| bash clean-room/check.sh origin/main | OK, incluidos archivos nuevos mediante índice y objetos temporales en /tmp; índice real intacto |
-| Revisión de identificadores en el contenido completo de cada archivo nuevo o modificado | OK |
+| cargo test --workspace --offline | 753 passed, 0 failed, 0 ignored; 115 suites, including documentation tests |
+| bash clean-room/check.sh origin/main | OK, including new files through a temporary index and objects in /tmp; real index intact |
+| Review of identifiers in the full content of each new or modified file | OK |
 | git diff --check | OK |
 
-Los 19 tests de integración del CLI y sus 4 tests unitarios pasan. La cobertura
-de progreso comprende 14 entradas propias, tres pasos por entrada y dos
-ejecuciones con progreso frente a una sin él. Los bytes de los eventos del SDK
-también se comparan con su formato original; se rechazan líneas vacías.
+The 19 CLI integration tests and its 4 unit tests pass. Progress coverage
+comprises 14 own inputs, three steps per input and two executions
+with progress against one without it. The SDK event bytes
+are also compared with their original format; empty lines are rejected.
 
-No se modifican vendor, manifiestos Cargo, configuración de CI, reglas
-clean-room, métodos de dominio, barra axial ni elementos de celosía.
-Sin red ni commits. No se modifica CHANGELOG.md: se añade el fragmento por ticket.
+No changes are made to vendor, Cargo manifests, CI configuration, clean-room
+rules, domain methods, axial bar or truss elements.
+No network or commits. CHANGELOG.md is not modified: the per-ticket fragment is added.
 
-## Merge local de origin/main · 2026-10-22
+## Local merge of origin/main · 2026-10-22
 
-Integración sin commit de origin/main e4002e16b13720f297b1f3c10b46efd0d2233496
-sobre la rama de #210, HEAD 884eef2bc3a8d0b3bca19dddc1c693b62dc02db0.
-Se mantiene el merge en curso; no se ejecutan rebase ni abort.
+Integration without commit of origin/main e4002e16b13720f297b1f3c10b46efd0d2233496
+onto the #210 branch, HEAD 884eef2bc3a8d0b3bca19dddc1c693b62dc02db0.
+The merge remains in progress; neither rebase nor abort is run.
 
-Resolución de los tres conflictos:
+Resolution of the three conflicts:
 
-- `crates/engine-cli/src/lib.rs`: se conserva la lectura única y precedencia de
-  `--input` de #197, la vía directa validate-report/1 de #200, el módulo timeout
-  de #202 y la instalación opcional de señales con signal-hook de #214. Encima
-  se conecta el observador de etapas de #210 al contexto del paso del SDK.
-- `crates/engine-api/tests/support/mod.rs`: se conserva íntegra la versión de
-  main, que delega en el validador compartido `support/schema.rs`. Los tests del
-  CLI importan ese validador una sola vez para validate-report/1 y progress/1.
-- `crates/engine-cli/README.md`: se conserva la traducción inglesa de #216 y
-  se documenta progress/1 en inglés, junto con timeout, señales y validación.
+- `crates/engine-cli/src/lib.rs`: the single read and `--input` precedence from
+  #197, the direct validate-report/1 path from #200, the timeout module
+  from #202 and optional signal installation with signal-hook from #214 are retained. On top,
+  the stage observer from #210 is connected to the SDK step context.
+- `crates/engine-api/tests/support/mod.rs`: the main version is retained
+  in full, delegating to the shared `support/schema.rs` validator. The CLI tests
+  import that validator only once for validate-report/1 and progress/1.
+- `crates/engine-cli/README.md`: the English translation from #216 is retained and
+  progress/1 is documented in English, along with timeout, signals and validation.
 
-`progress.rs` reutiliza el EventWriter de main para los eventos de etapas y
-los del SDK; se elimina el buffer de líneas duplicado de #210. Se mantienen
-write_all, flush, entrega durante el callback, claves canónicas y ausencia de
-tiempos. Los errores de escritura/vaciado devuelven 70 y no publican éxito.
-Las pruebas de timeout y señales aceptan y validan las etapas intermedias,
-conservando el sobre terminal y los códigos 6/5 respectivamente. Una regresión
-adicional compara los bytes de stdout/stderr entre la vía anterior y --input
-por archivo/stdin, con y sin timeout amplio.
+`progress.rs` reuses main's EventWriter for stage events and
+SDK events; the duplicate line buffer from #210 is removed. write_all,
+flush, delivery during the callback, canonical keys and absence of
+timings are retained. Write/flush errors return 70 and do not publish success.
+Timeout and signal tests accept and validate intermediate stages,
+retaining the terminal envelope and codes 6/5 respectively. An additional
+regression compares stdout/stderr bytes between the previous path and --input
+via file/stdin, with and without a generous timeout.
 
-M1 de J4: se registra progress/1 en `scripts/schema-sources.json`, mediante
-additional_schemas, y se regenera `schemas/progress/1.json` junto con el índice.
-Se actualiza la tabla URN/URL y se explica la separación de registros en
-`docs/PUBLICACION_ESQUEMAS.md`. No se añade a SCHEMAS: es un evento del CLI y
-la convención de #212 publica esos contratos desde additional_schemas, sin
-exigir que engine_api::schema() los exponga ni crear dependencia hacia el CLI.
+M1 from J4: progress/1 is registered in `scripts/schema-sources.json`, through
+additional_schemas, and `schemas/progress/1.json` is regenerated along with the index.
+The URN/URL table is updated and the separation of registries is explained in
+`docs/PUBLICACION_ESQUEMAS.md`. It is not added to SCHEMAS: it is a CLI event and
+the #212 convention publishes those contracts from additional_schemas, without
+requiring engine_api::schema() to expose them or creating a dependency on the CLI.
 
-La entrada MAM-866 permanece en `changelog.d/MAM-866.added.md`, actualizada
-con la integración y publicación. CHANGELOG.md no contiene una entrada de
-#210 que trasladar y no se edita. Los manifiestos, lockfile y demás rutas
-prohibidas conservan los cambios que ya traía el merge, sin edición adicional.
-La revisión de contenido completo del merge detecta un término vetado en prosa
-heredada de `provenance/ENG-SFC-002.md`; se sustituye por «corrección» sin alterar
-su significado. No se consultan bitácoras restringidas ni registros ajenos.
+The MAM-866 entry remains in `changelog.d/MAM-866.added.md`, updated
+with integration and publication. CHANGELOG.md contains no #210 entry to
+move and is not edited. The manifests, lockfile and other prohibited
+paths retain the changes already brought by the merge, without further editing.
+The full-content review of the merge detects a banned term in prose
+inherited from `provenance/ENG-SFC-002.md`; it is replaced with «correction» without altering
+its meaning. No restricted logs or other people's logs are consulted.
 
-Entorno de verificación: sin red, Cargo offline, PATH con $HOME/.cargo/bin y
-CARGO_TARGET_DIR=/workspace/.cargo-target/sfc15. TMPDIR, TMP y TEMP apuntan al
-mismo directorio de destino durante las verificaciones; no se usan temporales
-en /tmp. Los registros de esta ejecución también se guardan en ese destino.
+Verification environment: no network, Cargo offline, PATH with $HOME/.cargo/bin and
+CARGO_TARGET_DIR=/workspace/.cargo-target/sfc15. TMPDIR, TMP and TEMP point to the
+same target directory during checks; no temporary files are used
+in /tmp. The logs of this execution are also saved in that target.
 
-Resultados de esta integración:
+Results of this integration:
 
-| Comprobación | Resultado |
+| Check | Result |
 | --- | --- |
 | cargo fmt --check | OK |
 | cargo clippy --workspace --all-targets --offline -- -D warnings | OK |
-| cargo test --workspace --offline | 786 correctas, 0 fallidas, 0 ignoradas; 117 suites, incluidas pruebas de documentación |
-| python3 scripts/generate-schemas.py --write | OK, generación local |
+| cargo test --workspace --offline | 786 passed, 0 failed, 0 ignored; 117 suites, including documentation tests |
+| python3 scripts/generate-schemas.py --write | OK, local generation |
 | python3 scripts/generate-schemas.py --check | OK |
-| python3 -m unittest scripts/tests/test_schema_publication.py | 7 correctas |
-| Contenido completo de los 124 archivos nuevos/modificados del merge | Sin identificadores prohibidos ni marcadores |
+| python3 -m unittest scripts/tests/test_schema_publication.py | 7 passed |
+| Full content of the 124 new/modified files in the merge | No prohibited identifiers or markers |
 | git diff --check | OK |
 
-El CLI tiene 9 pruebas unitarias y 41 de integración correctas. Se conserva
-EventWriter sin duplicar su lógica de líneas completas. La revisión detectó
-una importación repetida del validador en los tests, corregida compartiendo
-una sola declaración de módulo antes de ejecutar Clippy y la suite completos.
+The CLI has 9 passing unit tests and 41 passing integration tests. EventWriter is
+retained without duplicating its complete-line logic. The review detected
+a repeated validator import in the tests, corrected by sharing
+a single module declaration before running full Clippy and the full suite.
 
-Limitación del entorno al registrar la resolución: `git add` no pudo crear
-`/workspace/mamut-engine-r/.git/worktrees/mamut-engine-sfc15/index.lock`, porque
-el directorio Git real está montado como solo lectura, fuera de los destinos
-escribibles. Los tres archivos carecen de marcadores y pasan las pruebas, pero
-el índice real conserva sus entradas sin fusionar (UU). No se altera el índice
-mediante rutas alternativas ni se intenta escalar permisos. MERGE_HEAD sigue
-en e4002e16b13720f297b1f3c10b46efd0d2233496 y HEAD no cambia.
+Environment limitation when recording the resolution: `git add` could not create
+`/workspace/mamut-engine-r/.git/worktrees/mamut-engine-sfc15/index.lock`, because
+the actual Git directory is mounted read-only, outside the writable
+targets. The three files have no markers and pass the tests, but
+the real index retains its unmerged entries (UU). The index is not altered
+through alternative paths and no permission escalation is attempted. MERGE_HEAD remains
+at e4002e16b13720f297b1f3c10b46efd0d2233496 and HEAD does not change.
 
-Se deja el comando exacto de git add, sin commit, en
-`/workspace/.cargo-target/sfc15/MAM-866-stage-resolutions.sh`, para ejecutarlo
-desde un entorno que permita escribir el índice real. Todos los cambios de
-contenido y la verificación quedan completados; solo falta registrar la
-resolución en ese índice.
+The exact git add command, without commit, is left in
+`/workspace/.cargo-target/sfc15/MAM-866-stage-resolutions.sh`, to run
+from an environment that allows writing the real index. All content
+changes and verification are complete; only recording the resolution
+in that index remains.
 
-## Merge de main con cli-error/1 · 2026-10-22
+## Merge of main with cli-error/1 · 2026-10-22
 
-- Autor: Codex gpt-6.1-sol high.
-- Se conservan las incorporaciones de main (#205 y #183) y se integra
-  progress/1 de #210. Los cinco archivos en conflicto quedan sin marcadores;
-  el índice Git conserva su estado previo porque no se ejecuta git add.
-- Los fallos de escritura y vaciado del progreso pasan por el emisor central
-  cli-error/1 con CLI-E-INTERNAL, ya registrado, y salida 70. Las pruebas
-  validan las etapas intermedias y el único sobre terminal contra sus esquemas,
-  incluidos timeout, señales y fallos del método.
-- Se unen cli-error/1 y progress/1 en scripts/schema-sources.json y se regenera
-  schemas/index.json exclusivamente con scripts/generate-schemas.py --write.
-- Verificación offline: cargo fmt --check, Clippy del workspace con todos los
-  targets y advertencias como errores, cargo test --workspace --offline
-  (818 correctas, 0 fallidas, 0 ignoradas; 124 suites), generación --check
-  y las 7 pruebas de publicación Python: OK. Pasa la cobertura de todos los
-  emisores de códigos del workspace.
-- CHANGELOG.md y changelog.d/MAM-866.added.md se conservan. No se editan
-  las rutas prohibidas; temporales y registros quedan bajo CARGO_TARGET_DIR.
-  Sin red, commit, git add, rebase ni abort.
+- Author: Codex gpt-6.1-sol high.
+- The additions from main (#205 and #183) are retained and progress/1 from
+  #210 is integrated. The five conflicting files have no markers;
+  the Git index retains its previous state because git add is not run.
+- Progress write and flush failures go through the central cli-error/1
+  emitter with CLI-E-INTERNAL, already registered, and exit 70. The tests
+  validate the intermediate stages and the single terminal envelope against their schemas,
+  including timeout, signals and method failures.
+- cli-error/1 and progress/1 are joined in scripts/schema-sources.json and
+  schemas/index.json is regenerated exclusively with scripts/generate-schemas.py --write.
+- Offline verification: cargo fmt --check, workspace Clippy with all
+  targets and warnings as errors, cargo test --workspace --offline
+  (818 passed, 0 failed, 0 ignored; 124 suites), generation --check
+  and the 7 Python publication tests: OK. Coverage of all workspace
+  code emitters passes.
+- CHANGELOG.md and changelog.d/MAM-866.added.md are retained. The prohibited
+  paths are not edited; temporary files and logs remain under CARGO_TARGET_DIR.
+  No network, commit, git add, rebase or abort.

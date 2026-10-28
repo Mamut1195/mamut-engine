@@ -1,13 +1,13 @@
-# Bitácora clean-room · ENG-ELM-002 seguimiento #41 (test discriminante)
+# Clean-room log · ENG-ELM-002 #41 follow-up (discriminating test)
 
-- Ticket / PR: seguimiento de #41 (J0); rama `j2/frame-recover-test`
-- Autor(es): J2 (agente, Grok Bot) · 2026-10-11 (America/Guayaquil)
-- Rol: implementador
-- Contrato implementado: element/1 · frame2d.euler_elastic (solo pruebas)
-- Fuentes permitidas usadas: ninguna externa.
-- Derivaciones propias: test con EI ∈ {1e12, 1e20, 1e30}, L ∈ {3.1, 0.7, 11.3, 2/3} y tres estados u en doble liberación; exige cortante y momento exactamente 0. Verificado que FALLA sin el arreglo de #41 (EI=1e12, L=3.1: cortante espurio 3.05e-5) y pasa con él.
-- Código de terceros copiado: ninguno
-- Validación: analítico (viga doblemente articulada sin carga: V=M=0)
-- Comparación con oráculo: no
-- Declaración: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados para este ticket (docs/CLEAN_ROOM.md §5)."
-- Revisor clean-room: PENDIENTE (J4)
+- Ticket / PR: #41 follow-up (J0); branch `j2/frame-recover-test`
+- Author(s): J2 (agent, Grok Bot) · 2026-10-11 (America/Guayaquil)
+- Role: implementer
+- Contract implemented: element/1 · frame2d.euler_elastic (tests only)
+- Permitted sources used: none external.
+- Own derivations: test with EI ∈ {1e12, 1e20, 1e30}, L ∈ {3.1, 0.7, 11.3, 2/3} and three u states with double release; requires shear and moment exactly 0. Verified to FAIL without the repair from #41 (EI=1e12, L=3.1: spurious shear 3.05e-5) and pass with it.
+- Third-party code copied: none
+- Validation: analytical (beam pinned at both ends without load: V=M=0)
+- Comparison with oracle: no
+- Declaration: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados para este ticket (docs/CLEAN_ROOM.md §5)."
+- Clean-room reviewer: PENDING (J4)

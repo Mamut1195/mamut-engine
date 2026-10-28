@@ -1,63 +1,63 @@
-# Bitácora clean-room · ENG-ASM-002
+# Clean-room log · ENG-ASM-002
 
-## Integración con main (2026-10-13)
+## Integration with main (2026-10-13)
 
-- Ticket / PR: ENG-ASM-002, rama `j2/eng-asm-002`, PR #60; resolución del merge
-  local en curso con `origin/main`, incluida la ampliación `solve_cases` de #52.
-- Autor: Codex (agente basado en GPT-6), rol implementador. Revisión independiente
-  de esta integración: PENDIENTE; no se atribuye a revisiones anteriores.
-- Fuentes: las versiones locales de ambas ramas en las etapas del índice del
-  merge; contratos y código propio de `engine-assembly`, `engine-analysis`,
-  `engine-model`, `engine-core` y `engine-linalg`; pruebas y bitácoras propias
-  `ENG-ASM-001.md` y `ENG-ANL-001.md`; `docs/CLEAN_ROOM.md`. Sin red, consultas
-  externas, oráculos, código de terceros ni dependencias nuevas.
-- Declaración de esta sesión: no consulté código fuente de OpenSees, Stabileo
-  ni los motores o rutas prohibidos por `docs/CLEAN_ROOM.md`.
+- Ticket / PR: ENG-ASM-002, branch `j2/eng-asm-002`, PR #60; resolution of the
+  ongoing local merge with `origin/main`, including the `solve_cases` extension from #52.
+- Author: Codex (GPT-6-based agent), implementer role. Independent review
+  of this integration: PENDING; not attributed to previous reviews.
+- Sources: the local versions of both branches in the merge index
+  stages; own contracts and code of `engine-assembly`, `engine-analysis`,
+  `engine-model`, `engine-core` and `engine-linalg`; own tests and logs
+  `ENG-ASM-001.md` and `ENG-ANL-001.md`; `docs/CLEAN_ROOM.md`. No network, external
+  queries, oracles, third-party code or new dependencies.
+- Declaration for this session: I did not consult source code from OpenSees, Stabileo
+  or the engines or paths prohibited by `docs/CLEAN_ROOM.md`.
 
-### Decisiones de integración
+### Integration decisions
 
-`DofMap` conserva una única representación de geometría:
-`BTreeMap<NodeId, (Dim, [Real; 3])>`. `geometry()` obtiene dimensión y posición
-para validar diafragmas; `coordinates()` obtiene la posición de esa misma
-entrada para los brazos de fuerzas y la recuperación de `engine-analysis`.
-Se conservan las coordenadas originales y ENG-E-0003 con entidad nodo ausente.
-No se añade una copia de las posiciones.
+`DofMap` retains a single geometry representation:
+`BTreeMap<NodeId, (Dim, [Real; 3])>`. `geometry()` obtains dimension and position
+to validate diaphragms; `coordinates()` obtains the position from that same
+entry for force moment arms and `engine-analysis` recovery.
+The original coordinates and ENG-E-0003 with missing node entity are retained.
+No copy of the positions is added.
 
-`solve_cases` valida el lote completo antes de factorizar, conserva el orden
-y factoriza una sola vez `K_red = T_fᵀ K T_f`. Cada caso usa exactamente el
-`reduced_rhs` de `solve`: `T_fᵀ(factor F − K u_0)`. Ambos devuelven independientes
-libres; `Constraints::expand` recupera `u = T_f q_f + u_0`, incluidos los
-esclavos y los maestros prescritos. El factor escala solo F, nunca u_0.
-Sin diafragmas se conserva la partición de main:
+`solve_cases` validates the full batch before factorizing, retains order
+and factorizes `K_red = T_fᵀ K T_f` only once. Each case uses exactly the
+`reduced_rhs` of `solve`: `T_fᵀ(factor F − K u_0)`. Both return free
+independents; `Constraints::expand` recovers `u = T_f q_f + u_0`, including
+slaves and prescribed masters. The factor scales only F, never u_0.
+Without diaphragms main's partition is retained:
 `K_ff u_f = factor F_f − K_fp u_p`.
 
-Se mantiene `R_p = (Tᵀ(Ku − factor F))_p`: la reacción de un maestro prescrito
-incluye las fuerzas de sus esclavos. Sin restricciones maestro-esclavo se
-reduce a `K_pf u_f + K_pp u_p − factor F_p`. Un GDL dependiente no se informa
-como reacción de apoyo.
+`R_p = (Tᵀ(Ku − factor F))_p` is retained: the reaction of a prescribed master
+includes the forces of its slaves. Without master-slave constraints it
+reduces to `K_pf u_f + K_pp u_p − factor F_p`. A dependent DOF is not reported
+as a support reaction.
 
-Todos los métodos de resolución usan la misma traducción de ENG-E-0006 a
-nodo, GDL y numeración global. Un diagnóstico incoherente del backend da
-ENG-E-0012, incluido «El solver informó un GDL global inexistente.» si falla
-la etiqueta global. Una consulta pública inválida a `DofMap::label` mantiene
-ENG-E-0010; no se confunde con un incumplimiento interno del solver.
+All solving methods use the same translation of ENG-E-0006 to
+node, DOF and global numbering. An inconsistent backend diagnostic gives
+ENG-E-0012, including «El solver informó un GDL global inexistente.» if global
+labeling fails. An invalid public query to `DofMap::label` retains
+ENG-E-0010; it is not confused with an internal solver violation.
 
-`StaticLinear` sigue usando `solve_cases` y expandiendo los resultados. Su
-residual libre ahora es `T_fᵀ(Ku − factor F)`; la escala relativa usa
-`max(1, ‖T_fᵀ Ku‖∞, ‖T_fᵀ factor F‖∞)`. Seleccionar solo las filas físicas de
-los maestros omitiría las acciones transferidas por los esclavos. El equilibrio
-global conserva todas las fuerzas físicas, sus brazos y las reacciones
-proyectadas de los apoyos. Los métodos no modifican estados aceptados o de prueba.
+`StaticLinear` still uses `solve_cases` and expands the results. Its
+free residual is now `T_fᵀ(Ku − factor F)`; the relative scale uses
+`max(1, ‖T_fᵀ Ku‖∞, ‖T_fᵀ factor F‖∞)`. Selecting only the physical rows of
+masters would omit the actions transferred by slaves. Global
+equilibrium retains all physical forces, their moment arms and the projected
+support reactions. The methods do not modify accepted or trial states.
 
-### Derivación y pruebas analíticas propias
+### Original derivation and analytical tests
 
-Fixture compartido `crates/engine-assembly/tests/fixtures/rigid_cases.rs`:
-dos esclavos en (1,1,3) y (3,1,3) m, maestro en (0,0,3) m, y dos resortes
-Ux/Uy de k=100 N/m por esclavo. Cada anclaje fijo coincide con su esclavo;
-todos los resortes están en la misma planta, por lo que no se introduce un
-par fuera del plano sin apoyo que lo equilibre. Cada par aporta la energía
-`½k[(Ux − yθ)² + (Uy + xθ)²]`, con θ=Rz y los brazos respecto al maestro.
-Por suma y derivación respecto a (Ux,Uy,θ):
+Shared Fixture `crates/engine-assembly/tests/fixtures/rigid_cases.rs`:
+two slaves at (1,1,3) and (3,1,3) m, master at (0,0,3) m, and two springs
+Ux/Uy with k=100 N/m per slave. Each restrained anchor coincides with its slave;
+all springs are on the same floor, so no out-of-plane
+couple is introduced without a support to balance it. Each pair contributes the energy
+`½k[(Ux − yθ)² + (Uy + xθ)²]`, with θ=Rz and moment arms relative to the master.
+By summation and differentiation with respect to (Ux,Uy,θ):
 
 ```text
 K_ind = [ 200     0   -200
@@ -65,9 +65,9 @@ K_ind = [ 200     0   -200
          -200   400   1200 ]
 ```
 
-La carga A=(10,20,5) en el primer esclavo se transporta a (10,20,15) en el
-maestro; B=(-20,10,-5) en el segundo se transporta a (-20,10,45). Las fuerzas
-están en N y los momentos en N·m. Con Ux=a=0.03 m prescrito:
+Load A=(10,20,5) at the first slave is transferred to (10,20,15) at the
+master; B=(-20,10,-5) at the second is transferred to (-20,10,45). Forces
+are in N and moments in N·m. With prescribed Ux=a=0.03 m:
 
 ```text
 θ  = [factor (Mz − 2 Fy) + 200 a] / 400
@@ -75,48 +75,48 @@ Uy = factor Fy / 200 − 2 θ
 R_maestro,Ux = 200 a − 200 θ − factor Fx
 ```
 
-Con maestro libre: `θ = factor (Mz + Fx − 2 Fy) / 200`,
-`Ux = factor Fx / 200 + θ` y la misma expresión de Uy. Los esclavos cumplen
-`Ux_s = Ux − y θ`, `Uy_s = Uy + x θ`, `Rz_s = θ`; los anclajes tienen
-desplazamiento nulo y reacciones `−100 Ux_s`, `−100 Uy_s`.
+With free master: `θ = factor (Mz + Fx − 2 Fy) / 200`,
+`Ux = factor Fx / 200 + θ` and the same expression for Uy. The slaves satisfy
+`Ux_s = Ux − y θ`, `Uy_s = Uy + x θ`, `Rz_s = θ`; anchors have
+zero displacement and reactions `−100 Ux_s`, `−100 Uy_s`.
 
-Los lotes A×2, B×(−1) y un caso vacío ×0 se comparan con estas expresiones,
-con `solve` caso a caso (igualdad exacta de los vectores reducidos), y con
-las restricciones de cada esclavo. El contador confirma una factorización
-por lote y una resolución por caso. Se prueban maestro libre y prescrito,
-orden de resultados y conservación de estados aceptados y de prueba distintos.
-Tolerancia analítica: `1e-12 max(1, |esperado|)`.
+Batches A×2, B×(−1) and an empty case ×0 are compared with these expressions,
+with `solve` case by case (exact equality of the reduced vectors), and with
+each slave's constraints. The counter confirms one factorization
+per batch and one solve per case. Free and prescribed master,
+result order and preservation of distinct accepted and trial states are tested.
+Analytical tolerance: `1e-12 max(1, |esperado|)`.
 
-En `engine-analysis/tests/diaphragm.rs` se comprueban además recuperación
-global, reacciones, fuerzas y momentos respecto a (4,-2,1) m y residual
-proyectado nulo. Un solver de prueba devuelve la mitad de la solución:
-las filas físicas de los maestros tienen rigidez cero, pero el residual
-proyectado detecta el error (normas 20 y 22.5, relativos 0.5).
+In `engine-analysis/tests/diaphragm.rs`, global recovery, reactions, forces
+and moments about (4,-2,1) m and zero projected residual are also
+checked. A test solver returns half the solution:
+the physical rows of masters have zero stiffness, but the projected
+residual detects the error (norms 20 and 22.5, relative values 0.5).
 
-Se verifica que un caso tardío inválido (duplicado, ausente, NaN, infinito
-o desbordamiento al proyectar fuerzas finitas con brazo x=3) impide cualquier
-factorización/resolución del lote y conserva ambos estados. Las pruebas
-anteriores de main y de la rama se conservan, incluidos los errores del solver.
-Las fórmulas son derivaciones propias; no se usaron salidas de otros motores
-ni se atribuyen a un libro no consultado.
+It is verified that a late invalid case (duplicate, missing, NaN, infinity
+or overflow when projecting finite forces with moment arm x=3) prevents any
+factorization/solve of the batch and preserves both states. Previous
+tests from main and the branch are retained, including solver errors.
+The formulas are original derivations; no outputs from other engines were used
+and they are not attributed to a book not consulted.
 
-### Verificación local de la integración
+### Local integration verification
 
-Comandos ejecutados con `/home/box/.cargo/bin` en PATH y
-`CARGO_NET_OFFLINE=true`, sin acceso a red:
+Commands run with `/home/box/.cargo/bin` in PATH and
+`CARGO_NET_OFFLINE=true`, without network access:
 
-- `cargo fmt` y comprobación final `cargo fmt --check`: satisfactorios.
-- `cargo clippy --all-targets -- -D warnings`: satisfactorio.
-- `cargo test --workspace`: satisfactorio; incluye cuatro pruebas nuevas de
-  integración (dos de ensamblaje y dos de análisis), más las pruebas existentes
-  de ambas ramas y los doctests.
-- `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`: satisfactorio.
-- `cargo check --workspace --target wasm32-unknown-unknown`: satisfactorio.
-  Se verificó compilación; no se afirma ejecución en un runtime wasm.
-- `git diff --check`: satisfactorio; archivos de trabajo sin marcadores de merge.
-- Bibliotecas `engine-assembly` y `engine-analysis` sin `panic!`, `unwrap` ni
-  `expect`; sin dependencias nuevas.
+- `cargo fmt` and final check `cargo fmt --check`: successful.
+- `cargo clippy --all-targets -- -D warnings`: successful.
+- `cargo test --workspace`: successful; includes four new integration
+  tests (two assembly and two analysis tests), plus existing tests
+  from both branches and doctests.
+- `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`: successful.
+- `cargo check --workspace --target wasm32-unknown-unknown`: successful.
+  Compilation was verified; execution in a wasm runtime is not claimed.
+- `git diff --check`: successful; working files without merge markers.
+- Libraries `engine-assembly` and `engine-analysis` without `panic!`, `unwrap` or
+  `expect`; no new dependencies.
 
-Sin `git add`, commit ni push. El índice conserva las etapas del merge en
-`dofmap.rs` y `system.rs` (estado `UU` hasta que el usuario añada los archivos);
-los contenidos de trabajo están resueltos. El merge se mantiene abierto.
+No `git add`, commit or push. The index retains the merge stages in
+`dofmap.rs` and `system.rs` (status `UU` until the user adds the files);
+the working contents are resolved. The merge remains open.

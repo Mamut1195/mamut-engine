@@ -1,93 +1,93 @@
-# Bitácora clean-room · ENG-VAL-001 (parcial, apilado)
+# Clean-room log · ENG-VAL-001 (partial, stacked)
 
-- Ticket / PR: ENG-VAL-001 «Suite de benchmarks estructurales V1», parcial:
-  estática lineal, modal, P-Delta y espectro. Rama apilada sobre ENG-ANL-004
-  (#62), ENG-ANL-002 (#61), ENG-MASS-001 (#55), ENG-LOAD-001 (#51), con
-  ENG-ANL-003 (#59) y la entrega lineal (#57/#54/#53/#52). Sin commit ni push.
-- Autor(es): J2 (agente, Grok Bot) · identificación solicitada por el usuario;
-  agente ejecutor Codex (GPT-6) · 2026-10-11 (America/Guayaquil).
-- Rol: implementador y autor de derivaciones analíticas propias.
-- Contrato implementado: crate de desarrollo `engine-validation`, un test lineal
-  tabulado sobre `StaticLinear`, `element/1` (truss/frame),
-  `engine_analysis::results` y `engine_analysis::combination` de LOAD-002;
-  tres tests tabulados adicionales sobre `Modal`, `PDelta` y `Spectrum`.
-- Fuentes permitidas usadas: exclusivamente la petición, APIs y pruebas propias
-  del workspace y `provenance/TEMPLATE.md`. Sin red, fuentes externas, libros,
-  páginas, ejemplos numéricos publicados, fuentes de otros motores ni oráculos.
-- Derivaciones propias: las notas cerradas de esta bitácora; datos en
-  [tabla de fixtures](../crates/engine-validation/tests/support/table.rs),
-  [comprobaciones](../crates/engine-validation/tests/analytical.rs) y
-  [montaje](../crates/engine-validation/tests/support/harness.rs).
-- Código de terceros copiado: ninguno. Sin dependencias externas nuevas;
-  exclusivamente `dev-dependencies` internas por `path`. Biblioteca documental
-  sin dependencias de producción, `publish = false`.
-- Validación: exclusivamente analítica, por integración, energía, compatibilidad,
-  equilibrio y superposición. Los números SI son datos artificiales propios.
-- Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados".
-- Revisor clean-room: PENDIENTE (J4).
+- Ticket / PR: ENG-VAL-001 «Structural benchmark suite V1», partial:
+  linear statics, modal, P-Delta and spectrum. Branch stacked on ENG-ANL-004
+  (#62), ENG-ANL-002 (#61), ENG-MASS-001 (#55), ENG-LOAD-001 (#51), with
+  ENG-ANL-003 (#59) and the linear delivery (#57/#54/#53/#52). No commit or push.
+- Author(s): J2 (agent, Grok Bot) · identification requested by the user;
+  executing agent Codex (GPT-6) · 2026-10-11 (America/Guayaquil).
+- Role: implementer and author of own analytical derivations.
+- Contract implemented: `engine-validation` development crate, one tabulated
+  linear test over `StaticLinear`, `element/1` (truss/frame),
+  `engine_analysis::results` and `engine_analysis::combination` from LOAD-002;
+  three additional tabulated tests over `Modal`, `PDelta` and `Spectrum`.
+- Permitted sources used: exclusively the request, own workspace APIs
+  and tests and `provenance/TEMPLATE.md`. No network, external sources, books,
+  pages, published numerical examples, sources from other engines or oracles.
+- Own derivations: the closed-form notes in this log; data in
+  [fixture table](../crates/engine-validation/tests/support/table.rs),
+  [checks](../crates/engine-validation/tests/analytical.rs) and
+  [setup](../crates/engine-validation/tests/support/harness.rs).
+- Third-party code copied: none. No new external dependencies;
+  exclusively internal `dev-dependencies` via `path`. Documentation library
+  without production dependencies, `publish = false`.
+- Validation: exclusively analytical, through integration, energy, compatibility,
+  equilibrium and superposition. The SI numbers are own artificial data.
+- Comparison with oracle (sibling repo, informative): no.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados".
+- Clean-room reviewer: PENDING (J4).
 
-Las bitácoras de los tres tickets apilados
-[ANL-001](ENG-ANL-001.md), [RES-001](ENG-RES-001.md) y
-[LOAD-002](ENG-LOAD-002.md) ya contienen esa declaración completa, el autor
-solicitado y el revisor pendiente. Esta entrega conserva esas declaraciones;
-no declara revisión J4 ni fusión de los PR anteriores.
+The logs of the three stacked tickets
+[ANL-001](ENG-ANL-001.md), [RES-001](ENG-RES-001.md) and
+[LOAD-002](ENG-LOAD-002.md) already contain that full declaration, the requested
+author and pending reviewer. This delivery retains those declarations;
+it does not declare J4 review or merge of the previous PRs.
 
-## Alcance y conteo
+## Scope and count
 
-Se entregan **42 fixtures lineales**; cada fila es un modelo con parámetros y
-acciones, no una sola aserción. Un test recorre todas las filas, verificando
-nombres únicos, metadatos y resultados. Las variantes cambian geometría,
-posición de carga, dirección, asentamiento o factores.
+**42 linear fixtures** are delivered; each row is a model with parameters and
+actions, not a single assertion. One test traverses all rows, checking
+unique names, metadata and results. Variants change geometry,
+load position, direction, settlement or factors.
 
-| Familia | Filas | Datos que cambian |
+| Family | Rows | Data that change |
 |---|---:|---|
-| Voladizos: punta, uniforme y par | 5 | L=4/7; P, w o par terminal |
-| Simplemente apoyadas | 7 | L=4/7; uniforme; a/L=.5, .25, .4, .7 |
-| Biempotradas | 5 | L=4/7; uniforme; a/L=.5, .25, .7 |
-| Voladizo apuntalado | 2 | L=4/7 |
-| Continua, dos vanos iguales | 2 | L de cada vano=4/7 |
-| Dos barras, triángulo, tres concurrentes | 6 | H=0/5 |
-| Barra con asentamiento | 2 | s=.03/−.02 |
-| Pórtico lateral y vertical | 4 | h=3/5 |
-| Liberación de momento | 2 | L=4/7 |
-| Rotación de todo el modelo | 3 | α=30°, 90°, 137° |
-| Superposición y combinación | 4 | (α,β)=(1,1),(1.3,−.7),(−.5,2),(0,.5) |
-| **Total lineal de esta entrega** | **42** | |
+| Cantilevers: tip, uniform and couple | 5 | L=4/7; P, w or end couple |
+| Simply supported | 7 | L=4/7; uniform; a/L=.5, .25, .4, .7 |
+| Clamped at both ends | 5 | L=4/7; uniform; a/L=.5, .25, .7 |
+| Propped cantilever | 2 | L=4/7 |
+| Continuous, two equal spans | 2 | L of each span=4/7 |
+| Two bars, triangle, three concurrent bars | 6 | H=0/5 |
+| Bar with settlement | 2 | s=.03/−.02 |
+| Lateral and vertical portal frame | 4 | h=3/5 |
+| Moment release | 2 | L=4/7 |
+| Rotation of the entire model | 3 | α=30°, 90°, 137° |
+| Superposition and combination | 4 | (α,β)=(1,1),(1.3,−.7),(−.5,2),(0,.5) |
+| **Linear total of this delivery** | **42** | |
 
-**ENG-VAL-001 sigue parcial.** La ampliación al final de esta nota añade 31
-fixtures: **73 en total**, supera ≥30 y cubre modal, P-Delta y espectro. Las
-42 filas anteriores no cambian. Siguen pendientes las referencias publicadas
-con cita exacta, revisión J4 y ejecución en runtime wasm; se detallan abajo.
+**ENG-VAL-001 remains partial.** The extension at the end of this note adds 31
+fixtures: **73 in total**, exceeds ≥30 and covers modal, P-Delta and spectrum. The
+previous 42 rows do not change. Published references with exact citations,
+J4 review and execution in a wasm runtime remain pending; detailed below.
 
-## Datos y convenciones
+## Data and conventions
 
-Valores predeterminados de `Parameters`: E=200 Pa, A=2 m², I=3 m⁴, L=4 m,
+`Parameters` defaults: E=200 Pa, A=2 m², I=3 m⁴, L=4 m,
 h=3 m, P=12 N, w=6 N/m, a/L=.5, H=0, s=.03 m, ángulo=0, factores=(1,1),
-r=100000. En el fixture de par, el valor P representa 12 N·m.
-Las sobreescrituras de cada fila están en la tabla Rust. Para armaduras L
-representa el semiancho a, no la longitud inclinada ℓ=√(a²+h²). Para pórticos
-L es la luz b; para la viga continua es la longitud de cada vano.
+r=100000. In the couple fixture, the value P represents 12 N·m.
+Overrides for each row are in the Rust table. For trusses L
+represents the half-width a, not the inclined length ℓ=√(a²+h²). For portal frames
+L is the span b; for the continuous beam it is the length of each span.
 
-D2 en XY; desplazamientos y reacciones recuperados en seis componentes globales:
-`[Ux,Uy,Uz,Rx,Ry,Rz]` y `[Fx,Fy,Fz,Mx,My,Mz]`. θ=v′ es positivo antihorario.
-En vigas horizontales, v positivo hacia arriba y M=EI v″ positivo en sagado.
-Cargas hacia abajo −P, −w. Los pares de reacción en extremos i/j son −M(0)
-y +M(L), respectivamente. N positivo en tracción. No se usan fórmulas numéricas
-de un tercero ni se ajustan esperados a una salida del motor.
+D2 in XY; displacements and reactions recovered in six global components:
+`[Ux,Uy,Uz,Rx,Ry,Rz]` and `[Fx,Fy,Fz,Mx,My,Mz]`. θ=v′ is positive counterclockwise.
+In horizontal beams, v is positive upward and M=EI v″ positive in sagging.
+Downward loads −P, −w. Reaction couples at ends i/j are −M(0)
+and +M(L), respectively. N positive in tension. No numerical formulas from
+a third party are used or expected values adjusted to an engine output.
 
-Los nodos de observación se colocan en x=L/2 o x=a. Bajo carga uniforme, el
-polinomio interno es cuártico pero el elemento con cargas consistentes obtiene
-los desplazamientos y giros **nodales exactos**: la solución particular con
-v=θ=0 en extremos no aporta valores nodales. La deformada cúbica interpolada
-entre nodos no se utiliza como oráculo de flecha interior. Las estaciones
-solicitadas son [0,.2,.8,1]; RES-001 añade raíces críticas cuando corresponden.
-Los máximos de M se comprueban contra formas cerradas, incluso el del
-apuntalado fuera de las estaciones solicitadas, con su ubicación exacta.
+Observation nodes are placed at x=L/2 or x=a. Under uniform load, the
+internal polynomial is quartic but the element with consistent loads obtains
+**exact nodal** displacements and rotations: the particular solution with
+v=θ=0 at the ends contributes no nodal values. The cubic interpolated deflected shape
+between nodes is not used as an interior deflection oracle. Requested
+stations are [0,.2,.8,1]; RES-001 adds critical roots where applicable.
+M maxima are checked against closed forms, including that of the
+propped cantilever outside the requested stations, with its exact location.
 
 ## Voladizos
 
-Con EI constante y v(0)=θ(0)=0, integrar EI v″=M dos veces:
+With constant EI and v(0)=θ(0)=0, integrate EI v″=M twice:
 
 ```text
 Punta: M(x)=−P(L−x)
@@ -106,12 +106,12 @@ Par terminal C: M(x)=C
 θ(L)=CL/EI, v(L)=CL²/(2EI), Ry=0, Rz=−C.
 ```
 
-Se comprueban flecha, giro, reacciones y rango exacto de momento. Las vigas se
-sitúan con origen (2,3) para que el balance de momentos incluya brazos reales.
+Deflection, rotation, reactions and exact moment range are checked. Beams are
+placed with origin (2,3) so that the moment balance includes actual lever arms.
 
 ## Simplemente apoyadas
 
-Con uniforme, equilibrio da RA=RB=wL/2 y M=wx(L−x)/2. Integrar con v(0)=v(L)=0:
+With uniform load, equilibrium gives RA=RB=wL/2 and M=wx(L−x)/2. Integrate with v(0)=v(L)=0:
 
 ```text
 v(x)=w(Lx³/12−x⁴/24−L³x/24)/EI
@@ -120,8 +120,8 @@ v(L/2)=−5wL⁴/(384EI)
 M′=w(L−2x)/2=0 => x=L/2, Mmax=wL²/8, Mmin=0.
 ```
 
-Con puntual en a, b=L−a, RA=Pb/L, RB=Pa/L. Escribir
-`<x−a>=max(0,x−a)` permite integrar ambos tramos a la vez:
+With a point load at a, b=L−a, RA=Pb/L, RB=Pa/L. Writing
+`<x−a>=max(0,x−a)` allows integrating both segments at once:
 
 ```text
 EI v(x)=RA x³/6−P<x−a>³/6+EI θA x
@@ -132,15 +132,15 @@ M(x)=RA x−P<x−a>
 Mmax=M(a)=Pab/L, Mmin=0.
 ```
 
-La representación por tramos asegura continuidad de v, θ y M y salto −P de
-M′. Para a=b=L/2 resulta v(a)=−PL³/(48EI), θA=−PL²/(16EI), θB=+PL²/(16EI),
-Mmax=PL/4. En casos asimétricos se comprueba v(a); no se afirma que sea la
-flecha máxima, cuya ubicación es distinta. Se comprueban ambos giros y el
-momento máximo exacto en la posición de la carga.
+The piecewise representation ensures continuity of v, θ and M and a −P jump in
+M′. For a=b=L/2 this gives v(a)=−PL³/(48EI), θA=−PL²/(16EI), θB=+PL²/(16EI),
+Mmax=PL/4. In asymmetric cases v(a) is checked; it is not claimed to be the
+maximum deflection, whose location differs. Both rotations and the
+exact maximum moment at the load position are checked.
 
 ## Biempotradas
 
-Con uniforme, imponer v=θ=0 en 0,L al polinomio que satisface EI v⁽⁴⁾=−w da:
+With uniform load, imposing v=θ=0 at 0,L on the polynomial satisfying EI v⁽⁴⁾=−w gives:
 
 ```text
 v(x)=−w x²(L−x)²/(24EI)
@@ -149,7 +149,7 @@ MA=MB=−wL²/12, RA=RB=wL/2
 v(L/2)=−wL⁴/(384EI), Mmax=wL²/24.
 ```
 
-Con puntual, v(0)=θ(0)=0 elimina las constantes libres:
+With a point load, v(0)=θ(0)=0 eliminates the free constants:
 
 ```text
 EI v(x)=MA x²/2+RA x³/6−P<x−a>³/6
@@ -161,14 +161,14 @@ v(a)=−Pa³b³/(3EIL³)
 Mmax=M(a)=2Pa²b²/L³, Mmin=min(MA,MB).
 ```
 
-En centro MA=MB=−PL/8 y v(a)=−PL³/(192EI). Se comprueban ambos momentos,
-reacciones verticales, giros cero, flecha en la carga y extremos de M.
-Se deja Ux derecho libre y sin carga axial; queda exactamente cero por EA>0.
-Las restricciones flexionales siguen siendo las de una biempotrada.
+At the center MA=MB=−PL/8 and v(a)=−PL³/(192EI). Both moments,
+vertical reactions, zero rotations, deflection at the load and extrema of M are checked.
+Right Ux is left free and without axial load; it is exactly zero due to EA>0.
+Bending constraints remain those of a beam clamped at both ends.
 
 ## Voladizo apuntalado
 
-Superponer al voladizo uniforme una fuerza RB hacia arriba en la punta:
+Superpose an upward force RB at the tip on the uniformly loaded cantilever:
 
 ```text
 v(L)=−wL⁴/(8EI)+RB L³/(3EI)=0 => RB=3wL/8
@@ -181,19 +181,19 @@ M(0)=−wL²/8, M(L)=0
 M′=0 => x=5L/8, Mmax=9wL²/128.
 ```
 
-Las filas `articulacion-extremo` usan un elemento con liberación real j=true,
-extremo derecho apoyado en Uy y giro externo desconectado fijado a cero para
-eliminar el mecanismo sin restringir su giro interno condensado. La solución
-flexional es la del apuntalado: se comprueban reacciones, Mmax y M(L)=0 tanto
-en acción de extremo como en sección, y par de reacción externo cero. El giro
-externo fijado no se interpreta como el giro físico interno de la articulación.
+The `articulacion-extremo` rows use an element with an actual j=true release,
+right end supported in Uy and disconnected external rotation restrained to zero to
+eliminate the mechanism without restricting its condensed internal rotation. The bending
+solution is that of the propped cantilever: reactions, Mmax and M(L)=0 are checked both
+in end action and in section, and zero external reaction couple. The restrained
+external rotation is not interpreted as the physical internal rotation of the hinge.
 
 ## Dos vanos
 
-Dos vanos iguales de longitud L, EI idéntico, cargas uniformes idénticas y
-apoyos verticales en 0,L,2L. Simetría exige θ(L)=0; cada mitad, vista desde el
-centro, tiene las condiciones del voladizo apuntalado. Por compatibilidad de la
-sección anterior, la reacción central aportada por cada vano es 5wL/8:
+Two equal spans of length L, identical EI, identical uniform loads and
+vertical supports at 0,L,2L. Symmetry requires θ(L)=0; each half, viewed from the
+center, has the propped cantilever conditions. By compatibility from the
+previous section, the central reaction contributed by each span is 5wL/8:
 
 ```text
 R0=R2L=3wL/8, RL=2·5wL/8=5wL/4
@@ -204,15 +204,15 @@ v(L/2)=v(3L/2)=−wL⁴/(192EI)
 M′=0 => x=3L/8 y x=13L/8, Mmax=9wL²/128.
 ```
 
-El giro inicial se obtiene integrando M e imponiendo v(0)=v(L)=0. La suma de
-reacciones es 2wL; no se usa el resultado como un número publicado.
+The initial rotation is obtained by integrating M and imposing v(0)=v(L)=0. The sum of
+reactions is 2wL; the result is not used as a published number.
 
 ## Armaduras
 
-Bases (−a,0),(a,0), ápice (0,h); ℓ=√(a²+h²), c=a/ℓ, s=h/ℓ.
-Para bases fijas, la energía de dos barras es
+Bases (−a,0),(a,0), apex (0,h); ℓ=√(a²+h²), c=a/ℓ, s=h/ℓ.
+For restrained bases, the energy of two bars is
 `U=EA[(c ux+s uy)²+(−c ux+s uy)²]/(2ℓ)`.
-Derivar `U−Hux+Puy` da:
+Differentiating `U−Hux+Puy` gives:
 
 ```text
 Kx=2EAa²/ℓ³, Ky=2EAh²/ℓ³
@@ -221,13 +221,13 @@ N1=Hℓ/(2a)−Pℓ/(2h), N2=−Hℓ/(2a)−Pℓ/(2h)
 R1=(−N1c,−N1s), R2=(+N2c,−N2s).
 ```
 
-Triángulo isostático: añadir barra horizontal de longitud 2a y liberar Ux de
-la base derecha. Equilibrio del ápice conserva N1,N2; equilibrio de la base
-derecha da `Nb=−N2c=H/2+Pa/(2h)`. Reacciones:
+Statically determinate triangle: add a horizontal bar of length 2a and release Ux of
+the right base. Apex equilibrium preserves N1,N2; right-base equilibrium
+gives `Nb=−N2c=H/2+Pa/(2h)`. Reactions:
 `Rx1=−H`, `Ry1=P/2−Hh/(2a)`, `Ry2=P/2+Hh/(2a)`.
-Para obtener desplazamientos, derivar la energía complementaria
-`U*=Σ Ni² ℓi/(2EA)` respecto de H y respecto de la carga vertical +Y=−P
-(equivalentemente trabajo virtual unitario):
+To obtain displacements, differentiate the complementary energy
+`U*=Σ Ni² ℓi/(2EA)` with respect to H and the vertical load +Y=−P
+(equivalently unit virtual work):
 
 ```text
 ux=Hℓ³/(2EAa²)+Nb a/(EA)
@@ -235,9 +235,9 @@ uy=−Pℓ³/(2EAh²)−Nb a²/(EAh)
 ux_base_derecha=Nb·2a/(EA).
 ```
 
-Armadura hiperestática simple: conservar las dos bases fijas y añadir una
-tercera barra desde (0,0) al ápice con base fija. Su energía `EA uy²/(2h)` se
-suma a U anterior, asegurando compatibilidad de las tres barras:
+Simple statically indeterminate truss: keep both bases restrained and add a
+third bar from (0,0) to the apex with a restrained base. Its energy `EA uy²/(2h)` is
+added to the previous U, ensuring compatibility of all three bars:
 
 ```text
 Kx=2EAa²/ℓ³, Ky=2EAh²/ℓ³+EA/h
@@ -246,33 +246,33 @@ N1=(EA/ℓ)(c ux+s uy), N2=(EA/ℓ)(−c ux+s uy), N3=EA uy/h
 R3y=−N3.
 ```
 
-Las fuerzas no se deducen solo por equilibrio en la hiperestática. Se comprueban
-ambos desplazamientos, N de todas las barras en todas las estaciones, reacciones
-y las cinco resultantes no axiales nulas.
+Forces are not deduced solely by equilibrium in the statically indeterminate case. Both
+displacements, N of all bars at all stations, reactions
+and the five zero non-axial resultants are checked.
 
 ## Asentamiento
 
-Barra axial con u(0)=0, u(L)=s y sin carga distribuida. De N′=0 y u′=N/(EA),
-`N=EA s/L`, `u(L/2)=s/2`, reacciones `R0=−N`, `RL=+N`.
-Se usan dos elementos en serie para conservar un GDL axial interior libre;
-los transversales se restringen. Se comprueban asentamientos de ambos signos,
-las fuerzas y el desplazamiento prescrito. La combinación identidad usa factor
-1; no se suma el mismo asentamiento varias veces como si fuera carga homogénea.
+Axial bar with u(0)=0, u(L)=s and no distributed load. From N′=0 and u′=N/(EA),
+`N=EA s/L`, `u(L/2)=s/2`, reactions `R0=−N`, `RL=+N`.
+Two elements in series are used to retain a free interior axial DOF;
+transverse DOFs are restrained. Settlements of both signs,
+forces and prescribed displacement are checked. The identity combination uses factor
+1; the same settlement is not added multiple times as if it were a homogeneous load.
 
 ## Portal lateral
 
-Luz b, altura h, dos columnas empotradas. H/2 en cada esquina superior.
-En el límite de dintel rígido y columnas inextensibles, las columnas tienen
-traslación Δ y giro superior cero. La energía de cada columna es
-`6EI Δ²/h³`; derivar la energía total menos HΔ da
+Span b, height h, two clamped columns. H/2 at each upper corner.
+In the limit of a rigid beam and inextensible columns, the columns have
+translation Δ and zero upper rotation. The energy of each column is
+`6EI Δ²/h³`; differentiating total energy minus HΔ gives
 `K=2·12EI/h³`, `Δ=Hh³/(24EI)`, `Rx1=Rx2=−H/2`.
 
-Solo aumentar EI del dintel no impediría su rotación por deformación axial de
-las columnas. Por eso las filas aumentan simultáneamente EI del dintel y EA
-de columnas/dintel por r=100000, dejando EI de las columnas intacto.
-La forma cerrada **finita** se deriva antes de tomar el límite. Sean J=EI_col,
-B=EI_dintel y C=EA_col; simetría impone traslaciones Δ, giros θ iguales y
-verticales v,−v. El dintel no se alarga. Sumando energías:
+Only increasing beam EI would not prevent its rotation due to axial deformation of
+the columns. Therefore the rows simultaneously increase beam EI and EA
+of columns/beam by r=100000, leaving column EI intact.
+The **finite** closed form is derived before taking the limit. Let J=EI_col,
+B=EI_dintel and C=EA_col; symmetry imposes translations Δ, equal rotations θ and
+vertical displacements v,−v. The beam does not elongate. Summing energies:
 
 ```text
 Π=12JΔ²/h³+12JΔθ/h²+(4J/h+6B/b)θ²
@@ -283,16 +283,16 @@ D=4J/h+6B/b−12Bβ/b²
 Δ=H/(24J/h³−72J²/(h⁴D)).
 ```
 
-La tabla usa B=rJ, C=rEA. Definiendo q=3J/(hD), el error relativo respecto al
-límite es `q/(1−q)`: <1.80e-5 para h=3 y <1.53e-5 para h=5, b=4 y los datos
-SI anteriores. Se comprueba Δ límite con margen relativo 5e-5 y se comprueban
-también Δ, θ, v de la solución finita con tolerancia numérica independiente.
+The table uses B=rJ, C=rEA. Defining q=3J/(hD), the relative error against the
+limit is `q/(1−q)`: <1.80e-5 for h=3 and <1.53e-5 for h=5, b=4 and the above
+SI data. Limit Δ is checked with a relative margin of 5e-5 and
+Δ, θ, v of the finite solution are also checked with an independent numerical tolerance.
 
 ## Portal vertical
 
-Columnas y dintel con E,A,I iguales y carga uniforme −w solo en el dintel.
-Simetría: esquinas superiores `(t,v,θ)` y `(−t,v,−θ)`. La energía reducida,
-incluido el trabajo de las cargas consistentes del dintel, es (constante omitida):
+Columns and beam with equal E,A,I and uniform load −w only on the beam.
+Symmetry: upper corners `(t,v,θ)` and `(−t,v,−θ)`. The reduced energy,
+including work of the beam's consistent loads, is (constant omitted):
 
 ```text
 Π=(12EI/h³+2EA/b)t²+12EI tθ/h²+(4EI/h+2EI/b)θ²
@@ -304,17 +304,17 @@ D=4EI/h+2EI/b−6EIγ/h²
 v=−wbh/(2EA), Ry1=Ry2=wb/2.
 ```
 
-Son las tres ecuaciones ∂Π/∂t=∂Π/∂θ=∂Π/∂v=0. En el centro del dintel, sumar
-la interpolación cúbica de las rotaciones y la particular biempotrada:
-`vmedio=v+bθ/4−wb⁴/(384EI)` y `θmedio=0`. Se comprueban desplazamientos,
-giros, reacciones iguales y horizontales opuestas sin aproximación de rigidez.
+These are the three equations ∂Π/∂t=∂Π/∂θ=∂Π/∂v=0. At the beam center, add
+the cubic rotation interpolation and the particular solution clamped at both ends:
+`vmedio=v+bθ/4−wb⁴/(384EI)` and `θmedio=0`. Displacements,
+rotations, equal reactions and opposite horizontal reactions are checked without a stiffness approximation.
 
 ## Rotacion
 
-Rotar todos los puntos del voladizo alrededor del empotramiento (2,3) y su
-fuerza terminal por Q(α), con α=30°,90°,137°. Como las restricciones del
-empotramiento son completas, permanecen idénticas al rotarlas. La energía
-elástica y el trabajo externo son invariantes bajo cambio ortogonal de ejes:
+Rotate all cantilever points about the clamped support (2,3) and its
+end force by Q(α), with α=30°,90°,137°. Since the clamped support
+constraints are complete, they remain identical when rotated. Elastic
+energy and external work are invariant under orthogonal change of axes:
 
 ```text
 Q=[[cosα,−sinα],[sinα,cosα]]
@@ -323,15 +323,15 @@ R_global=Q(0,P)
 θ=−PL²/(2EI), Rz=PL, M(x)=−P(L−x).
 ```
 
-Se compara cada componente global con la solución rotada, la proyección
-transversal con la misma flecha original, el giro y los momentos invariantes.
-Se comprueba equilibrio respecto del origen global con las posiciones rotadas.
+Each global component is compared with the rotated solution, the transverse
+projection with the same original deflection, and invariant rotation and moments.
+Equilibrium about the global origin is checked with the rotated positions.
 
 ## Superposicion
 
-Apoyos homogéneos: `K uP=FP`, `K uw=Fw` implica
-`K(αuP+βuw)=αFP+βFw`. Reacciones `R=Ku−F` y recuperación de acciones son
-lineales en u y F. En el voladizo:
+Homogeneous supports: `K uP=FP`, `K uw=Fw` implies
+`K(αuP+βuw)=αFP+βFw`. Reactions `R=Ku−F` and action recovery are
+linear in u and F. In the cantilever:
 
 ```text
 v(L)=−αPL³/(3EI)−βwL⁴/(8EI)
@@ -339,19 +339,19 @@ v(L)=−αPL³/(3EI)−βwL⁴/(8EI)
 Ry=αP+βwL, Rz=αPL+βwL²/2.
 ```
 
-Cada una de cuatro filas resuelve P, w y D=αP+βw por `StaticLinear`, recupera
-todos los resultados y usa `combine` de LOAD-002. Compara suma contra D en
-desplazamientos, reacciones, acciones y las estaciones comunes; además compara
-flecha, giro y reacciones contra las formas cerradas anteriores. La combinación
-con factores opuestos puede tener nuevas raíces en D: no se exige que sus
-extremos continuos coincidan con los extremos discretos de `combine`, ni se
-inventa una búsqueda de raíces para LOAD-002. Cada fixture también pasa sus
-resultados por combinación identidad, verificando los campos recuperados.
+Each of four rows solves P, w and D=αP+βw through `StaticLinear`, recovers
+all results and uses `combine` from LOAD-002. It compares the sum against D in
+displacements, reactions, actions and common stations; it also compares
+deflection, rotation and reactions against the above closed forms. The combination
+with opposite factors may have new roots in D: its continuous extrema are not
+required to coincide with the discrete extrema of `combine`, nor is a
+root search invented for LOAD-002. Each fixture also passes its
+results through an identity combination, checking the recovered fields.
 
-## Equilibrio
+## Equilibrium
 
-Cada caso resuelto comprueba residual libre/global del análisis y calcula un
-balance independiente con los resultados recuperados:
+Each solved case checks the analysis free/global residual and calculates an
+independent balance with the recovered results:
 
 ```text
 ΣFx=ΣRx+ΣFx_nodal+Σqx ℓ=0
@@ -360,109 +360,109 @@ balance independiente con los resultados recuperados:
     +Σ[mz ℓ+xcentro qy ℓ−ycentro qx ℓ]=0.
 ```
 
-Se usan cargas físicas originales; no se reaprovecha el vector equivalente
-ensamblado como oráculo de equilibrio. El balance incluye los brazos de fuerzas
-y no exige que la suma de pares sin brazos sea cero. Se aplica a los 42
-fixtures, incluidos los casos P,w,D y los asentamientos.
+Original physical loads are used; the assembled equivalent vector is
+not reused as an equilibrium oracle. The balance includes force lever arms
+and does not require the sum of couples without lever arms to be zero. It applies to the 42
+fixtures, including P,w,D cases and settlements.
 
-## Tolerancias
+## Tolerances
 
-Cada fila almacena explícitamente `Tolerance { absolute, relative,
-justification }`. Regla: `|obtenido−esperado| ≤ absoluto+relativo·|esperado|`;
-ambos valores deben ser finitos. No se utiliza la magnitud obtenida para aumentar
-el umbral. Las magnitudes son SI según el campo (m, rad, N, N·m); las posiciones
-son adimensionales. Para los modelos ordinarios, absoluto=1e-9 y relativo=1e-10:
-unos pocos nodos, parámetros moderados y soluciones nodales cerradas justifican
-un margen conservador frente a eliminación y recuperación f64. Los ceros,
-residuos y equilibrio se comparan con 1e-9 absoluto.
+Each row explicitly stores `Tolerance { absolute, relative,
+justification }`. Rule: `|obtenido−esperado| ≤ absoluto+relativo·|esperado|`;
+both values must be finite. The obtained magnitude is not used to increase
+the threshold. Quantities are SI according to the field (m, rad, N, N·m); positions
+are dimensionless. For ordinary models, absoluto=1e-9 and relativo=1e-10:
+a few nodes, moderate parameters and closed-form nodal solutions justify
+a conservative margin against f64 elimination and recovery. Zeros,
+residuals and equilibrium are compared with 1e-9 absolute.
 
-Para portal lateral: absoluto=1e-8 por contraste de rigidez 1e5 y cancelación en
-la recuperación; relativo=5e-5 solo para aproximar el límite rígido. El error
-finito está acotado analíticamente arriba. La comprobación adicional de la
-solución finita usa absoluto=1e-8 y relativo=1e-10, justificados por ese
-condicionamiento. En nativo el residuo de momento del portal h=5 fue 2.45e-9;
-queda dentro del margen absoluto documentado. Los residuos/ceros no reciben un
-margen relativo por aproximación, porque su esperado es cero.
+For the lateral portal frame: absoluto=1e-8 due to stiffness contrast 1e5 and cancellation in
+recovery; relativo=5e-5 only to approximate the rigid limit. The finite
+error is analytically bounded above. The additional check of the
+finite solution uses absoluto=1e-8 and relativo=1e-10, justified by that
+conditioning. In native execution the moment residual of the h=5 portal frame was 2.45e-9;
+it is within the documented absolute margin. Residuals/zeros receive no
+relative approximation margin, because their expected value is zero.
 
-## Verificación de la sesión
+## Session verification
 
-Verificación local del 2026-10-11, sin red (`CARGO_NET_OFFLINE=true`):
+Local verification on 2026-10-11, without network (`CARGO_NET_OFFLINE=true`):
 
-- `cargo fmt` y `cargo fmt --check`: OK.
+- `cargo fmt` and `cargo fmt --check`: OK.
 - `cargo clippy --all-targets -- -D warnings`: OK.
-- `cargo test --workspace`: OK; 241 pruebas nativas, incluidos doctests.
-  El único test nuevo recorre los 42 fixtures y señala el nombre ante un fallo.
+- `cargo test --workspace`: OK; 241 native tests, including doctests.
+  The only new test traverses the 42 fixtures and indicates the name on failure.
 - `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`: OK.
 - `cargo check --workspace --target wasm32-unknown-unknown`: OK.
 - `cargo check --workspace --all-targets --target wasm32-unknown-unknown`: OK;
-  incluye el ejecutor, tabla y oráculos de pruebas, sin E/S ni hilos.
-- `bash clean-room/check.sh origin/main`: OK. Comprobación adicional incluyendo
-  todos los archivos nuevos en un índice y objetos temporales en `/tmp`, con
-  objetos del repositorio original en lectura: OK. El índice real quedó intacto.
-- `git diff --check`: OK para los cambios ya seguidos; revisión con archivos
-  nuevos mediante el mismo índice temporal: OK.
+  includes the runner, table and test oracles, without I/O or threads.
+- `bash clean-room/check.sh origin/main`: OK. Additional check including
+  all new files in a temporary index and objects in `/tmp`, with
+  original repository objects read-only: OK. The real index remained intact.
+- `git diff --check`: OK for already tracked changes; review with new
+  files through the same temporary index: OK.
 
-Pruebas nativas y documentación: rustc/cargo 1.85.1 del sistema. Clippy disponible
-0.1.99. Para wasm se usó `PATH=/home/box/.cargo/bin:$PATH
-RUSTUP_TOOLCHAIN=stable`, toolchain y destino ya instalados (rustc 1.99.0), sin
-descargar componentes. Compilar para wasm no significa ejecutar un runtime wasm.
-No se modificó el índice Git real; sin commit ni push. Esta verificación
-corresponde a la entrega lineal anterior; la ampliación y su verificación se
-registran a continuación. Revisión J4 y ejecución en runtime wasm pendientes.
+Native tests and documentation: system rustc/cargo 1.85.1. Available Clippy
+0.1.99. For wasm, `PATH=/home/box/.cargo/bin:$PATH
+RUSTUP_TOOLCHAIN=stable` was used, with toolchain and target already installed (rustc 1.99.0), without
+downloading components. Compiling for wasm does not mean running a wasm runtime.
+The real Git index was not modified; no commit or push. This verification
+corresponds to the previous linear delivery; the extension and its verification are
+recorded below. J4 review and execution in a wasm runtime pending.
 
 ## Ampliación dinámica y 2.º orden
 
-### Bitácora de la ampliación
+### Extension log
 
-- Ticket / PR: ENG-VAL-001, ampliación sobre ENG-ANL-002 (#61, modal),
-  ENG-ANL-003 (#59, P-Delta) y ENG-ANL-004 (#62, espectro), cadena abierta.
-- Autor(es): J2 (agente, Grok Bot), etiqueta solicitada; ejecutor Codex
-  basado en GPT-6 · 2026-10-11 (America/Guayaquil).
-- Rol: implementador y autor de las derivaciones propias, sin delegación.
-- Contrato implementado: fixtures de validación por APIs públicas `Modal::run`,
-  `PDelta::run`, `Spectrum::run`, tablas y combinaciones espectrales, elementos
-  `EulerFrame2D` y `LinearTruss`; sin cambiar implementación de los análisis.
-- Fuentes permitidas usadas: petición del usuario, APIs/pruebas propias del
-  workspace, `provenance/TEMPLATE.md` y `docs/CLEAN_ROOM.md`. Sin red,
-  bibliografía externa, libros, páginas, ejemplos numéricos publicados u oráculos.
-- Derivaciones propias: ecuaciones D1–D12 a continuación;
-  [datos](../crates/engine-validation/tests/support/dynamic_table.rs),
-  [montaje](../crates/engine-validation/tests/support/dynamic_harness.rs) y
-  [oráculos](../crates/engine-validation/tests/dynamic.rs).
-- Código de terceros copiado: ninguno; sin dependencias nuevas.
-- Validación: exclusivamente analítica; datos SI artificiales propios.
-- Comparación con oráculo (repo hermano, informativa): no.
-- Declaración para ENG-ANL-002, ENG-ANL-003 y ENG-ANL-004 en esta sesión:
+- Ticket / PR: ENG-VAL-001, extension on ENG-ANL-002 (#61, modal),
+  ENG-ANL-003 (#59, P-Delta) and ENG-ANL-004 (#62, spectrum), open chain.
+- Author(s): J2 (agent, Grok Bot), requested label; executing agent Codex
+  based on GPT-6 · 2026-10-11 (America/Guayaquil).
+- Role: implementer and author of own derivations, without delegation.
+- Contract implemented: validation fixtures through public APIs `Modal::run`,
+  `PDelta::run`, `Spectrum::run`, spectral tables and combinations, elements
+  `EulerFrame2D` and `LinearTruss`; without changing the analyses' implementation.
+- Permitted sources used: user request, own workspace APIs/tests,
+  `provenance/TEMPLATE.md` and `docs/CLEAN_ROOM.md`. No network,
+  external bibliography, books, pages, published numerical examples or oracles.
+- Own derivations: equations D1–D12 below;
+  [data](../crates/engine-validation/tests/support/dynamic_table.rs),
+  [setup](../crates/engine-validation/tests/support/dynamic_harness.rs) and
+  [oracles](../crates/engine-validation/tests/dynamic.rs).
+- Third-party code copied: none; no new dependencies.
+- Validation: exclusively analytical; own artificial SI data.
+- Comparison with oracle (sibling repo, informative): no.
+- Declaration for ENG-ANL-002, ENG-ANL-003 and ENG-ANL-004 in this session:
   "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados".
-- Revisor clean-room: PENDIENTE (J4).
+- Clean-room reviewer: PENDING (J4).
 
-Se conservan las declaraciones anteriores; se añade registro de esta sesión a
-ANL-002/004 y se crea registro de la validación de ANL-003, ausente en este
-checkout. Esto no atribuye a esta sesión autoría retroactiva de su implementación.
+Previous declarations are retained; a record of this session is added to
+ANL-002/004 and a record of ANL-003 validation is created, absent in this
+checkout. This does not attribute retroactive authorship of its implementation to this session.
 
-### Recuento y alcance
+### Count and scope
 
-| Grupo nuevo | Filas | Problemas completos |
+| New group | Rows | Complete problems |
 |---|---:|---|
-| Modal | 12 | Cortante N=1..5; 2 pisos variables; cadena axial libre-fija; viga apoyada y voladizo con mallas 4/12; voladizo rotado |
-| P-Delta | 10 | Columna r=0,.2,.5,.8,.9,−.5,1.05; marco r=.05,.1; serie de iteración y límite |
-| Espectro | 9 | SRSS 2 pisos; desplazamiento modal con otra Sa; interpolaciones lineal/log-log; CQC separado/cercano/coincidente; dos combinaciones direccionales |
-| **Nuevos** | **31** | Un test recorre cada grupo y nombra fixture, campo, source/citation y tolerancia ante fallo |
-| Lineales existentes | 42 | Tabla y test originales intactos |
-| **Total ENG-VAL-001** | **73** | ≥30 totales y ≥24 nuevos |
+| Modal | 12 | Shear N=1..5; 2 variable stories; free-restrained axial chain; supported beam and cantilever with 4/12 meshes; rotated cantilever |
+| P-Delta | 10 | Column r=0,.2,.5,.8,.9,−.5,1.05; frame r=.05,.1; iteration series and limit |
+| Spectrum | 9 | SRSS 2 stories; modal displacement with another Sa; linear/log-log interpolations; separated/close/coincident CQC; two directional combinations |
+| **New** | **31** | One test traverses each group and names fixture, field, source/citation and tolerance on failure |
+| Existing linear | 42 | Original table and test intact |
+| **Total ENG-VAL-001** | **73** | ≥30 total and ≥24 new |
 
-No se cuentan aserciones internas como fixtures. Ortogonalidad, acumulación de
-masa y participación se comprueban dentro de cada problema de cortante/cadena.
-Todos los nuevos `source/citation` remiten a esta derivación, sin citas a libros.
-No se convierten los resultados calculados por el motor en valores esperados.
+Internal assertions are not counted as fixtures. Orthogonality, mass
+accumulation and participation are checked within each shear/chain problem.
+All new `source/citation` refer to this derivation, without book citations.
+Results calculated by the engine are not converted into expected values.
 
-### Modal: derivación D1–D4
+### Modal: derivation D1–D4
 
-**D1. Cortante uniforme.** De la energía
-`U=k/2 Σ(q_j−q_{j−1})²`, `T=m/2 Σq̇_j²`, `q_0=0`, obtenemos
-`k(2φ_j−φ_{j−1}−φ_{j+1})=mω²φ_j`. El techo libre equivale a
-`φ_{N+1}=φ_N`. Proponer `φ_j=sin(jθ)` da `ω²=4k/m sin²(θ/2)` y
-`sin((N+1)θ)=sin(Nθ)`, es decir
+**D1. Uniform shear.** From the energy
+`U=k/2 Σ(q_j−q_{j−1})²`, `T=m/2 Σq̇_j²`, `q_0=0`, we obtain
+`k(2φ_j−φ_{j−1}−φ_{j+1})=mω²φ_j`. The free roof is equivalent to
+`φ_{N+1}=φ_N`. Proposing `φ_j=sin(jθ)` gives `ω²=4k/m sin²(θ/2)` and
+`sin((N+1)θ)=sin(Nθ)`, that is
 
 ```text
 θ_n=(2n−1)π/(2N+1), n=1..N
@@ -470,13 +470,13 @@ No se convierten los resultados calculados por el motor en valores esperados.
 φ_j=sin(jθ_n)/√[m Σ_l sin²(lθ_n)].
 ```
 
-Las cinco filas usan k=23 N/m, m=4 kg, N=1..5. La cadena libre-fija usa
-tres barras axiales de longitud 1, EA=31, densidad cero y masas puntuales
-de 6 kg. Su energía axial es exactamente D1 con k=EA/ℓ; un extremo fijo,
-el otro libre y desplazamientos transversales restringidos. Así verifica
-elementos reales y masas puntuales con el mismo oráculo físico.
+The five rows use k=23 N/m, m=4 kg, N=1..5. The free-restrained chain uses
+three axial bars of length 1, EA=31, zero density and point masses
+of 6 kg. Its axial energy is exactly D1 with k=EA/ℓ; one end restrained,
+the other free and transverse displacements restrained. Thus it verifies
+actual elements and point masses with the same physical oracle.
 
-**D2. Dos pisos variables y Γ a mano.** Con k1=19, k2=7 N/m y
+**D2. Two variable stories and manual Γ.** With k1=19, k2=7 N/m and
 m1=2, m2=5 kg:
 
 ```text
@@ -487,50 +487,50 @@ v=(1,t), t=(k1+k2−m1λ)/k2
 s=√(m1+m2t²), φ=v/s, Γ=(m1+m2t)/s, M*=Γ².             (D2)
 ```
 
-Para los dos pisos iguales de D1, `λ±=(k/m)(3±√5)/2`,
-`t=(1±√5)/2`, `s=√[m(1+t²)]`, `Γ=m(1+t)/s` y
-`M*±=m(1±2/√5)`. Su suma es `2m`. El test adapta únicamente el signo
-arbitrario del autovector al comparar Γ; el oráculo de λ, φ y M* es manual.
+For the two equal stories of D1, `λ±=(k/m)(3±√5)/2`,
+`t=(1±√5)/2`, `s=√[m(1+t²)]`, `Γ=m(1+t)/s` and
+`M*±=m(1±2/√5)`. Their sum is `2m`. The test adapts only the arbitrary
+sign of the eigenvector when comparing Γ; the oracle for λ, φ and M* is manual.
 
-**D3. Ortogonalidad y completitud.** Restar `φᵢᵀKφⱼ=λⱼφᵢᵀMφⱼ` y su
-traspuesta da `(λᵢ−λⱼ)φᵢᵀMφⱼ=0`; con modos distintos y normalización a masa,
-`ΦᵀMΦ=I` y `ΦᵀKΦ=diag(λ)`. Expandir la traslación rígida libre `r` en
-la base completa, `r=ΣΓ_n φ_n`, da
+**D3. Orthogonality and completeness.** Subtracting `φᵢᵀKφⱼ=λⱼφᵢᵀMφⱼ` and its
+transpose gives `(λᵢ−λⱼ)φᵢᵀMφⱼ=0`; with distinct modes and mass normalization,
+`ΦᵀMΦ=I` and `ΦᵀKΦ=diag(λ)`. Expanding free rigid translation `r` in
+the complete basis, `r=ΣΓ_n φ_n`, gives
 
 ```text
 Γ_n=φ_nᵀMr, ΣM*_n=ΣΓ_n²=rᵀMr=Σm_j.                 (D3)
 ```
 
-Se calculan productos con M/K ensambladas, incluyendo todas las parejas;
-los resultados esperados son I y λ, derivados arriba. Se comparan las
-acumulaciones por modo y el informe de masa libre/total con Σm_j, sin usar
-la masa reportada como oráculo. En vigas con masa en apoyos, la igualdad de
-completitud corresponde a masa libre, no necesariamente a la masa física total;
-por ello la igualdad exacta al total se exige a los modelos de masas puntuales.
+Products with assembled M/K are calculated, including all pairs;
+expected results are I and λ, derived above. Per-mode accumulations
+and the free/total mass report are compared with Σm_j, without using
+reported mass as an oracle. In beams with mass at supports, completeness
+equality corresponds to free mass, not necessarily total physical mass;
+therefore exact equality to the total is required for point-mass models.
 
-**D4. Vigas y rotación.** Separar variables en `ρA v̈+EI v''''=0` da
-`v''''=β⁴v` y `ω=β²√(EI/ρA)/L²` (β adimensional). La solución espacial
-es combinación de cos, sin, cosh y sinh. Para apoyada, `v=v''=0` en ambos
-extremos ⇒ `β=nπ`. Para voladizo, `v=v'=0` en la base y `v''=v'''=0` en
-punta ⇒ determinante `cosβ coshβ+1=0`. El test obtiene las tres primeras
-raíces por 55 bisecciones en `(jπ+.1,(j+1)π)`; no usa números publicados.
-Aquí E=ρ=A=L=1, I=1e−4 ⇒ `ω=.01β²`, primeros tres modos flexionales.
-Se emplea masa consistente y elementos Hermite `EulerFrame2D` con 4/12
-elementos: márgenes relativos 1.9% / 0.03%, verificados para estas filas,
-y disminución del error >10 veces al refinar. Son márgenes de estas mallas,
-no una cota universal para cualquier viga o modo.
+**D4. Beams and rotation.** Separating variables in `ρA v̈+EI v''''=0` gives
+`v''''=β⁴v` and `ω=β²√(EI/ρA)/L²` (dimensionless β). The spatial solution
+is a combination of cos, sin, cosh and sinh. For a supported beam, `v=v''=0` at both
+ends ⇒ `β=nπ`. For a cantilever, `v=v'=0` at the base and `v''=v'''=0` at the
+tip ⇒ determinant `cosβ coshβ+1=0`. The test obtains the first three
+roots by 55 bisections in `(jπ+.1,(j+1)π)`; it uses no published numbers.
+Here E=ρ=A=L=1, I=1e−4 ⇒ `ω=.01β²`, first three bending modes.
+Consistent mass and `EulerFrame2D` Hermite elements with 4/12
+elements are used: relative margins 1.9% / 0.03%, verified for these rows,
+and error reduction >10 times upon refinement. These are margins for these meshes,
+not a universal bound for any beam or mode.
 
-Para α=.83 rad, `Q=[[cosα,−sinα],[sinα,cosα]]` rota coordenadas, formas y
-dirección de excitación. La congruencia ortogonal simultánea de K/M preserva
-λ y `φᵀMr`; se comparan frecuencias, |Γ|, M* y cada componente `Qφ` con
-margen numérico independiente del margen de discretización.
+For α=.83 rad, `Q=[[cosα,−sinα],[sinα,cosα]]` rotates coordinates, shapes and
+excitation direction. Simultaneous orthogonal congruence of K/M preserves
+λ and `φᵀMr`; frequencies, |Γ|, M* and each `Qφ` component are compared with
+a numerical margin independent of the discretization margin.
 
-### P-Delta: derivación D5–D8
+### P-Delta: derivation D5–D8
 
-**D5. Voladizo comprimido.** El funcional
-`Π=1/2 ∫[EI(v'')²−P(v')²] dx−Hv(L)` da
-`EI v''''+P v''=0`, `v(0)=v'(0)=0`, `v''(L)=0` y
-`EI v'''(L)+P v'(L)=−H`. Integrar la solución trigonométrica da
+**D5. Compressed cantilever.** The functional
+`Π=1/2 ∫[EI(v'')²−P(v')²] dx−Hv(L)` gives
+`EI v''''+P v''=0`, `v(0)=v'(0)=0`, `v''(L)=0` and
+`EI v'''(L)+P v'(L)=−H`. Integrating the trigonometric solution gives
 
 ```text
 a=√(P/EI), z=aL, Pcr=π²EI/(4L²), r=P/Pcr
@@ -538,27 +538,27 @@ v(L)=H/P [tan(aL)/a−L]
 v0=HL³/(3EI), v/v0=3(tan z−z)/z³, z=π√r/2.          (D5)
 ```
 
-El polo de tan en z=π/2 corresponde a la inestabilidad. Su coeficiente
-respecto a `1/(1−r)` es `96/π⁴≈.9855`; por tanto esa amplificación es una
-aproximación incluso con malla infinita. Las filas usan EI=600 N·m²,
-L=4 m, H=.1 N y r=.2,.5,.8,.9. Se contrasta la amplificación aproximada
-con 1.6% relativo (error de modelo), y la solución D5 con 2e−6 relativo
-para 16 elementos (error de malla). Una resolución adicional con 4 elementos
-debe tener error >10 veces mayor. r=1.05 devuelve `Unstable`, una dirección
-negativa por inercia y ningún desplazamiento ni historial lateral.
+The pole of tan at z=π/2 corresponds to instability. Its coefficient
+with respect to `1/(1−r)` is `96/π⁴≈.9855`; therefore that amplification is an
+approximation even with an infinite mesh. The rows use EI=600 N·m²,
+L=4 m, H=.1 N and r=.2,.5,.8,.9. The approximate amplification is compared
+with 1.6% relative (model error), and the D5 solution with 2e−6 relative
+for 16 elements (mesh error). An additional solve with 4 elements
+must have error >10 times greater. r=1.05 returns `Unstable`, one negative
+direction by inertia and no lateral displacement or history.
 
-**D6. Tracción y cero.** Sustituir P=−T en D5 da
-`v=H/T [L−tanh(aL)/a]`, `a=√(T/EI)`; para r=−.5,
-`v/v0=3(z−tanh z)/z³<1`. Se comprueba rigidez mayor y la solución exacta
-con el mismo margen de malla. Para P=0, el desarrollo
-`tan z=z+z³/3+…` recupera `v0`; además se compara todo el vector lateral
-con `StaticLinear(H)` y se comprueba la convergencia final de cada análisis.
+**D6. Tension and zero.** Substituting P=−T in D5 gives
+`v=H/T [L−tanh(aL)/a]`, `a=√(T/EI)`; for r=−.5,
+`v/v0=3(z−tanh z)/z³<1`. Greater stiffness and the exact solution are checked
+with the same mesh margin. For P=0, the expansion
+`tan z=z+z³/3+…` recovers `v0`; the entire lateral vector is also compared
+with `StaticLinear(H)` and the final convergence of each analysis is checked.
 
-**D7. Marco de un piso.** n=2 columnas empotradas, h=4, dintel rígido,
-giro superior cero. Para cada columna, la forma cúbica lineal
-`v=Δ(3s²−2s³)`, s=x/h, tiene energía `6EIΔ²/h³`.
-La rigidez de piso es `Kpiso=12nEI/h³`. En la idealización de cuerda,
-el trabajo de gravedad total P produce `−PΔ²/(2h)`:
+**D7. One-story frame.** n=2 clamped columns, h=4, rigid beam,
+zero upper rotation. For each column, the linear cubic shape
+`v=Δ(3s²−2s³)`, s=x/h, has energy `6EIΔ²/h³`.
+The story stiffness is `Kpiso=12nEI/h³`. In the chord idealization,
+the work of total gravity P produces `−PΔ²/(2h)`:
 
 ```text
 (Kpiso−P/h)Δ=H
@@ -566,66 +566,66 @@ Pcr_piso=Kpiso h=12EI_c n/h²
 Δ/Δ0≈1/(1−P/Pcr_piso), Δ0=Hh³/(12nEI_c).             (D7)
 ```
 
-El símbolo ≈ es esencial: la energía geométrica del campo cúbico real es
-`−(P/n)/2 ∫(v')²dx=−(P/n)·3Δ²/(5h)`, factor 6/5 frente a la cuerda.
-El análisis con Kg distribuida no puede tener exactamente el Pcr de esa
-idealización. Resolver D5 con `v'(0)=v'(h)=0` y desplazamiento terminal Δ
-da el contraste continuo de cada columna guiada:
+The symbol ≈ is essential: the geometric energy of the actual cubic field is
+`−(P/n)/2 ∫(v')²dx=−(P/n)·3Δ²/(5h)`, a factor 6/5 relative to the chord.
+The analysis with distributed Kg cannot have exactly the Pcr of that
+idealization. Solving D5 with `v'(0)=v'(h)=0` and terminal displacement Δ
+gives the continuous comparison for each guided column:
 
 ```text
 K_col(P/n)=EI a³/[2tan(z/2)−z], a=√[(P/n)/EI], z=ah
 Δ/Δ0=12[2tan(z/2)−z]/z³, z=√(12r).
 ```
 
-El polo físico continuo es `Pcr=π²nEI/h²`, distinto de `12nEI/h²`.
-Las filas r=.05,.1 comparan D7 con margen 2.6%, suficiente para la diferencia
-de idealización en esos dos puntos. También comparan con la solución guiada
-continua a 1e−4 relativo. Se usan 12 elementos por columna, EA de columnas y
-EA/EI del dintel multiplicadas por 1e5; el margen continuo incluye esa
-flexibilidad finita y error de malla. Se comprueba la deriva de ambos nudos
-superiores y su simetría. No se presenta el Pcr de cuerda como el Euler exacto.
+The continuous physical pole is `Pcr=π²nEI/h²`, distinct from `12nEI/h²`.
+The r=.05,.1 rows compare D7 with margin 2.6%, sufficient for the difference
+in idealization at those two points. They also compare with the continuous guided
+solution at 1e−4 relative. 12 elements per column are used, column EA and
+beam EA/EI multiplied by 1e5; the continuous margin includes that
+finite flexibility and mesh error. Drift of both upper nodes
+and their symmetry are checked. Chord Pcr is not presented as exact Euler Pcr.
 
-**D8. Convergencia de la iteración.** Modelo escalar con k=80 N/m,
-gravedad −rk, r=.3, carga lateral F=8 N y productor `kg=k(u_g2−u_g1)=−rk`.
-El punto fijo desde u0=0 satisface `u_i=F/k+r u_{i−1}`:
+**D8. Iteration convergence.** Scalar model with k=80 N/m,
+gravity −rk, r=.3, lateral load F=8 N and producer `kg=k(u_g2−u_g1)=−rk`.
+The iteration toward the invariant point from u0=0 satisfies `u_i=F/k+r u_{i−1}`:
 
 ```text
 u_i=F/[k(1−r)](1−r^i), residual_relativo=r^i
 cambio_relativo=(F/k)r^(i−1), escala=1 y |u_i|<1.     (D8)
 ```
 
-La fila comprueba cada desplazamiento, residual, cambio y el primer paso
-que cumple ambos criterios a 1e−7, con límite 32. Con límite 3 exige
-`NotConverged` sin reintento. Las columnas y marcos también exigen que
-el último residual y cambio estén dentro de la tolerancia declarada 1e−10.
+The row checks each displacement, residual, change and the first step
+that meets both thresholds at 1e−7, with limit 32. With limit 3 it requires
+`NotConverged` without retry. Columns and frames also require
+the last residual and change to be within the declared tolerance 1e−10.
 
-### Espectro: derivación D9–D12
+### Spectrum: derivation D9–D12
 
-**D9. SRSS y coordenada modal máxima.** Multiplicar la ecuación dinámica
-por un modo normalizado a masa da `q̈_n+ω_n²q_n=−Γ_n a_g` (se omite el
-signo convencional en la amplitud firmada según API). La pseudoaceleración
-de la tabla produce `qmax_n=Γ_n Sa/ω_n²`; la fuerza equivalente es
-`Mφ_nΓ_nSa`. Su suma proyectada es `Vb,n=Γ_n²Sa=M*_nSa`. Por independencia:
+**D9. SRSS and maximum modal coordinate.** Multiplying the dynamic equation
+by a mass-normalized mode gives `q̈_n+ω_n²q_n=−Γ_n a_g` (the conventional
+sign in the signed amplitude is omitted according to the API). The table's pseudoacceleration
+produces `qmax_n=Γ_n Sa/ω_n²`; the equivalent force is
+`Mφ_nΓ_nSa`. Its projected sum is `Vb,n=Γ_n²Sa=M*_nSa`. By independence:
 
 ```text
 Vb²=Σ_n(M*_n Sa)², u_n=φ_nΓ_nSa/ω_n².               (D9)
 ```
 
-Para los dos pisos de D2, k=23, m=4 y Sa=2.7 / 5.1 m/s²:
-`M*±=m(1±2/√5)`, `Vb²=(18/5)(mSa)²`. Cada fila comprueba Sa, coordenada
-modal máxima, cortante de cada modo, cada desplazamiento físico firmado y
-envolventes SRSS contra D2/D9, sin obtener Γ esperado del resultado modal.
+For the two stories of D2, k=23, m=4 and Sa=2.7 / 5.1 m/s²:
+`M*±=m(1±2/√5)`, `Vb²=(18/5)(mSa)²`. Each row checks Sa, maximum modal
+coordinate, shear of each mode, each signed physical displacement and
+SRSS envelopes against D2/D9, without obtaining expected Γ from the modal result.
 
-**D10. Tablas.** Lineal entre `(1,3),(5,11)`:
+**D10. Tables.** Linear between `(1,3),(5,11)`:
 `Sa(T)=3+(T−1)(11−3)/(5−1)` ⇒ `Sa(2.5)=6`.
-Log-log entre `(1,3),(4,48)`:
+Log-log between `(1,3),(4,48)`:
 `ln Sa=ln3+ln(T/1) ln(48/3)/ln(4/1)` ⇒ `Sa=3T²`,
-`Sa(2)=12`. También se verifican ambos extremos. No se da a la interpolación
-log-log el valor esperado de la interpolación lineal.
+`Sa(2)=12`. Both endpoints are also verified. Log-log interpolation
+is not given the expected value of linear interpolation.
 
-**D11. CQC.** La ecuación WDKB 1981 es la fórmula suministrada por la
-petición; la atribución identifica esa ecuación, sin afirmar acceso al paper,
-su código o un ejemplo publicado. En el test se expande directamente:
+**D11. CQC.** The WDKB 1981 equation is the formula supplied by the
+request; the attribution identifies that equation, without claiming access to the paper,
+its code or a published example. In the test it is expanded directly:
 
 ```text
 r=ω_j/ω_i
@@ -634,80 +634,80 @@ r=ω_j/ω_i
 R_CQC=√(A²+B²+2ρ_ijAB).                              (D11)
 ```
 
-La fila cercana usa ω=(10,10.2), ζ=(.05,.07), A=3, B=−4; el signo de
-AB discrimina la combinación de magnitudes prematura. Se compara ρ con la
-expansión manual, su simetría y la combinación. Para modos iguales y ζ igual,
+The close row uses ω=(10,10.2), ζ=(.05,.07), A=3, B=−4; the sign of
+AB distinguishes premature magnitude combination. ρ is compared with the
+manual expansion, its symmetry and the combination. For equal modes and equal ζ,
 r=1 ⇒ numerador=denominador=16ζ² ⇒ `ρ_ii=1`, `R=|A+B|`.
-Para ω=(1,100), ζ=.05, `ρ<2.1e−5`: CQC≈SRSS con margen relativo 2e−5;
-no es identidad exacta con amortiguamiento positivo y separación finita.
-Con esas frecuencias distintas y ζ=0, el numerador es cero, por tanto
-**CQC=SRSS exactamente** (dentro de margen f64). Se comprueban ambos casos.
+For ω=(1,100), ζ=.05, `ρ<2.1e−5`: CQC≈SRSS with relative margin 2e−5;
+it is not exact identity with positive damping and finite separation.
+With those distinct frequencies and ζ=0, the numerator is zero, therefore
+**CQC=SRSS exactly** (within f64 margin). Both cases are checked.
 
-**D12. Factores direccionales.** Masa puntual isotrópica de 2 kg,
-resortes independientes kx=18, ky=50 N/m unidos a base fija: ωx=3, ωy=5.
-Excitar x/y por separado da `Vx=2Sa,x`, `Vy=2Sa,y`, `ux=Sa,x/9`,
-`uy=Sa,y/25`. Para factores de usuario ax,ay:
+**D12. Directional factors.** Isotropic point mass of 2 kg,
+independent springs kx=18, ky=50 N/m connected to a restrained base: ωx=3, ωy=5.
+Exciting x/y separately gives `Vx=2Sa,x`, `Vy=2Sa,y`, `ux=Sa,x/9`,
+`uy=Sa,y/25`. For user factors ax,ay:
 
 ```text
 V_ponderado=axVx+ayVy
 V_SRSS=√[(axVx)²+(ayVy)²].                            (D12)
 ```
 
-Dos filas ejecutan `Spectrum::run` completo con Sa=(2,5), factores=(1.4,.35)
-y Sa=(3,4), factores=(.65,1.2), respectivamente; verifican ambos basales y
-las dos componentes de desplazamiento combinado. No hay factores normativos.
+Two rows run the full `Spectrum::run` with Sa=(2,5), factores=(1.4,.35)
+and Sa=(3,4), factores=(.65,1.2), respectively; they verify both base shears and
+the two combined displacement components. There are no code-prescribed factors.
 
-### Tolerancias, portabilidad y criterios pendientes
+### Tolerances, portability and pending criteria
 
-La regla sigue siendo `|a−e|≤absoluto+relativo·|e|`, con finitos obligatorios;
-cada fila tiene justificación. Las comparaciones algebraicas usan 1e−9 absoluto
-y relativo; ortogonalidad, rotación y comparación lineal usan 2e−9 absoluto
-y 2e−8 relativo para acumulación/condicionamiento f64. Los márgenes de malla,
-de idealización y del límite CQC están separados y declarados arriba. No se
-amplía una tolerancia en función del valor obtenido para hacer pasar un fallo.
+The rule remains `|a−e|≤absoluto+relativo·|e|`, with mandatory finite values;
+each row has a justification. Algebraic comparisons use 1e−9 absolute
+and relative; orthogonality, rotation and linear comparison use 2e−9 absolute
+and 2e−8 relative for f64 accumulation/conditioning. Mesh,
+idealization and CQC limit margins are separate and declared above. A tolerance is not
+increased based on the obtained value to make a failure pass.
 
-Los fixtures son tablas constantes y los tests solo operan en memoria. Sin
-E/S, red, hilos, procesos ni reloj. `Arc` es un requisito de la API de
-productores, no introduce hilos. La biblioteca documental no añade código que
-pueda entrar en panic/unwrap/expect; los auxiliares devuelven errores del
-catálogo `ENG-E-0012` y propagan errores públicos. Solo el límite del test
-convierte un fallo en panic con nombre, campo y provenance.
+Fixtures are constant tables and tests operate only in memory. No
+I/O, network, threads, processes or clock. `Arc` is a producer API
+requirement; it introduces no threads. The documentation library adds no code that
+may enter panic/unwrap/expect; helpers return errors from the
+`ENG-E-0012` catalog and propagate public errors. Only the test boundary
+converts a failure into panic with name, field and provenance.
 
-Estado de los criterios de VAL-001:
+Status of VAL-001 thresholds:
 
-- **CUBIERTO:** ≥30 fixtures totales, ≥24 nuevos y cobertura analítica modal,
-  P-Delta y espectral solicitada; 73 totales / 31 nuevos.
-- **CUBIERTO:** datos tabulados, source/citation propia, tolerancias declaradas,
-  fallo con nombre y compilación de pruebas para wasm sin dependencias nuevas.
-- **PENDIENTE:** ejemplos de libro/publicados con edición, página y cita exacta:
-  no verificables sin acceso; fuera del alcance de J2. No se inventan citas.
-- **PENDIENTE:** ejecución de los tests en un runtime wasm; compilar no equivale
-  a ejecutarlos. Tampoco se declara habilitada cobertura de gran deformación,
-  plasticidad o historias temporales a partir del P-Delta elástico/espectro.
-- **Revisor clean-room: PENDIENTE (J4)**. No se declara cerrado VAL-001 completo.
+- **COVERED:** ≥30 total fixtures, ≥24 new and the requested analytical modal,
+  P-Delta and spectral coverage; 73 total / 31 new.
+- **COVERED:** tabulated data, own source/citation, declared tolerances,
+  failure with name and test compilation for wasm without new dependencies.
+- **PENDING:** book/published examples with edition, page and exact citation:
+  not verifiable without access; outside J2 scope. No citations are invented.
+- **PENDING:** test execution in a wasm runtime; compiling is not equivalent
+  to running them. Nor is coverage of large deformation,
+  plasticity or time histories declared enabled based on elastic P-Delta/spectrum.
+- **Clean-room reviewer: PENDING (J4)**. Full VAL-001 is not declared complete.
 
-### Verificación de la ampliación (2026-10-11)
+### Extension verification (2026-10-11)
 
-Todos los comandos Cargo se ejecutaron con `CARGO_NET_OFFLINE=true`, sin
-descargar dependencias ni componentes:
+All Cargo commands were run with `CARGO_NET_OFFLINE=true`, without
+downloading dependencies or components:
 
-- `cargo fmt` y `cargo fmt --check`: **OK**.
+- `cargo fmt` and `cargo fmt --check`: **OK**.
 - `cargo clippy --all-targets -- -D warnings`: **OK**.
-- `cargo test --workspace`: **OK**, **294 pruebas nativas**, incluidos
-  doctests; el test lineal original recorre 42 fixtures y los tres tests nuevos
-  recorren 12/10/9 filas. Ningún fallo ni fixture existente modificado.
+- `cargo test --workspace`: **OK**, **294 native tests**, including
+  doctests; the original linear test traverses 42 fixtures and the three new tests
+  traverse 12/10/9 rows. No failures or existing fixtures modified.
 - `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`: **OK**.
 - `cargo check --workspace --target wasm32-unknown-unknown`: **OK**.
 - `cargo check --workspace --all-targets --target wasm32-unknown-unknown`:
-  **OK**, incluye explícitamente las tablas, auxiliares y oráculos nuevos.
-- `bash clean-room/check.sh origin/main`: **OK**. Comprobación adicional con
-  todos los archivos nuevos reconocidos mediante índice y objetos temporales
-  en `/tmp`: **OK**, también `git diff --cached --check` en ese índice.
-- `git diff --check`: **OK**. Cargo.toml, Cargo.lock, tabla/harness/test lineales
-  originales y bibliotecas de análisis/elementos permanecen intactos.
+  **OK**, explicitly includes the new tables, helpers and oracles.
+- `bash clean-room/check.sh origin/main`: **OK**. Additional check with
+  all new files recognized through a temporary index and objects
+  in `/tmp`: **OK**, also `git diff --cached --check` in that index.
+- `git diff --check`: **OK**. Cargo.toml, Cargo.lock, original linear
+  table/harness/test and analysis/element libraries remain intact.
 
-Pruebas nativas/documentación: rustc/cargo 1.85.1 del sistema; Clippy 0.1.99.
+Native tests/documentation: system rustc/cargo 1.85.1; Clippy 0.1.99.
 Wasm: `PATH=/home/box/.cargo/bin:$PATH RUSTUP_TOOLCHAIN=stable`, rustc 1.99.0
-con destino ya instalado. No se ejecutó un runtime wasm. El índice Git real
-permanece intacto; **sin commit ni push**, sin red ni dependencias nuevas.
-Revisor clean-room: PENDIENTE (J4).
+with target already installed. No wasm runtime was run. The real Git index
+remains intact; **no commit or push**, no network or new dependencies.
+Clean-room reviewer: PENDING (J4).

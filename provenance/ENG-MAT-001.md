@@ -1,179 +1,179 @@
-# Bitácora clean-room · ENG-MAT-001
+# Clean-room log · ENG-MAT-001
 
-- Ticket / PR: ENG-MAT-001, «Ley uniaxial elástica y sección elástica»; rama `j2/eng-mat-001-elastic`. PR #13 de `mamut-engine` (fusionado en `main`, 8440441).
-- Autor(es): Codex gpt-6.1-sol high, orquestado por J2; fecha 2026-10-10/11 (America/Guayaquil), según la identificación solicitada para esta entrega. No se delegó a otros agentes.
-- Rol: implementador; sin actividad de operador de oráculo ni auditor de similitud.
-- Contrato implementado: `uniaxial/1`, kind `elastic`, y `section/1`, kind `elastic_frame`, versiones de contrato 1.0. Crate y métodos versión semántica 0.1.0.
-- Fuentes permitidas usadas: contratos y especificaciones internos enumerados abajo, convención aprobada de ejes y derivaciones analíticas propias. No se consultaron libros ni fuentes externas para esta implementación. Para una futura atribución bibliográfica de las relaciones elementales: **PENDIENTE: cita exacta**; no se inventan autores, páginas, capítulos ni números de ecuación.
-- Derivaciones propias: [nota de esta bitácora](#derivaciones-propias-y-fixtures); [fixtures y pruebas](../crates/engine-laws/tests/elastic.rs). Los valores de referencia se calcularon a mano, sin extraer resultados de otro motor.
-- Código de terceros copiado: ninguno. Código propio, biblioteca estándar y dependencias locales `engine-core` y `engine-contracts`; sin dependencias externas ni cambios en esos crates.
-- Validación: analítico; σ=Eε, N=EAε0, My=EIyκy, Mz=EIzκz y T=GJθ′, tangentes consistentes, conformidad, entradas negativas y repetibilidad.
-- Comparación con oráculo (repo hermano, informativa): no (**PENDIENTE ENG-GOV-004**). No se usó ningún motor externo como oráculo.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket." Tampoco consulté código ni manuales de CalculiX u otros motores, ni manuales de OpenSees/Stabileo. No hubo acceso a la red en esta sesión.
-- Revisor clean-room: J4, 2026-10-11; resultado: 0 hallazgos altos, 0 medios, 4 bajos.
+- Ticket / PR: ENG-MAT-001, «Ley uniaxial elástica y sección elástica»; branch `j2/eng-mat-001-elastic`. PR #13 of `mamut-engine` (merged into `main`, 8440441).
+- Author(s): Codex gpt-6.1-sol high, orchestrated by J2; date 2026-10-10/11 (America/Guayaquil), according to the identification requested for this delivery. No delegation to other agents.
+- Role: implementer; no oracle operator or similarity auditor activity.
+- Implemented contract: `uniaxial/1`, kind `elastic`, and `section/1`, kind `elastic_frame`, contract versions 1.0. Crate and methods semantic version 0.1.0.
+- Permitted sources used: internal contracts and specifications listed below, approved axis convention and own analytical derivations. No books or external sources were consulted for this implementation. For future bibliographic attribution of the elementary relationships: **PENDING: exact citation**; no authors, pages, chapters or equation numbers are invented.
+- Own derivations: [note in this log](#derivaciones-propias-y-fixtures); [fixtures and tests](../crates/engine-laws/tests/elastic.rs). Reference values were calculated by hand, without extracting results from another engine.
+- Third-party code copied: none. In-house code, standard library and local dependencies `engine-core` and `engine-contracts`; no external dependencies or changes to those crates.
+- Validation: analytical; σ=Eε, N=EAε0, My=EIyκy, Mz=EIzκz and T=GJθ′, consistent tangents, conformance, negative inputs and repeatability.
+- Oracle comparison (sibling repo, informative): no (**PENDING ENG-GOV-004**). No external engine was used as an oracle.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket." Nor did I consult code or manuals of CalculiX or other engines, or OpenSees/Stabileo manuals. There was no network access in this session.
+- Clean-room reviewer: J4, 2026-10-11; result: 0 high findings, 0 medium, 4 low.
 
-## Documentos internos consultados
+## Internal documents consulted
 
-Antes de escribir la implementación se leyeron los traits `UniaxialLaw` y
-`SectionLaw`, los ejemplos `LinearElastic` y `ElasticSection2D`, y el kit
-`conformance::check_uniaxial_law` / `check_section_law` de `engine-contracts`.
-También se leyeron `docs/CLEAN_ROOM.md`, `provenance/TEMPLATE.md`,
-`provenance/ENG-CORE-007.md` y `docs/CONVENCION_EJES.md`.
+Before writing the implementation, the traits `UniaxialLaw` and
+`SectionLaw`, the examples `LinearElastic` and `ElasticSection2D`, and the
+`conformance::check_uniaxial_law` / `check_section_law` kit from `engine-contracts` were read.
+`docs/CLEAN_ROOM.md`, `provenance/TEMPLATE.md`,
+`provenance/ENG-CORE-007.md` and `docs/CONVENCION_EJES.md` were also read.
 
-La especificación autorizada se consultó directamente en
-`04_TICKETS.md` (documento de tickets del programa Mamut), sección ENG-MAT-001, y
-`01_ARQUITECTURA_Y_CONTRATOS.md` (documento del programa Mamut), §§4.2 y 4.3.
-Se consultaron los tipos de intercambio, almacenamiento matricial y diagnósticos
-del núcleo, los manifests del workspace y `clean-room/check.sh`. No se encontró
-un `AGENTS.md` aplicable en el workspace ni en sus directorios ascendientes.
-El comprobador consume las listas prohibidas existentes; no se alteraron esas
-listas ni ninguna ruta protegida. No se abrieron fuentes ni rutas de motores
-prohibidos.
+The authorized specification was consulted directly in
+`04_TICKETS.md` (Mamut program ticket document), section ENG-MAT-001, and
+`01_ARQUITECTURA_Y_CONTRATOS.md` (Mamut program document), §§4.2 and 4.3.
+The core's exchange types, matrix storage and diagnostics,
+the workspace manifests and `clean-room/check.sh` were consulted. No applicable
+`AGENTS.md` was found in the workspace or its ancestor directories.
+The checker consumes the existing prohibited lists; those lists
+and all protected paths were left unchanged. No sources or paths of prohibited
+engines were opened.
 
-## Decisiones de arquitectura
+## Architecture decisions
 
-1. `engine-laws` 0.1.0 se añade al workspace. Depende exclusivamente de los dos
-   crates locales autorizados, con versión 0.1.0 y path. `Cargo.lock` registra
-   solamente el nuevo paquete y esas dependencias existentes.
-2. `lib.rs` contiene documentación general, descriptor común y validadores
-   privados. `uniaxial.rs` y `section.rs` mantienen implementaciones, parámetros,
-   descriptores y fábricas separados. No se modifica `engine-contracts`.
-3. `UniaxialFactory` y `SectionFactory` son interfaces locales `Send + Sync`
-   con parámetros asociados tipados. Fábricas con el mismo tipo de parámetros
-   son intercambiables mediante objetos del trait; sus productos son
-   `Box<dyn UniaxialLaw>` / `Box<dyn SectionLaw>`. Las fábricas concretas delegan
-   toda validación al constructor. No se añade registro global, parser JSON ni
-   un nuevo contrato compartido. El despacho de modelos queda para el registro
-   de métodos futuro.
-4. `LawDescriptor` informa kind, contrato y versión semántica del método.
-   Los contratos y la versión del método son independientes; el API inicial
-   es 0.1.0 y su evolución debe respetar semver. No hay estado global mutable.
-5. `Elastic` guarda E validado. `ElasticFrame` conserva propiedades inmutables
-   y rigideces validadas; admite D2 y D3 con el orden exacto de `section/1`.
-   Las leyes son puras, sin historia ni precarga; estado inicial/de prueba vacío.
-6. Se exige finitud y positividad de E, G, A, Iy, Iz y J incluso en D2, y de
-   Ay/Az cuando existen. Se validan todos sus productos: un desbordamiento
-   produce `ENG-E-0008`; un producto positivo reducido a cero por
-   subdesbordamiento produce `ENG-E-0010`. Entradas no finitas usan
-   `ENG-E-0008`; rangos o longitudes inválidos usan `ENG-E-0010`, como los
-   contratos existentes. Los mensajes identifican la magnitud SI implicada.
-7. G es explícito: no se ofrece constructor desde ν ni se supone isotropía para
-   deducirlo. J es la constante de torsión de Saint-Venant suministrada, no una
-   inercia polar calculada. No hay calculadora geométrica, alabeo, plasticidad,
-   daño, masa ni transformación a fuerzas de extremo.
-8. Ay/Az son áreas efectivas de corte que ya incorporan cualquier corrección
-   elegida por el consumidor. GAy/GAz se exponen como accesores `Option<Real>`
-   en N, también en D2; no se amplían deformaciones ni resultantes del contrato.
-9. La sección supone ejes centroidales principales y material homogéneo:
-   la tangente es diagonal, sin acoplamiento axial-flexión o flexión cruzada.
-   X-Y es horizontal, Z vertical, terna diestra; D2 sigue en X-Y con Z=0.
-   No se adopta la propuesta pendiente de elevación D2.
-10. `#![deny(missing_docs)]` exige rustdoc en todo el API público. Implementación
-    y pruebas solo requieren memoria; no usan sistema de archivos, hilos,
-    reloj, servicios de red ni dependencias específicas del host. Los benchmarks
-    son fixtures analíticos en código, no mediciones de rendimiento.
+1. `engine-laws` 0.1.0 is added to the workspace. It depends exclusively on the two
+   authorized local crates, with version 0.1.0 and path. `Cargo.lock` records
+   only the new package and those existing dependencies.
+2. `lib.rs` contains general documentation, a common descriptor and private
+   validators. `uniaxial.rs` and `section.rs` keep implementations, parameters,
+   descriptors and factories separate. `engine-contracts` is unchanged.
+3. `UniaxialFactory` and `SectionFactory` are local `Send + Sync` interfaces
+   with typed associated parameters. Factories with the same parameter type
+   are interchangeable through trait objects; their products are
+   `Box<dyn UniaxialLaw>` / `Box<dyn SectionLaw>`. Concrete factories delegate
+   all validation to the constructor. No global registry, JSON parser or
+   new shared contract is added. Model dispatch is left for the future
+   method registry.
+4. `LawDescriptor` reports kind, contract and method semantic version.
+   The contracts and method version are independent; the initial API
+   is 0.1.0 and its evolution must respect semver. There is no mutable global state.
+5. `Elastic` stores validated E. `ElasticFrame` preserves immutable properties
+   and validated stiffnesses; it supports D2 and D3 with the exact order of `section/1`.
+   The laws are pure, without history or preload; empty initial/trial state.
+6. Finiteness and positivity of E, G, A, Iy, Iz and J are required even in D2, and of
+   Ay/Az when present. All their products are validated: overflow
+   produces `ENG-E-0008`; a positive product reduced to zero by
+   underflow produces `ENG-E-0010`. Nonfinite inputs use
+   `ENG-E-0008`; invalid ranges or lengths use `ENG-E-0010`, like the
+   existing contracts. Messages identify the SI quantity involved.
+7. G is explicit: no constructor from ν is offered and isotropy is not assumed to
+   deduce it. J is the supplied Saint-Venant torsion constant, not a
+   calculated polar inertia. There is no geometry calculator, warping, plasticity,
+   damage, mass or transformation to end forces.
+8. Ay/Az are effective shear areas that already incorporate any correction
+   chosen by the consumer. GAy/GAz are exposed as `Option<Real>` accessors
+   in N, also in D2; the contract's strains and resultants are not extended.
+9. The section assumes principal centroidal axes and homogeneous material:
+   the tangent is diagonal, without axial–bending or cross-bending coupling.
+   X-Y is horizontal, Z vertical, right-handed triad; D2 remains in X-Y with Z=0.
+   The pending D2 elevation proposal is not adopted.
+10. `#![deny(missing_docs)]` requires rustdoc throughout the public API. Implementation
+    and tests only require memory; they use no filesystem, threads,
+    clock, network services or host-specific dependencies. Benchmarks
+    are analytical fixtures in code, not performance measurements.
 
 ## Derivaciones propias y fixtures
 
-Se adopta la idealización de elasticidad lineal σ=Eε, tensión y módulo en Pa,
-deformación total adimensional. Diferenciando se obtiene dσ/dε=E constante.
-La energía por unidad de volumen es ½Eε²; no hay historia ni tensión inicial.
+The linear elasticity idealization σ=Eε is adopted, stress and modulus in Pa,
+dimensionless total strain. Differentiation gives constant dσ/dε=E.
+Energy per unit volume is ½Eε²; there is no history or initial stress.
 
-En los ejes locales centroidales principales, se define
-εx(y,z)=ε0+κy z−κz y. Entonces:
+In the principal centroidal local axes, define
+εx(y,z)=ε0+κy z−κz y. Then:
 
-- N=∫σx dA=EAε0, porque ∫y dA=∫z dA=0.
-- My=∫zσx dA=EIyκy, con Iy=∫z² dA y ∫yz dA=0.
-- Mz=−∫yσx dA=EIzκz, con Iz=∫y² dA y ∫yz dA=0.
+- N=∫σx dA=EAε0, because ∫y dA=∫z dA=0.
+- My=∫zσx dA=EIyκy, with Iy=∫z² dA and ∫yz dA=0.
+- Mz=−∫yσx dA=EIzκz, with Iz=∫y² dA and ∫yz dA=0.
 
-En una cara de normal +x, estos momentos siguen la mano derecha alrededor de
-+y y +z. En la cara opuesta sus acciones cambian de dirección. N positivo
-significa tracción. κy y κz son derivadas de giros alrededor de sus ejes locales;
-el signo de la distribución axial hace que sean conjugadas a My y Mz positivos.
-La sección no decide el signo de acciones sobre los nodos.
+On a face with normal +x, these moments follow the right-hand rule about
++y and +z. On the opposite face their actions change direction. Positive N
+means tension. κy and κz are derivatives of rotations about their local axes;
+the sign of the axial distribution makes them conjugate to positive My and Mz.
+The section does not decide the sign of actions on the nodes.
 
-Para torsión uniforme de Saint-Venant se adopta T=GJθ′, donde θ′ es la derivada
-del giro alrededor de +x. G en Pa, J en m⁴ y θ′ en rad/m dan T en N·m.
-La energía por unidad de longitud es
-½(EAε0²+EIyκy²+EIzκz²+GJθ′²). Su gradiente da las resultantes y su Hessiana
-da la tangente constante diagonal (EA, EIy, EIz, GJ). En D2 se retienen
-solo ε0 y κz, con diagonal (EA, EIz). A en m² implica EA en N; Iy, Iz y J
-en m⁴ implican EI y GJ en N·m². Las curvaturas están en m⁻¹.
+For uniform Saint-Venant torsion T=GJθ′ is adopted, where θ′ is the derivative
+of rotation about +x. G in Pa, J in m⁴ and θ′ in rad/m give T in N·m.
+Energy per unit length is
+½(EAε0²+EIyκy²+EIzκz²+GJθ′²). Its gradient gives the resultants and its Hessian
+gives the constant diagonal tangent (EA, EIy, EIz, GJ). In D2
+only ε0 and κz are retained, with diagonal (EA, EIz). A in m² implies EA in N; Iy, Iz and J
+in m⁴ imply EI and GJ in N·m². Curvatures are in m⁻¹.
 
-Si el consumidor introduce deformaciones de corte fuera de este contrato,
-las relaciones lineales correspondientes son Vy=GAyγy y Vz=GAzγz. Por eso
-GAy/GAz tienen unidades N y se exponen únicamente como datos opcionales.
+If the consumer introduces shear strains outside this contract,
+the corresponding linear relationships are Vy=GAyγy and Vz=GAzγz. Therefore
+GAy/GAz have units N and are exposed only as optional data.
 
-Fixtures propios (cada uno incluye `source` y `citation` a esta nota):
+Own fixtures (each includes `source` and `citation` to this note):
 
-- Uniaxial: E=200 Pa, ε=0.02 da σ=4 Pa; E=200×10⁹ Pa, ε=−0.001
-  da σ=−200×10⁶ Pa; ε=0 da σ=0 sin precarga.
-- Sección pequeña: E=200 Pa, G=80 Pa, A=3 m², Iy=2 m⁴, Iz=5 m⁴,
-  J=4 m⁴. Así EA=600 N, EIy=400 N·m², EIz=1000 N·m², GJ=320 N·m².
-  D2 con e=(0.02,−0.03) da (N,Mz)=(12 N,−30 N·m).
-  D3 con e=(0.02,−0.03,0.04,−0.05) da
+- Uniaxial: E=200 Pa, ε=0.02 gives σ=4 Pa; E=200×10⁹ Pa, ε=−0.001
+  gives σ=−200×10⁶ Pa; ε=0 gives σ=0 without preload.
+- Small section: E=200 Pa, G=80 Pa, A=3 m², Iy=2 m⁴, Iz=5 m⁴,
+  J=4 m⁴. Thus EA=600 N, EIy=400 N·m², EIz=1000 N·m², GJ=320 N·m².
+  D2 with e=(0.02,−0.03) gives (N,Mz)=(12 N,−30 N·m).
+  D3 with e=(0.02,−0.03,0.04,−0.05) gives
   (N,My,Mz,T)=(12 N,−12 N·m,40 N·m,−16 N·m).
-  Ay=1.5 m² y Az=1.2 m² dan GAy=120 N y GAz=96 N.
-- Sección de escala estructural: E=200×10⁹ Pa, G=80×10⁹ Pa, A=0.03 m²,
-  Iy=2×10⁻⁵ m⁴, Iz=5×10⁻⁵ m⁴, J=4×10⁻⁵ m⁴. Multiplicando a mano:
+  Ay=1.5 m² and Az=1.2 m² give GAy=120 N and GAz=96 N.
+- Structural-scale section: E=200×10⁹ Pa, G=80×10⁹ Pa, A=0.03 m²,
+  Iy=2×10⁻⁵ m⁴, Iz=5×10⁻⁵ m⁴, J=4×10⁻⁵ m⁴. Multiplying by hand:
   EA=6×10⁹ N, EIy=4×10⁶ N·m², EIz=10⁷ N·m², GJ=3.2×10⁶ N·m².
-  Con e=(0.002,−0.003,0.004,−0.005), resultan
+  With e=(0.002,−0.003,0.004,−0.005), the results are
   (12×10⁶ N,−12000 N·m,40000 N·m,−16000 N·m).
 
-Los datos son elecciones propias, no ejemplos publicados ni resultados de
-oráculo. No se atribuyen a una página o ecuación externa. Para cualquier futura
-referencia bibliográfica externa: **PENDIENTE: cita exacta**.
+The data are own choices, not published examples or oracle
+results. They are not attributed to an external page or equation. For any future
+external bibliographic reference: **PENDING: exact citation**.
 
-## Cobertura y límites de validación
+## Validation coverage and limits
 
-Doce pruebas de integración y dos doctests del crate. Se usan los comprobadores
-públicos de conformidad con trayectorias que incluyen cero, tensión/compresión,
-signos opuestos y retorno a entradas aceptadas. Las diferencias centrales usan
-incremento 1e-7 en las unidades de cada componente; error relativo <1e-6.
-Además se verifican todas las entradas de la tangente por separado con
-incremento 1e-6 y error relativo <1e-6, evitando que EA oculte errores en EI/GJ.
-Los fixtures se comparan con tolerancia 1e-12 absoluta + 1e-12 relativa.
+Twelve integration tests and two crate doctests. The public conformance
+checkers are used with paths including zero, tension/compression,
+opposite signs and return to accepted inputs. Central differences use
+increment 1e-7 in each component's units; relative error <1e-6.
+All tangent entries are also verified separately with
+increment 1e-6 and relative error <1e-6, preventing EA from hiding errors in EI/GJ.
+Fixtures are compared with tolerance 1e-12 absolute + 1e-12 relative.
 
-Se comprueban matrices diagonales del tamaño requerido, simetría, ausencia de
-historia, repetición pura e inmutabilidad, y `Send + Sync` como restricciones de
-compilación sin crear hilos. Se ejercen fábricas mediante objetos de sus traits,
-descriptores, errores propagados y accesores. Las áreas de corte se prueban
-ausentes, presentes y por separado; no alteran ninguna respuesta generalizada.
+Checks cover diagonal matrices of the required size, symmetry, absence of
+history, pure repetition and immutability, and `Send + Sync` as compilation
+constraints without creating threads. Factories are exercised through their trait objects,
+descriptors, propagated errors and accessors. Shear areas are tested
+absent, present and separately; they do not alter any generalized response.
 
-Casos negativos: cero, negativo, NaN e infinito en cada propiedad (también
-inactivas en D2); longitudes incorrectas de deformaciones e historia; NaN,
-infinito y desbordamiento en cada componente; productos de rigidez desbordados
-o reducidos a cero. No se verifica una geometría física ni se infiere una
-orientación D3. La conformidad solo verifica las muestras, no demuestra
-exactitud para todo el rango de números flotantes.
+Negative cases: zero, negative, NaN and infinity in each property (including those
+inactive in D2); incorrect lengths of strains and history; NaN,
+infinity and overflow in each component; overflowed stiffness products
+or products reduced to zero. No physical geometry is verified or D3
+orientation inferred. Conformance only verifies the samples; it does not prove
+accuracy over the entire floating-point range.
 
-## Verificación local
+## Local verification
 
-Resultados finales de la verificación nativa local:
+Final results of local native verification:
 
-- `~/.cargo/bin/cargo fmt --check`: satisfactorio.
-- `~/.cargo/bin/cargo clippy --all-targets -- -D warnings`: satisfactorio.
-- `~/.cargo/bin/cargo test`: satisfactorio; workspace completo con 55 pruebas
-  unitarias/de integración y 27 doctests, incluidos 12 y 2 del nuevo crate.
-- `RUSTDOCFLAGS="-D warnings" ~/.cargo/bin/cargo doc --no-deps`: satisfactorio.
-- `bash clean-room/check.sh origin/main`: satisfactorio (`Clean-room: OK`).
-  También se ejecutó con un índice y directorio de objetos temporales en `/tmp`,
-  incluyendo mediante intent-to-add todos los archivos nuevos de este ticket,
-  sin alterar el índice ni los objetos Git reales. Resultado satisfactorio.
-- `git diff --check` sobre ese índice temporal: satisfactorio. El diff completo
-  contiene únicamente `Cargo.toml`, `Cargo.lock`, los cinco archivos de
-  `crates/engine-laws` y esta bitácora. Ninguna ruta protegida aparece en él.
+- `~/.cargo/bin/cargo fmt --check`: successful.
+- `~/.cargo/bin/cargo clippy --all-targets -- -D warnings`: successful.
+- `~/.cargo/bin/cargo test`: successful; full workspace with 55
+  unit/integration tests and 27 doctests, including 12 and 2 from the new crate.
+- `RUSTDOCFLAGS="-D warnings" ~/.cargo/bin/cargo doc --no-deps`: successful.
+- `bash clean-room/check.sh origin/main`: successful (`Clean-room: OK`).
+  Also run with a temporary index and object directory in `/tmp`,
+  including all new files of this ticket through intent-to-add,
+  without altering the real Git index or objects. Successful result.
+- `git diff --check` on that temporary index: successful. The full diff
+  contains only `Cargo.toml`, `Cargo.lock`, the five files of
+  `crates/engine-laws` and this log. No protected path appears in it.
 
-Se ejecutó primero `cargo test -p engine-laws --offline` para verificar los
-fixtures y después la suite completa. No se necesitaron correcciones de
-formulación tras esas corridas. No hubo descargas ni CI remota. El índice real
-conserva los archivos nuevos sin añadir, disponibles para revisión del usuario.
+`cargo test -p engine-laws --offline` was run first to verify the
+fixtures and then the complete suite. No formulation corrections were
+needed after those runs. There were no downloads or remote CI. The real index
+keeps the new files unadded, available for user review.
 
-- Corrida wasm32: **PENDIENTE**, no ejecutada (intento `cargo build --target wasm32-unknown-unknown` en la caja falla con E0463: la std del target no está disponible para el toolchain activo; sin runner wasm). Las pruebas están escritas para
-  compilar a wasm32 sin `std::fs`, hilos ni tiempo del sistema; no se afirma
-  validación numérica wasm ni equivalencia nativo/wasm en esta entrega.
-- Comparación con oráculo: no, **PENDIENTE ENG-GOV-004**.
-- Revisor clean-room: J4, 2026-10-11; resultado: 0 altos, 0 medios, 4 bajos.
+- wasm32 run: **PENDING**, not executed (attempting `cargo build --target wasm32-unknown-unknown` on the box fails with E0463: the target std is unavailable for the active toolchain; no wasm runner). The tests are written to
+  compile to wasm32 without `std::fs`, threads or system time; neither numerical
+  wasm validation nor native/wasm equivalence is claimed in this delivery.
+- Oracle comparison: no, **PENDING ENG-GOV-004**.
+- Clean-room reviewer: J4, 2026-10-11; result: 0 high, 0 medium, 4 low.
 
-No se modificaron `clean-room/**`, `.github/workflows`, `CODEOWNERS`,
-`docs/CLEAN_ROOM.md` ni archivos legales; no se creó `LICENSE`.
+No changes to `clean-room/**`, `.github/workflows`, `CODEOWNERS`,
+`docs/CLEAN_ROOM.md` or legal files; no `LICENSE` was created.

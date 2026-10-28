@@ -1,100 +1,100 @@
-# Bitácora clean-room · ENG-ANL-004
+# Clean-room log · ENG-ANL-004
 
-## Registro de ampliación ENG-VAL-001 (2026-10-11)
+## ENG-VAL-001 extension record (2026-10-11)
 
-- Ticket / PR: ENG-ANL-004 (#62), validación espectral desde ENG-VAL-001;
-  ampliación de tests, sin modificar el análisis espectral.
-- Autor(es): J2 (agente, Grok Bot), etiqueta solicitada; ejecutor Codex basado
-  en GPT-6 · 2026-10-11 (America/Guayaquil).
-- Rol: implementador de fixtures y autor de derivaciones propias, sin delegación.
-- Contrato implementado: validación de `Spectrum::run`, tablas y SRSS/CQC.
-- Fuentes permitidas usadas: petición, APIs/pruebas propias del workspace,
-  `provenance/TEMPLATE.md`, `docs/CLEAN_ROOM.md`; sin red ni fuentes externas.
-- Derivaciones propias: [ENG-VAL-001, D9–D12](ENG-VAL-001.md#ampliación-dinámica-y-2º-orden).
-- Código de terceros copiado: ninguno; sin dependencias nuevas.
-- Validación: analítica, 9 fixtures nuevos; ver recuento y verificaciones en
-  ENG-VAL-001. WDKB identifica la fórmula de la petición, sin consultar el paper.
-- Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados".
-- Revisor clean-room: PENDIENTE (J4).
+- Ticket / PR: ENG-ANL-004 (#62), spectral validation from ENG-VAL-001;
+  test extension, without modifying the spectral analysis.
+- Author(s): J2 (agent, Grok Bot), requested label; executing Codex based
+  on GPT-6 · 2026-10-11 (America/Guayaquil).
+- Role: implementer of fixtures and author of original derivations, without delegation.
+- Implemented contract: validation of `Spectrum::run`, tables and SRSS/CQC.
+- Permitted sources used: request, own workspace APIs/tests,
+  `provenance/TEMPLATE.md`, `docs/CLEAN_ROOM.md`; no network or external sources.
+- Original derivations: [ENG-VAL-001, D9–D12](ENG-VAL-001.md#ampliación-dinámica-y-2º-orden).
+- Third-party code copied: none; no new dependencies.
+- Validation: analytical, 9 new fixtures; see count and verifications in
+  ENG-VAL-001. WDKB identifies the formula from the request, without consulting the paper.
+- Oracle comparison (sibling repo, informational): no.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados".
+- Clean-room reviewer: PENDING (J4).
 
-## Registro previo del ticket
+## Previous ticket record
 
-- Ticket / PR: ENG-ANL-004 «Espectro de respuesta», rama `j2/eng-anl-004`
-  apilada sobre ENG-ANL-002 (#61, sin fusionar), su cadena ENG-MASS-001
-  (#55 → ENG-LOAD-001 #51), ENG-ANL-001 (#52) y ENG-LA-009 (#58), sin
-  fusionar. Sin commit ni push.
-- Autor(es): J2 (agente, Grok Bot) · etiqueta solicitada por el usuario;
-  ejecutor Codex basado en GPT-6 · 2026-10-11 (America/Guayaquil).
-- Rol: implementador y autor de derivaciones analíticas propias; sin delegación,
-  actividad de auditor ni operador de oráculo.
-- Contrato implementado: `spectrum`, API `engine_analysis::spectrum::Spectrum::run`
-  sobre `LinearSystem` y ENG-ANL-002; tablas SI, respuesta modal máxima,
-  reacciones, cortante basal, SRSS/CQC y combinación direccional explícita.
-  No adapta el trait genérico `AnalysisMethod` (sink/control/settings).
-- Fuentes permitidas usadas: exclusivamente la petición del usuario y las APIs
-  y código propios pertinentes del workspace: engine-analysis, engine-assembly,
-  engine-loads, engine-linalg, engine-core, engine-contracts, engine-model y
-  engine-elements-frame; `provenance/TEMPLATE.md`, `docs/CLEAN_ROOM.md` y
-  las notas analíticas propias de ENG-ANL-001/002. La fórmula CQC y su
-  atribución Wilson–Der Kiureghian–Bayo (1981) proceden de la petición;
-  no se consultó ese artículo ni otra publicación. Sin red ni fuentes externas.
-- Derivaciones propias: [ecuaciones de esta nota](#derivaciones-propias) y
-  [fixtures analíticos](../crates/engine-analysis/tests/spectrum.rs), marcados
+- Ticket / PR: ENG-ANL-004 «Response spectrum», branch `j2/eng-anl-004`
+  stacked on ENG-ANL-002 (#61, unmerged), its chain ENG-MASS-001
+  (#55 → ENG-LOAD-001 #51), ENG-ANL-001 (#52) and ENG-LA-009 (#58), unmerged.
+  No commit or push.
+- Author(s): J2 (agent, Grok Bot) · label requested by the user;
+  executing Codex based on GPT-6 · 2026-10-11 (America/Guayaquil).
+- Role: implementer and author of original analytical derivations; without delegation,
+  auditor activity or oracle operation.
+- Implemented contract: `spectrum`, API `engine_analysis::spectrum::Spectrum::run`
+  over `LinearSystem` and ENG-ANL-002; SI tables, peak modal response,
+  reactions, base shear, SRSS/CQC and explicit directional combination.
+  Does not adapt the generic trait `AnalysisMethod` (sink/control/settings).
+- Permitted sources used: exclusively the user's request and the relevant
+  own APIs and code of the workspace: engine-analysis, engine-assembly,
+  engine-loads, engine-linalg, engine-core, engine-contracts, engine-model and
+  engine-elements-frame; `provenance/TEMPLATE.md`, `docs/CLEAN_ROOM.md` and
+  the original analytical notes of ENG-ANL-001/002. The CQC formula and its
+  attribution to Wilson–Der Kiureghian–Bayo (1981) come from the request;
+  that article or any other publication was not consulted. No network or external sources.
+- Original derivations: [equations of this note](#derivaciones-propias) and
+  [analytical fixtures](../crates/engine-analysis/tests/spectrum.rs), marked
   `SOURCE` / `CITATION`.
-- Código de terceros copiado: ninguno. Sin dependencias nuevas, internas o externas.
-- Validación: exclusivamente analítica, sin valores publicados: edificio de
-  cortante de N pisos, correlaciones, identidades de combinación, osciladores
-  independientes y barra axial con masa consistente y recuperación de miembro.
-- Comparación con oráculo (repo hermano, informativa): no. No se consultó
-  ni ejecutó ningún motor externo.
-- Declaración: 'No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados'.
-- Revisor clean-room: PENDIENTE (J4).
+- Third-party code copied: none. No new dependencies, internal or external.
+- Validation: exclusively analytical, without published values: N-story
+  shear building, correlations, combination identities, independent
+  oscillators and axial bar with consistent mass and member recovery.
+- Oracle comparison (sibling repo, informational): no. No external engine
+  was consulted or run.
+- Declaration: 'No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados'.
+- Clean-room reviewer: PENDING (J4).
 
-## Apilado y declaraciones de los tres tickets
+## Stacking and declarations of the three tickets
 
-Las bitácoras de ENG-ANL-001, ENG-ANL-002 y ENG-ANL-004 contienen la
-misma declaración completa, autor J2 (agente, Grok Bot) y «Revisor clean-room:
-PENDIENTE (J4)». Las tres dependencias anteriores ENG-MASS-001, ENG-ANL-001
-y ENG-LA-009 también conservan esos campos. No se sustituyen sus derivaciones
-ni se afirma que sus PR estén fusionados. Se consume el módulo modal de #61
-sin cambiar el solver, la reducción de masa o los contratos de las ramas base.
+The logs of ENG-ANL-001, ENG-ANL-002 and ENG-ANL-004 contain the
+same full declaration, author J2 (agent, Grok Bot) and «Revisor clean-room:
+PENDIENTE (J4)». The three previous dependencies ENG-MASS-001, ENG-ANL-001
+and ENG-LA-009 also retain those fields. Their derivations are not replaced
+and their PRs are not claimed to be merged. The modal module from #61 is consumed
+without changing the solver, mass reduction or contracts of the base branches.
 
-## Interfaz, unidades y decisiones explícitas
+## Interface, units and explicit decisions
 
 `TabulatedSpectrum::new(pairs, units, damping, interpolation, extrapolation)`
-requiere al menos dos pares y una decisión para cada opción. La tabla es
-inmutable tras validarse. `SpectrumUnits` declara periodos en segundos o
-frecuencias en Hz, siempre con Sa en m/s². Sa es pseudoaceleración espectral
-para el amortiguamiento ζ de esa tabla. No se interpreta Sa como múltiplo de g,
-no hay conversión por gravedad ni ajuste automático por ζ. Se permiten ζ=0 y
-Sa=0 en interpolación lineal; ζ debe ser menor que 1.
+requires at least two pairs and a decision for each option. The table is
+immutable after validation. `SpectrumUnits` declares periods in seconds or
+frequencies in Hz, always with Sa in m/s². Sa is spectral pseudoacceleration
+for the damping ζ of that table. Sa is not interpreted as a multiple of g,
+there is no gravity conversion or automatic adjustment for ζ. ζ=0 and
+Sa=0 are allowed in linear interpolation; ζ must be less than 1.
 
-Las abscisas originales deben ser estrictamente crecientes. Los periodos
-pueden empezar en cero; las frecuencias deben ser positivas. Una tabla en
-frecuencia se transforma mediante T=1/f y se invierte su orden: las dos
-interpolaciones son SIEMPRE en periodo. No se ordenan entradas inválidas.
+The original abscissas must be strictly increasing. Periods
+may start at zero; frequencies must be positive. A frequency
+table is transformed through T=1/f and its order is reversed: both
+interpolations are ALWAYS in period. Invalid inputs are not sorted.
 
-- Lineal: a=(T−T₀)/(T₁−T₀), Sa=(1−a)Sa₀+aSa₁.
+- Linear: a=(T−T₀)/(T₁−T₀), Sa=(1−a)Sa₀+aSa₁.
 - Log-log: a=ln(T/T₀)/ln(T₁/T₀), ln Sa=(1−a)ln Sa₀+a ln Sa₁;
-  exige T y Sa estrictamente positivos en cada punto. Se usa `ln_1p` en
-  intervalos cercanos y diferencias de ln cuando el cociente desbordaría.
-- Los valores en abscisas exactas se conservan. `Extrapolation::Error`
-  rechaza fuera del intervalo cerrado. `Extrapolation::Plateau`, elegida
-  explícitamente por el usuario, conserva Sa del extremo correspondiente;
-  incluye T=0 fuera de una tabla log-log. Nunca se extrapola silenciosamente.
+  requires strictly positive T and Sa at every point. `ln_1p` is used on
+  close intervals and differences of ln when the quotient would overflow.
+- Values at exact abscissas are retained. `Extrapolation::Error`
+  rejects values outside the closed interval. `Extrapolation::Plateau`, chosen
+  explicitly by the user, retains Sa of the corresponding endpoint;
+  includes T=0 outside a log-log table. Extrapolation is never silent.
 
-`Spectrum::run(system, directions, options)` recibe direcciones no nulas,
-normalizadas sin desbordar su norma. Cada `SpectrumDirection` declara una
-tabla común a todos los modos o exactamente una tabla por modo, en orden
-ascendente de frecuencia. Así se permite ζ común o ζ_n y Sa(T,ζ_n) aportados
-por el usuario. No se interpola entre amortiguamientos ni se modifica Sa.
-`SpectrumOptions` declara número de modos, MassKind, combinación modal,
-combinación direccional y un factor no negativo por dirección; no tiene Default.
-No hay mínimos normativos de masa modal ni porcentajes incorporados.
+`Spectrum::run(system, directions, options)` receives nonzero directions,
+normalized without overflowing their norm. Each `SpectrumDirection` declares a
+table common to all modes or exactly one table per mode, in ascending
+frequency order. This allows common ζ or ζ_n and Sa(T,ζ_n) supplied
+by the user. There is no interpolation between damping values or modification of Sa.
+`SpectrumOptions` declares mode count, MassKind, modal combination,
+directional combination and a nonnegative factor per direction; it has no Default.
+There are no code-prescribed modal mass minima or built-in percentages.
 
-Ejemplo de opciones proporcionadas por un llamador (valores ilustrativos del
-usuario, sin significado normativo):
+Example of options supplied by a caller (illustrative user
+values, without code-prescribed meaning):
 
 ```rust
 use engine_analysis::spectrum::{
@@ -119,24 +119,24 @@ let options = SpectrumOptions {
 # Ok::<(), engine_core::EngineError>(())
 ```
 
-Los resultados conservan tablas, opciones, direcciones unitarias, formas y
-participaciones de ENG-ANL-002, ζ y Sa por modo, coordenada modal, fuerzas
-equivalentes, desplazamientos libres/globales, reacciones y basal. Las respuestas
-modales son firmadas; las combinadas son envolventes por escalar. El sistema
-no retiene objetos `Element` ni sus contextos; para miembros, el llamador extrae
-u_e de cada desplazamiento global, usa `Element::recover` y combina cada
-acción firmada mediante `combine_modal`. Un test demuestra esta ruta con el
-axial de un frame existente. No se recuperan miembros sobre el desplazamiento
-combinado, que perdería signos modales y correlaciones. No se añade una fachada
-results/1 ni se combinan estados no lineales.
+Results retain tables, options, unit directions, shapes and
+participations from ENG-ANL-002, ζ and Sa per mode, modal coordinate, equivalent
+forces, free/global displacements, reactions and base shear. Modal
+responses are signed; combined responses are envelopes for each scalar. The system
+does not retain `Element` objects or their contexts; for members, the caller extracts
+u_e from each global displacement, uses `Element::recover` and combines each
+signed action using `combine_modal`. A test demonstrates this path with the
+axial force of an existing frame. Members are not recovered from the combined
+displacement, which would lose modal signs and correlations. No results/1
+facade is added and nonlinear states are not combined.
 
 ## Derivaciones propias
 
-### Respuesta modal, fuerzas y reacciones
+### Modal response, forces and reactions
 
-Para formas normalizadas a masa, φ_nᵀM_ffφ_n=1, la excitación direccional usa
-Γ_n=φ_nᵀM_ff r_f. Del sistema desacoplado y la definición de pseudoaceleración
-Sa=ω_n² S_d se obtiene la coordenada máxima firmada:
+For mass-normalized shapes, φ_nᵀM_ffφ_n=1, directional excitation uses
+Γ_n=φ_nᵀM_ff r_f. From the uncoupled system and the definition of pseudoacceleration
+Sa=ω_n² S_d the signed peak coordinate is obtained:
 
 ```text
 q_n,max = Γ_n Sa(T_n,ζ_n)/ω_n²
@@ -146,25 +146,25 @@ R_n,p = (K_global u_n − F_n)_p
 V_n = −Σ_apoyos R_n,traslacional · d̂
 ```
 
-Las formas y perturbaciones prescritas son cero, incluso con asentamientos.
-No se añaden cargas estáticas ni se llama a `Constraints::expand`, que añadiría
-los prescritos estáticos. Tampoco se usa M_fp r_p en Γ. M_global φ puede tener
-componentes en apoyos con masa consistente: F_p se resta al recuperar R_p.
-El cortante basal físico no se reemplaza en general por M*_n Sa, porque ese
-último solo proyecta las fuerzas libres en la definición modal utilizada.
+Prescribed shapes and perturbations are zero, even with settlements.
+Static loads are not added and `Constraints::expand`, which would add the
+static prescribed values, is not called. M_fp r_p is not used in Γ either. M_global φ may have
+components at supports with consistent mass: F_p is subtracted when recovering R_p.
+Physical base shear is not generally replaced by M*_n Sa, because the
+latter only projects the free forces in the modal definition used.
 
-Para la barra axial del test, E=12, A=L=1, ρ=6, M_axial=[[2,1],[1,2]],
-K_ff=12, M_ff=2, ω²=6, φ_f=1/√2 y Γ=√2. Con Sa=2:
-u_f=1/3, F_p=2, F_f=4, R_p=−12/3−2=−6 y V=6 N.
-La acción axial recuperada es EA u_f/L=4 N. Un asentamiento de 0.2 m y el
-estado previo aceptado u_f=0.7 no intervienen ni cambian durante el análisis.
+For the axial bar in the test, E=12, A=L=1, ρ=6, M_axial=[[2,1],[1,2]],
+K_ff=12, M_ff=2, ω²=6, φ_f=1/√2 and Γ=√2. With Sa=2:
+u_f=1/3, F_p=2, F_f=4, R_p=−12/3−2=−6 and V=6 N.
+The recovered axial action is EA u_f/L=4 N. A settlement of 0.2 m and the
+previous accepted state u_f=0.7 do not participate or change during the analysis.
 
-### Edificio de cortante: sustituto analítico propio, sin ejemplo publicado
+### Shear building: original analytical substitute, without a published example
 
-**No se reproduce ningún ejemplo publicado de Chopra**: no se dispone de sus
-valores ni se consultó su libro. El requisito se verifica con el edificio de
-cortante derivado en ENG-ANL-002. Para N pisos iguales, k por entrepiso y m por
-piso, q₀=0 y techo libre:
+**No published example from Chopra is reproduced**: its
+values are unavailable and his book was not consulted. The requirement is verified with the shear
+building derived in ENG-ANL-002. For N identical stories, k per story and m per
+story, q₀=0 and free roof:
 
 ```text
 θ_n = (2n−1)π/(2N+1), n=1,…,N
@@ -180,28 +180,28 @@ V_n = Σ_j F_jn = Γ_n² Sa_n = M*_n Sa_n
 R_base,n = −k u_1n = −V_n
 ```
 
-Un cambio de signo simultáneo de φ y Γ deja u, F y V iguales. Los tests
-calculan estas expresiones directamente con senos, sumas finitas y los parámetros
-N=1,4,9; k=17 N/m; m=3 kg. Se usa Sa constante 2.5 m/s² y la tabla lineal
-(T,Sa)=(0,1),(100,21), que da Sa(T)=1+0.2T en el intervalo. Γ, q, u, F,
-reacción y basal se verifican con tolerancia 3e−11·max(1,|valor esperado|).
-La completitud satisface Σ M*_n=Nm, para los N modos de este fixture.
+A simultaneous sign change of φ and Γ leaves u, F and V unchanged. The tests
+calculate these expressions directly with sines, finite sums and the parameters
+N=1,4,9; k=17 N/m; m=3 kg. Constant Sa of 2.5 m/s² and the linear table
+(T,Sa)=(0,1),(100,21), which gives Sa(T)=1+0.2T over the interval, are used. Γ, q, u, F,
+reaction and base shear are verified with tolerance 3e−11·max(1,|valor esperado|).
+Completeness satisfies Σ M*_n=Nm, for the N modes of this fixture.
 
-Por DEFINICIÓN de SRSS aplicado al escalar basal:
+By DEFINITION of SRSS applied to the base-shear scalar:
 
 ```text
 V_b,SRSS² = Σ_n V_n² = Σ_n (M*_n Sa_n)²
 Para Sa_n=Sa constante: V_b,SRSS² = Sa² Σ_n (M*_n)².
 ```
 
-Esto se deriva aquí y se verifica con todos los modos; no es
-Σ_n M*_n Sa_n = V_b,SRSS², expresión dimensionalmente incompatible. La suma
-lineal de fuerzas, Σ_n M*_n Sa, para este fixture completo es Nm Sa, pero
-no es su combinación SRSS. No se atribuye esta derivación a una publicación.
+This is derived here and verified with all modes; it is not
+Σ_n M*_n Sa_n = V_b,SRSS², a dimensionally incompatible expression. The linear
+sum of forces, Σ_n M*_n Sa, for this complete fixture is Nm Sa, but
+it is not its SRSS combination. This derivation is not attributed to a publication.
 
-### CQC y combinación direccional
+### CQC and directional combination
 
-La fórmula general proporcionada por el usuario es:
+The general formula supplied by the user is:
 
 ```text
 r = ω_j/ω_i
@@ -209,21 +209,21 @@ r = ω_j/ω_i
        [(1−r²)² + 4ζ_iζ_j r(1+r²) + 4(ζ_i²+ζ_j²)r²]
 ```
 
-Con ζ_i=ζ_j=ζ, el denominador se reduce a
-(1−r²)²+4ζ²r(1+r)² y el numerador a 8ζ²(1+r)r^(3/2), la expresión
-Wilson–Der Kiureghian–Bayo (1981) dada en la petición. Permutar i,j equivale
-a r→1/r y dividir ambos polinomios por r⁴; así ρ_ji=ρ_ij. Se evalúa con
-r≤1 y productos normalizados por la raíz del denominador, evitando cocientes
-grandes y cuadrados subnormales. Se limita al intervalo [0,1] el redondeo final.
-Para r=1 y ζ común positivo, numerador=denominador=16ζ² ⇒ ρ=1.
-Con ζ_i=ζ_j=0 y r=1 la expresión es 0/0: se declara la convención ρ=1.
-Con ambos ζ=0 y r≠1, ρ=0. Con r=1 y ζ distintos:
-ρ=2√(ζ_iζ_j)/(ζ_i+ζ_j), cero si solo un modo está amortiguado.
+With ζ_i=ζ_j=ζ, the denominator reduces to
+(1−r²)²+4ζ²r(1+r)² and the numerator to 8ζ²(1+r)r^(3/2), the
+Wilson–Der Kiureghian–Bayo (1981) expression given in the request. Swapping i,j is equivalent
+to r→1/r and dividing both polynomials by r⁴; thus ρ_ji=ρ_ij. It is evaluated with
+r≤1 and products normalized by the square root of the denominator, avoiding large
+quotients and subnormal squares. Final rounding is clamped to the interval [0,1].
+For r=1 and common positive ζ, numerator=denominator=16ζ² ⇒ ρ=1.
+With ζ_i=ζ_j=0 and r=1 the expression is 0/0: the convention ρ=1 is declared.
+With both ζ=0 and r≠1, ρ=0. With r=1 and different ζ:
+ρ=2√(ζ_iζ_j)/(ζ_i+ζ_j), zero if only one mode is damped.
 
-Los tests comparan ambas fórmulas, simetría, límites [0,1], diagonal unitaria,
-ζ subnormal y frecuencias extremas. Para ω=(1,1000) rad/s, ζ=0.05 y
-R=(3,4), se exige ρ<1e−6 y |CQC/SRSS−1|<1e−6. Para frecuencias próximas
-se comprueba correlación >0.9 y los términos cruzados con respuestas opuestas.
+The tests compare both formulas, symmetry, bounds [0,1], unit diagonal,
+subnormal ζ and extreme frequencies. For ω=(1,1000) rad/s, ζ=0.05 and
+R=(3,4), ρ<1e−6 and |CQC/SRSS−1|<1e−6 are required. For close frequencies
+correlation >0.9 and cross terms with opposite responses are checked.
 
 ```text
 SRSS: √Σ_n R_n²
@@ -232,67 +232,67 @@ Direcciones SRSS: √Σ_d (a_d R_d)²
 Direcciones suma ponderada: Σ_d a_d R_d
 ```
 
-Se escala R por su máximo módulo antes de la forma cuadrática. Solo se admite
-un negativo de redondeo de hasta 64ε n² antes de tomar la raíz; una forma más
-negativa devuelve ENG-E-0012. Se combinan componentes libres/globales y cada
-reacción por separado. Para V se suma primero cada conjunto de reacciones
-firmadas por modo y después se combina el escalar. Dos osciladores apoyados
-por separado con m=(2,3), k=(18,48), Sa=2 dan V=(4,6): V_SRSS=√52,
-mientras la suma de envolventes de apoyos es 10. Un test verifica esta diferencia.
-La combinación entre direcciones reúne magnitudes proyectadas en direcciones
-distintas; no se interpreta como una nueva dirección ni como equilibrio.
+R is scaled by its maximum magnitude before the quadratic form. Only a
+rounding negative of up to 64ε n² is allowed before taking the square root; a more
+negative form returns ENG-E-0012. Free/global components and each
+reaction are combined separately. For V each set of signed reactions
+is summed per mode first and then the scalar is combined. Two separately supported
+oscillators with m=(2,3), k=(18,48), Sa=2 give V=(4,6): V_SRSS=√52,
+whereas the sum of support envelopes is 10. A test verifies this difference.
+Combination across directions gathers quantities projected in different
+directions; it is not interpreted as a new direction or as equilibrium.
 
-## Errores y límites
+## Errors and limits
 
-- ENG-E-0010: tablas cortas, abscisas sin orden estricto/negativas, Sa negativa,
-  f=0, log-log con ceros, ζ fuera de [0,1), consultas T negativas/fuera de
-  rango con política Error, listas vacías, modos rígidos, dirección nula,
-  cardinalidad de tablas/factores incompatible o factores negativos.
-- ENG-E-0008: entrada o resultado no finito, inversión de f que desborda,
-  desplazamientos/fuerzas/productos/sumas no representables.
-- Se propagan diagnósticos de Modal/LinearSystem, incluidos ENG-E-0006,
-  ENG-E-0007, ENG-E-0011 y ENG-E-0012; no se regularizan ni condensan matrices.
-- No hay `panic!`, `unwrap` ni `expect` en engine-analysis/src. La indexación
-  interna usa dimensiones garantizadas por constructores privados o resultados
-  validados de Modal. No se llama al `SystemView::dof_label` con `expect`
-  preexistente en engine-assembly.
-- Las formas son de vibración libre no amortiguada; CQC usa amortiguamiento
-  modal clásico, no matrices de amortiguamiento no proporcionales. Las respuestas
-  son máximos estimados, no historias, ni estados simultáneos, ni signos de diseño.
-- Se heredan límites y tolerancias del solver modal apilado. No se garantiza
-  completitud con modos truncados. El camino modal sigue usando el solver denso.
+- ENG-E-0010: short tables, abscissas without strict ordering/negative, negative Sa,
+  f=0, log-log with zeros, ζ outside [0,1), negative/out-of-range T queries
+  with Error policy, empty lists, rigid modes, zero direction,
+  incompatible table/factor cardinality or negative factors.
+- ENG-E-0008: nonfinite input or result, inversion of f that overflows,
+  unrepresentable displacements/forces/products/sums.
+- Modal/LinearSystem diagnostics are propagated, including ENG-E-0006,
+  ENG-E-0007, ENG-E-0011 and ENG-E-0012; matrices are not regularized or condensed.
+- There is no `panic!`, `unwrap` or `expect` in engine-analysis/src. Internal
+  indexing uses dimensions guaranteed by private constructors or validated
+  Modal results. `SystemView::dof_label` with the preexisting `expect`
+  in engine-assembly is not called.
+- The shapes are for undamped free vibration; CQC uses classical modal
+  damping, not nonproportional damping matrices. Responses
+  are estimated maxima, not histories, simultaneous states or design signs.
+- Limits and tolerances of the stacked modal solver are inherited. Completeness
+  with truncated modes is not guaranteed. The modal path still uses the dense solver.
 
-## Verificación local
+## Local verification
 
-Todas las comprobaciones Cargo se ejecutaron con `CARGO_NET_OFFLINE=true`,
-sin red, descarga ni instalación de dependencias.
+All Cargo checks were run with `CARGO_NET_OFFLINE=true`,
+without network, downloads or dependency installation.
 
-- `cargo fmt` y `cargo fmt --check`: OK, salida 0.
-- `cargo clippy --all-targets -- -D warnings`: OK, salida 0.
-- `cargo test --workspace`: OK, salida 0; 257 pruebas y doctests, incluidas
-  12 pruebas espectrales nuevas. Las pruebas espectrales se ejecutaron primero
-  por separado; se corrigió el acceso del test a `StationResult::forces_local`
-  antes de la verificación completa.
-- `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`: OK, salida 0.
-- `cargo check --workspace --target wasm32-unknown-unknown`: OK, salida 0,
-  con `PATH=/home/box/.cargo/bin:$PATH RUSTUP_TOOLCHAIN=stable`, toolchain
-  ya instalado que contiene std para ese destino. No se descargó nada.
-- `bash clean-room/check.sh origin/main`: OK, salida 0. Los archivos nuevos
-  quedaron incluidos mediante `git add -N` exclusivamente en un índice y un
-  directorio de objetos temporales bajo `/tmp`, usando los objetos existentes
-  como alternativos de solo lectura. No se modificó el índice real ni se
-  crearon commits. `git diff --check` con ese índice: OK.
-- Búsqueda de `panic!`, `.unwrap(` y `.expect(` en engine-analysis/src:
-  sin coincidencias. Las pruebas usan aserciones y unwrap en el fixture,
-  siguiendo la convención de los tests analíticos existentes.
+- `cargo fmt` and `cargo fmt --check`: OK, exit 0.
+- `cargo clippy --all-targets -- -D warnings`: OK, exit 0.
+- `cargo test --workspace`: OK, exit 0; 257 tests and doctests, including
+  12 new spectral tests. The spectral tests were first run
+  separately; the test's access to `StationResult::forces_local` was corrected
+  before the full verification.
+- `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`: OK, exit 0.
+- `cargo check --workspace --target wasm32-unknown-unknown`: OK, exit 0,
+  with `PATH=/home/box/.cargo/bin:$PATH RUSTUP_TOOLCHAIN=stable`, an already
+  installed toolchain containing std for that target. Nothing was downloaded.
+- `bash clean-room/check.sh origin/main`: OK, exit 0. The new files
+  were included through `git add -N` exclusively in a temporary index and
+  object directory under `/tmp`, using the existing objects
+  as read-only alternates. The real index was not modified and no
+  commits were created. `git diff --check` with that index: OK.
+- Search for `panic!`, `.unwrap(` and `.expect(` in engine-analysis/src:
+  no matches. The tests use assertions and unwrap in the fixture,
+  following the convention of the existing analytical tests.
 
-Compilación nativa, pruebas y rustdoc: Cargo/rustc 1.85.1 del sistema
-(MSRV); Clippy instalado: 0.1.99. El chequeo wasm usó rustc 1.99.0
-del toolchain `stable` ya instalado.
+Native compilation, tests and rustdoc: system Cargo/rustc 1.85.1
+(MSRV); installed Clippy: 0.1.99. The wasm check used rustc 1.99.0
+from the already installed `stable` toolchain.
 
-El chequeo wasm verifica compilación, no ejecución en un runtime wasm ni
-igualdad numérica entre destinos. La revisión clean-room de J4 sigue pendiente.
-Registros: `/tmp/eng-anl-004-{fmt,clippy,test,doc,wasm,clean-room,diff-check}.log`.
-Sin commit ni push. Revisor clean-room: PENDIENTE (J4).
+The wasm check verifies compilation, not execution in a wasm runtime or
+numerical equality between targets. J4's clean-room review remains pending.
+Logs: `/tmp/eng-anl-004-{fmt,clippy,test,doc,wasm,clean-room,diff-check}.log`.
+No commit or push. Clean-room reviewer: PENDING (J4).
 
-> Nota J2 (2026-10-14, merge de main): esta bitácora de validación (ENG-VAL-001) se movió desde `ENG-ANL-004.md` porque main ya trae la bitácora de implementación de #62 con ese nombre.
+> J2 note (2026-10-14, merge from main): this validation log (ENG-VAL-001) was moved from `ENG-ANL-004.md` because main already includes the #62 implementation log under that name.

@@ -1,13 +1,13 @@
-# Bitácora clean-room · ENG-ASM-001 seguimiento T1 (J4 retro)
+# Clean-room log · ENG-ASM-001 follow-up T1 (J4 retro)
 
-- Ticket / PR: T1 de /workspace/j4rev/tickets/engine-retro.md; rama `j2/asm-geometric-has-flag`
-- Autor(es): J2 (agente, Grok Bot) · 2026-10-11 (America/Guayaquil).
-- Rol: implementador
-- Contrato implementado: SystemView::geometric (engine-assembly)
-- Fuentes permitidas usadas: ninguna externa; razonamiento propio (P-Δ: con axial nulo en la referencia Kg(ref)=0 pero Kg(u≠ref)≠0).
-- Derivaciones propias: `has_geometric` se fija al construir (algún `ElementContribution.geometric.is_some()`); si es true y u≠referencia → ENG-E-0013 aunque Kg(ref) sea cero. Sigue pendiente el productor real de Kg(u) (recálculo de axiales).
-- Código de terceros copiado: ninguno
-- Validación: analítico (prueba `zero_reference_geometric_still_rejects_other_states`)
-- Comparación con oráculo: no
-- Declaración: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados"
-- Revisor clean-room: PENDIENTE (J4)
+- Ticket / PR: T1 from /workspace/j4rev/tickets/engine-retro.md; branch `j2/asm-geometric-has-flag`
+- Author(s): J2 (agent, Grok Bot) · 2026-10-11 (America/Guayaquil).
+- Role: implementer
+- Implemented contract: SystemView::geometric (engine-assembly)
+- Permitted sources used: none external; own reasoning (P-Δ: with zero axial force at the reference Kg(ref)=0 but Kg(u≠ref)≠0).
+- Original derivations: `has_geometric` is set at construction (some `ElementContribution.geometric.is_some()`); if true and u≠referencia → ENG-E-0013 even if Kg(ref) is zero. The real Kg(u) producer remains pending (recalculation of axial forces).
+- Third-party code copied: none
+- Validation: analytical (test `zero_reference_geometric_still_rejects_other_states`)
+- Oracle comparison: no
+- Declaration: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados"
+- Clean-room reviewer: PENDING (J4)

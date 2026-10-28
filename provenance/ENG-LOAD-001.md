@@ -1,154 +1,154 @@
-# Bitácora clean-room · ENG-LOAD-001
+# Clean-room log · ENG-LOAD-001
 
-- Ticket / PR: ENG-LOAD-001 «Casos de carga»; sin commit, push ni PR en esta sesión.
-- Autor(es): J2 (agente, Grok Bot), 2026-10-11 (America/Guayaquil), etiqueta solicitada para el ticket. Modelo de ejecución de esta sesión: Codex basado en GPT-6.
-- Rol: especificador e implementador mediante derivaciones propias; sin rol de auditor u operador de oráculo.
-- Contrato implementado: crate `engine-loads` 0.1.0; adaptación al tipo uniforme `engine-contracts::MemberLoad` de element/1; reutilización de `engine-model::{NodalLoad,LoadCase,DofValue}` y `engine-assembly::{DofMap,PrescribedDof}`.
-- Fuentes permitidas usadas: exclusivamente especificación del usuario, contratos y código interno pertinente de este repositorio; ninguna fuente externa ni red.
-- Derivaciones propias: ecuaciones (1)-(7) de esta nota, escritas para este ticket.
-- Código de terceros copiado: ninguno. No hay dependencias externas nuevas; dependencias por ruta internas.
-- Validación: analítica; tablas cerradas, equilibrio, superposición, transformación de ejes y concordancia con el elemento frame2d interno. Fixtures con `source` y `citation` en `crates/engine-loads/tests/fixtures/mod.rs`.
-- Comparación con oráculo (repo hermano, informativa): no. No se ejecutó ningún oráculo.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados".
-- Revisor clean-room: PENDIENTE (J4).
+- Ticket / PR: ENG-LOAD-001 «Casos de carga»; no commit, push or PR in this session.
+- Author(s): J2 (agent, Grok Bot), 2026-10-11 (America/Guayaquil), label requested for the ticket. Execution model for this session: Codex based on GPT-6.
+- Role: specifier and implementer through own derivations; no auditor or oracle operator role.
+- Implemented contract: crate `engine-loads` 0.1.0; adaptation to the uniform `engine-contracts::MemberLoad` type of element/1; reuse of `engine-model::{NodalLoad,LoadCase,DofValue}` and `engine-assembly::{DofMap,PrescribedDof}`.
+- Permitted sources used: exclusively the user's specification, contracts and relevant internal code of this repository; no external sources or network access.
+- Own derivations: equations (1)-(7) of this note, written for this ticket.
+- Third-party code copied: none. No new external dependencies; internal path dependencies.
+- Validation: analytical; closed-form tables, equilibrium, superposition, axis transformation and agreement with the internal frame2d element. Fixtures with `source` and `citation` in `crates/engine-loads/tests/fixtures/mod.rs`.
+- Oracle comparison (sibling repo, informative): no. No oracle was run.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados".
+- Clean-room reviewer: PENDING (J4).
 
-## Derivaciones propias
+## Own derivations
 
-### (1) Trabajo virtual e interpolación
+### (1) Virtual work and interpolation
 
-En una viga 2D Euler–Bernoulli sin liberaciones, sean r=x/L y t=1−r.
-La interpolación axial compatible con los valores de extremo es
-u=t·u_i+r·u_j. Para la transversal, un polinomio cúbico que satisface
-v(0)=v_i, v'(0)=theta_i, v(L)=v_j, v'(L)=theta_j determina:
+In a 2D Euler–Bernoulli beam without releases, let r=x/L and t=1−r.
+The axial interpolation compatible with the end values is
+u=t·u_i+r·u_j. For the transverse interpolation, a cubic polynomial satisfying
+v(0)=v_i, v'(0)=theta_i, v(L)=v_j, v'(L)=theta_j determines:
 
 H_i=t²(1+2r), H_theta_i=Lrt², H_j=r²(1+2t), H_theta_j=−Lr²t.
 
-Cada polinomio cumple su condición de valor o pendiente unitaria y las otras
-tres condiciones nulas. De ∫(qx·δu+qy·δv)dx=f_eq·δd se obtiene:
+Each polynomial satisfies its unit value or slope condition and the other
+three zero conditions. From ∫(qx·δu+qy·δv)dx=f_eq·δd we obtain:
 
 f_eq=∫[t·qx, H_i·qy, Lrt²·qy, r·qx, H_j·qy, −Lr²t·qy]dx.
 
-Para una fuerza puntual se evalúa el integrando reemplazando qdx por P.
-Las acciones de empotramiento sobre el miembro son f_fix=−f_eq. No se
-confunden con resultantes de sección según normal exterior.
+For a point force the integrand is evaluated by replacing qdx with P.
+The clamped-end actions on the member are f_fix=−f_eq. They are not
+confused with section resultants according to the outward normal.
 
-### (2) Uniforme y axial
+### (2) Uniform and axial
 
-Integrando (1) entre r=0 y r=1 y usando dx=Ldr:
+Integrating (1) between r=0 and r=1 and using dx=Ldr:
 
 f_eq=[qxL/2, qyL/2, qyL²/12, qxL/2, qyL/2, −qyL²/12].
 
-La implementación uniforme ordena los productos como q(L/2) y [q(L/12)]L,
-evitando calcular L² previamente. Coincide con la fórmula del frame2d interno.
+The uniform implementation orders the products as q(L/2) and [q(L/12)]L,
+avoiding calculating L² beforehand. It agrees with the internal frame2d formula.
 
-### (3) Trapecio completo y triangular
+### (3) Full trapezoid and triangular
 
-Para cada componente q(r)=qi(1−r)+qj·r, multiplicar por los polinomios (1)
-e integrar monomios mediante ∫₀¹r^k dr=1/(k+1) da:
+For each component q(r)=qi(1−r)+qj·r, multiplying by the polynomials (1)
+and integrating monomials through ∫₀¹r^k dr=1/(k+1) gives:
 
 N_i=L(2qx_i+qx_j)/6, N_j=L(qx_i+2qx_j)/6;
 V_i=L(7qy_i+3qy_j)/20, V_j=L(3qy_i+7qy_j)/20;
 M_i=L²(3qy_i+2qy_j)/60, M_j=−L²(2qy_i+3qy_j)/60.
 
-Con qi=qj=w se reduce a (2). Para la triangular creciente qi=0, qj=w:
-axiales wL/6 y wL/3; cortantes 3wL/20 y 7wL/20; momentos wL²/30
-y −wL²/20. La triangular decreciente intercambia extremos y magnitudes de
-momento. Un trapecio es una uniforme qi más una triangular de altura qj−qi,
-también cuando ambas ocupan el mismo intervalo parcial.
+With qi=qj=w it reduces to (2). For the increasing triangular load qi=0, qj=w:
+axial forces wL/6 and wL/3; shears 3wL/20 and 7wL/20; moments wL²/30
+and −wL²/20. The decreasing triangular load swaps ends and moment
+magnitudes. A trapezoid is a uniform load qi plus a triangular load of height qj−qi,
+also when both occupy the same partial interval.
 
-### (4) Fuerza puntual
+### (4) Point force
 
-Con a=x y b=L−a, sustituir r=a/L y t=b/L en (1):
+With a=x and b=L−a, substitute r=a/L and t=b/L into (1):
 
 N_i=Px·b/L, N_j=Px·a/L;
 V_i=Py·b²(L+2a)/L³, V_j=Py·a²(L+2b)/L³;
 M_i=Py·ab²/L², M_j=−Py·a²b/L².
 
-En a=b=L/2: cortantes Py/2, momentos ±PyL/8. La expresión «PL/2» para
-el cortante puntual del enunciado se interpreta como P/2 por dimensiones
-(N, mientras PL tiene unidades de momento). Para x=0 o L, la fuerza se
-aplica exactamente al nodo correspondiente y los momentos son cero.
+At a=b=L/2: shears Py/2, moments ±PyL/8. The expression «PL/2» for
+the point-load shear in the statement is interpreted as P/2 on dimensional grounds
+(N, whereas PL has moment units). For x=0 or L, the force is
+applied exactly at the corresponding node and the moments are zero.
 
-### (5) Intervalos parciales e integración exacta
+### (5) Partial intervals and exact integration
 
-Para 0≤a<b≤L, definir z∈[0,1], x=a+(b−a)z y q=qi(1−z)+qjz.
-El integrando (1) es polinómico de grado ≤4 en z. La regla de tres puntos
-con z=(1−√(3/5))/2, 1/2, (1+√(3/5))/2 y pesos 5/18, 4/9, 5/18
-tiene momentos exactos 1/(k+1) para k=0,…,5: por simetría sus momentos
-centrales impares son cero, y los pares k=0,2,4 son 1,1/12,1/80.
-Estos son los momentos de la integral uniforme en [0,1]. Es por tanto una
-integración analítica exacta para este problema, salvo redondeo f64.
-No se usa cuadratura aproximada, refinamiento ni fuentes externas.
+For 0≤a<b≤L, define z∈[0,1], x=a+(b−a)z and q=qi(1−z)+qjz.
+The integrand (1) is polynomial of degree ≤4 in z. The three-point rule
+with z=(1−√(3/5))/2, 1/2, (1+√(3/5))/2 and weights 5/18, 4/9, 5/18
+has exact moments 1/(k+1) for k=0,…,5: by symmetry its odd central
+moments are zero, and the even ones k=0,2,4 are 1,1/12,1/80.
+These are the moments of the uniform integral on [0,1]. It is therefore
+exact analytical integration for this problem, apart from f64 rounding.
+No approximate quadrature, refinement or external sources are used.
 
-Tabla parcial independiente, derivada por antiderivadas de monomios entre
-r=1/4 y 3/4, para ambas componentes iguales:
+Independent partial table, derived through monomial antiderivatives between
+r=1/4 and 3/4, for both components equal:
 
-| Distribución | N_i/(wL) | V_i/(wL) | M_i/(wL²) | N_j/(wL) | V_j/(wL) | M_j/(wL²) |
+| Distribution | N_i/(wL) | V_i/(wL) | M_i/(wL²) | N_j/(wL) | V_j/(wL) | M_j/(wL²) |
 | --- | --- | --- | --- | --- | --- | --- |
-| Uniforme w | 1/4 | 1/4 | 11/192 | 1/4 | 1/4 | −11/192 |
+| Uniform w | 1/4 | 1/4 | 11/192 | 1/4 | 1/4 | −11/192 |
 | Triangular 0 → w | 5/48 | 61/640 | 31/1280 | 7/48 | 99/640 | −127/3840 |
 
-En la segunda fila q(r)=w(2r−1/2). Se multiplica cada polinomio de (1)
-por (2r−1/2) y se integra término a término. Resultante wL/4 y momento
-transversal respecto a i de 7wL²/48. Para intervalos extremadamente pequeños
-puede perderse precisión relativa por subdesbordamiento; no se promete
-recuperar cantidades fuera de la representación IEEE-754.
+In the second row q(r)=w(2r−1/2). Each polynomial of (1) is multiplied
+by (2r−1/2) and integrated term by term. Resultant wL/4 and transverse
+moment about i of 7wL²/48. For extremely small intervals
+relative precision may be lost through underflow; recovering
+quantities outside the IEEE-754 representation is not promised.
 
-### (6) Equilibrio y ejes
+### (6) Equilibrium and axes
 
-Las identidades t+r=1, H_i+H_j=1 y
-H_theta_i+H_theta_j+L·H_j=x demuestran, respectivamente:
+The identities t+r=1, H_i+H_j=1 and
+H_theta_i+H_theta_j+L·H_j=x demonstrate, respectively:
 
 N_i+N_j=∫qx dx; V_i+V_j=∫qy dx;
 M_i+M_j+L·V_j=∫x·qy dx.
 
-Para reacciones de empotramiento, las sumas con las acciones externas son cero.
-Una carga axial no aporta momento respecto a i. Las pruebas verifican estas
-identidades para uniformes, trapecios, triangulares, parciales y puntuales.
-Para trapecio completo: ∫q dx=L(qi+qj)/2 y ∫xq dx=L²(qi+2qj)/6.
+For clamped-end reactions, the sums with the external actions are zero.
+An axial load contributes no moment about i. The tests verify these
+identities for uniform, trapezoidal, triangular, partial and point loads.
+For a full trapezoid: ∫q dx=L(qi+qj)/2 and ∫xq dx=L²(qi+2qj)/6.
 
-Para c=cos(angle), s=sin(angle), q_local=[cQx+sQy,−sQx+cQy].
-La transformación inversa es Q_global=[cqx−sqy,sqx+cqy]. Los momentos Z
-se conservan. La coordenada x de una carga siempre mide distancia sobre el
-miembro y no una proyección global. Se prueba una viga rotada con los tres
-tipos de carga y concordancia de carga uniforme con load_vector y recover del
-elemento frame2d sin liberaciones. El contrato MemberLoad recibe componentes
-globales y momentos por longitud nulos.
+For c=cos(angle), s=sin(angle), q_local=[cQx+sQy,−sQx+cQy].
+The inverse transformation is Q_global=[cqx−sqy,sqx+cqy]. Z moments
+are preserved. The x coordinate of a load always measures distance along the
+member rather than a global projection. A rotated beam is tested with all three
+load types and agreement of uniform load with load_vector and recover of the
+frame2d element without releases. The MemberLoad contract receives global
+components and zero moments per unit length.
 
-### (7) Peso propio, casos nodales y desplazamientos
+### (7) Self-weight, nodal cases and displacements
 
-Una longitud dx tiene masa rho·A·dx y fuerza rho·A·g·dx. Integrar da
-rho·A·L·g, y para varios miembros Σrho·A·L·g. La dirección y magnitud de g
-son entradas explícitas tridimensionales; sin factores normativos, rho≥0, A>0,
-L>0. Se prueban fuerzas totales, por longitud y suma de miembros.
+A length dx has mass rho·A·dx and force rho·A·g·dx. Integration gives
+rho·A·L·g, and for several members Σrho·A·L·g. The direction and magnitude of g
+are explicit three-dimensional inputs; no code factors, rho≥0, A>0,
+L>0. Total forces, forces per unit length and member summation are tested.
 
-Las acciones nodales reutilizan los valores y casos de engine-model; la posición
-de cada componente la proporciona DofMap, incluido Rz en la tercera posición
-D2. assemble_vector realiza el ensamblado global. No se define otra numeración.
-ImposedDisplacement es un alias de PrescribedDof; el vector Option distingue
-libre de cero prescrito. Se prueba su aplicación por Constraints, dimensiones
-D2/D3, subconjuntos de GDL, referencias ausentes, duplicados y no finitos.
-Las repeticiones de nodo/GDL en la misma lista del caso se rechazan, incluso
-con valores iguales. Fuerza y desplazamiento sobre un mismo GDL son compatibles.
+Nodal actions reuse engine-model's values and cases; the position
+of each component is provided by DofMap, including Rz in the third position
+in D2. assemble_vector performs global assembly. No other numbering is defined.
+ImposedDisplacement is an alias of PrescribedDof; the Option vector distinguishes
+free from prescribed zero. Its application through Constraints, D2/D3
+dimensions, DOF subsets, missing references, duplicates and nonfinite values are tested.
+Repeated node/DOF entries in the same case list are rejected, even
+with equal values. Force and displacement on the same DOF are compatible.
 
-## Verificación de la sesión
+## Session verification
 
-Resultados de esta sesión, todos con salida final 0 y sin red (`CARGO_NET_OFFLINE=true`):
+Results of this session, all with final exit 0 and no network access (`CARGO_NET_OFFLINE=true`):
 
 - `cargo fmt`: OK.
 - `cargo clippy --all-targets -- -D warnings`: OK.
-- `cargo test --workspace`: OK, incluidos 13 tests de integración y 1 doctest
-  de engine-loads. Las pruebas nativas usan rustc 1.85.1, la versión mínima del workspace.
+- `cargo test --workspace`: OK, including 13 integration tests and 1 doctest
+  of engine-loads. Native tests use rustc 1.85.1, the workspace's minimum version.
 - `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`: OK.
-  Se corrigieron cuatro enlaces interpretados por rustdoc antes del resultado final.
-- `cargo check --workspace --target wasm32-unknown-unknown`: OK usando el
-  toolchain ya instalado en `/home/box/.cargo/bin` (rustc 1.99.0). El rustc del
-  sistema (1.85.1) carece de la biblioteca estándar wasm; el primer intento
-  informó el error de compilación E0463. No se descargó ningún componente.
-  Esta comprobación verifica compilación; no ejecución ni equivalencia numérica wasm.
-- `bash clean-room/check.sh origin/main`: OK, incluyendo todos los archivos
-  nuevos mediante `git add -N` en una copia temporal del índice en `/tmp`.
-  Los objetos temporales también se alojaron en `/tmp`; el índice real se
-  conservó intacto. `git diff --check` sobre esa copia: OK.
+  Four links interpreted by rustdoc were corrected before the final result.
+- `cargo check --workspace --target wasm32-unknown-unknown`: OK using the
+  toolchain already installed at `/home/box/.cargo/bin` (rustc 1.99.0). The system rustc
+  (1.85.1) lacks the wasm standard library; the first attempt
+  reported compilation error E0463. No components were downloaded.
+  This check verifies compilation; neither execution nor wasm numerical equivalence.
+- `bash clean-room/check.sh origin/main`: OK, including all new files
+  through `git add -N` in a temporary copy of the index in `/tmp`.
+  Temporary objects were also placed in `/tmp`; the real index was
+  kept intact. `git diff --check` on that copy: OK.
 
-Sin commit ni push. Revisión clean-room: PENDIENTE (J4).
+No commit or push. Clean-room review: PENDING (J4).

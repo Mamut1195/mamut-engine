@@ -1,127 +1,127 @@
-# Bitácora clean-room · ENG-VAL-006
+# Clean-room log · ENG-VAL-006
 
-- Ticket / PR: ENG-VAL-006, lado Engine del contraste de desempeño. El traductor
-  hacia el otro motor y cualquier archivo de ese motor quedan fuera de este
-  repositorio, en el repo hermano, a cargo de Q2.
-- Autor(es): Cursor Grok 4.7 · 2026-10-20 y 2026-10-21 (America/Guayaquil).
-- Rol: especificador e implementador del esquema, del generador, del traductor
-  a `engine-input/1`, del índice y del orquestador de medidas del Engine.
-- Contrato implementado: `bench-model/1` y `bench-index/1` (JSON Schema
-  draft 2020-12). La entrada del motor sigue siendo `engine-input/1`.
-- Fuentes permitidas usadas:
-  1. ACI 318-19, §19.2.2.1.a: E = 4700·√(f'c) MPa, con f'c en MPa. Aquí
-     f'c = 28 MPa. ν = 0.20 y G = E / (2 (1 + ν)) son constantes de este
-     modelo, no un artículo de la norma.
-  2. NEC-SE-DS 2015, forma del espectro elástico en g: T0 = 0.10·Fs·Fd/Fa,
-     Tc = 0.55·Fs·Fd/Fa, TL = 2.4·Fd; rama 0..T0 lineal hasta la meseta
-     η·Z·Fa; T0..Tc meseta; Tc..TL meseta·(Tc/T)^r; T > TL
-     meseta·(Tc/TL)^r·(TL/T)². Coeficientes guardados, no recalculados por
-     el motor: zona V, Z = 0.40, suelo D, Fa = 1.20, Fd = 1.19, Fs = 1.02,
-     η = 1.80 (Sierra), R = 8, r = 1, ζ = 0.05. Sa publicada =
-     (ordenada elástica en g) / R · g, con g = 9.80665 m/s². No se aplican
-     φP ni φE. Los dos motores deben leer la tabla versionada; si un
-     coeficiente de una edición posterior difiere, la tabla de este commit
-     sigue siendo la común.
-  3. Aproximación de Saint-Venant para rectángulo:
-     J = a·b³·(1/3 − 0.21·(b/a)·(1 − (b/a)⁴/12)), con a el lado mayor.
-     Implementada en `saint_venant_j`. Página de monografía no reabierta
-     en esta sesión.
+- Ticket / PR: ENG-VAL-006, Engine side of the performance comparison. The translator
+  to the other engine and any files from that engine remain outside this
+  repository, in the sibling repo, under Q2's responsibility.
+- Author(s): Cursor Grok 4.7 · 2026-10-20 and 2026-10-21 (America/Guayaquil).
+- Role: specifier and implementer of the schema, generator, translator
+  to `engine-input/1`, index and Engine measurement orchestrator.
+- Contract implemented: `bench-model/1` and `bench-index/1` (JSON Schema
+  draft 2020-12). Engine input remains `engine-input/1`.
+- Permitted sources used:
+  1. ACI 318-19, §19.2.2.1.a: E = 4700·√(f'c) MPa, with f'c in MPa. Here
+     f'c = 28 MPa. ν = 0.20 and G = E / (2 (1 + ν)) are constants of this
+     model, not an article of the code.
+  2. NEC-SE-DS 2015, elastic spectrum shape in g: T0 = 0.10·Fs·Fd/Fa,
+     Tc = 0.55·Fs·Fd/Fa, TL = 2.4·Fd; 0..T0 branch linear up to the plateau
+     η·Z·Fa; T0..Tc plateau; Tc..TL meseta·(Tc/T)^r; T > TL
+     meseta·(Tc/TL)^r·(TL/T)². Coefficients saved, not recalculated by
+     the engine: zone V, Z = 0.40, soil D, Fa = 1.20, Fd = 1.19, Fs = 1.02,
+     η = 1.80 (Sierra), R = 8, r = 1, ζ = 0.05. Published Sa =
+     (elastic ordinate in g) / R · g, with g = 9.80665 m/s². Neither φP
+     nor φE is applied. Both engines must read the versioned table; if a
+     coefficient from a later edition differs, the table in this commit
+     remains the common one.
+  3. Saint-Venant approximation for a rectangle:
+     J = a·b³·(1/3 − 0.21·(b/a)·(1 − (b/a)⁴/12)), with a the longer side.
+     Implemented in `saint_venant_j`. Monograph page not reopened
+     in this session.
   4. R. J. Hyndman y Y. Fan, «Sample quantiles in statistical packages»,
-     The American Statistician 50(4), 1996: cuantil tipo 6, h = (n + 1)·p.
-     Mediana, Q1, Q3, IQR, mínimo y máximo salen solo de las filas
-     `phase=measure`.
-- Derivaciones propias: reparto nodal de `{m, Izz}` documentado en el
-  esquema (maestro Ux = Uy = m, Rz = Izz; Uz y las inercias Rx, Ry se
-  reparten para que la matriz de masa sea definida positiva en los grados
-  libres del diafragma). Izz de la losa uniforme respecto del maestro,
-  no del centroide: m·(Lx² + Ly²)/12 + m·d². Carga lateral = 0.10·m·g
-  en el eje del espectro, coeficiente fijo de este modelo.
-- Código de terceros copiado: ninguno. Sin crates nuevos en la revisión
-  de licencias: `engine-bench` usa `engine-api`, `engine-core`, `mamut-canon`,
-  `serde` 1.0.229 y `serde_json` 1.0.154, ya presentes en el workspace.
-  `sqrt`, `powi`, `powf` y `hypot` del generador pasan por `engine_core::math`.
-- Validación: `cargo test -p engine-bench` (17 pruebas Rust; una de ellas
-  ejecuta las 7 pruebas Python de `scripts/eng-val-006/test_orchestrator.py`).
-  La prueba del pórtico de 3 pisos corre estático, modal y espectro y
-  lee periodo, Ux estático de techo y Ux CQC por los punteros del índice.
-  Los pórticos de 8 y 15 pisos se validan contra `engine-input/1` sin
-  resolver el modal denso en la prueba. `cargo clippy -p engine-bench
-  --all-targets -- -D warnings` y `cargo check -p engine-bench --target
-  wasm32-unknown-unknown` en verde en esta sesión. El orquestador no se
-  lanzó contra el VPS. Una pasada local mínima de `rc3d-3s` estático
-  (un calentamiento y una medida, un hilo) escribió manifiesto, CSV,
-  tabla y SVG bajo `target/`, que no se versiona. El código de salida
-  fue 1, el aviso de diafragma que el protocolo acepta. Esta imagen no
-  trae `/usr/bin/time`; la pasada usó GNU time 1.9 por `--time-bin` y
-  el valor por defecto del orquestador sigue siendo `/usr/bin/time`.
-  No se publican tiempos.
-- Comparación con oráculo (repo hermano, informativa): no. No se abrió
-  ese repositorio ni se generó ningún archivo de su lenguaje.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo, CalculiX, Frame3DD, LAPACK ni derivados para este ticket."
-- Revisor clean-room: J4 · 2026-10-21 (America/Guayaquil) · APTO sobre 6068f7c90c64f50877132481d34105ad980ffe74. Fuentes declaradas suficientes; sin código de oráculos (OpenSees, CalculiX, Frame3DD, LAPACK) ni de terceros; la descripción de la guarda escalar (opción A, math::powi = libm::pow, ±1 ulp en Iz y J de la viga, 12 sha256 nuevos) coincide con el diff 3567d8e..6068f7c. El merge requiere el sí explícito de Jonathan.
+     The American Statistician 50(4), 1996: type 6 quantile, h = (n + 1)·p.
+     Median, Q1, Q3, IQR, minimum and maximum come only from
+     `phase=measure` rows.
+- Own derivations: nodal distribution of `{m, Izz}` documented in the
+  schema (master Ux = Uy = m, Rz = Izz; Uz and the Rx, Ry inertias are
+  distributed so that the mass matrix is positive definite in the free
+  diaphragm DOFs). Izz of the uniform slab about the master,
+  not the centroid: m·(Lx² + Ly²)/12 + m·d². Lateral load = 0.10·m·g
+  along the spectrum axis, constant coefficient of this model.
+- Third-party code copied: none. No new crates in the license
+  review: `engine-bench` uses `engine-api`, `engine-core`, `mamut-canon`,
+  `serde` 1.0.229 and `serde_json` 1.0.154, already present in the workspace.
+  The generator's `sqrt`, `powi`, `powf` and `hypot` go through `engine_core::math`.
+- Validation: `cargo test -p engine-bench` (17 Rust tests; one of them
+  runs the 7 Python tests in `scripts/eng-val-006/test_orchestrator.py`).
+  The 3-story frame test runs static, modal and spectrum and
+  reads period, static roof Ux and CQC Ux through the index pointers.
+  The 8- and 15-story frames are validated against `engine-input/1` without
+  solving the dense modal problem in the test. `cargo clippy -p engine-bench
+  --all-targets -- -D warnings` and `cargo check -p engine-bench --target
+  wasm32-unknown-unknown` passed in this session. The orchestrator was not
+  run against the VPS. A minimal local static `rc3d-3s` pass
+  (one warmup and one measurement, one thread) wrote a manifest, CSV,
+  table and SVG under `target/`, which is not versioned. The exit code
+  was 1, the diaphragm warning that the protocol accepts. This image does not
+  include `/usr/bin/time`; the pass used GNU time 1.9 through `--time-bin` and
+  the orchestrator default remains `/usr/bin/time`.
+  No timings are published.
+- Comparison with oracle (sibling repo, informative): no. That repository
+  was not opened and no file in its language was generated.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo, CalculiX, Frame3DD, LAPACK ni derivados para este ticket."
+- Clean-room reviewer: J4 · 2026-10-21 (America/Guayaquil) · SUITABLE on 6068f7c90c64f50877132481d34105ad980ffe74. Declared sources sufficient; no oracle code (OpenSees, CalculiX, Frame3DD, LAPACK) or third-party code; the description of the scalar guard (option A, math::powi = libm::pow, ±1 ulp in beam Iz and J, 12 new sha256) matches diff 3567d8e..6068f7c. The merge requires Jonathan's explicit yes.
 
-## Alcance
+## Scope
 
-`crates/engine-bench` publica el JSON Schema `schemas/bench-model-1.json`
-(`$id` `urn:mamut:bench-model:1`) y tres pórticos deterministas:
+`crates/engine-bench` publishes the JSON Schema `schemas/bench-model-1.json`
+(`$id` `urn:mamut:bench-model:1`) and three deterministic frames:
 
-| id | nudos | barras | sha256 del bench-model |
+| id | nodes | members | bench-model sha256 |
 | --- | ---: | ---: | --- |
 | rc3d-3s | 64 | 120 | `199cfb84d248877d70caa6e1df641582386a0dabfe725d8ec659007d4552d7b3` |
 | rc3d-8s | 144 | 320 | `33fa7da8e4af10edf89adf4d19737eab72391618c297a5952cfb059cf5efe960` |
 | rc3d-15s | 256 | 600 | `b914e418b36a9ce8085ad31f7caecf1d512946215577ea961ccb0071e998a5b9` |
 
-El límite de `engine-input/1` es 256 nudos y 1024 barras. El de 15 pisos
-ocupa el máximo de nudos. Un piso más lo superaría y el traductor lo rechaza.
+The `engine-input/1` limit is 256 nodes and 1024 members. The 15-story model
+uses the maximum number of nodes. One more story would exceed it and the translator rejects it.
 
-`orientation.kind` es `local_z_vector`: vector global de referencia del
-eje local z. No hay ángulo. Columnas `[1, 0, 0]`; vigas `[0, 0, 1]`.
-La dirección espectral es un eje global; en los oficiales, X = `[1, 0, 0]`.
-La masa de piso es `mass {m, Izz}` en kg y kg·m². `Sa.unit` es `m/s^2`.
+`orientation.kind` is `local_z_vector`: global reference vector for the
+local z axis. There is no angle. Columns `[1, 0, 0]`; beams `[0, 0, 1]`.
+The spectral direction is a global axis; in the official models, X = `[1, 0, 0]`.
+Story mass is `mass {m, Izz}` in kg and kg·m². `Sa.unit` is `m/s^2`.
 
-El índice `fixtures/index.json` (`bench-index/1`) lista `models[]` con
-`id`, ruta y sha256 del bench-model, `engine_input.{static,modal,spectrum}`
-con ruta y sha256 de la entrada ya traducida, `roof_node` y punteros
-JSON de periodo, desplazamiento estático de techo y desplazamiento CQC
-de techo. El sha256 es de los bytes UTF-8 del archivo con LF final y sin
-BOM, en hexadecimal minúsculas. No es `results/1.input_sha256`. Las rutas
-usan `/`. `.gitattributes` fuerza LF en esos JSON para que un checkout
-en Windows no cambie el hash.
+The `fixtures/index.json` index (`bench-index/1`) lists `models[]` with
+`id`, path and sha256 of the bench-model, `engine_input.{static,modal,spectrum}`
+with path and sha256 of the already translated input, `roof_node` and
+JSON pointers for period, static roof displacement and CQC
+roof displacement. The sha256 is of the file's UTF-8 bytes with a final LF and no
+BOM, in lowercase hexadecimal. It is not `results/1.input_sha256`. Paths
+use `/`. `.gitattributes` enforces LF in those JSON so that a Windows checkout
+does not change the hash.
 
-`scripts/eng-val-006/orchestrate.py` prepara la campaña del binario
-release (3 calentamientos, 15 medidas, 1 hilo y N hilos, `taskset`,
-variables BLAS, `/usr/bin/time -v`, runners ociosos antes y después de
-cada bloque). Las tablas y los SVG salen solo de los CSV. No hay workflow
-de esta campaña en `.github`.
+`scripts/eng-val-006/orchestrate.py` prepares the release binary campaign
+(3 warmups, 15 measurements, 1 thread and N threads, `taskset`,
+BLAS variables, `/usr/bin/time -v`, idle runners before and after
+each block). Tables and SVG come only from the CSV. There is no workflow
+for this campaign in `.github`.
 
-## Ampliación aditiva
+## Additive extension
 
-Tras el contraste de J2 en VAL-032 (PR #180, `8055c02`), `bench-model/1`
-acepta, sin tocar los bytes de los `rc3d-*`:
+After J2's comparison in VAL-032 (PR #180, `8055c02`), `bench-model/1`
+accepts, without touching the bytes of the `rc3d-*`:
 
-- `nodal_masses`, que sustituye al reparto tributario cuando la clave está.
-- `modal.n` en 1..=16384 y combinación modal `cqc` o `srss`.
-- Varias direcciones espectrales, sus factores, y `spectrum.variants`.
-- `p_delta` con las seis opciones de `engine-input/1`. El método existe y
-  está estable; no se inventan tolerancia ni iteraciones.
-- Patrones con nombre y `static_combinations` con factor con signo.
-- Diafragma vacío, masa nula y barras `truss` (`truss3d.linear`, solo E, A y rho).
+- `nodal_masses`, which replaces the tributary distribution when the key is present.
+- `modal.n` in 1..=16384 and modal combination `cqc` or `srss`.
+- Multiple spectral directions, their factors, and `spectrum.variants`.
+- `p_delta` with the six `engine-input/1` options. The method exists and
+  is stable; no tolerance or iterations are invented.
+- Named patterns and `static_combinations` with signed factors.
+- Empty diaphragm, zero mass and `truss` members (`truss3d.linear`, only E, A and rho).
 
-Los ids siguen siendo contiguos desde 1: un remapeo de VAL-032 necesita esa
-biyección. Desde ENG-LA-009 el modal condensa con Guyan las filas de masa
-exactamente nulas; el traductor sigue sin añadir masa. `ENG-E-0006` queda
-para masa negativa o ausencia de masa libre, y `ENG-E-0014` para un `Kss`
-singular. Un esclavo de diafragma no admite apoyo (`ENG-E-0013`).
+The ids remain contiguous from 1: a VAL-032 remapping needs that
+bijection. Since ENG-LA-009, modal analysis condenses exactly zero mass rows
+with Guyan; the translator still adds no mass. `ENG-E-0006` remains
+for negative mass or absence of free mass, and `ENG-E-0014` for a singular `Kss`.
+A diaphragm slave does not allow a support (`ENG-E-0013`).
 
-## Guarda escalar
+## Scalar guard
 
-J4 aprobó la opción (A): `generate.rs` llama `engine_core::math::{sqrt, powi, powf, hypot}`
-y `engine-bench` no queda fuera de la guarda. No se añadió otra implementación.
-`math::powi` es `libm::pow`. En la viga, `0.30.powi(3)` pasa de
-`0x3f9ba5e353f7ced9` (std) a `0x3f9ba5e353f7ced8` (libm), y `(0.30/0.70).powi(4)`
-de `0x3fa145d66ad5e25e` a `0x3fa145d66ad5e25d`. El JSON de la viga cambia
-`Iz` de `0.001575` a `0.0015749999999999998` y `J` de `0.004603782069970845`
-a `0.004603782069970844`. El resto de los oficiales, incluido el maestro
-`(1, 1)` elegido con `math::hypot`, queda igual. Los doce archivos y
-`fixtures/index.json` se regeneraron con esos hashes. `ORIENTATION_KIND`
-sigue siendo `pub(crate)`. El orquestador sigue reteniendo stdout en memoria.
+J4 approved option (A): `generate.rs` calls `engine_core::math::{sqrt, powi, powf, hypot}`
+and `engine-bench` is not excluded from the guard. No other implementation was added.
+`math::powi` is `libm::pow`. In the beam, `0.30.powi(3)` goes from
+`0x3f9ba5e353f7ced9` (std) to `0x3f9ba5e353f7ced8` (libm), and `(0.30/0.70).powi(4)`
+from `0x3fa145d66ad5e25e` to `0x3fa145d66ad5e25d`. The beam JSON changes
+`Iz` from `0.001575` to `0.0015749999999999998` and `J` from `0.004603782069970845`
+to `0.004603782069970844`. The rest of the official models, including the master
+`(1, 1)` chosen with `math::hypot`, remain the same. The twelve files and
+`fixtures/index.json` were regenerated with those hashes. `ORIENTATION_KIND`
+remains `pub(crate)`. The orchestrator still retains stdout in memory.

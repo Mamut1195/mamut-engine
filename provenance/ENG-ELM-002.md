@@ -1,65 +1,65 @@
-# Bitácora clean-room · ENG-ELM-002
+# Clean-room log · ENG-ELM-002
 
-- Ticket / PR: ENG-ELM-002, «Viga-columna elástica 2D con liberaciones»;
-  rama existente `j2/eng-elm-002-frame2d`, creada desde main con ENG-ELM-001
-  fusionado. Entrega de archivos, sin commit, push ni PR.
-- Autor(es): Codex, agente basado en GPT-6 · 2026-10-11
-  (America/Guayaquil). No se delegó a otros agentes.
-- Rol: implementador; especificación, derivaciones y fixtures analíticos
-  propios. Sin actividad de operador de oráculo ni auditor de similitud.
-- Contrato implementado: `element/1` versión 1.0, kind
-  `frame2d.euler_elastic`, y `engine_contracts::ElementFactory`.
-  Crate/método 0.1.0; versiones de método y contrato independientes.
-- Fuentes permitidas usadas: contratos y documentos internos enumerados
-  abajo; derivaciones propias de energía, equilibrio e integración polinómica.
-  Bibliografía exacta de resistencia de materiales/análisis estructural
-  clásico (autor, título, edición, capítulo/sección/ecuación): **PENDIENTE**.
-  No se consultó una fuente externa precisa: no se atribuyen páginas,
-  ecuaciones ni ejemplos a un libro sin haberlos verificado.
-- Derivaciones propias: [nota en esta bitácora](#derivaciones-propias),
+- Ticket / PR: ENG-ELM-002, «Elastic 2D beam-column with releases»;
+  existing branch `j2/eng-elm-002-frame2d`, created from main with ENG-ELM-001
+  merged. File delivery, without commit, push or PR.
+- Author(s): Codex, agent based on GPT-6 · 2026-10-11
+  (America/Guayaquil). No delegation to other agents.
+- Role: implementer; own specification, derivations and analytical
+  fixtures. No oracle operator or similarity auditor activity.
+- Contract implemented: `element/1` version 1.0, kind
+  `frame2d.euler_elastic`, and `engine_contracts::ElementFactory`.
+  Crate/method 0.1.0; independent method and contract versions.
+- Permitted sources used: internal contracts and documents listed
+  below; own derivations of energy, equilibrium and polynomial integration.
+  Exact bibliography for strength of materials/classical structural
+  analysis (author, title, edition, chapter/section/equation): **PENDING**.
+  No precise external source was consulted: no pages,
+  equations or examples are attributed to a book without having verified them.
+- Own derivations: [note in this log](#derivaciones-propias),
   [fixtures](../crates/engine-elements-frame/tests/fixtures/mod.rs),
-  [estática y pandeo](../crates/engine-elements-frame/tests/analytical.rs),
-  [invariantes](../crates/engine-elements-frame/tests/invariants.rs).
-- Código de terceros copiado: ninguno. Código propio y dependencias
-  internas por path; sin paquetes externos nuevos ni listados de libros.
-- Validación: exclusivamente analítica, por soluciones cerradas e integrales
-  de energía. Cada fixture declara `source`, `citation` y tolerancias;
-  bibliografía exacta **PENDIENTE**, con enlace a las derivaciones propias.
-- Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
-- Revisor clean-room: J4, **PENDIENTE**.
+  [statics and buckling](../crates/engine-elements-frame/tests/analytical.rs),
+  [invariants](../crates/engine-elements-frame/tests/invariants.rs).
+- Third-party code copied: none. Own code and internal
+  dependencies by path; no new external packages or book listings.
+- Validation: exclusively analytical, through closed-form solutions and energy
+  integrals. Each fixture declares `source`, `citation` and tolerances;
+  exact bibliography **PENDING**, with a link to the own derivations.
+- Comparison with oracle (sibling repo, informational): no.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+- Clean-room reviewer: J4, **PENDING**.
 
-## Documentos internos consultados
+## Internal documents consulted
 
-Antes de implementar se leyeron `/workspace/motor-rust/04_TICKETS.md`
+Before implementation, `/workspace/motor-rust/04_TICKETS.md` was read
 (ENG-ELM-002), `/workspace/motor-rust/01_ARQUITECTURA_Y_CONTRATOS.md`
 (§4.4 element/1), `docs/CLEAN_ROOM.md`, `docs/CONVENCION_EJES.md`,
-`provenance/TEMPLATE.md`, `provenance/ENG-ELM-001.md`, y estructura,
-implementación y pruebas de `engine-elements-truss`.
-Se consultaron traits, tipos, ejemplos y kit de conformidad de
-`engine-contracts`; ley uniaxial y sección elástica de `engine-laws`;
-catálogo de errores de `engine-core`; matrices/backend de `engine-linalg`;
-mapa, contribuciones, restricciones, sistema y reacciones de `engine-assembly`.
-No se encontró AGENTS.md aplicable. No se consultaron fuentes externas,
-código de otros motores ni resultados externos; no se utilizó la red.
+`provenance/TEMPLATE.md`, `provenance/ENG-ELM-001.md`, and the structure,
+implementation and tests of `engine-elements-truss`.
+The traits, types, examples and conformance kit of
+`engine-contracts`; uniaxial law and elastic section of `engine-laws`;
+`engine-core` error catalog; `engine-linalg` matrices/backend;
+map, contributions, constraints, system and reactions of `engine-assembly` were consulted.
+No applicable AGENTS.md was found. No external sources,
+other engine code or external results were consulted; the network was not used.
 
-La convención aprobada prevalece: D2 está en X-Y horizontal con Z=0,
-local x de i a j, local y=(-s,c), local z=+Z. En el fixture de pórtico,
-«altura» es una dimensión en Y dentro de este plano matemático; no redefine
-Y como vertical. La elevación 2D y su gravedad siguen pendientes.
+The approved convention prevails: D2 is in horizontal X-Y with Z=0,
+local x from i to j, local y=(-s,c), local z=+Z. In the frame fixture,
+«height» is a dimension in Y within this mathematical plane; it does not redefine
+Y as vertical. 2D elevation and its gravity remain pending.
 
 ## Derivaciones propias
 
-### Geometría, interpolación y rigidez
+### Geometry, interpolation and stiffness
 
-Con r=x_j−x_i, L=hypot(r_x,r_y), c=r_x/L, s=r_y/L, cada bloque
-global→local de desplazamientos es [[c,s,0],[-s,c,0],[0,0,1]].
-Denotamos T al bloque diagonal de ambos nodos. Se calculan f_global=Tᵀf_local
-y K_global=TᵀK_local T; la misma congruencia se aplica a masa y Kg.
+With r=x_j−x_i, L=hypot(r_x,r_y), c=r_x/L, s=r_y/L, each global→local
+displacement block is [[c,s,0],[-s,c,0],[0,0,1]].
+We denote the diagonal block of both nodes by T. f_global=Tᵀf_local
+and K_global=TᵀK_local T are calculated; the same congruence applies to mass and Kg.
 
-Orden local d=[u_i,v_i,theta_i,u_j,v_j,theta_j], theta=v′. Sea t=x/L.
-u=(1−t)u_i+t u_j. Para v se usan las formas cúbicas que interpolan
-valor y derivada en los extremos:
+Local order d=[u_i,v_i,theta_i,u_j,v_j,theta_j], theta=v′. Let t=x/L.
+u=(1−t)u_i+t u_j. For v the cubic shapes interpolating
+value and derivative at the ends are used:
 
 ```text
 h1 = 1−3t²+2t³       h2 = L(t−2t²+t³)
@@ -67,13 +67,13 @@ h3 = 3t²−2t³         h4 = L(−t²+t³)
 v  = h1 v_i + h2 theta_i + h3 v_j + h4 theta_j
 ```
 
-La energía es ½∫[EA u′²+EI v″²]dx. N=EA(u_j−u_i)/L, positivo en
-tracción. El axial se obtiene mediante `engine-laws::uniaxial::Elastic`,
-sin sustituir una ley por otra implícitamente. I es Iz, la inercia alrededor
-de z local; EI coincide con la rigidez de flexión D2 de la sección elástica
-del repo. No se fabrican G, Iy o J para construir una sección 3D innecesaria.
+Energy is ½∫[EA u′²+EI v″²]dx. N=EA(u_j−u_i)/L, positive in
+tension. Axial force is obtained through `engine-laws::uniaxial::Elastic`,
+without implicitly substituting one law for another. I is Iz, inertia about
+local z; EI matches the D2 bending stiffness of the repo's elastic
+section. G, Iy or J are not fabricated to construct an unnecessary 3D section.
 
-La integral de las segundas derivadas de h da, en [v_i,theta_i,v_j,theta_j]:
+The integral of the second derivatives of h gives, in [v_i,theta_i,v_j,theta_j]:
 
 ```text
 Kb = (EI/L³) [[12,   6L, −12,   6L],
@@ -83,15 +83,15 @@ Kb = (EI/L³) [[12,   6L, −12,   6L],
 Ka = (EA/L) [[1,−1], [−1,1]] en [u_i,u_j].
 ```
 
-La tangente es constante, f_int=Kc u, sin cargas ni Kg añadidas ocultamente.
-La rigidez no incluye deformación de corte, grandes giros, actualización
-de geometría ni historia. Las tres formas de cuerpo rígido D2 (traslación
-X, traslación Y y u=(-Y,X), theta=1) tienen u′=v″=0; K u_rígido=0.
+The tangent is constant, f_int=Kc u, without loads or Kg secretly added.
+Stiffness includes no shear deformation, large rotations, geometry
+update or history. The three D2 rigid-body shapes (X translation,
+Y translation and u=(-Y,X), theta=1) have u′=v″=0; K u_rígido=0.
 
-### Liberaciones y recuperación de giros
+### Releases and rotation recovery
 
-Dividiendo d en componentes a conservadas y r liberadas, el equilibrio
-del giro interno exige K_ra d_a+K_rr d_r=f_r. Por ello:
+Dividing d into retained components a and released components r, internal
+rotation equilibrium requires K_ra d_a+K_rr d_r=f_r. Therefore:
 
 ```text
 d_r = −K_rr⁻¹ K_ra d_a + K_rr⁻¹ f_r
@@ -100,39 +100,39 @@ Kc = Hᵀ K H = Kaa − Kar Krr⁻¹ Kra (embebido en 6×6)
 fc = Hᵀ f    = fa − Kar Krr⁻¹ fr
 ```
 
-Las columnas correspondientes a giros nodales liberados son cero; los
-giros del miembro son variables internas distintas de esos giros nodales.
-La inversa se deriva analíticamente, no se implementa un solver adicional:
-Krr=4EI/L para una liberación; con dos es (EI/L)[[4,2],[2,4]],
-cuyo inverso es (L/EI)[[1/3,−1/6],[−1/6,1/3]].
+Columns corresponding to released nodal rotations are zero; member
+rotations are internal variables distinct from those nodal rotations.
+The inverse is derived analytically, no additional solver is implemented:
+Krr=4EI/L for one release; with two it is (EI/L)[[4,2],[2,4]],
+whose inverse is (L/EI)[[1/3,−1/6],[−1/6,1/3]].
 
-- Solo i: theta_i=3(v_j−v_i)/(2L)−theta_j/2+f_theta_i L/(4EI).
-- Solo j: theta_j=3(v_j−v_i)/(2L)−theta_i/2+f_theta_j L/(4EI).
-- Ambos: cada giro sin carga es (v_j−v_i)/L, más las componentes
+- Only i: theta_i=3(v_j−v_i)/(2L)−theta_j/2+f_theta_i L/(4EI).
+- Only j: theta_j=3(v_j−v_i)/(2L)−theta_i/2+f_theta_j L/(4EI).
+- Both: each unloaded rotation is (v_j−v_i)/L, plus the components
   Krr⁻¹[f_theta_i,f_theta_j].
 
-Una sola liberación deja energía de flexión
-3EI/(2L³)(v_j−v_i−L theta_fijo)², de rango uno.
-Con ambos extremos liberados la curvatura de la interpolación sin cargas es
-cero y **Kflexión=0 exactamente**. Se construye este Schur analítico para
-evitar rigidez artificial debida a cancelación numérica. Este miembro es válido
-como elemento articulado; las rotaciones nodales desconectadas deben eliminarse,
-restringirse o recibir aportes de otros miembros. Si quedan libres sin aportes,
-el backend informa mecanismo ENG-E-0006. No se regularizan matrices.
+A single release leaves bending energy
+3EI/(2L³)(v_j−v_i−L theta_fijo)², of rank one.
+With both ends released the curvature of the unloaded interpolation is
+zero and **Kflexión=0 exactly**. This analytical Schur is constructed to
+avoid artificial stiffness due to numerical cancellation. This member is valid
+as a pinned element; disconnected nodal rotations must be removed,
+constrained or receive contributions from other members. If left free without contributions,
+the backend reports mechanism ENG-E-0006. Matrices are not regularized.
 
-`local_displacements` devuelve los seis desplazamientos locales del miembro,
-incluyendo giros liberados y todas las cargas suministradas. `recover` usa
-esos giros y K completa para obtener K d−f. Los momentos liberados se fijan
-a cero después de resolver su equilibrio, eliminando solo redondeo.
-Se verifica contra una condensación independiente con `ReferenceBackend`:
-Kc, fc, masas, Kg y acciones recuperadas para las tres liberaciones.
+`local_displacements` returns all six local member displacements,
+including released rotations and all supplied loads. `recover` uses
+those rotations and full K to obtain K d−f. Released moments are set
+to zero after solving their equilibrium, eliminating only rounding.
+It is checked against independent condensation with `ReferenceBackend`:
+Kc, fc, masses, Kg and recovered actions for the three releases.
 
-### Masa
+### Mass
 
-La energía cinética es ½rho A∫[u̇²+v̇²]dx, con u lineal y v Hermite.
-No se añade rho I: las inercias de giros siguientes provienen exclusivamente
-de la velocidad transversal interpolada, no de una inercia rotatoria de sección.
-Con m=rho A L:
+Kinetic energy is ½rho A∫[u̇²+v̇²]dx, with linear u and Hermite v.
+rho I is not added: the following rotational inertias come exclusively
+from interpolated transverse velocity, not from section rotary inertia.
+With m=rho A L:
 
 ```text
 Ma = (m/6) [[2,1],[1,2]]
@@ -144,23 +144,23 @@ M_lumped = (m/2) diag(1,1,0,1,1,0)
 Mc = Hᵀ M H
 ```
 
-La reducción estática de masa conserva energía cinética en el subespacio
-elástico condensado (reducción de Guyan); no se calcula un Schur de M,
-que implicaría equilibrio inercial independiente y eliminaría otra física.
-Es una aproximación dinámica: no resuelve giros internos con inercia a frecuencia
-finita. Se excluye la parte afín dependiente de la carga de la transformación
-de velocidades, apropiado para la masa de pequeñas oscilaciones a carga fija.
-Para dos liberaciones, las formas transversales se vuelven lineales y Mb
-condensada en [v_i,v_j] es (m/6)[[2,1],[1,2]].
-La masa física se verifica por vᵀMc v=m para una traslación unitaria
-uniforme en **cada** dirección global; sumar traza o todos los ejes no es
-la masa física. rho=0 devuelve None, validando antes la geometría.
+Static mass reduction preserves kinetic energy in the condensed
+elastic subspace (Guyan reduction); no Schur of M is calculated,
+which would imply independent inertial equilibrium and eliminate different physics.
+It is a dynamic approximation: it does not solve internal rotations with inertia at finite
+frequency. The load-dependent affine part is excluded from the velocity
+transformation, appropriate for small-oscillation mass under constant load.
+For two releases, transverse shapes become linear and condensed Mb
+in [v_i,v_j] is (m/6)[[2,1],[1,2]].
+Physical mass is verified by vᵀMc v=m for a uniform unit
+translation in **each** global direction; summing trace or all axes is not
+physical mass. rho=0 returns None, validating geometry first.
 
-### Rigidez geométrica de viga-columna
+### Beam-column geometric stiffness
 
-Una pendiente transversal infinitesimal produce elongación adicional
-½∫v′²dx. El trabajo del axial N de referencia tiene segunda variación
-N∫δv′²dx. Integrando las primeras derivadas de las cuatro formas h:
+An infinitesimal transverse slope produces additional elongation
+½∫v′²dx. The work of the reference axial force N has second variation
+N∫δv′²dx. Integrating the first derivatives of the four shapes h:
 
 ```text
 Kgb = (N/(30L)) [[36,   3L, −36,   3L],
@@ -169,47 +169,47 @@ Kgb = (N/(30L)) [[36,   3L, −36,   3L],
                  [3L, −L², −3L,  4L²]]
 ```
 
-El resto de Kg local es cero. Es simétrica; tracción estabiliza, compresión
-desestabiliza. N procede de u_e del elemento, no de un parámetro externo ni
-de las cargas de tramo (el contrato geometric_stiffness no recibe cargas).
-No se infiere un campo axial variable por q_x: se usa N constante compatible
-con el desplazamiento axial total. El orden de acumulación es fijo.
+The rest of local Kg is zero. It is symmetric; tension stabilizes, compression
+destabilizes. N comes from the element's u_e, not from an external parameter or
+segment loads (the geometric_stiffness contract receives no loads).
+A variable axial field from q_x is not inferred: constant N compatible
+with total axial displacement is used. Accumulation order is constant.
 
-Para liberaciones se utiliza **Kgc=HᵀKgH**, con la transformación de la
-rigidez elástica. En efecto, para A(t)=K+t Kg, la energía estacionaria respecto
-de d_r tiene derivada en t=0 igual a ½d_aᵀHᵀKgH d_a: la variación de
-los giros internos se cancela por estacionariedad. Es la primera variación del
-Schur de K+tKg, consistente con esta formulación inicial de tensiones.
-**No** es el Schur de Kg separado (singular en N=0) ni la condensación exacta
-dependiente de N de K+Kg a carga finita. Para esta última haría falta una
-evaluación conjunta de tangente y cargas, fuera del elemento lineal actual.
-Con dos liberaciones Kgc transversal es (N/L)[[1,−1],[-1,1]], pues v es lineal.
+For releases **Kgc=HᵀKgH** is used, with the elastic stiffness
+transformation. Indeed, for A(t)=K+t Kg, energy stationary with respect to
+d_r has derivative at t=0 equal to ½d_aᵀHᵀKgH d_a: the variation of
+internal rotations cancels by stationarity. It is the first variation of the
+Schur of K+tKg, consistent with this initial-stress formulation.
+It is **not** the Schur of separate Kg (singular at N=0) or the exact
+N-dependent condensation of K+Kg at finite load. The latter would require a
+joint evaluation of tangent and loads, outside the current linear element.
+With two releases transverse Kgc is (N/L)[[1,−1],[-1,1]], since v is linear.
 
-La prueba de matrices integra polinomios independientemente, verificando
-∫h″ᵀh″, ∫hᵀh y ∫h′ᵀh′ contra K, M y Kg. La bibliografía precisa
-de viga-columna para esta derivación propia queda **PENDIENTE**.
+The matrix test integrates polynomials independently, checking
+∫h″ᵀh″, ∫hᵀh and ∫h′ᵀh′ against K, M and Kg. The precise beam-column
+bibliography for this own derivation remains **PENDING**.
 
-### Cargas uniformes y esfuerzos en estaciones
+### Uniform loads and forces at stations
 
-MemberLoad entrega fuerzas globales uniformes N/m y momentos uniformes N·m/m.
-Se rotan fuerzas XY a qx,qy locales; mz conserva signo. qz,mx,my no nulos,
-incluso arbitrariamente pequeños, se rechazan con ENG-E-0013. No se omiten
-cargas. Para theta=v′, el trabajo externo es ∫(qx u+qy v+mz v′)dx:
+MemberLoad supplies uniform global forces N/m and uniform moments N·m/m.
+XY forces are rotated to local qx,qy; mz retains its sign. Nonzero qz,mx,my,
+even arbitrarily small, are rejected with ENG-E-0013. No loads are
+omitted. For theta=v′, external work is ∫(qx u+qy v+mz v′)dx:
 
 ```text
 f = [qxL/2, qyL/2−mz, qyL²/12, qxL/2, qyL/2+mz, −qyL²/12]
 f_empotramiento = −f; con liberaciones se usa −fc.
 ```
 
-`self_weight(g)` construye q_global=rho A g con g explícita en m/s²,
-rechazando g_z no nula. No presupone gravedad desde densidad ni eje Y.
-En D2 horizontal el peso real hacia Z no tiene una representación en este
-elemento; se informa la capacidad no soportada. No se cambia la convención.
-Cargas puntuales interiores no están en MemberLoad: se modelan subdividiendo
-el tramo y aplicando una carga nodal, como en el fixture biempotrado.
+`self_weight(g)` constructs q_global=rho A g with explicit g in m/s²,
+rejecting nonzero g_z. It does not assume gravity from density or the Y axis.
+In horizontal D2 real weight toward Z has no representation in this
+element; the unsupported capability is reported. The convention is unchanged.
+Interior point loads are not in MemberLoad: they are modeled by subdividing
+the segment and applying a nodal load, as in the beam fixture clamped at both ends.
 
-Sumando las intensidades de todas las cargas, sean p_i las tres acciones de
-extremo local i obtenidas de K d−f. El equilibrio del segmento [0,x] da:
+Summing the intensities of all loads, let p_i be the three local end i
+actions obtained from K d−f. Equilibrium of segment [0,x] gives:
 
 ```text
 N(x) = −p_i,x − qx x
@@ -218,45 +218,45 @@ M(x) = −p_i,theta + p_i,y x + qy x²/2 − mz x
 N′=−qx, V′=−qy, M′=−V−mz.
 ```
 
-En x=0 son los opuestos de las acciones en cara negativa i; en x=L coinciden
-con las acciones por cara positiva j. Se entrega [N,V,0,0,0,M] en estaciones
-x/L conservando orden y duplicados. Esta recuperación incluye el campo
-parabólico debido a qy aun cuando todos los desplazamientos nodales son cero.
-No se publica una flecha interior cúbica como solución exacta bajo carga
-uniforme: para comprobar flechas se subdivide y se evalúan nodos interiores.
+At x=0 they are the opposites of the actions on negative face i; at x=L they match
+the positive face j actions. [N,V,0,0,0,M] is delivered at x/L
+stations preserving order and duplicates. This recovery includes the
+parabolic field due to qy even when all nodal displacements are zero.
+An interior cubic deflection is not published as an exact solution under uniform
+load: to check deflections, subdivision is performed and interior nodes are evaluated.
 
-### Soluciones cerradas de estática y pandeo
+### Closed-form statics and buckling solutions
 
-Fixtures propios SI: E=200 Pa, A=2 m², I=3 m⁴, rho=3 kg/m³,
-L=4 m, w=6 N/m hacia −Y, P=12 N. Son escalas de prueba, sin pretensión
-de representar un material real. Las soluciones provienen de integrar
-EI v''''=q, con continuidad en cargas puntuales y las condiciones de apoyo.
+Own SI fixtures: E=200 Pa, A=2 m², I=3 m⁴, rho=3 kg/m³,
+L=4 m, w=6 N/m toward −Y, P=12 N. They are test scales, without claiming
+to represent a real material. Solutions come from integrating
+EI v''''=q, with continuity at point loads and the support conditions.
 
-1. Voladizo: empotramiento i, fuerza −P en j.
+1. Cantilever: clamped at i, force −P at j.
    v_j=−PL³/(3EI), theta_j=−PL²/(2EI), R_y=P, R_z=PL;
-   V=−P, M(x)=−P(L−x). Un elemento es exacto para esta deformada cúbica.
-2. Biempotrada uniforme: v(x)=−w x²(L−x)²/(24EI),
-   v(L/2)=−wL⁴/(384EI). Reacciones transversales wL/2 y momentos
-   nodales (+wL²/12,−wL²/12). M de sección en extremos −wL²/12,
-   en centro +wL²/24. Dos elementos permiten verificar la flecha central.
-3. Biempotrada con fuerza central −P mediante subdivisión en dos:
-   v(L/2)=−PL³/(192EI); reacciones w se sustituyen por P/2,
-   momentos nodales (+PL/8,−PL/8).
-4. Articulada en ambos extremos: v(L/2)=−5wL⁴/(384EI),
-   R_y=wL/2 en cada apoyo, Mextremos=0, Mcentro=wL²/8,
-   theta_i=−wL³/(24EI). Dos elementos, liberación i del primero y j del
-   segundo. Los giros exteriores nodales desconectados están restringidos
-   y el giro físico se recupera mediante equilibrio.
-5. Apoyada-empotrada y su inversión: para i empotrado y j articulado,
+   V=−P, M(x)=−P(L−x). One element is exact for this cubic deflected shape.
+2. Beam clamped at both ends under uniform load: v(x)=−w x²(L−x)²/(24EI),
+   v(L/2)=−wL⁴/(384EI). Transverse reactions wL/2 and nodal
+   moments (+wL²/12,−wL²/12). Section M at ends −wL²/12,
+   at center +wL²/24. Two elements allow verification of central deflection.
+3. Beam clamped at both ends with central force −P through subdivision into two:
+   v(L/2)=−PL³/(192EI); w reactions are replaced by P/2,
+   nodal moments (+PL/8,−PL/8).
+4. Pinned at both ends: v(L/2)=−5wL⁴/(384EI),
+   R_y=wL/2 at each support, Mextremos=0, Mcentro=wL²/8,
+   theta_i=−wL³/(24EI). Two elements, release i of the first and j of the
+   second. Disconnected outer nodal rotations are constrained
+   and physical rotation is recovered through equilibrium.
+5. Propped cantilever and its reversal: for i clamped and j pinned,
    v(x)=−w x²(3L²−5Lx+2x²)/(48EI),
    v(L/2)=−wL⁴/(192EI), R_i=5wL/8, R_j=3wL/8,
-   momento nodal empotrado +wL²/8. La inversión permuta reacciones y
-   cambia el signo del momento nodal. Ambas liberaciones se prueban.
-6. Pórtico simétrico: dos columnas de longitud h=3 m y viga de luz b=4 m,
-   bases empotradas, P/2 en Ux de cada nodo superior, mismas propiedades.
-   Se incluyen deformaciones axiales finitas de columnas. Por simetría,
-   desplazamientos superiores (delta,+v,theta), (delta,−v,theta).
-   El equilibrio vertical izquierdo y el equilibrio de momentos dan:
+   clamped nodal moment +wL²/8. Reversal permutes reactions and
+   changes the nodal moment sign. Both releases are tested.
+6. Symmetric frame: two columns of length h=3 m and beam of span b=4 m,
+   clamped bases, P/2 in Ux of each top node, same properties.
+   Finite column axial deformations are included. By symmetry,
+   top displacements (delta,+v,theta), (delta,−v,theta).
+   Left vertical equilibrium and moment equilibrium give:
 
    ```text
    beta = (12EI/b²)/(EA/h+24EI/b³), v=−beta theta
@@ -266,122 +266,122 @@ EI v''''=q, con continuidad en cargas puntuales y las condiciones de apoyo.
    delta = P/[24EI/h³−72(EI)²/(h⁴ D)]
    ```
 
-   Se verifican delta,v,theta y reacciones con ensamblaje real y backend,
-   sin reemplazar la deformación axial por una rigidez infinita.
-7. Euler biarticulada: EI v″+P v=0, v(0)=v(L)=0,
-   Pcr=pi²EI/L². Rotaciones nodales libres en los apoyos son la condición
-   natural M=0. Se ensamblan K y −Kg con axial unitario N=−1 N obtenido
-   de u_j−u_i=−L_elemento/(EA). Se eliminan traslaciones axiales y
-   transversales apoyadas; el backend resuelve K phi=P(−Kg) phi.
-   Un elemento cúbico da Pcr=12EI/L² (error de discretización +21.59%);
-   dos elementos dan aproximadamente 9.94384680 EI/L² (+0.7522%).
-   Tolerancias relativas explícitas: 22% y 0.8%, respectivamente.
-   No se pretende exactitud de Euler con un único campo cúbico.
-   Una liberación doble en un solo elemento con traslaciones fijas elimina
-   todos los GDL de flexión y no puede representar un modo de pandeo interior;
-   no se usa esa idealización para atribuir una carga crítica finita.
+   delta,v,theta and reactions are verified with actual assembly and backend,
+   without replacing axial deformation with infinite stiffness.
+7. Euler pinned-pinned: EI v″+P v=0, v(0)=v(L)=0,
+   Pcr=pi²EI/L². Free nodal rotations at the supports are the natural
+   condition M=0. K and −Kg are assembled with unit axial force N=−1 N obtained
+   from u_j−u_i=−L_elemento/(EA). Axial and supported transverse translations
+   are removed; the backend solves K phi=P(−Kg) phi.
+   One cubic element gives Pcr=12EI/L² (discretization error +21.59%);
+   two elements give approximately 9.94384680 EI/L² (+0.7522%).
+   Explicit relative tolerances: 22% and 0.8%, respectively.
+   Euler accuracy is not intended with a single cubic field.
+   A double release in a single element with restrained translations removes
+   all bending DOFs and cannot represent an interior buckling mode;
+   that idealization is not used to attribute a finite critical load.
 
-## Decisiones y límites
+## Decisions and limits
 
-1. Nuevo crate `engine-elements-frame` 0.1.0, miembro del workspace.
-   Dependencias runtime path a core/contracts/laws/linalg y dev path a
-   assembly/model. Sin dependencias externas nuevas ni campo license ni LICENSE.
-   Cargo.lock únicamente incorpora el paquete nuevo y sus enlaces internos.
-2. Módulos pequeños privados geometry, stiffness, mass, geometric, loads,
-   release, recover, factory; API y validadores en lib.rs.
-   `#![deny(missing_docs)]`, SI documentado, sin hilos/fs/reloj ni estado global.
-3. Propiedades en self, geometría en ctx: ctx.params no interviene, como en
-   la plantilla de barra. Fábrica con E,A,I,rho SI explícitos y release_i/j
-   booleanos opcionales (false por defecto); rechaza campos desconocidos,
-   tipos/rangos inválidos y ModelView fuera de D2, ids duplicados o coordenadas
-   no finitas/fuera del plano. Sin ids de sección ni referencias JSON.
-4. L por hypot; diferencias y productos validados. L≤1e-12 m usa ENG-E-0005;
-   no finitos/desbordamientos ENG-E-0008; tamaños de u_e, historia no vacía,
-   estaciones fuera de [0,1], plano y parámetros ENG-E-0010. Propiedades
-   E,A,I y EA/EI positivos; rho no negativa. Coeficientes positivos elásticos
-   y de masa subdesbordados a cero se rechazan cuando se necesitan.
-   No se garantiza todo el rango extremo de f64 ni igualdad binaria entre
-   destinos. La geometría se valida incluso con rho=0.
-5. Kg se entrega separada de respond; derivación propia de viga-columna y
-   condensación inicial de tensiones documentadas arriba. No se implementa
-   solver P-Delta, estabilidad exacta a axial finito ni masa dinámica exacta
-   con liberaciones. N no incluye cargas de tramo en geometric_stiffness.
-6. Ensamblaje estático real usa ElementContribution, DofMap, LinearSystem y
-   ReferenceBackend. Pandeo ensambla K/Kg con assemble_matrix y resuelve con
-   generalized_eigen del backend, sin implementar solvers/eigen adicionales.
-   No se supone que SystemView actual reevaluará elementos o axiales: recibe
-   contribuciones precalculadas y su Kg tiene estado de referencia explícito.
-7. ENG-ELM-003 (3D), orientación espacial, torsión, flexión biaxial, materiales
-   no lineales y deformaciones de corte: **fuera de alcance**.
-8. Compilación wasm se comprueba si el target está instalado; ejecución en
-   runtime wasm y validación numérica nativo/wasm: **PENDIENTES**.
-   Semver inicial 0.1.0; cambios físicos/API/signos requieren revisión de fixtures
-   y versión apropiada. No se cambia element/1 ni el catálogo de errores.
+1. New crate `engine-elements-frame` 0.1.0, workspace member.
+   Runtime path dependencies on core/contracts/laws/linalg and dev path on
+   assembly/model. No new external dependencies or license field or LICENSE.
+   Cargo.lock only incorporates the new package and its internal links.
+2. Small private modules geometry, stiffness, mass, geometric, loads,
+   release, recover, factory; API and validators in lib.rs.
+   `#![deny(missing_docs)]`, documented SI, no threads/fs/clock or global state.
+3. Properties in self, geometry in ctx: ctx.params does not participate, as in
+   the bar template. Factory with explicit SI E,A,I,rho and optional boolean
+   release_i/j (false by default); rejects unknown fields,
+   invalid types/ranges and ModelView outside D2, duplicate ids or non-finite/out-of-plane
+   coordinates. No section ids or JSON references.
+4. L by hypot; differences and products validated. L≤1e-12 m uses ENG-E-0005;
+   non-finite/overflows ENG-E-0008; u_e sizes, nonempty history,
+   stations outside [0,1], plane and parameters ENG-E-0010. Properties
+   E,A,I and EA/EI positive; nonnegative rho. Positive elastic
+   and mass coefficients underflowed to zero are rejected when needed.
+   The entire extreme f64 range or binary equality between
+   targets is not guaranteed. Geometry is validated even with rho=0.
+5. Kg is delivered separately from respond; own beam-column derivation and
+   initial-stress condensation documented above. No P-Delta
+   solver, exact stability at finite axial force or exact dynamic mass
+   with releases is implemented. N includes no segment loads in geometric_stiffness.
+6. Actual static assembly uses ElementContribution, DofMap, LinearSystem and
+   ReferenceBackend. Buckling assembles K/Kg with assemble_matrix and solves with
+   the backend's generalized_eigen, without implementing additional solvers/eigen.
+   Current SystemView is not assumed to reevaluate elements or axial forces: it receives
+   precalculated contributions and its Kg has an explicit reference state.
+7. ENG-ELM-003 (3D), spatial orientation, torsion, biaxial bending, nonlinear
+   materials and shear deformations: **out of scope**.
+8. wasm compilation is checked if the target is installed; execution in
+   wasm runtime and native/wasm numerical validation: **PENDING**.
+   Initial semver 0.1.0; physical/API/sign changes require fixture review
+   and an appropriate version. element/1 and the error catalog are unchanged.
 
-## Pruebas y tolerancias
+## Tests and tolerances
 
-- Cinco pruebas analíticas ensambladas: voladizo; biempotrada uniforme/puntual;
-  articulada y propped en ambos sentidos; pórtico con axial finito; Euler 1/2
-  elementos. source/citation en fixtures, bibliografía exacta PENDIENTE.
-- Diez pruebas de invariantes/conformidad/negativos; una prueba rustdoc.
-- Desplazamientos/giros: absoluto 1e-12 m/rad; reacciones/esfuerzos/equilibrio:
-  absoluto 1e-9 N/N·m. Matrices, masa, rotaciones, Schur y recuperación:
-  absoluto 1e-10 en las unidades SI de cada entrada de estos casos pequeños.
-- Kit element/1 y factory: FD central h=1e-7 m/rad, error relativo tangente
-  <1e-6 del kit; cuatro combinaciones de liberaciones, repetibilidad 10 veces,
-  tamaños, pureza, simetría, modos rígidos y rotaciones globales no triviales.
-- Integrales polinómicas de energía independientes para K, M y Kg;
-  condensación de bloques con backend y comparación de energías/cargas/giros.
-- Masa total rho A L por dirección para ambas masas y todas las liberaciones;
-  doble liberación con Kflexión exactamente cero, masa transversal lineal,
-  Kg transversal N/L, momentos nulos y giros cargados recuperados.
-- Kg/cargas/esfuerzos covariantes bajo rotación no trivial; recuperación N/V/M
-  en extremos y estaciones desordenadas/duplicadas; cargas múltiples, uniformes
-  axiales, transversales, momentos distribuidos y peso propio explícito.
-- Euler: tolerancia relativa 22% (uno), 0.8% (dos); residual de autovector
-  absoluto 1e-8 en unidades de la ecuación; valor de un elemento 12EI/L²
-  absoluto 1e-9. Error de discretización documentado, no una tolerancia del solver.
-- Negativos: E/A/I≤0, rho<0, propiedades no finitas, EA/EI subdesbordados,
-  geometría nula/corta/no finita/fuera del plano, estados y tamaños inválidos,
-  estaciones inválidas, cargas no finitas y fuera del plano incluso 1e-30,
-  desbordamientos de productos y sumas, campos JSON ausentes/extra/tipos
-  erróneos, liberaciones no booleanas, ids nodales duplicados y mecanismo de
-  giros desconectados. Códigos del catálogo core sin añadir códigos nuevos.
+- Five assembled analytical tests: cantilever; beam clamped at both ends under uniform/point load;
+  pinned and propped in both directions; frame with finite axial force; Euler 1/2
+  elements. source/citation in fixtures, exact bibliography PENDING.
+- Ten invariant/conformance/negative tests; one rustdoc test.
+- Displacements/rotations: absolute 1e-12 m/rad; reactions/forces/equilibrium:
+  absolute 1e-9 N/N·m. Matrices, mass, rotations, Schur and recovery:
+  absolute 1e-10 in each entry's SI units in these small cases.
+- element/1 kit and factory: central FD h=1e-7 m/rad, tangent relative error
+  <1e-6 from the kit; four release combinations, repeatability 10 times,
+  sizes, purity, symmetry, rigid modes and nontrivial global rotations.
+- Independent polynomial energy integrals for K, M and Kg;
+  block condensation with backend and energy/load/rotation comparison.
+- Total mass rho A L per direction for both masses and all releases;
+  double release with exactly zero Kflexión, linear transverse mass,
+  transverse Kg N/L, zero moments and recovered loaded rotations.
+- Covariant Kg/loads/forces under nontrivial rotation; N/V/M recovery
+  at ends and unordered/duplicate stations; multiple loads, uniform
+  axial loads, transverse loads, distributed moments and explicit self-weight.
+- Euler: relative tolerance 22% (one), 0.8% (two); eigenvector residual
+  absolute 1e-8 in equation units; one-element value 12EI/L²
+  absolute 1e-9. Documented discretization error, not a solver tolerance.
+- Negatives: E/A/I≤0, rho<0, non-finite properties, underflowed EA/EI,
+  zero/short/non-finite/out-of-plane geometry, invalid states and sizes,
+  invalid stations, non-finite and out-of-plane loads even 1e-30,
+  product and sum overflows, missing/extra JSON fields/wrong
+  types, nonboolean releases, duplicate node ids and disconnected rotation
+  mechanism. Core catalog codes without adding new codes.
 
-## Verificación local
+## Local verification
 
-Resultados finales:
+Final results:
 
-- `cargo fmt --check`: satisfactorio.
-- `cargo clippy --all-targets -- -D warnings`: satisfactorio.
-- `cargo test --workspace`: satisfactorio; 129 pruebas unitarias/de integración
-  y 34 doctests del workspace, incluidas 15 pruebas y 1 doctest del crate nuevo.
-- `RUSTDOCFLAGS='-D warnings' cargo doc --workspace --no-deps`: satisfactorio.
-- Target wasm32-unknown-unknown instalado: `cargo check --workspace --target
-  wasm32-unknown-unknown`: satisfactorio con `/home/box/.cargo/bin` en PATH
-  (toolchain stable, rustc 1.99.0). `cargo check -p engine-elements-frame
-  --tests --target wasm32-unknown-unknown`: satisfactorio. No se ejecutaron
-  fixtures en runtime wasm: ejecución numérica cruzada **PENDIENTE**.
-- Las pruebas y rustdoc nativas se ejecutaron también con cargo/rustc 1.85.1
-  del sistema, compatible con rust-version=1.85. Clippy usa el componente
-  instalado del toolchain stable. No se instalaron herramientas ni targets.
-- `bash clean-room/check.sh origin/main`: satisfactorio.
-  El script solo examina rutas conocidas por Git; adicionalmente se ejecuta
-  con `GIT_INDEX_FILE` y `GIT_OBJECT_DIRECTORY` temporales en /tmp, y objetos
-  existentes como alternativos de solo lectura, incorporando los archivos
-  nuevos para revisar el diff completo. El índice real del usuario no se
-  modifica. La primera preparación con solo índice temporal encontró el
-  directorio de objetos del repo de solo lectura; se repitió aislando también
-  los objetos, sin solicitar permisos ni modificar .git.
-- `git diff --check`: satisfactorio, también para el diff con archivos nuevos
-  mediante el índice temporal. Rutas cambiadas: Cargo.toml, Cargo.lock,
-  crate nuevo y esta bitácora; ningún otro crate ni ruta protegida.
+- `cargo fmt --check`: successful.
+- `cargo clippy --all-targets -- -D warnings`: successful.
+- `cargo test --workspace`: successful; 129 workspace unit/integration tests
+  and 34 doctests, including 15 tests and 1 doctest from the new crate.
+- `RUSTDOCFLAGS='-D warnings' cargo doc --workspace --no-deps`: successful.
+- Installed target wasm32-unknown-unknown: `cargo check --workspace --target
+  wasm32-unknown-unknown`: successful with `/home/box/.cargo/bin` in PATH
+  (stable toolchain, rustc 1.99.0). `cargo check -p engine-elements-frame
+  --tests --target wasm32-unknown-unknown`: successful. No fixtures were executed
+  in wasm runtime: cross numerical execution **PENDING**.
+- Native tests and rustdoc were also run with system cargo/rustc 1.85.1,
+  compatible with rust-version=1.85. Clippy uses the installed stable
+  toolchain component. No tools or targets were installed.
+- `bash clean-room/check.sh origin/main`: successful.
+  The script only examines paths known to Git; additionally it is run
+  with temporary `GIT_INDEX_FILE` and `GIT_OBJECT_DIRECTORY` in /tmp, and existing
+  objects as read-only alternates, incorporating new
+  files to review the full diff. The user's real index is not
+  modified. The first preparation with only a temporary index encountered the
+  repo's read-only object directory; it was repeated also isolating
+  the objects, without requesting permissions or modifying .git.
+- `git diff --check`: successful, also for the diff with new files
+  through the temporary index. Changed paths: Cargo.toml, Cargo.lock,
+  new crate and this log; no other crate or protected path.
 
-En la iteración inicial rustdoc detectó tres vectores escritos con corchetes
-sin formato de código y los interpretó como enlaces; se corrigieron sus
-delimitadores. Clippy señaló una aserción constante redundante de una prueba,
-que se eliminó. Los resultados arriba corresponden a los archivos corregidos.
+In the initial iteration rustdoc detected three vectors written with brackets
+without code formatting and interpreted them as links; their delimiters were
+corrected. Clippy flagged a redundant constant assertion in a test,
+which was removed. Results above correspond to the corrected files.
 
-No se modifican clean-room/**, .github, CODEOWNERS ni docs/CLEAN_ROOM.md,
-ni otros crates existentes. No se hace commit, push, PR ni se cambia el índice
-Git del usuario. Revisión humana clean-room J4: **PENDIENTE**.
+No changes are made to clean-room/**, .github, CODEOWNERS or docs/CLEAN_ROOM.md,
+or other existing crates. No commit, push or PR is performed and the user's Git
+index is unchanged. Human clean-room review J4: **PENDING**.

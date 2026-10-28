@@ -1,80 +1,80 @@
-# Bitácora clean-room · ENG-GEO-006
+# Clean-room log · ENG-GEO-006
 
-- Ticket: MAM-48 · ENG-GEO-006, «Consolidación 1D multicapa».
-- Autor: Codex (GPT-6), 2026-10-15, America/Guayaquil.
-- Rol: especificador e implementador en sesión limpia; sin rol de operador de
-  oráculo ni auditor; sin delegación a otros agentes.
-- Contrato propio: `consolidation/1`, API Rust de engine-geo, no element/1.
-- Fuentes utilizadas: derivaciones propias reproducidas a continuación; código
-  interno de engine-geo (perfil y procedencia), engine-core (catálogo y math),
-  engine-linalg (CSR y factorización existente) y patrón de fixtures/WASM de
-  engine-validation; docs/CLEAN_ROOM.md y provenance/TEMPLATE.md.
-- Referencia publicada conceptual: Karl Terzaghi (1943), *Theoretical Soil
-  Mechanics*, primera edición, John Wiley & Sons, New York, teoría de
-  consolidación unidimensional. No se consultó una copia del libro en esta
-  sesión sin red ni se atribuyen páginas/números de ecuación no verificados.
-  La separación de variables, convolución y todos los datos de fixtures son
-  propios, derivados aquí; no se transcribe ningún ejemplo ni listado del libro.
-- Código de terceros copiado: ninguno. Dependencia nueva exclusivamente path a
-  engine-linalg; sin paquetes externos nuevos ni cambios de versiones externas.
-- Validación: soluciones analíticas propias, invariantes y refinamiento; los
-  mismos siete fixtures y tablas de convergencia en nativo y WASM/Node
-  tras la revisión r32 (seis en la entrega inicial).
-- Comparación con oráculo externo: no; sin red ni consulta a otros motores.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
-- Revisor clean-room independiente: pendiente de asignación; no se simula una
-  revisión humana en esta entrega.
+- Ticket: MAM-48 · ENG-GEO-006, «Multilayer 1D consolidation».
+- Author: Codex (GPT-6), 2026-10-15, America/Guayaquil.
+- Role: specifier and implementer in a clean session; no oracle operator or
+  auditor role; no delegation to other agents.
+- Own contract: `consolidation/1`, engine-geo Rust API, not element/1.
+- Sources used: own derivations reproduced below; internal
+  engine-geo code (profile and provenance), engine-core (catalog and math),
+  engine-linalg (CSR and existing factorization) and engine-validation
+  fixtures/WASM pattern; docs/CLEAN_ROOM.md and provenance/TEMPLATE.md.
+- Conceptual published reference: Karl Terzaghi (1943), *Theoretical Soil
+  Mechanics*, primera edición, John Wiley & Sons, New York, theory of
+  one-dimensional consolidation. No copy of the book was consulted in this
+  offline session and no unverified pages/equation numbers are attributed.
+  Separation of variables, convolution and all fixture data are
+  own, derived here; no book example or listing is transcribed.
+- Third-party code copied: none. New dependency exclusively by path on
+  engine-linalg; no new external packages or external version changes.
+- Validation: own analytical solutions, invariants and refinement; the
+  same seven fixtures and convergence tables in native and WASM/Node
+  after review r32 (six in the initial delivery).
+- External oracle comparison: no; no network or consultation of other engines.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+- Independent clean-room reviewer: pending assignment; no human
+  review is simulated in this delivery.
 
-## Modelo, unidades y datos obligatorios
+## Model, units and mandatory data
 
-Profundidad z positiva hacia abajo, origen en la cara superior, t en segundos,
-Δσ y exceso u en kPa (compresión positiva). s en m, positivo hacia abajo.
-Capas saturadas, deformaciones pequeñas, esqueleto lineal, agua incompresible,
-flujo Darcy 1D y sobrecarga espacialmente uniforme. No se calcula presión
-hidrostática: puede sumarse aparte usando el perfil geostático existente.
-Los espesores se pueden trasladar de Layer, pero no se exigen γ, γsat ni zw
-que no intervienen en la ecuación incremental. No se modificó StressProfile.
+Depth z positive downward, origin at the top face, t in seconds,
+Δσ and excess u in kPa (compression positive). s in m, positive downward.
+Saturated layers, small strains, linear skeleton, incompressible water,
+1D Darcy flow and spatially uniform surcharge. Hydrostatic pressure is not
+computed: it may be added separately using the existing geostatic profile.
+Thicknesses may be transferred from Layer, but γ, γsat and zw, which do not
+participate in the incremental equation, are not required. StressProfile was not modified.
 
-Cada capa exige espesor >0 en m, cv>0 en m²/s, mv>0 en 1/kPa y k>0 en m/s;
-γw>0 en kN/m³ es global y requerido. Todos estos datos, incluso espesor y cada
-ordenada de carga, usan Parameter con Provenance Measured/Assumed. No hay
-valores físicos predeterminados; cv, mv, k y γw ausentes dan ENG-E-0003.
-Se comprueba cv=(k/γw)/mv con tolerancia relativa 1e-10, una tolerancia de
-consistencia de datos redundantes, no una calibración física. Un conjunto
-incompatible da ENG-E-0010: nunca se elige silenciosamente uno de los tres.
-Se permite descarga y tensión negativa; no se recortan resultados.
+Each layer requires thickness >0 in m, cv>0 in m²/s, mv>0 in 1/kPa and k>0 in m/s;
+global γw>0 in kN/m³ is required. All these data, including thickness and each
+load ordinate, use Parameter with Measured/Assumed Provenance. There are no
+physical defaults; missing cv, mv, k and γw give ENG-E-0003.
+cv=(k/γw)/mv is checked with relative tolerance 1e-10, a consistency
+tolerance for redundant data, not a physical calibration. An incompatible
+set gives ENG-E-0010: one of the three is never silently chosen.
+Unloading and negative stress are allowed; results are not clipped.
 
-Assumed se reporta con rutas inequívocas de todos los parámetros: primero γw,
-luego espesor/cv/mv/k por capa y finalmente las ordenadas de la historia entera,
-incluso aquellas posteriores a la última salida. La tabla completa se valida
-antes de integrar. θ y controles de malla/tiempo son opciones numéricas, sin
-Provenance física. Crank–Nicolson θ=0.5 es el único valor predeterminado; el
-paso máximo siempre se aporta explícitamente.
+Assumed is reported with unambiguous paths for all parameters: first γw,
+then thickness/cv/mv/k per layer and finally the ordinates of the entire history,
+even those after the last output. The complete table is validated
+before integration. θ and mesh/time controls are numerical options, without
+physical Provenance. Crank–Nicolson θ=0.5 is the only default; the
+maximum step is always supplied explicitly.
 
-## Derivación conservativa y elementos finitos
+## Conservative derivation and finite elements
 
-Sea ε=mv(Δσ−u). La continuidad de volumen y Darcy q=−(k/γw)u_z dan
+Let ε=mv(Δσ−u). Volume continuity and Darcy q=−(k/γw)u_z give
 
 ```text
 mv u_t − ∂z[(k/γw)u_z] = mv Δσ_t
 cv = k/(γw mv)
 ```
 
-Para una capa homogénea esto es u_t=cv u_zz+Δσ_t. En una interfaz sin
-almacenamiento superficial, u es continuo y (k/γw)u_z es continuo.
-Integrando por partes con test v continuo, nulo en caras drenantes:
+For a homogeneous layer this is u_t=cv u_zz+Δσ_t. At an interface without
+surface storage, u is continuous and (k/γw)u_z is continuous.
+Integrating by parts with continuous test v, zero on draining faces:
 
 ```text
 ∫ mv v u_t dz + ∫ (k/γw) v_z u_z dz = ∫ mv v Δσ_t dz
 ```
 
-Los términos internos de frontera se cancelan por continuidad del flujo.
-Las caras no drenantes tienen flujo cero natural, las drenantes u=0 esencial.
-Se admiten dren superior, inferior o ambos; no se impone simetría artificial.
-Cada capa tiene su propio número de elementos, sin elementos que crucen una
-interfaz. Los nodos de interfaz son únicos, no se duplican ni se promedian k.
+Internal boundary terms cancel through flux continuity.
+Nondraining faces have natural zero flux, draining faces essential u=0.
+Top, bottom or both drains are allowed; no artificial symmetry is imposed.
+Each layer has its own number of elements, without elements crossing an
+interface. Interface nodes are unique, not duplicated, and k is not averaged.
 
-Con ξ en [0,1], N=[1−ξ,ξ], B=[−1/h,1/h], integrar monomios exactamente da
+With ξ in [0,1], N=[1−ξ,ξ], B=[−1/h,1/h], integrating monomials exactly gives
 
 ```text
 Me = mv h/6 [2 1; 1 2]
@@ -82,37 +82,37 @@ Ke = (k/γw)/h [1 −1; −1 1]
 fe = mv h/2 [1;1]
 ```
 
-Se ensamblan M y K reducidas como CSR con Triplet/SparseMatrix de
-engine-linalg, en orden capa/elemento/fila/columna. El vector f se integra
-antes de eliminar los drenes: f_f NO es M_ff·1 cuando hay nodos prescritos.
-La presión del dren siempre es cero. No hay HashMap, hilos ni regularización.
+Reduced M and K are assembled as CSR with Triplet/SparseMatrix from
+engine-linalg, in layer/element/row/column order. Vector f is integrated
+before eliminating drains: f_f is NOT M_ff·1 when there are prescribed nodes.
+Drain pressure is always zero. There is no HashMap, threading or regularization.
 
 ```text
 (M + θ Δt K) u[n+1] = (M − (1−θ) Δt K) u[n] + f (Δσ[n+1]−Δσ[n])
 ```
 
-La historia empieza en t=0 y tiene al menos dos abscisas estrictamente
-crecientes. Δσ(t) interpola linealmente sin extrapolar. Δσ(0) representa una
-carga instantánea sobre el estado inicial en reposo: nodos libres u=Δσ(0),
-drenes u=0. No se añade un parámetro de presión inicial independiente.
-Por esta interpolación, s(0) tiene un error de borde O(h); no se presenta
-como un asiento inicial exacto. Para tiempos positivos fijos la convergencia
-espacial observada es O(h²). CN puede oscilar al inicio si Δt/h² es grande;
-se conserva la solución del esquema, sin amortiguación ni recorte oculto.
-θ=1 permite al llamador elegir amortiguación de altas frecuencias.
+History starts at t=0 and has at least two strictly increasing
+abscissas. Δσ(t) interpolates linearly without extrapolation. Δσ(0) represents an
+instantaneous load on the initial at-rest state: free nodes u=Δσ(0),
+drains u=0. No independent initial pressure parameter is added.
+Because of this interpolation, s(0) has a boundary error O(h); it is not presented
+as an exact initial settlement. For constant positive times, observed spatial
+convergence is O(h²). CN may oscillate initially if Δt/h² is large;
+the scheme's solution is preserved, without hidden damping or clipping.
+θ=1 allows the caller to choose high-frequency damping.
 
-El integrador llega exactamente a todos los quiebres de carga y salidas.
-Cada intervalo se divide en ceil(longitud/max_step_s) subpasos iguales;
-se factoriza una vez por intervalo con LinAlgBackend::factorize y se reutiliza
-el factor para todas sus RHS. solve usa ReferenceBackend; solve_with_backend
-admite el contrato existente. La revisión inicial confirmó que engine-linalg
-NO contiene un solver de banda/disperso operativo: tiene CSR y factorización
-simétrica densa de referencia; faer es un stub. Se usa esa factorización, sin
-escribir otro solver ni afirmar escalabilidad dispersa. Coste de referencia:
-O(n³) por factor, O(n²) por solve y memoria O(n²).
+The integrator reaches all load breakpoints and outputs exactly.
+Each interval is divided into ceil(longitud/max_step_s) equal substeps;
+it is factorized once per interval with LinAlgBackend::factorize and the
+factor is reused for all its RHS. solve uses ReferenceBackend; solve_with_backend
+accepts the existing contract. Initial review confirmed that engine-linalg
+does NOT contain an operational band/sparse solver: it has CSR and reference dense
+symmetric factorization; faer is a stub. That factorization is used, without
+writing another solver or claiming sparse scalability. Reference cost:
+O(n³) per factor, O(n²) per solve and O(n²) memory.
 
-Para θ<0.5, un modo λ del par (K,M) exige Δt λ≤2/(1−2θ).
-Gershgorin y el cociente de Rayleigh dan las cotas suficientes
+For θ<0.5, a mode λ of the pair (K,M) requires Δt λ≤2/(1−2θ).
+Gershgorin and the Rayleigh quotient give the sufficient bounds
 
 ```text
 a = min_i (Mii − Σj≠i |Mij|) > 0
@@ -120,16 +120,16 @@ b = max_i Σj |Kij| > 0
 λmax ≤ b/a; por tanto Δt ≤ 2a/[(1−2θ)b]
 ```
 
-La masa lineal consistente es estrictamente diagonal dominante incluso con
-capas distintas y tras eliminar drenes. Se comprueba esta cota para cada
-intervalo con θ<0.5; es conservadora, no una búsqueda de λmax exacto.
-θ≥0.5 no tiene esta restricción de estabilidad lineal.
+The consistent linear mass is strictly diagonally dominant even with
+different layers and after eliminating drains. This bound is checked for every
+interval with θ<0.5; it is conservative, not a search for exact λmax.
+θ≥0.5 does not have this linear stability restriction.
 
-## Salidas e integración
+## Outputs and integration
 
-Se devuelven todas las profundidades nodales y u(z_i,t_j). pressure_at
-interpola el campo FE a cualquier profundidad del perfil, sin extrapolar;
-el tiempo se selecciona por índice de salida. Para cada elemento:
+All nodal depths and u(z_i,t_j) are returned. pressure_at
+interpolates the FE field at any depth of the profile, without extrapolation;
+time is selected by output index. For each element:
 
 ```text
 s_e = mv h [Δσ − (u_i+u_j)/2]
@@ -138,27 +138,27 @@ s∞(t) = Δσ(t) Σ mv h
 U(t) = s(t)/s∞(t)
 ```
 
-Éste es el grado medio por asiento, ponderado por compresibilidad. En suelo
-homogéneo coincide con 1−∫u dz/(H Δσ). En multicapa no se sustituye por una
-media aritmética sin mv. Para Δσ=0, U=None aunque haya presión residual;
-s sigue definido. Durante descarga U puede quedar fuera de [0,1].
+This is the average degree based on settlement, weighted by compressibility. In homogeneous
+soil it agrees with 1−∫u dz/(H Δσ). In multilayer soil it is not replaced with an
+arithmetic mean without mv. For Δσ=0, U=None even if there is residual pressure;
+s remains defined. During unloading U may fall outside [0,1].
 
-Límites explícitos del backend de referencia: 2048 elementos, hasta 100000
-puntos de historia/salida, 8000000 valores nodales de salida y 1000000
-subpasos por intervalo. Se rechazan tamaños y acumulaciones no representables.
-ENG-E-0010 por rangos, geometría, incompatibilidad, estabilidad y límites;
-ENG-E-0008 por NaN/infinito/desbordamiento; ENG-E-0003 por datos ausentes.
-Los errores del solver conservan código y entidades dentro del Diagnostic
-con mensaje de catálogo y contexto en hint. Sin panic!, unwrap ni expect en
-el módulo nuevo de biblioteca; forbid(unsafe_code) se hereda del crate.
+Explicit limits of the reference backend: 2048 elements, up to 100000
+history/output points, 8000000 nodal output values and 1000000
+substeps per interval. Unrepresentable sizes and accumulations are rejected.
+ENG-E-0010 for ranges, geometry, incompatibility, stability and limits;
+ENG-E-0008 for NaN/infinity/overflow; ENG-E-0003 for missing data.
+Solver errors retain code and entities within the Diagnostic
+with catalog message and context in hint. No panic!, unwrap or expect in
+the new library module; forbid(unsafe_code) is inherited from the crate.
 
 ## Serie de Terzaghi: derivación y fixtures
 
-Con dren en x=0 y cara impermeable x=Hdr, separar u=X(x)T(t) da
+With a drain at x=0 and impermeable face at x=Hdr, separating u=X(x)T(t) gives
 X=sin(Mx/Hdr), M=π(2m+1)/2, T=exp(−M²Tv), Tv=cv t/Hdr².
-La proyección de la condición inicial uniforme Δσ en esos senos tiene
-coeficiente 2Δσ/M, puesto que ∫sin(Mx/Hdr)dx=Hdr/M y
-∫sin²(Mx/Hdr)dx=Hdr/2. Integrar el campo sobre el espesor da
+Projection of the uniform initial condition Δσ onto those sines has
+coefficient 2Δσ/M, since ∫sin(Mx/Hdr)dx=Hdr/M and
+∫sin²(Mx/Hdr)dx=Hdr/2. Integrating the field over thickness gives
 
 ```text
 u(x,t)/Δσ = Σ (2/M) sin(M x/Hdr) exp(−M² Tv)
@@ -166,97 +166,97 @@ u(x,t)/Δσ = Σ (2/M) sin(M x/Hdr) exp(−M² Tv)
 U(Tv) = 1 − Σ (2/M²) exp(−M² Tv)
 ```
 
-En doble drenaje Hdr=H/2 y se refleja cada semiespesor. En dren inferior
-se usa x=H−z. No cambia Tv por un factor cuatro sin cambiar Hdr.
-Para una rampa 0→Δσ en R (r=cv R/Hdr²), se convoluciona la respuesta
-al escalón. Cada exponencial de la suma se reemplaza por
+In double drainage Hdr=H/2 and each half-thickness is reflected. With a bottom drain
+x=H−z is used. Tv does not change by a factor of four without changing Hdr.
+For a ramp 0→Δσ over R (r=cv R/Hdr²), the step response is
+convolved. Each exponential in the sum is replaced by
 
 ```text
 A(M,Tv,r) = exp[−M²(Tv−min(Tv,r))] · (1−exp[−M² min(Tv,r)])/(M² r)
 ```
 
-Se evalúa 1−exp(−a) con −engine_core::math::exp_m1(−a). Descarga lineal
-posterior es la resta de una rampa desplazada; no se crea un salto oculto.
-Los oráculos usan 2048 términos, math::sin/cos/exp/exp_m1 del núcleo.
-Para escalones y Tv≥.01, la cola exponencial es despreciable en f64.
-En rampa, la cola de la media está acotada por
-2/r Σm≥N 1/M⁴ ≤ 2/[3r π⁴(N−1/2)³], <5e-12 con r=.2,N=2048;
-para la presión, |sin|≤1 da cota 1/[r π³(N−1/2)²]<4e-8.
-Estos límites están por debajo de las tolerancias discretas.
+1−exp(−a) is evaluated with −engine_core::math::exp_m1(−a). Subsequent linear
+unloading is the subtraction of a shifted ramp; no hidden jump is created.
+The oracles use 2048 terms, math::sin/cos/exp/exp_m1 from the core.
+For steps and Tv≥.01, the exponential tail is negligible in f64.
+For a ramp, the mean tail is bounded by
+2/r Σm≥N 1/M⁴ ≤ 2/[3r π⁴(N−1/2)³], <5e-12 with r=.2,N=2048;
+for pressure, |sin|≤1 gives bound 1/[r π³(N−1/2)²]<4e-8.
+These limits are below the discrete tolerances.
 
-Tabla versionada: engine-validation/tests/support/consolidation_table.rs.
-Todos los fixtures contienen source y citation con edición. H=2 m,
+Versioned table: engine-validation/tests/support/consolidation_table.rs.
+All fixtures contain source and citation with edition. H=2 m,
 cv=.25 m²/s, mv=.002 /kPa, γw=10 kN/m³, k=.005 m/s, Δσ=100 kPa.
-Son datos analíticos sencillos, sin pretensión de representar un suelo real.
-Malla de referencia: 64 elementos para dren simple, 128 para doble;
-ΔTv máximo=.0005. Salidas Tv=.01,.05,.1,.2,.4,.6,1.
+These are simple analytical data, without claiming to represent real soil.
+Reference mesh: 64 elements for single drain, 128 for double;
+maximum ΔTv=.0005. Outputs Tv=.01,.05,.1,.2,.4,.6,1.
 
-| Fixture | Historia y solución |
+| Fixture | History and solution |
 | --- | --- |
-| Superior | Escalón constante; serie con Hdr=2 |
-| Inferior | Reflejo del superior, misma U y s |
-| Doble | Escalón, Hdr=1, idéntica U(Tv) |
-| Rampa | Rampa hasta Tv=.2 y meseta; convolución analítica |
-| Rampa/descarga | Rampa hasta .2, meseta hasta .4, descarga lineal hasta .6, cero hasta 1 |
-| Multicapa | Dos capas transformadas, misma serie y flujo interfacial no nulo |
+| Top | Constant step; series with Hdr=2 |
+| Bottom | Reflection of top, same U and s |
+| Double | Step, Hdr=1, identical U(Tv) |
+| Ramp | Ramp up to Tv=.2 and plateau; analytical convolution |
+| Ramp/unloading | Ramp up to .2, plateau up to .4, linear unloading up to .6, zero up to 1 |
+| Multilayer | Two transformed layers, same series and nonzero interfacial flux |
 
-La aceptación exige error RELATIVO de U <.005, error absoluto de presión
-normalizado por 100 kPa <.004 y error de asiento normalizado por .4 m <.0015.
-En Δσ=0 se comprueba U=None y presión/asiento residual contra convolución.
-Además se comparan todos los nodos u(z,t), no sólo U.
+Acceptance requires RELATIVE error of U <.005, absolute pressure error
+normalized by 100 kPa <.004 and settlement error normalized by .4 m <.0015.
+At Δσ=0, U=None and residual pressure/settlement are checked against convolution.
+All nodes u(z,t) are also compared, not just U.
 
 ### Multicapa con flujo no nulo: derivación propia
 
-Tomar x=∫dz/√cv y a=mv√cv constante. Entonces
-mv dz=a dx y (k/γw)u_z=mv√cv u_x=a u_x; la forma débil se convierte
-en a∫v u_t dx+a∫v_x u_x dx=a∫v Δσ_t dx. Es difusión homogénea con
-coeficiente 1 en x, conservando presión, flujo y asiento, incluso en interfaz.
+Take x=∫dz/√cv and constant a=mv√cv. Then
+mv dz=a dx and (k/γw)u_z=mv√cv u_x=a u_x; the weak form becomes
+a∫v u_t dx+a∫v_x u_x dx=a∫v Δσ_t dx. It is homogeneous diffusion with
+coefficient 1 in x, preserving pressure, flux and settlement, even at the interface.
 
-Capa 1: H1=1 m, cv1=.25, mv1=.002, k1=.005.
-Capa 2: H2=2 m, cv2=1, mv2=.001, k2=.01.
-γw=10; a=.001 en ambas, longitudes transformadas 2+2=4.
-Dren superior, Tv=t/16, 32 elementos por capa; el dominio transformado
-es exactamente una malla uniforme de 64 elementos. ∫mv dz=.004.
-La interfaz está en x/Hx=.5 y tiene u_x no nulo: no se valida sólo un plano
-de simetría con flujo cero. A Tv=.2 se comparan ambos flujos elementales
-−(k/γw)Δu/h con la derivada de la serie; cada uno debe diferir <3%.
-Los flujos de derivada elemental convergen a ambos lados; la continuidad
-exacta es débil/nodal, no se promete igualdad puntual de pendientes P1.
+Layer 1: H1=1 m, cv1=.25, mv1=.002, k1=.005.
+Layer 2: H2=2 m, cv2=1, mv2=.001, k2=.01.
+γw=10; a=.001 in both, transformed lengths 2+2=4.
+Top drain, Tv=t/16, 32 elements per layer; the transformed domain
+is exactly a uniform mesh of 64 elements. ∫mv dz=.004.
+The interface is at x/Hx=.5 and has nonzero u_x: validation does not cover only a plane
+of symmetry with zero flux. At Tv=.2 both elemental fluxes
+−(k/γw)Δu/h are compared with the series derivative; each must differ by <3%.
+Elemental derivative fluxes converge on both sides; exact continuity
+is weak/nodal, pointwise equality of P1 slopes is not promised.
 
 ### Revisión J4 r32: multicapa no transformable por autofunciones
 
-Referencia general publicada: H. S. Carslaw y J. C. Jaeger (1959),
+General published reference: H. S. Carslaw y J. C. Jaeger (1959),
 *Conduction of Heat in Solids*, segunda edición, Oxford University Press:
-difusión en medios compuestos y separación de variables. La ecuación de calor
-con capacidad y conductividad por tramos es el mismo problema de difusión.
-No se consultó una copia en esta sesión sin red; no se atribuyen páginas ni
-fórmulas concretas al libro. Todo el desarrollo siguiente y su código son
-propios; no se copian listados, valores ni ejemplos de terceros.
+diffusion in composite media and separation of variables. The heat equation
+with piecewise capacity and conductivity is the same diffusion problem.
+No copy was consulted in this offline session; no pages or
+specific formulas are attributed to the book. All the following development and its code are
+own; no third-party listings, values or examples are copied.
 
-Fixture versionado en `engine-validation/tests/support/consolidation_table.rs`
-(`MULTILAYER`, `MULTILAYER_SOURCE`, `MULTILAYER_CITATION`), con referencia
-espectral en `support/consolidation_multilayer.rs`. Dren superior u(0,t)=0,
-base impermeable u_z(3,t)=0, escalón uniforme de 100 kPa, γw=10 kN/m³:
+Versioned fixture in `engine-validation/tests/support/consolidation_table.rs`
+(`MULTILAYER`, `MULTILAYER_SOURCE`, `MULTILAYER_CITATION`), with spectral
+reference in `support/consolidation_multilayer.rs`. Top drain u(0,t)=0,
+impermeable base u_z(3,t)=0, uniform 100 kPa step, γw=10 kN/m³:
 
-| Capa | H (m) | cv (m²/s) | mv (1/kPa) | k (m/s) | a=mv√cv |
+| Layer | H (m) | cv (m²/s) | mv (1/kPa) | k (m/s) | a=mv√cv |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | 1 | .5 | .25 | .002 | .005 | .001 |
 | 2 | 1.5 | 2.25 | .001 | .0225 | .0015 |
 | 3 | 1 | 1 | .003 | .03 | .003 |
 
-Las tres razones k/mv son 2.5, 22.5 y 10. Las longitudes H/√cv son 1,
-pero las impedancias a son distintas. Un cambio de coordenada x=f(z) que
-homogeneice el coeficiente de difusión exige f' proporcional a 1/√cv;
-el coeficiente de flujo resultante es proporcional a mv√cv, discontinuo.
-Por tanto no se elimina la heterogeneidad mediante un cambio de escala de z:
-las condiciones de transmisión siguen siendo no homogéneas en x.
+The three k/mv ratios are 2.5, 22.5 and 10. The H/√cv lengths are 1,
+but the impedances a differ. A coordinate change x=f(z) that
+homogenizes the diffusion coefficient requires f' proportional to 1/√cv;
+the resulting flux coefficient is proportional to mv√cv, discontinuous.
+Therefore heterogeneity is not eliminated by rescaling z:
+the transmission conditions remain nonhomogeneous in x.
 
-Separar u=X(z)exp(−λt) en mv u_t=(D u_z)_z, D=k/γw, da en cada capa
-X''+(λ/cv)X=0. Sea ω=√λ y ξ=(z−z_superior)/√cv en [0,1]. Escribir
-X_i=A_i cos(ωξ)+B_i sin(ωξ). Entonces p=D X_z=a_i X_ξ. Integrar la
-conservación en una interfaz sin almacenamiento exige continuidad de p;
-la presión también es continua. Como γw es común, esto equivale a
-continuidad de k X_z. Con c=cos ω, s=sin ω, las dos condiciones dan
+Separating u=X(z)exp(−λt) in mv u_t=(D u_z)_z, D=k/γw, gives in each layer
+X''+(λ/cv)X=0. Let ω=√λ and ξ=(z−z_superior)/√cv in [0,1]. Write
+X_i=A_i cos(ωξ)+B_i sin(ωξ). Then p=D X_z=a_i X_ξ. Integrating
+conservation at an interface without storage requires continuity of p;
+pressure is also continuous. Since γw is common, this is equivalent to
+continuity of k X_z. With c=cos ω, s=sin ω, both conditions give
 
 ```text
 A_1=0, B_1=1                    (dren superior y normalización)
@@ -264,12 +264,12 @@ A_{i+1}=A_i c+B_i s
 B_{i+1}=(a_i/a_{i+1})(−A_i s+B_i c)
 ```
 
-Equivalentemente, el estado (X,q), q=p/ω, se propaga en cada capa mediante
-la matriz [[c,s/a_i],[−a_i s,c]]. Empezando en (0,a_1), el flujo en la base
-es q_base=a_1 c[c²−B s²], donde
-B=a_2/a_1+a_3/a_1+a_3/a_2=6.5. La base impermeable exige q_base=0.
-No hay modo λ=0: la solución lineal estacionaria con dren y base impermeable
-es nula. El espectro positivo completo es, para n=0,1,...,
+Equivalently, state (X,q), q=p/ω, propagates in each layer through
+the matrix [[c,s/a_i],[−a_i s,c]]. Starting at (0,a_1), flux at the base
+is q_base=a_1 c[c²−B s²], where
+B=a_2/a_1+a_3/a_1+a_3/a_2=6.5. The impermeable base requires q_base=0.
+There is no λ=0 mode: the steady linear solution with drain and impermeable base
+is zero. The complete positive spectrum is, for n=0,1,...,
 
 ```text
 α=atan(1/√6.5)
@@ -277,13 +277,13 @@ es nula. El espectro positivo completo es, para n=0,1,...,
 λ = ω²
 ```
 
-Son las tres raíces simples por cada intervalo de longitud π. El operador
-es autoadjunto con peso mv: al restar las ecuaciones de dos modos, los
-extremos y términos de interfaz se cancelan precisamente por continuidad
-de X y p. Los modos son ortogonales en ∫mv X_n X_m dz. La proyección de
-u(z,0)=100 sobre este sistema da b_n=100 I_n/N_n, con
-I_n=∫mv X_n dz, N_n=∫mv X_n² dz. Como mv dz=a_i dξ, ambas integrales
-se evalúan sin malla ni cuadratura, sumando por capa:
+These are the three simple roots per interval of length π. The operator
+is self-adjoint with weight mv: subtracting the equations of two modes, the
+end and interface terms cancel precisely through continuity
+of X and p. Modes are orthogonal in ∫mv X_n X_m dz. Projection of
+u(z,0)=100 onto this system gives b_n=100 I_n/N_n, with
+I_n=∫mv X_n dz, N_n=∫mv X_n² dz. Since mv dz=a_i dξ, both integrals
+are evaluated without mesh or quadrature, summing by layer:
 
 ```text
 I_i = a_i [A_i sin ω+B_i(1−cos ω)]/ω
@@ -296,51 +296,51 @@ k u_z = Σ 100 I_n/N_n · 10 a_i ω_n
         [−A_i sin(ω_n ξ)+B_i cos(ω_n ξ)] exp(−ω_n²t)
 ```
 
-∫mv dz=.0055 m/kPa y s∞=.55 m. El oráculo no usa matrices FE, backend
-lineal, paso temporal ni integración espacial de la implementación. Sólo
-evalúa estas expresiones cerradas con `engine_core::math`.
+∫mv dz=.0055 m/kPa and s∞=.55 m. The oracle does not use FE matrices, the linear
+backend, time step or spatial integration of the implementation. It only
+evaluates these closed-form expressions with `engine_core::math`.
 
-Se incluyen 16 grupos de tres raíces (48 modos). Para los omitidos,
-ω≥16π, |X|≤1 porque cada transmisión rota (A,B) y contrae su segunda
-componente (a_i/a_{i+1}≤1). Así |I|≤.0055 y
-N≥.001[1/2−1/(4ω)]>.000495. Tanto cada coeficiente de u/100 como cada
-coeficiente de presión media ponderada están acotados por .0055/.000495.
-Para t≥.1, la cola de cualquiera de esas dos magnitudes es menor que
+16 groups of three roots (48 modes) are included. For omitted modes,
+ω≥16π, |X|≤1 because each transmission rotates (A,B) and contracts its second
+component (a_i/a_{i+1}≤1). Thus |I|≤.0055 and
+N≥.001[1/2−1/(4ω)]>.000495. Both each u/100 coefficient and each
+weighted mean pressure coefficient are bounded by .0055/.000495.
+For t≥.1, the tail of either of those quantities is less than
 
 ```text
 3(.0055/.000495) exp[−.1(16π)²] / {1−exp[−.1·33π²]} < 1e−107.
 ```
 
-Esta cota es de truncamiento en aritmética exacta; no afirma error de
-redondeo de ese orden. Se comprueba para los 48 modos la norma positiva,
-ambas condiciones de frontera y continuidad de X y k X_z en las dos
-interfaces (tolerancia absoluta 1e−12 en las unidades del modo).
+This bound is for truncation in exact arithmetic; it does not claim rounding
+error of that order. Positive norm, both boundary conditions and continuity of X and k X_z
+at both interfaces are checked for all 48 modes
+(absolute tolerance 1e−12 in the mode's units).
 
-FE: 32 elementos por capa (96 en total), Crank–Nicolson y Δt máximo .002 s;
-salidas t=.1,.5,1,3,10,30 s. Se comparan todos los nodos, incluidas ambas
-interfaces. Tolerancias fijadas como en los fixtures anteriores:
-|u_FE−u_serie|/100<.004, |s_FE−s_serie|/.55<.0015 y error relativo U<.005.
-A t=1 s ambas interfaces tienen |k u_z|>.01 kPa·m/s; cada pendiente
-elemental de ambos lados se compara con el flujo analítico común con error
-relativo <.03. No se exige igualdad puntual entre pendientes P1.
+FE: 32 elements per layer (96 in total), Crank–Nicolson and maximum Δt .002 s;
+outputs t=.1,.5,1,3,10,30 s. All nodes are compared, including both
+interfaces. Tolerances set as in the previous fixtures:
+|u_FE−u_serie|/100<.004, |s_FE−s_serie|/.55<.0015 and relative error U<.005.
+At t=1 s both interfaces have |k u_z|>.01 kPa·m/s; each elemental
+slope on both sides is compared with the common analytical flux with relative
+error <.03. Pointwise equality between P1 slopes is not required.
 
-Máximos medidos en nativo: presión/100=.0004286818;
-asiento/.55=.0000667471; relativo U=.0010288205;
-relativo flujo=.0181946330. Estas medidas verifican las tolerancias;
-la referencia se obtiene de las ecuaciones, sin ajustar al solver.
-El harness compartido ejecuta ahora siete fixtures en nativo y WASM.
+Native measured maxima: presión/100=.0004286818;
+asiento/.55=.0000667471; relative U=.0010288205;
+relative flux=.0181946330. These measurements verify the tolerances;
+the reference is obtained from the equations, without fitting to the solver.
+The shared harness now runs seven fixtures in native and WASM.
 
-### Revisión r32: discrepancia de cv intermedio y prueba de mutación
+### Review r32: middle cv discrepancy and mutation test
 
-`engine-geo/tests/consolidation.rs` añade
-`middle_layer_cv_discrepancy_is_rejected_without_substitution`. Primero
-acepta las tres capas compatibles de la tabla anterior; después cambia
-únicamente cv de `layers[1]` por factores 1e−1 y 10, manteniendo k y mv.
-Exige ENG-E-0010 y contexto `layers[1]`/`cv incompatible`. Esto comprueba
-que el dato redundante no se sustituye silenciosamente por k/(γw mv).
+`engine-geo/tests/consolidation.rs` adds
+`middle_layer_cv_discrepancy_is_rejected_without_substitution`. First it
+accepts the three compatible layers from the table above; then it changes
+only cv of `layers[1]` by factors 1e−1 and 10, retaining k and mv.
+It requires ENG-E-0010 and context `layers[1]`/`cv incompatible`. This checks
+that the redundant datum is not silently replaced by k/(γw mv).
 
-Comprobación efectiva, con `CARGO_TARGET_DIR=/workspace/.cargo-target/me-geo6`
-exportado, usando este comando antes, durante y después de la mutación:
+Actual check, with `CARGO_TARGET_DIR=/workspace/.cargo-target/me-geo6`
+exported, using this command before, during and after the mutation:
 
 ```sh
 cargo test --offline -p engine-geo --test consolidation \
@@ -348,44 +348,44 @@ cargo test --offline -p engine-geo --test consolidation \
 ```
 
 1. Original: 1 passed, 0 failed.
-2. Se insertó temporalmente en `ConsolidationProfile::new`, inmediatamente
-   después de leer cv y antes de leer mv:
+2. Temporarily inserted in `ConsolidationProfile::new`, immediately
+   after reading cv and before reading mv:
    `let cv = if i == 1 { cv * 1e-1 } else { cv };`.
-   El test falló (exit 101, 0 passed, 1 failed) en la aceptación del perfil
-   compatible: ENG-E-0010, `layers[1]: cv incompatible con k/(γw mv)`.
-3. Se restauró el archivo original byte a byte mediante `finally` de un
-   script local Python; el mismo test volvió a pasar.
-4. Control adicional: se excluyó temporalmente `i==1` de la comprobación de
-   discrepancia (`if i != 1 && ...`). El test falló (exit 101) en
-   `expect_err` al aceptar el cv intermedio incompatible. Se restauró otra
-   vez el archivo byte a byte y el test pasó.
+   The test failed (exit 101, 0 passed, 1 failed) when accepting the compatible
+   profile: ENG-E-0010, `layers[1]: cv incompatible con k/(γw mv)`.
+3. The original file was restored byte for byte through `finally` of a
+   local Python script; the same test passed again.
+4. Additional control: `i==1` was temporarily excluded from the discrepancy
+   check (`if i != 1 && ...`). The test failed (exit 101) at
+   `expect_err` when accepting the incompatible middle cv. The file was restored
+   byte for byte again and the test passed.
 
-Ambas mutaciones se eliminaron; `src/consolidation.rs` no tiene diff.
-No se cambió la biblioteca ni su política de errores. Sin fuentes externas,
-sin red, sin nuevas dependencias y sin delegación; se mantiene la declaración
-clean-room inicial.
+Both mutations were removed; `src/consolidation.rs` has no diff.
+Neither the library nor its error policy was changed. No external sources,
+no network, no new dependencies and no delegation; the initial clean-room
+declaration is retained.
 
-### Revisión r34: frontera de tolerancia relativa de cv
+### Review r34: cv relative tolerance boundary
 
-`engine-geo/tests/consolidation.rs` añade
-`cv_consistency_relative_tolerance_boundary`: acepta la razón `1+5e-11` y
-rechaza `1+2e-10` con ENG-E-0010 y contexto `layers[0]`/`cv incompatible`.
+`engine-geo/tests/consolidation.rs` adds
+`cv_consistency_relative_tolerance_boundary`: accepts ratio `1+5e-11` and
+rejects `1+2e-10` with ENG-E-0010 and context `layers[0]`/`cv incompatible`.
 
-Construcción exacta dentro de f64: k=.0078125=2⁻⁷ m/s,
-γw=8=2³ kN/m³ y mv=.0009765625=2⁻¹⁰ /kPa. Las divisiones
-`k/γw=2⁻¹⁰` y `(k/γw)/mv=1` son exactas. Se asigna `cv=1.0+δ`, por
-lo que `cv/cv_derivado` conserva exactamente los bits del resultado f64 de
-`1.0+δ`, sin redondeo adicional de los parámetros. El test comprueba esos
-bits, el cv derivado igual a uno y el lado de la tolerancia de cada caso.
-Los decimales matemáticos no son representables exactamente en binario;
-estos son sus valores redondeados a f64 y sus discrepancias efectivas:
+Exact construction within f64: k=.0078125=2⁻⁷ m/s,
+γw=8=2³ kN/m³ and mv=.0009765625=2⁻¹⁰ /kPa. The divisions
+`k/γw=2⁻¹⁰` and `(k/γw)/mv=1` are exact. `cv=1.0+δ` is assigned, so
+`cv/cv_derivado` preserves exactly the bits of the f64 result of
+`1.0+δ`, without additional parameter rounding. The test checks those
+bits, the derived cv equal to one and the tolerance side of each case.
+Mathematical decimals are not exactly representable in binary;
+these are their values rounded to f64 and their effective discrepancies:
 
-| δ | Bits de la razón f64 `1.0+δ` | `razón−1.0` en f64 | Resultado |
+| δ | Bits of the f64 ratio `1.0+δ` | `razón−1.0` in f64 | Result |
 | --- | --- | --- | --- |
-| 5e-11 | `0x3ff0000000036f9c` | 5.000000413701855e-11 | Aceptado |
-| 2e-10 | `0x3ff00000000dbe70` | 2.000000165480742e-10 | Rechazado |
+| 5e-11 | `0x3ff0000000036f9c` | 5.000000413701855e-11 | Accepted |
+| 2e-10 | `0x3ff00000000dbe70` | 2.000000165480742e-10 | Rejected |
 
-Prueba efectiva de las cuatro mutaciones, sin red y con
+Actual test of the four mutations, without network and with
 `export CARGO_TARGET_DIR=/workspace/.cargo-target/me-geo6`:
 
 ```sh
@@ -393,49 +393,49 @@ cargo test --offline -p engine-geo --test consolidation \
   cv_consistency_relative_tolerance_boundary -- --exact
 ```
 
-Solo se cambió temporalmente el literal de comparación `> 1e-10` en
-`ConsolidationProfile::new`; el mensaje de diagnóstico quedó intacto.
+Only the comparison literal `> 1e-10` in
+`ConsolidationProfile::new` was temporarily changed; the diagnostic message remained unchanged.
 
-| Tolerancia de biblioteca | Exit | Resultado del test |
+| Library tolerance | Exit | Test result |
 | --- | ---: | --- |
 | 1e-10 original | 0 | 1 passed, 0 failed |
-| 1e-1 mutada | 101 | 0 passed, 1 failed |
-| 1e-3 mutada | 101 | 0 passed, 1 failed |
-| 1e-6 mutada | 101 | 0 passed, 1 failed |
-| 1e-9 mutada | 101 | 0 passed, 1 failed |
-| 1e-10 restaurada | 0 | 1 passed, 0 failed |
+| 1e-1 mutated | 101 | 0 passed, 1 failed |
+| 1e-3 mutated | 101 | 0 passed, 1 failed |
+| 1e-6 mutated | 101 | 0 passed, 1 failed |
+| 1e-9 mutated | 101 | 0 passed, 1 failed |
+| 1e-10 restored | 0 | 1 passed, 0 failed |
 
-Cada mutación falla en `expect_err("razón 1+2e-10 debe rechazarse")`:
-el constructor acepta indebidamente el perfil. El caso `1+5e-11`, ejecutado
-primero, sigue pasando. Un script Python restauró los bytes originales en
-`finally` después de cada mutación y al salir; se comprobó igualdad byte a
-byte antes de repetir el test original. No queda ninguna mutación ni diff
-en la biblioteca. Sin fuentes externas, dependencias nuevas ni delegación.
+Each mutation fails at `expect_err("razón 1+2e-10 debe rechazarse")`:
+the constructor incorrectly accepts the profile. Case `1+5e-11`, executed
+first, still passes. A Python script restored the original bytes in
+`finally` after each mutation and on exit; byte-for-byte equality was
+checked before repeating the original test. No mutation or diff remains
+in the library. No external sources, new dependencies or delegation.
 
-Verificación de r34 (2026-10-15), con el mismo `CARGO_TARGET_DIR` exportado
-y `CARGO_NET_OFFLINE=true`, toda aprobada:
+r34 verification (2026-10-15), with the same exported `CARGO_TARGET_DIR`
+and `CARGO_NET_OFFLINE=true`, all passed:
 
 - `cargo fmt --all -- --check`.
 - `/home/box/.cargo/bin/cargo clippy --offline --workspace --all-targets -- -D warnings`.
-- `cargo test --offline --workspace --no-fail-fast`: 557 pruebas aprobadas,
-  0 fallidas, 0 ignoradas, en 87 targets de prueba/doctest.
+- `cargo test --offline --workspace --no-fail-fast`: 557 tests passed,
+  0 failed, 0 ignored, across 87 test/doctest targets.
 - `RUSTDOCFLAGS="-D warnings" cargo doc --offline --workspace --no-deps`.
 - `/home/box/.cargo/bin/cargo check --offline --workspace --all-targets --target wasm32-unknown-unknown`.
-- `bash clean-room/check.sh origin/main`: `Clean-room: OK` sobre archivos
-  ya conocidos por Git; no requiere índice temporal para este cambio.
-- `git diff --check`: aprobado; biblioteca sin panic!, unwrap ni expect.
+- `bash clean-room/check.sh origin/main`: `Clean-room: OK` on files
+  already known to Git; no temporary index is required for this change.
+- `git diff --check`: passed; library without panic!, unwrap or expect.
 
-Nativo y rustdoc con Cargo/Rust 1.85.1; clippy y WASM con 1.99.0 ya instalado.
-Solo cambian el test de integración y este provenance; no se tocaron
-docs/CLEAN_ROOM.md, .github/**, clean-room/** ni vendor/**. Sin red y sin
-`git add` ni commit; el índice permanece intacto para J2.
+Native and rustdoc with Cargo/Rust 1.85.1; clippy and WASM with already installed 1.99.0.
+Only the integration test and this provenance change; docs/CLEAN_ROOM.md,
+.github/**, clean-room/** and vendor/** were not touched. No network and no
+`git add` or commit; the index remains unchanged for J2.
 
-## Convergencia y resultados medidos
+## Convergence and measured results
 
-Serie a Tv=.2: U=0.50408782020255 aproximadamente. Se fija ΔTv=.00025
-para refinamiento espacial, dren superior y mallas uniformes anidadas.
+Series at Tv=.2: U=0.50408782020255 approximately. ΔTv=.00025 is set
+for spatial refinement, top drain and nested uniform meshes.
 
-| Elementos | ΔTv máx. | U FE | Error absoluto frente a serie |
+| Elements | Max. ΔTv | U FE | Absolute error against series |
 | ---: | ---: | ---: | ---: |
 | 8 | .00025 | .508227050481 | .004139230278 |
 | 16 | .00025 | .505126887757 | .001039067555 |
@@ -443,16 +443,16 @@ para refinamiento espacial, dren superior y mallas uniformes anidadas.
 | 64 | .00125 | .504153341943 | .000065521741 |
 | .00025 | .504152865634 | .000065045431 |
 
-Cocientes cercanos a cuatro: convergencia espacial de segundo orden para
-este observable a tiempo positivo. El harness exige disminución estricta.
+Ratios near four: second-order spatial convergence for
+this observable at positive time. The harness requires strict decrease.
 
-Para tiempo se fija n=64. La referencia temporal es la misma discretización
-con ΔTv=.00025, no se confunde con la solución continua. CN y el escalón
-inicial pueden retener altas frecuencias en pasos grandes; el error total
-frente a la serie puede cambiar de signo al compensarse con error espacial.
-El harness exige que |U(ΔTv)−U(.00025)| disminuya estrictamente.
+For time, n=64 is set. The temporal reference is the same discretization
+with ΔTv=.00025; it is not confused with the continuous solution. CN and the initial
+step may retain high frequencies at large steps; total error
+against the series may change sign when offset by spatial error.
+The harness requires |U(ΔTv)−U(.00025)| to decrease strictly.
 
-| ΔTv máx. | U FE | Error absoluto frente a serie |
+| Max. ΔTv | U FE | Absolute error against series |
 | ---: | ---: | ---: |
 | .02 | .497450256297 | .006637563906 |
 | .01 | .502321203644 | .001766616559 |
@@ -461,95 +461,95 @@ El harness exige que |U(ΔTv)−U(.00025)| disminuya estrictamente.
 | .00125 | .504153341943 | .000065521741 |
 | .00025 | .504152865634 | .000065045431 |
 
-En malla de referencia, sobre todos los tiempos de los seis fixtures:
+On the reference mesh, over all times of the six fixtures:
 
-| Fixture | Máximo error relativo U (%) | Máximo error absoluto u/100 kPa (%) |
+| Fixture | Maximum relative U error (%) | Maximum absolute u/100 kPa error (%) |
 | --- | ---: | ---: |
-| Dren superior | .25941147 | .14919098 |
-| Dren inferior | .25941147 | .14919098 |
-| Doble drenaje | .25941147 | .14919098 |
-| Rampa | .14477007 | .00368148 |
-| Rampa y descarga | .14477007 | .00407868 |
-| Multicapa con flujo | .25941147 | .14919098 |
+| Top drain | .25941147 | .14919098 |
+| Bottom drain | .25941147 | .14919098 |
+| Double drainage | .25941147 | .14919098 |
+| Ramp | .14477007 | .00368148 |
+| Ramp and unloading | .14477007 | .00407868 |
+| Multilayer with flux | .25941147 | .14919098 |
 
-## Verificación de entrega inicial (anterior a r32)
+## Initial delivery verification (before r32)
 
-Las pruebas de engine-geo incluyen ecuaciones de un elemento derivadas a mano
-para θ=0,.25,.5,.75,1 (masa consistente y vector de carga completo), ambos
-drenajes simples, quiebres de carga sin salidas en ellos, carga cero, presión
-interpolada, toda la procedencia Assumed, datos faltantes en capas profundas,
-materiales incompatibles, geometría y dimensiones extremas, θ inestable,
-historias inválidas, ausencia de extrapolación, repetición bit a bit y asiento
-asintótico con doble drenaje.
+The engine-geo tests include hand-derived one-element equations
+for θ=0,.25,.5,.75,1 (consistent mass and complete load vector), both
+single drainages, load breakpoints without outputs at them, zero load, interpolated
+pressure, all Assumed provenance, missing data in deep layers,
+incompatible materials, extreme geometry and dimensions, unstable θ,
+invalid histories, absence of extrapolation, bit-for-bit repetition and asymptotic
+settlement with double drainage.
 
-El ejemplo examples/consolidation_wasm.rs comparte tabla y harness completos
-con el test nativo: exporta consolidation_benchmarks()=6 si pasan también las
-tablas de convergencia. scripts/run-consolidation-wasm.cjs verifica ausencia
-de imports externos y la devolución de seis. No requiere paquetes ni red.
+The examples/consolidation_wasm.rs example shares the full table and harness
+with the native test: it exports consolidation_benchmarks()=6 if the convergence
+tables also pass. scripts/run-consolidation-wasm.cjs verifies absence
+of external imports and a return of six. It requires no packages or network.
 
-Verificaciones finales, todas aprobadas, sin red (`--offline`) y con el
-`CARGO_TARGET_DIR` exportado `/workspace/.cargo-target/mamut-engine`:
+Final checks, all passed, without network (`--offline`) and with the
+exported `CARGO_TARGET_DIR` `/workspace/.cargo-target/mamut-engine`:
 
 - `cargo fmt --all -- --check`.
 - `/home/box/.cargo/bin/cargo clippy --offline --workspace --all-targets -- -D warnings`.
-- `cargo test --offline --workspace --no-fail-fast`: 555 pruebas aprobadas,
-  0 fallidas, 0 ignoradas, en 87 targets de prueba/doctest. Incluye las nueve
-  pruebas nuevas de API y el harness de seis fixtures con convergencia.
+- `cargo test --offline --workspace --no-fail-fast`: 555 tests passed,
+  0 failed, 0 ignored, across 87 test/doctest targets. Includes the nine
+  new API tests and the harness of six fixtures with convergence.
 - `RUSTDOCFLAGS="-D warnings" cargo doc --offline --workspace --no-deps`.
 - `/home/box/.cargo/bin/cargo check --offline --workspace --all-targets
-  --target wasm32-unknown-unknown`: incluye biblioteca, tests y ejemplos;
-  satisface también el check de biblioteca del workspace solicitado.
+  --target wasm32-unknown-unknown`: includes library, tests and examples;
+  also satisfies the requested workspace library check.
 - `/home/box/.cargo/bin/cargo build --offline --release -p engine-validation
   --example consolidation_wasm --target wasm32-unknown-unknown`.
 - `node crates/engine-validation/scripts/run-consolidation-wasm.cjs
   /workspace/.cargo-target/mamut-engine/wasm32-unknown-unknown/release/examples/consolidation_wasm.wasm`:
-  seis fixtures analíticos y convergencia aprobados, sin imports externos.
-- `bash clean-room/check.sh origin/main`: aprobado con todos los archivos
-  nuevos en el índice, para revisar el diff completo.
-- `git diff --check` y `git diff --cached --check`: aprobados.
-- Inspección del nuevo módulo: sin panic!, unwrap, expect, HashMap ni hilos.
-  No se modificaron docs/CLEAN_ROOM.md, .github/**, clean-room/** ni vendor/**.
+  six analytical fixtures and convergence passed, without external imports.
+- `bash clean-room/check.sh origin/main`: passed with all new
+  files in the index, to review the full diff.
+- `git diff --check` and `git diff --cached --check`: passed.
+- Inspection of the new module: no panic!, unwrap, expect, HashMap or threads.
+  docs/CLEAN_ROOM.md, .github/**, clean-room/** and vendor/** were not modified.
 
-Nativo y rustdoc con Cargo/Rust 1.85.1 del sistema (MSRV del workspace);
-clippy y wasm con Cargo/Rust 1.99.0 previamente instalado en
-/home/box/.cargo/bin. No hubo descargas ni dependencias externas nuevas.
-La ejecución WASM cubre estos seis fixtures y ambas tablas de convergencia;
-no se afirma ejecución de las otras suites en Node ni igualdad binaria entre
-arquitecturas. El backend denso de referencia y la interpolación inicial
-siguen teniendo los límites numéricos y de tamaño descritos arriba.
+Native and rustdoc with system Cargo/Rust 1.85.1 (workspace MSRV);
+clippy and wasm with Cargo/Rust 1.99.0 previously installed at
+/home/box/.cargo/bin. There were no downloads or new external dependencies.
+The WASM execution covers these six fixtures and both convergence tables;
+execution of the other suites in Node or binary equality between
+architectures is not claimed. The dense reference backend and initial interpolation
+still have the numerical and size limitations described above.
 
-Durante la verificación se corrigieron dos incidencias locales: clippy pidió
-simplificar una multiplicación por −1 en el harness; la guardia de determinismo
-exigió `use engine_core::math;` separado, rechazando el import agrupado aunque
-las llamadas ya usaban el módulo central. No se modificó ninguna guardia;
-se repitieron fmt, clippy, toda la suite, doc y los checks/build/runtime WASM
-con resultado satisfactorio tras esas correcciones.
+During verification two local issues were corrected: clippy requested
+simplifying multiplication by −1 in the harness; the determinism guard
+required separate `use engine_core::math;`, rejecting the grouped import although
+the calls already used the central module. No guard was modified;
+fmt, clippy, the entire suite, doc and WASM checks/build/runtime were repeated
+successfully after those corrections.
 
-## Verificación final de r32 (2026-10-15)
+## Final r32 verification (2026-10-15)
 
-Todos los comandos Cargo se ejecutaron sin red y con
+All Cargo commands were run without network and with
 `export CARGO_TARGET_DIR=/workspace/.cargo-target/me-geo6`:
 
-- `cargo fmt --all -- --check`: aprobado.
+- `cargo fmt --all -- --check`: passed.
 - `/home/box/.cargo/bin/cargo clippy --offline --workspace --all-targets -- -D warnings`:
-  aprobado, sin warnings.
-- `cargo test --offline --workspace --no-fail-fast`: 556 pruebas aprobadas,
-  0 fallidas, 0 ignoradas, en 87 targets de prueba/doctest. Incluye los siete
-  fixtures analíticos y el nuevo test de discrepancia intermedia.
+  passed, without warnings.
+- `cargo test --offline --workspace --no-fail-fast`: 556 tests passed,
+  0 failed, 0 ignored, across 87 test/doctest targets. Includes the seven
+  analytical fixtures and the new middle discrepancy test.
 - `RUSTDOCFLAGS="-D warnings" cargo doc --offline --workspace --no-deps`:
-  aprobado.
+  passed.
 - `/home/box/.cargo/bin/cargo check --offline --workspace --all-targets --target wasm32-unknown-unknown`:
-  aprobado.
+  passed.
 - `/home/box/.cargo/bin/cargo build --offline --release -p engine-validation --example consolidation_wasm --target wasm32-unknown-unknown`:
-  aprobado.
+  passed.
 - `node crates/engine-validation/scripts/run-consolidation-wasm.cjs /workspace/.cargo-target/me-geo6/wasm32-unknown-unknown/release/examples/consolidation_wasm.wasm`:
-  siete fixtures analíticos y convergencia aprobados, sin imports externos.
-- `bash clean-room/check.sh origin/main`: aprobado sobre el diff completo,
-  incluyendo el archivo nuevo mediante índice temporal en `/tmp` (el índice
-  original del worktree está montado como solo lectura en esta sesión).
-- `git diff --check` y `git diff --cached --check` con ese índice: aprobados.
-- El módulo de biblioteca sigue sin panic!, unwrap ni expect y sin cambios.
-  No se tocaron docs/CLEAN_ROOM.md, .github/**, clean-room/** ni vendor/**.
+  seven analytical fixtures and convergence passed, without external imports.
+- `bash clean-room/check.sh origin/main`: passed on the full diff,
+  including the new file through a temporary index in `/tmp` (the original
+  worktree index is mounted read-only in this session).
+- `git diff --check` and `git diff --cached --check` with that index: passed.
+- The library module still has no panic!, unwrap or expect and is unchanged.
+  docs/CLEAN_ROOM.md, .github/**, clean-room/** and vendor/** were not touched.
 
-Nativo y rustdoc: Cargo/Rust 1.85.1; clippy y WASM: Cargo/Rust 1.99.0 ya
-instalado, igual que en la entrega inicial. No se descargaron dependencias.
+Native and rustdoc: Cargo/Rust 1.85.1; clippy and WASM: Cargo/Rust 1.99.0 already
+installed, as in the initial delivery. No dependencies were downloaded.

@@ -1,181 +1,181 @@
-# Bitácora clean-room · ENG-ANL-001
+# Clean-room log · ENG-ANL-001
 
-- Ticket / PR: ENG-ANL-001 «Análisis estático lineal». Sin commit ni push.
-- Autor(es): J2 (agente, Grok Bot) · identificación solicitada por el usuario;
-  agente ejecutor Codex (GPT-6) · 2026-10-11 (America/Guayaquil).
-- Rol: implementador y autor de derivaciones analíticas propias.
-- Contrato implementado: `static.linear`, API `StaticLinear::run` / `run_about`
-  sobre `LinearSystem`, según la API concreta solicitada. La adaptación al
-  trait genérico `AnalysisMethod` (`analysis/1`, sink/control/settings) queda
-  fuera de esta interfaz.
-- Fuentes permitidas usadas: exclusivamente la petición del ticket, APIs propias
-  de engine-core, engine-contracts, engine-model, engine-assembly,
-  engine-elements-truss, engine-elements-frame y la frontera pública de
-  engine-linalg. Plantilla: `provenance/TEMPLATE.md`. Sin fuentes externas,
-  búsquedas en red, libros, resultados de otros motores ni oráculos.
-- Derivaciones propias: [nota de esta bitácora](#derivaciones-propias) y
-  [benchmarks lineales embebidos](../crates/engine-analysis/tests/analytical.rs).
-- Código de terceros copiado: ninguno. Solo dependencias internas por `path`,
-  incluidas las dependencias de pruebas; sin dependencias externas nuevas.
-- Validación: analítica, formas cerradas derivadas abajo y contador de llamadas
-  al backend de referencia existente. No se implementó un solver numérico nuevo.
-- Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados".
-- Revisor clean-room: PENDIENTE (J4).
+- Ticket / PR: ENG-ANL-001 «Linear static analysis». No commit or push.
+- Author(s): J2 (agent, Grok Bot) · identification requested by the user;
+  executing agent Codex (GPT-6) · 2026-10-11 (America/Guayaquil).
+- Role: implementer and author of original analytical derivations.
+- Implemented contract: `static.linear`, API `StaticLinear::run` / `run_about`
+  over `LinearSystem`, according to the specific API requested. Adaptation to the
+  generic trait `AnalysisMethod` (`analysis/1`, sink/control/settings) remains
+  outside this interface.
+- Permitted sources used: exclusively the ticket request, own APIs
+  of engine-core, engine-contracts, engine-model, engine-assembly,
+  engine-elements-truss, engine-elements-frame and the public boundary of
+  engine-linalg. Template: `provenance/TEMPLATE.md`. No external sources,
+  network searches, books, results from other engines or oracles.
+- Original derivations: [note in this log](#derivaciones-propias) and
+  [embedded linear benchmarks](../crates/engine-analysis/tests/analytical.rs).
+- Third-party code copied: none. Only internal dependencies by `path`,
+  including test dependencies; no new external dependencies.
+- Validation: analytical, closed forms derived below and call counter
+  for the existing reference backend. No new numerical solver was implemented.
+- Oracle comparison (sibling repo, informational): no.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados".
+- Clean-room reviewer: PENDING (J4).
 
-## Diseño, convención y límites
+## Design, convention and limits
 
-`solve_cases` valida una lista no vacía de nombres distintos y todos sus RHS
-antes de factorizar una sola vez K_ff. Reutiliza ese factor para cada RHS en el
-orden solicitado y traduce los errores igual que `solve`. No cambia la semántica
-de `solve`, que sigue factorizando cada llamada. Ninguna operación acepta ni
-modifica el estado de prueba. El pivote de un mecanismo señala un nodo/GDL
-implicado, sin describir todo el modo. El mapa conserva las coordenadas originales
-para los brazos de fuerzas; no vuelve a requerirse el modelo en el análisis.
+`solve_cases` validates a nonempty list of distinct names and all their RHS
+before factorizing K_ff once. It reuses that factor for each RHS in the
+requested order and translates errors in the same way as `solve`. It does not change the semantics
+of `solve`, which still factorizes on each call. No operation accepts or
+modifies the trial state. The pivot of a mechanism indicates an involved node/DOF
+without describing the entire mode. The map retains the original coordinates
+for force moment arms; the model is no longer required during analysis.
 
-Las cargas físicas incluyen acciones nodales, equivalentes elementales y cargas
-sobre apoyos. Se escala F, nunca u_p. La partición de Ku=F+R da:
+Physical loads include nodal actions, equivalent element loads and loads
+on supports. F is scaled, never u_p. Partitioning Ku=F+R gives:
 
 ```text
 K_ff u_f = λ F_f − K_fp u_p
 R_p = K_pf u_f + K_pp u_p − λ F_p
 ```
 
-Los seis componentes se ordenan Fx,Fy,Fz,Mx,My,Mz. Los campos
-`applied_force_sum`, `reaction_sum` y `residual_force` suman por componente;
-sus tres componentes rotacionales son pares nodales sin brazo. El momento total
-`residual_moment` es Σ(M + (x−p)×F) de cargas físicas y reacciones respecto a p,
-el origen por defecto. Por ello los pares solos pueden tener suma distinta de
-cero aun en equilibrio: el voladizo con carga terminal presenta ΣMz=PL, cancelado
-por los brazos de fuerzas. El signo es de mano derecha, con posiciones sin
-deformar. D2 representa XY, Z=0 y Rz; D3 usa XYZ y Rx,Ry,Rz. Se respetan las
-coordenadas originales sin proyección; la geometría D2 debe cumplir Z=0.
+The six components are ordered Fx,Fy,Fz,Mx,My,Mz. The fields
+`applied_force_sum`, `reaction_sum` and `residual_force` sum by component;
+their three rotational components are nodal couples without moment arms. The total moment
+`residual_moment` is Σ(M + (x−p)×F) of physical loads and reactions about p,
+the origin by default. Thus couples alone may have a nonzero sum
+even in equilibrium: the cantilever with an end load has ΣMz=PL, canceled
+by the force moment arms. The sign follows the right-hand rule, with undeformed
+positions. D2 represents XY, Z=0 and Rz; D3 uses XYZ and Rx,Ry,Rz. The
+original coordinates are respected without projection; D2 geometry must satisfy Z=0.
 
-El residual relativo global es el máximo de las fuerzas residuales divididas por
-max(1 N, suma de módulos de fuerzas por componente) y los momentos totales
-residuales divididos por max(1 N·m, suma de módulos de pares y términos del brazo
-por componente). Se incluyen cargas y reacciones en ambos denominadores. No se
-normaliza por la suma algebraica, que sería cero en equilibrio. El residual libre
-es ‖(Ku−λF)_f‖∞ / max(1, ‖(Ku)_f‖∞, ‖λF_f‖∞), con todos los valores en SI.
-Esta última norma mezcla fuerzas y momentos: es un indicador numérico, no una
-norma física invariante ante cambios de unidades. Se conserva también la norma
-absoluta. Se rechazan entradas y productos/sumas/reportes no finitos.
+The global relative residual is the maximum of the residual forces divided by
+max(1 N, sum of force magnitudes by component) and the total residual moments
+divided by max(1 N·m, sum of magnitudes of couples and moment-arm terms
+by component). Loads and reactions are included in both denominators. It is not
+normalized by the algebraic sum, which would be zero in equilibrium. The free residual
+is ‖(Ku−λF)_f‖∞ / max(1, ‖(Ku)_f‖∞, ‖λF_f‖∞), with all values in SI.
+This last norm mixes forces and moments: it is a numerical indicator, not a
+physical norm invariant under changes of units. The absolute norm is also
+retained. Nonfinite inputs and products/sums/reports are rejected.
 
-El análisis es lineal de primer orden: no usa Kg, no regulariza mecanismos y no
-actualiza geometría. Las combinaciones de engine-model son declarativas; los
-casos combinados deben aportarse como cargas de un caso del sistema. Con u_p=0,
-u(A+B)=u(A)+u(B), y lo mismo para las reacciones. Con asentamientos,
-u(A+B)=u(A)+u(B)−u(0), donde u(0) incluye el mismo asentamiento una sola vez.
-El backend de referencia y la reducción densa sirven para modelos pequeños;
-no se promete escalabilidad ni identidad binaria entre nativo y wasm.
+The analysis is linear and first-order: it does not use Kg, regularize mechanisms or
+update geometry. engine-model combinations are declarative; the
+combined cases must be supplied as loads of a system case. With u_p=0,
+u(A+B)=u(A)+u(B), and likewise for reactions. With settlements,
+u(A+B)=u(A)+u(B)−u(0), where u(0) includes the same settlement only once.
+The reference backend and dense reduction are intended for small models;
+scalability or binary identity between native and wasm is not promised.
 
 ## Derivaciones propias
 
-Todos los fixtures están embebidos en Rust, sin acceso a archivos, red, reloj o
-procesos durante las pruebas. Tolerancias absolutas: 1e-12 m/rad para
-desplazamientos y 1e-9 N/N·m para reacciones y equilibrio; indicadores relativos
-inferiores a 1e-12. Son datos SI artificiales para comprobar ecuaciones.
+All fixtures are embedded in Rust, without access to files, network, clock or
+processes during tests. Absolute tolerances: 1e-12 m/rad for
+displacements and 1e-9 N/N·m for reactions and equilibrium; relative indicators
+below 1e-12. These are artificial SI data for checking equations.
 
-### Armadura de dos barras simétrica y superposición
+### Symmetric two-bar truss and superposition
 
-Bases (−4,0,0), (4,0,0), ápice (0,3,0); E=200 Pa, A=2 m², L=5 m.
-Con las bases fijas, cada barra tiene energía EA/(2L)(d·u)². Los cosenos
-c=4/5, s=3/5 dan Kxx=2(EA/L)c²=102.4 N/m,
-Kyy=2(EA/L)s²=57.6 N/m y Kxy=0 por simetría.
-El caso A aplica H=10 N, el B aplica −P=−12 N en Y; AB aplica ambos.
-u_A=(10/102.4,0), u_B=(0,−12/57.6); u_AB es su suma.
-En B, Ry=P/2 por base; Rx izquierdo=Pa/(2h)=8 N y derecho=−8 N.
-El contador comprueba exactamente una factorización y tres resoluciones,
-incluyendo superposición de desplazamientos y reacciones. Se verifica que el
-estado aceptado/de prueba previo permanece intacto.
+Bases (−4,0,0), (4,0,0), apex (0,3,0); E=200 Pa, A=2 m², L=5 m.
+With the bases restrained, each bar has energy EA/(2L)(d·u)². The cosines
+c=4/5, s=3/5 give Kxx=2(EA/L)c²=102.4 N/m,
+Kyy=2(EA/L)s²=57.6 N/m and Kxy=0 by symmetry.
+Case A applies H=10 N, B applies −P=−12 N in Y; AB applies both.
+u_A=(10/102.4,0), u_B=(0,−12/57.6); u_AB is their sum.
+In B, Ry=P/2 at each base; left Rx=Pa/(2h)=8 N and right=−8 N.
+The counter checks exactly one factorization and three solves,
+including superposition of displacements and reactions. It verifies that the
+previous accepted/trial state remains intact.
 
-### Barra con asentamiento y carga sobre apoyo
+### Bar with settlement and load on a support
 
-Nodos en x=0,4,6 m; EA=400 N. Rigideces axiales 100 y 200 N/m.
-u1=0, u3=s=0.03 m, u2 libre; los Uy se restringen. El equilibrio del nodo 2 es
-100u2+200(u2−s)=λP, por lo que u2=(λP+6)/300 m.
-Sin carga u2=0.02 m, R1=−2 N, R3=2 N. El caso A aplica P=12 N en nodo 2 y
-Q=7 N directamente en el apoyo 1: R1=−100u2−λQ,
-R3=200(s−u2). Con λ=2, u2=0.1 m, R1=−24 N, R3=−14 N;
-la carga física total es 2(P+Q)=38 N y ΣF+ΣR=0. Los prescritos siguen valiendo
-s, no 2s. Otro caso B con P=5 N verifica la superposición afín documentada.
+Nodes at x=0,4,6 m; EA=400 N. Axial stiffnesses 100 and 200 N/m.
+u1=0, u3=s=0.03 m, u2 free; the Uy are restrained. Equilibrium at node 2 is
+100u2+200(u2−s)=λP, so u2=(λP+6)/300 m.
+Without load u2=0.02 m, R1=−2 N, R3=2 N. Case A applies P=12 N at node 2 and
+Q=7 N directly on support 1: R1=−100u2−λQ,
+R3=200(s−u2). With λ=2, u2=0.1 m, R1=−24 N, R3=−14 N;
+the total physical load is 2(P+Q)=38 N and ΣF+ΣR=0. The prescribed values remain
+s, not 2s. Another case B with P=5 N verifies the documented affine superposition.
 
-### Voladizo con carga puntual y distribuida
+### Cantilever with point and distributed loads
 
-E=200 Pa, I=3 m⁴, A=2 m², longitud L=4 m. Empotramiento en (2,3,0), extremo
-en (6,3,0); así el brazo debe usar coordenadas y no índices nodales.
-Con fuerza terminal −P en Y, EI v''=−P(L−x). Integrando con
+E=200 Pa, I=3 m⁴, A=2 m², length L=4 m. Clamped end at (2,3,0), tip
+at (6,3,0); thus the moment arm must use coordinates rather than nodal indices.
+With end force −P in Y, EI v''=−P(L−x). Integrating with
 v(0)=v'(0)=0: v(L)=−PL³/(3EI), θ(L)=−PL²/(2EI).
-Ry=P y Mz=PL en el empotramiento. Respecto al origen,
-ΣMz=−P·6+P·2+PL=0; respecto a p, se sustituye cada x por x−p_x.
-Para q=−6 N/m constante, EI v''=−6(L−x)²/2; integrando:
+Ry=P and Mz=PL at the clamped end. About the origin,
+ΣMz=−P·6+P·2+PL=0; about p, each x is replaced by x−p_x.
+For constant q=−6 N/m, EI v''=−6(L−x)²/2; integrating:
 v(L)=−6L⁴/(8EI), θ(L)=−6L³/(6EI), Ry=6L, Mz=6L²/2.
-La prueba usa el vector de cargas equivalentes del elemento frame, incluidos
-sus pares, y comprueba equilibrio físico global. Un backend que devuelve u/2
-genera residual libre P/2, residual Fy=−P/2 e indicador relativo global 1/3;
-se comprueba además M(p)=M(0)−p×ΣF.
+The test uses the equivalent load vector of the frame element, including
+its couples, and checks global physical equilibrium. A backend returning u/2
+produces free residual P/2, residual Fy=−P/2 and global relative indicator 1/3;
+M(p)=M(0)−p×ΣF is also checked.
 
-### Pórtico simétrico con rigidez axial finita
+### Symmetric portal frame with finite axial stiffness
 
-Altura h=3 m, luz b=4 m; dos columnas empotradas y dintel rígidamente conectado.
-Cada esquina superior recibe H/2=6 N en X. Simetría: ambos desplazamientos
-horizontales Δ y giros θ son iguales; los verticales son v y −v. Sumando energía
-de flexión de las columnas y dintel, y axial de las columnas:
+Height h=3 m, span b=4 m; two clamped columns and a rigidly connected beam.
+Each upper corner receives H/2=6 N in X. Symmetry: both horizontal
+displacements Δ and rotations θ are equal; the vertical ones are v and −v. Summing the bending
+energy of the columns and beam, and the axial energy of the columns:
 
 ```text
 V = 12EI/h³ Δ² + 12EI/h² Δθ + (4EI/h + 6EI/b)θ²
   + (EA/h + 24EI/b³)v² + 24EI/b² vθ − HΔ
 ```
 
-El dintel no se alarga bajo esta simetría. De ∂V/∂v=0,
+The beam does not elongate under this symmetry. From ∂V/∂v=0,
 v=−βθ, β=(12EI/b²)/(EA/h+24EI/b³).
-De ∂V/∂θ=0, θ=−6EIΔ/(h²D), D=4EI/h+6EI/b−12EIβ/b².
-Finalmente ∂V/∂Δ=0 da
-Δ=H/(24EI/h³−72(EI)²/(h⁴D)). Las bases tienen Rx=−H/2 cada una;
-Ry izquierdo=−EA v/h y derecho=EA v/h. Se comprueban Δ,v,θ, las reacciones,
-ΣH+ΣRx=0 y el momento global, incluyendo el brazo de altura h.
+From ∂V/∂θ=0, θ=−6EIΔ/(h²D), D=4EI/h+6EI/b−12EIβ/b².
+Finally ∂V/∂Δ=0 gives
+Δ=H/(24EI/h³−72(EI)²/(h⁴D)). The bases each have Rx=−H/2;
+left Ry=−EA v/h and right=EA v/h. Δ,v,θ, the reactions,
+ΣH+ΣRx=0 and the global moment are checked, including the moment arm of height h.
 
-### Barra espacial y entradas inválidas
+### Spatial bar and invalid inputs
 
-Barra entre (1,2,3) y (3,5,7) m: L=√29, d=(2,3,4)/L. Solo Uz del extremo
-queda libre; Kzz=EA·16/L³ y u_z=PL³/(16EA). Los apoyos toman las restantes
-fuerzas y pares; se aplican además Rx=7, Ry=−8, Rz=9 N·m sobre GDL prescritos.
-Las fuerzas de barra son colineales: su momento conjunto es cero. Los pares
-aplicados se cancelan con reacciones de signo contrario. La prueba invierte el
-orden de nodos y usa un punto de momentos fuera del origen.
+Bar between (1,2,3) and (3,5,7) m: L=√29, d=(2,3,4)/L. Only Uz at the end
+remains free; Kzz=EA·16/L³ and u_z=PL³/(16EA). The supports take the remaining
+forces and couples; Rx=7, Ry=−8, Rz=9 N·m are also applied on prescribed DOFs.
+The bar forces are collinear: their combined moment is zero. The applied
+couples are canceled by opposite-sign reactions. The test reverses the
+node order and uses a moment reference point away from the origin.
 
-Una barra horizontal D2 con Uy terminal libre carece de rigidez transversal:
-el mecanismo debe informar ENG-E-0006 con nodo 2 y Uy, e índice global 3 en
-entidades. Se comprueban listas vacías/duplicadas (ENG-E-0010), caso ausente
-(ENG-E-0003), factores NaN/±∞ y desbordamiento (ENG-E-0008), factor cero y
-negativo, punto no finito y diagnósticos inválidos del backend (ENG-E-0012).
-Se omiten resortes porque engine-elements-spring no existe en main.
+A horizontal D2 bar with free end Uy lacks transverse stiffness:
+the mechanism must report ENG-E-0006 with node 2 and Uy, and global index 3 in
+entities. Empty/duplicate lists (ENG-E-0010), missing case
+(ENG-E-0003), NaN/±∞ factors and overflow (ENG-E-0008), zero and
+negative factor, nonfinite point and invalid backend diagnostics (ENG-E-0012) are checked.
+Springs are omitted because engine-elements-spring does not exist in main.
 
-## Verificación local
+## Local verification
 
-Verificación del 2026-10-11, sin acceso a red:
+Verification on 2026-10-11, without network access:
 
-- `cargo fmt` y `cargo fmt --check`: OK.
+- `cargo fmt` and `cargo fmt --check`: OK.
 - `cargo clippy --all-targets -- -D warnings`: OK.
-- `cargo test --workspace`: OK; diez pruebas de integración nuevas (ocho de
-  análisis y dos de resolución por lotes), además de las pruebas existentes y
-  la ampliación del ensayo de diagnóstico ENG-E-0012.
+- `cargo test --workspace`: OK; ten new integration tests (eight for
+  analysis and two for batch solving), in addition to the existing tests and
+  the extension of the ENG-E-0012 diagnostic test.
 - `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`: OK.
 - `cargo check --workspace --target wasm32-unknown-unknown`: OK.
 - `cargo check --workspace --all-targets --target wasm32-unknown-unknown`: OK;
-  incluye los fixtures analíticos y el backend contador.
-- `bash clean-room/check.sh origin/main`: OK. Además se ejecutó el mismo
-  script con metadatos e índice Git temporales en `/tmp`, compartiendo los
-  objetos locales de solo lectura y registrando los archivos nuevos en ese
-  índice temporal, para que también quedaran incluidos en el diff revisado.
-  No se modificó el índice real ni se crearon commits.
-- `git diff --check`: OK, incluido el diff con archivos nuevos de la comprobación
-  temporal. Sin `panic!`, `.unwrap()` ni `.expect()` en engine-analysis/src.
+  includes the analytical fixtures and the counting backend.
+- `bash clean-room/check.sh origin/main`: OK. The same
+  script was also run with temporary Git metadata and index in `/tmp`, sharing the
+  read-only local objects and registering the new files in that
+  temporary index, so they would also be included in the reviewed diff.
+  The real index was not modified and no commits were created.
+- `git diff --check`: OK, including the diff with new files from the temporary
+  check. No `panic!`, `.unwrap()` or `.expect()` in engine-analysis/src.
 
-Pruebas nativas, Clippy, formato y documentación: Cargo/rustc 1.85.1 del sistema.
-El chequeo wasm con ese compilador falló por ausencia de la biblioteca std para
-ese destino. Se resolvió usando el toolchain **ya instalado** `stable` de rustup
-(rustc 1.99.0), con `/home/box/.cargo/bin` al inicio de PATH y
-`RUSTUP_TOOLCHAIN=stable`; no se descargó nada. `cargo check` para wasm comprueba
-compilación; no equivale a ejecutar los tests en un runtime wasm. La ejecución
-en runtime wasm y la revisión clean-room de J4 siguen pendientes.
+Native tests, Clippy, formatting and documentation: system Cargo/rustc 1.85.1.
+The wasm check with that compiler failed because the std library for
+that target was absent. This was resolved using the **already installed** rustup `stable` toolchain
+(rustc 1.99.0), with `/home/box/.cargo/bin` at the start of PATH and
+`RUSTUP_TOOLCHAIN=stable`; nothing was downloaded. `cargo check` for wasm checks
+compilation; it does not amount to running the tests in a wasm runtime. Execution
+in a wasm runtime and J4's clean-room review remain pending.

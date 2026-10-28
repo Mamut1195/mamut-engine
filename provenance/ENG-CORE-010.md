@@ -1,284 +1,284 @@
-# Bitácora clean-room · ENG-CORE-010
+# Clean-room log · ENG-CORE-010
 
-- Ticket / PR: MAM-23 · ENG-CORE-010 «Política de determinismo»; rama j2/eng-core-010 apilada sobre j2/eng-api-001 (#88), base b270626.
-- Autor(es): Codex gpt-6.1-sol high bajo J2, 2026-10-14 America/Guayaquil.
-- Rol: implementador.
-- Contrato implementado: política de ejecución V1, run(engine-input/1) → results/1 canónico; guardia de biblioteca, repetibilidad y cruce nativo/wasm.
-- Fuentes permitidas usadas: instrucciones del ticket recibidas de J2; fuentes y documentación propias de main eed45dd y #88 b270626; tests analíticos propios de engine-api; API std/Rust, Cargo offline y WebAssembly de Node instalados. Sin red ni consultas a motores externos.
-- Derivaciones propias: voladizo EI y''=−P(L−x), y(0)=y'(0)=0 → y(L)=−PL³/(3EI); equilibrio R=P, M=PL. Oscilador EA/L=k=100 y m=5 → ω²=k/m=20. Columna Pcr=π²EI/(4L²), P=0,2Pcr fijado como decimal de entrada. Viga modal con GDL Uy/Rz y masas 5/2: rigidez de flexión propia del elemento; CQC y log-log usan APIs del repositorio. Las pruebas nuevas comparan resultados repetidos, sin un oráculo externo ni nuevos algoritmos mecánicos.
-- Código de terceros copiado o vendorizado: ninguno. La primera entrega conservó std por ausencia de libm offline; esa decisión queda sustituida por la aprobación y dependencia registradas abajo. Se conservan serde/serde_json/sha2.
-- Validación: guardia léxica sobre crates/*/src, con casos de aliases/macros/comentarios/cadenas; seis entradas válidas por diez corridas con hash de results/1; ejemplos nativo y cdylib C-ABI wasm ejecutados con Node sin wasm-bindgen ni red, en debug y release.
-- Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
-- Revisor clean-room: PENDIENTE (J4).
+- Ticket / PR: MAM-23 · ENG-CORE-010 «Determinism policy»; branch j2/eng-core-010 stacked on j2/eng-api-001 (#88), base b270626.
+- Author(s): Codex gpt-6.1-sol high under J2, 2026-10-14 America/Guayaquil.
+- Role: implementer.
+- Contract implemented: V1 execution policy, run(engine-input/1) → canonical results/1; library guard, repeatability and native/wasm cross-check.
+- Permitted sources used: ticket instructions received from J2; own sources and documentation from main eed45dd and #88 b270626; own engine-api analytical tests; installed std/Rust API, offline Cargo and Node WebAssembly. No network or external engine queries.
+- Own derivations: cantilever EI y''=−P(L−x), y(0)=y'(0)=0 → y(L)=−PL³/(3EI); equilibrium R=P, M=PL. Oscillator EA/L=k=100 and m=5 → ω²=k/m=20. Column Pcr=π²EI/(4L²), P=0,2Pcr set as an input decimal. Modal beam with Uy/Rz DOFs and masses 5/2: the element's own bending stiffness; CQC and log-log use repository APIs. The new tests compare repeated results, without an external oracle or new mechanical algorithms.
+- Third-party code copied or vendored: none. The first delivery retained std because of the absence of offline libm; that decision is superseded by the approval and dependency recorded below. serde/serde_json/sha2 are preserved.
+- Validation: lexical guard on crates/*/src, with alias/macro/comment/string cases; six valid inputs over ten runs with results/1 hash; native and C-ABI wasm cdylib examples executed with Node without wasm-bindgen or network, in debug and release.
+- Comparison with oracle (sibling repo, informational): no.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+- Clean-room reviewer: PENDING (J4).
 
-La política escalar vigente y el inventario migrado figuran en docs/DETERMINISMO.md.
-No se cambia el solver, sus tolerancias ni el FMA explícito de Sturm. Sin cambios
-a docs/CLEAN_ROOM.md, .github/** ni clean-room/**. Igualdad nativo/wasm limitada
-a la evidencia medida; no se certifica toda entrada/arquitectura.
+The current scalar policy and migrated inventory appear in docs/DETERMINISMO.md.
+The solver, its tolerances and Sturm's explicit FMA are unchanged. No changes
+to docs/CLEAN_ROOM.md, .github/** or clean-room/**. Native/wasm equality is limited
+to measured evidence; not every input/architecture is certified.
 
-## libm aprobada por Jonathan 2026-10-14
+## libm approved by Jonathan 2026-10-14
 
-- Autorización: Jonathan aprueba libm para determinismo nativo/wasm; instrucción
-  de J2 recibida el 2026-10-14. PR #98 / MAM-23 / ENG-CORE-010, rama
-  j2/eng-core-010 integrada con origin/main d0031f8 (HEAD inicial 7fcc5c3).
-- Implementación: engine_core::math centraliza las trascendentes con libm
-  0.2.16; sqrt conserva std por el redondeo correcto IEEE-754. powi convierte
-  exactamente i32 a f64 y usa libm::pow. Se migran bibliotecas, ejemplos y
-  pruebas de todos los crates, sin modificar algoritmos mecánicos, validaciones,
-  tolerancias, reducciones ni el FMA explícito de Sturm.
-- Dependencia/licencia: metadata del Cargo.toml del paquete instalado en el
-  registro local, version 0.2.16, license MIT. Cargo.toml del workspace añade
-  version exacta =0.2.16 y default-features=false (sin kernels arch); el manifest
-  engine-core hereda libm.workspace=true. Cargo.lock añade libm, la arista desde
-  engine-core y checksum
+- Authorization: Jonathan approves libm for native/wasm determinism; J2's
+  instruction received on 2026-10-14. PR #98 / MAM-23 / ENG-CORE-010, branch
+  j2/eng-core-010 integrated with origin/main d0031f8 (initial HEAD 7fcc5c3).
+- Implementation: engine_core::math centralizes transcendental functions with libm
+  0.2.16; sqrt retains std for correct IEEE-754 rounding. powi converts
+  i32 exactly to f64 and uses libm::pow. Libraries, examples and
+  tests of all crates are migrated, without modifying mechanical algorithms, validations,
+  tolerances, reductions or Sturm's explicit FMA.
+- Dependency/license: metadata from the Cargo.toml of the package installed in the
+  local registry, version 0.2.16, license MIT. Workspace Cargo.toml adds
+  exact version =0.2.16 and default-features=false (no arch kernels); the
+  engine-core manifest inherits libm.workspace=true. Cargo.lock adds libm, the edge from
+  engine-core and checksum
   b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981.
-  Ninguna descarga, dependencia adicional, código copiado ni fuente de motores
-  externos; se usa la API pública de la dependencia permitida, sin consultar
-  algoritmos de OpenSees, Stabileo ni derivados.
-- Guardia: test léxico sobre todos los Rust de crates/**, incluidos tests y
-  ejemplos; solo exceptúa engine-core/src/math.rs. Detecta métodos std,
-  UFCS/referencias a funciones, aliases de f64 y accesos directos a libm;
-  incluye pruebas de macros/espacios/comentarios/cadenas/chars. Conserva la
-  guardia previa de colecciones hash y concurrencia en bibliotecas.
-- Suite propia: nueve entradas results/1 (seis originales y variantes
-  inclinadas modal, P-Delta y espectro) y cuatro hashes de bits f64 (trig,
-  exp/log, potencias/normas y rotación de cargas mediante Beam2D). Las variantes
-  usan coordenadas 0,8x/0,6x y fuerzas globales rotadas en P-Delta; no incorporan
-  nuevos algoritmos mecánicos ni datos externos. Winkler no existe en main
-  d0031f8 ni en esta rama; no se afirma cobertura de esa ruta.
-- ABI/script: identidad y orden de casos por SHA-256 del nombre, estados y
-  límites de índices, SHA-256 completos, cero imports y trece casos obligatorios.
-  Los bits escalares se hashean como to_bits().to_be_bytes(), sin JSON ni
-  tolerancias; diez corridas por caso/target, sin estado mutable global.
+  No download, additional dependency, copied code or external engine
+  sources; the public API of the permitted dependency is used, without consulting
+  OpenSees, Stabileo or derivative algorithms.
+- Guard: lexical test on all Rust in crates/**, including tests and
+  examples; only excepts engine-core/src/math.rs. Detects std methods,
+  UFCS/function references, f64 aliases and direct libm access;
+  includes macro/whitespace/comment/string/char tests. Preserves the
+  previous hash collection and concurrency guard in libraries.
+- Own suite: nine results/1 inputs (six original and inclined
+  modal, P-Delta and spectrum variants) and four f64 bit hashes (trig,
+  exp/log, powers/norms and load rotation through Beam2D). The variants
+  use 0,8x/0,6x coordinates and rotated global forces in P-Delta; they incorporate
+  no new mechanical algorithms or external data. Winkler does not exist in main
+  d0031f8 or this branch; coverage of that path is not claimed.
+- ABI/script: case identity and order by name SHA-256, states and
+  index bounds, complete SHA-256 hashes, zero imports and thirteen mandatory cases.
+  Scalar bits are hashed as to_bits().to_be_bytes(), without JSON or
+  tolerances; ten runs per case/target, without global mutable state.
 
-Verificaciones offline con CARGO_TARGET_DIR=/workspace/.cargo-target/me45,
-Rust 1.99.0 (LLVM 23.1.1), sin RUSTFLAGS especiales:
+Offline checks with CARGO_TARGET_DIR=/workspace/.cargo-target/me45,
+Rust 1.99.0 (LLVM 23.1.1), without special RUSTFLAGS:
 
 - `cargo fmt --all -- --check`: OK.
 - `cargo clippy --offline --workspace --all-targets -- -D warnings`: OK.
-- `cargo test --offline --workspace`: OK; 507 pruebas incluidos doctests,
-  0 fallos/ignoradas. Se volvió a verificar la suite compartida tras añadir
-  el caso explícito sqrt(-0.0): 2 tests OK.
+- `cargo test --offline --workspace`: OK; 507 tests including doctests,
+  0 failures/ignored. The shared suite was checked again after adding
+  the explicit sqrt(-0.0) case: 2 tests OK.
 - `RUSTDOCFLAGS="-D warnings" cargo doc --offline --no-deps --workspace`: OK.
 - `cargo check --offline --workspace --target wasm32-unknown-unknown`: OK.
-- Build/ejecución offline con Node v22.19.0: OK en debug y release,
-  trece hashes iguales entre targets, diez corridas por caso/target.
-  `cmp` de las salidas nativas debug/release: OK, también iguales entre perfiles.
-  Comandos, hashes y límites en docs/DETERMINISMO.md.
-- Control negativo del script: un hash nativo alterado (igual en sus diez
-  corridas) es rechazado por igualdad bit a bit en la primera comparación wasm.
+- Offline build/execution with Node v22.19.0: OK in debug and release,
+  thirteen equal hashes between targets, ten runs per case/target.
+  `cmp` of debug/release native outputs: OK, also equal between profiles.
+  Commands, hashes and limits in docs/DETERMINISMO.md.
+- Script negative control: an altered native hash (equal in its ten
+  runs) is rejected by bit-for-bit equality in the first wasm comparison.
 - `git diff --cached --check`: OK.
-- `bash clean-room/check.sh origin/main`: OK sobre cambios preparados,
-  incluidos archivos nuevos. Revisión humana PENDIENTE (J4).
-- Sin cambios a docs/CLEAN_ROOM.md, .github/** ni clean-room/**; sin red ni push.
+- `bash clean-room/check.sh origin/main`: OK on staged changes,
+  including new files. Human review PENDING (J4).
+- No changes to docs/CLEAN_ROOM.md, .github/** or clean-room/**; no network or push.
 
-## Ampliación J4 r25 · 2026-10-14
+## J4 r25 extension · 2026-10-14
 
-- Solicitud: MAM-23 / PR #98, sobre fccda4d; caso explícito sin_cos y
-  cruce frame3d inclinado con rotación de ejes locales, linearStatic y modal.
-- Fuentes: instrucciones del usuario, código y fixtures propios del checkout,
-  toolchain Rust y Node instalados. Sin red ni consulta a fuentes de otros
-  motores. Ningún código de terceros copiado o vendorizado; sin dependencias
-  nuevas ni cambios en biblioteca.
-- sin_cos: el envoltorio engine_core::math::sin_cos sobre libm::sincos ya
-  existía y ya se usaba para calcular ambos valores del mismo ángulo en
-  engine-loads::Beam2D y engine-contracts::conformance. Se conserva y se añade
-  scalar-sin-cos: hash directo de los bits del par (seno, coseno) para dieciséis
-  ángulos, incluidos ceros firmados, subnormales, vecinos de π/2 y ±1e300.
-- Frame3d: dos entradas del mismo pórtico espacial de tres nodos y dos miembros
-  inclinados en XYZ; orientaciones locales distintas y no alineadas con los
-  ejes globales, Iy distinto de Iz, apoyo empotrado y dos nodos libres con masas
-  traslacionales y rotacionales. Una entrada linearStatic con seis componentes
-  de carga y otra modal con seis modos y participación X/Y/Z; la API solo
-  admite un análisis por entrada. No se añaden algoritmos mecánicos.
-- Test nativo: diez corridas de las once entradas results/1 y de los cinco
-  casos de bits; exige los tres casos nuevos. Comprueba doce esfuerzos locales
-  no nulos por miembro, seis modos positivos y tres participaciones por modo;
-  cambiar las orientaciones debe alterar los resultados mecánicos, no solo
-  input_sha256. Los ejemplos nativo/wasm incluyen los nuevos casos a través
-  del soporte compartido; el script Node los exige como cobertura obligatoria.
-- Cruce real offline: Rust 1.99.0 (LLVM 23.1.1), Node v22.19.0,
-  x86_64-unknown-linux-gnu / wasm32-unknown-unknown, sin RUSTFLAGS especiales,
-  conservando CARGO_TARGET_DIR=/workspace/.cargo-target/me45. Debug y release:
-  16 hashes completos idénticos, diez corridas por caso/target; cmp de las
-  160 filas nativas debug/release también OK. Los trece hashes de fccda4d
-  permanecen iguales. Tabla completa y reproducción en docs/DETERMINISMO.md.
-- SHA-256 nuevos (iguales en ambos targets y perfiles):
+- Request: MAM-23 / PR #98, on fccda4d; explicit sin_cos case and
+  inclined frame3d cross-check with local axis rotation, linearStatic and modal.
+- Sources: user instructions, own checkout code and fixtures,
+  installed Rust toolchain and Node. No network or consulting sources from other
+  engines. No third-party code copied or vendored; no new dependencies
+  or library changes.
+- sin_cos: the engine_core::math::sin_cos wrapper over libm::sincos already
+  existed and was already used to calculate both values of the same angle in
+  engine-loads::Beam2D and engine-contracts::conformance. It is preserved and
+  scalar-sin-cos is added: direct hash of the (sine, cosine) pair bits for sixteen
+  angles, including signed zeros, subnormals, neighbors of π/2 and ±1e300.
+- Frame3d: two inputs for the same three-node spatial frame with two members
+  inclined in XYZ; distinct local orientations unaligned with
+  global axes, Iy different from Iz, clamped support and two free nodes with translational
+  and rotational masses. One linearStatic input with six load
+  components and another modal with six modes and X/Y/Z participation; the API only
+  accepts one analysis per input. No mechanical algorithms are added.
+- Native test: ten runs of the eleven results/1 inputs and the five
+  bit cases; requires the three new cases. Checks twelve nonzero local forces
+  per member, six positive modes and three participations per mode;
+  changing orientations must alter mechanical results, not only
+  input_sha256. The native/wasm examples include the new cases through
+  shared support; the Node script requires them as mandatory coverage.
+- Actual offline cross-check: Rust 1.99.0 (LLVM 23.1.1), Node v22.19.0,
+  x86_64-unknown-linux-gnu / wasm32-unknown-unknown, without special RUSTFLAGS,
+  retaining CARGO_TARGET_DIR=/workspace/.cargo-target/me45. Debug and release:
+  16 identical complete hashes, ten runs per case/target; cmp of the
+  160 debug/release native rows also OK. The thirteen fccda4d hashes
+  remain equal. Complete table and reproduction in docs/DETERMINISMO.md.
+- New SHA-256 hashes (equal in both targets and profiles):
   - scalar-sin-cos: b01bfda9f708e6cb7aa4ff9922480b6d26db245e0da1ae4c4b9694bfa555cf7a.
   - frame3d-inclined-static: 152dc9c3a40210634053378061c25668b93bf2eb018223e90b8b18712d9e754f.
   - frame3d-inclined-modal: 58e6c5f1733a576a969d323164bf7dbee19155974688a33c73036b2462d4f060.
-- Verificación con el CARGO_TARGET_DIR exportado y CARGO_NET_OFFLINE=true:
+- Verification with exported CARGO_TARGET_DIR and CARGO_NET_OFFLINE=true:
   cargo fmt --all -- --check; cargo clippy --offline --workspace --all-targets
-  -- -D warnings; cargo test --offline --workspace (508 pruebas incluidos
-  doctests, cero fallos/ignoradas); RUSTDOCFLAGS="-D warnings" cargo doc --offline
+  -- -D warnings; cargo test --offline --workspace (508 tests including
+  doctests, zero failures/ignored); RUSTDOCFLAGS="-D warnings" cargo doc --offline
   --no-deps --workspace; cargo check --offline --workspace --target
-  wasm32-unknown-unknown: todo OK.
-- git diff --cached --check y bash clean-room/check.sh origin/main: OK sobre
-  cambios preparados, incluidos los dos fixtures nuevos. Revisión humana
-  PENDIENTE (J4). Sin cambios a docs/CLEAN_ROOM.md, .github/** ni clean-room/**;
-  sin red ni push. No se añaden panic/unwrap/expect a biblioteca.
+  wasm32-unknown-unknown: all OK.
+- git diff --cached --check and bash clean-room/check.sh origin/main: OK on
+  staged changes, including the two new fixtures. Human review
+  PENDING (J4). No changes to docs/CLEAN_ROOM.md, .github/** or clean-room/**;
+  no network or push. No panic/unwrap/expect added to the library.
 
 
 ## FU #105 · MAM-23 · J4 r26 · 2026-10-14
 
-- Solicitud: cerrar los cinco huecos de la guardia escalar de #98; rama
-  j2/eng-core-010-fu sobre main abe7453, sin red ni push.
-- Fuentes: instrucciones del usuario, guardia y fuentes propias del checkout,
-  APIs std/Rust y toolchain local. Ningún código de terceros copiado o
-  vendorizado, ninguna dependencia nueva ni consulta a otros motores.
-- Guardia: distingue r#identificador de cadenas raw y normaliza el nombre;
-  exige la ruta engine_core::math:: o el import exacto sin alias del módulo
-  para la abreviatura math::. Rechaza aliases de primitivos, as math y
-  redefiniciones/imports alternativos de math, además de rutas con otro prefijo.
-  Los argumentos escalares sin ruta dentro de macros son rechazados;
-  receptores de datos como log.acceleration(...) siguen permitidos.
-- FMA: excepción limitada al archivo engine-linalg/src/modes.rs, sin exceptuar
-  tests u otros archivos llamados modes.rs; ni math.rs permite mul_add.
-- include!: solo rutas literales .rs con destino dentro del inventario Rust
-  inspeccionado de crates/**, comprobado tras canonicalizar rutas. Rechaza
-  ficheros de otras extensiones y rutas dinámicas; include_str!/include_bytes!
-  de datos permanecen permitidos. La excepción escalar de math.rs no exceptúa
-  la comprobación de includes.
-- Fixtures propios: cinco pares de textos .txt, positivos y negativos,
-  consumidos como datos por cinco tests específicos. Pruebas adicionales para
-  todas las funciones de la lista con identificadores crudos y tres delimitadores
-  de macros, rutas completas, aliases equivalentes, comentarios y cadenas raw.
-- Integración: main contiene usos std de sqrt/sin_cos en los tests de Winkler
-  de engine-validation que la guardia previa también rechazaba. Se centralizan
-  en engine_core::math en winkler_elements.rs y support/winkler_harness.rs;
-  sqrt conserva su excepción IEEE y sin_cos usa el proveedor libm ya fijado.
-  Sin cambios en biblioteca, algoritmos mecánicos, tolerancias ni FMA de Sturm;
-  no se añaden panic/unwrap/expect en biblioteca.
-- Documentación: se explicita el alcance de la guardia y se corrige la atribución
-  a «ampliación tras J4 r25, reproducida por J4 r26» en docs/DETERMINISMO.md.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados
+- Request: close the five gaps in the #98 scalar guard; branch
+  j2/eng-core-010-fu on main abe7453, no network or push.
+- Sources: user instructions, own checkout guard and sources,
+  std/Rust APIs and local toolchain. No third-party code copied or
+  vendored, no new dependency or consulting other engines.
+- Guard: distinguishes r#identificador from raw strings and normalizes the name;
+  requires the engine_core::math:: path or exact module import without alias
+  for the math:: abbreviation. Rejects primitive aliases, as math and
+  alternative math redefinitions/imports, as well as paths with another leading segment.
+  Unqualified scalar arguments inside macros are rejected;
+  data receivers such as log.acceleration(...) remain allowed.
+- FMA: exception limited to engine-linalg/src/modes.rs, without excepting
+  tests or other files named modes.rs; even math.rs does not allow mul_add.
+- include!: only literal .rs paths targeting the inspected Rust
+  inventory of crates/**, checked after path canonicalization. Rejects
+  files with other extensions and dynamic paths; data include_str!/include_bytes!
+  remain allowed. The math.rs scalar exception does not exempt
+  the includes check.
+- Own fixtures: five pairs of .txt texts, positive and negative,
+  consumed as data by five specific tests. Additional tests for
+  every function in the list with raw identifiers and three macro
+  delimiters, complete paths, equivalent aliases, comments and raw strings.
+- Integration: main contains std sqrt/sin_cos uses in engine-validation Winkler
+  tests that the previous guard also rejected. They are centralized
+  in engine_core::math in winkler_elements.rs and support/winkler_harness.rs;
+  sqrt retains its IEEE exception and sin_cos uses the already pinned libm provider.
+  No library, mechanical algorithm, tolerance or Sturm FMA changes;
+  no panic/unwrap/expect added to the library.
+- Documentation: guard scope is made explicit and attribution is corrected
+  to «extension after J4 r25, reproduced by J4 r26» in docs/DETERMINISMO.md.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados
   para este ticket."
-- Verificación offline con el CARGO_TARGET_DIR exportado
+- Offline verification with exported CARGO_TARGET_DIR
   (/workspace/.cargo-target/me45), CARGO_NET_OFFLINE=true:
   - cargo fmt --all -- --check: OK.
   - cargo clippy --offline --workspace --all-targets -- -D warnings: OK.
-  - cargo test --offline --workspace: OK, 520 pruebas incluidos doctests,
-    cero fallos/ignoradas; los nueve tests de la guardia pasan.
+  - cargo test --offline --workspace: OK, 520 tests including doctests,
+    zero failures/ignored; all nine guard tests pass.
   - RUSTDOCFLAGS="-D warnings" cargo doc --offline --no-deps --workspace: OK.
   - cargo check --offline --workspace --target wasm32-unknown-unknown: OK.
-  - git diff --cached --check y bash clean-room/check.sh origin/main: OK,
-    sobre cambios preparados, incluidos los diez fixtures nuevos.
-- Revisión humana clean-room: PENDIENTE (J4). Sin cambios a docs/CLEAN_ROOM.md,
-  .github/** ni clean-room/**.
+  - git diff --cached --check and bash clean-room/check.sh origin/main: OK,
+    on staged changes, including the ten new fixtures.
+- Human clean-room review: PENDING (J4). No changes to docs/CLEAN_ROOM.md,
+  .github/** or clean-room/**.
 
 
 ## FU2 #107 · MAM-23 · J4 r27 · 2026-10-14
 
-- Solicitud: cerrar las vías de código no inspeccionado y FFI; rama
-  j2/eng-core-010-fu2 apilada sobre j2/eng-core-010-fu, PR #106,
-  commit base 101c4d1; origin/main local abe7453. Sin red ni push.
-- Fuentes: instrucciones del usuario, fuentes y documentación propias del
-  checkout, APIs std/Rust y toolchain instalado. Ningún código de terceros
-  copiado o vendorizado, ninguna dependencia nueva ni consulta a otros motores.
-- Rutas: #[path = "..."] comparte la validación de include!: literal .rs sin
-  escapes y destino canonicalizado dentro del inventario Rust de crates/**.
-  Se inspeccionan espacios, identificadores crudos, cadenas raw y atributos
-  cfg_attr con varios atributos o cfg_attr anidados, independientemente de su
-  condición. Los predicados cfg(path = "...") no son atributos de módulo.
-  Se rechazan destinos inexistentes y archivos reales fuera del inventario;
-  math.rs y examples/ no están exceptuados de esta regla.
-- FFI: se rechazan #[link_name = ...], también en cfg_attr, y los bloques
-  extern "..." { ... } / extern { ... }, incluidos ABI raw y macros, en
-  crates/** fuera de crates/*/examples/. No se confunden extern crate,
-  funciones extern ni tipos de puntero a función con bloques de importación;
-  extern crate conserva las prohibiciones anteriores de la guardia.
-- Biblioteca: se añade #![forbid(unsafe_code)] a los quince crates/*/src/lib.rs
-  y también a bindings/python/src/lib.rs: PyO3 0.25.1 compila con la prohibición,
-  por lo que no se necesita exceptuar el binding. La guardia exige el atributo
-  interno, incondicional y en la raíz de cada biblioteca, y comprueba el binding
-  por separado. Lista explícita UNSAFE_LIBRARY_EXCEPTIONS vacía, sin excepciones
-  de bibliotecas ni globs. Los atributos en comentarios, cadenas, submódulos,
-  macros o cfg_attr, y deny(unsafe_code), no satisfacen la comprobación.
-- Unsafe existente: engine-linalg/tests/heap_peak.rs implementa GlobalAlloc
-  y delega en System mediante unsafe para medir memoria; es un test de
-  integración, fuera de la biblioteca. Se conserva sin imponerle forbid y
-  no justifica una excepción para engine-linalg. No se toca vendor/**.
-- Pruebas: cinco negativos específicos para path no .rs, path fuera del
-  inventario (incluye un .rs real del binding), link_name, bloque extern y
-  lib.rs sin forbid. Positivos para rutas inspeccionadas, raw strings,
-  atributos anidados, comentarios, strings, predicados cfg y examples/;
-  la excepción examples/ no relaja rutas ni las prohibiciones anteriores.
-  Se retiró temporalmente cada una de las cinco comprobaciones: su test
-  específico falló por aserción en los cinco casos. Restaurado el código,
-  los dieciséis tests de la guardia pasan.
-- Documentación: docs/DETERMINISMO.md recoge el nuevo alcance, la lista sin
-  excepciones y la distinción entre bibliotecas y el test GlobalAlloc.
-  No se cambian algoritmos mecánicos, tolerancias ni FMA de Sturm; no se
-  añaden panic/unwrap/expect en biblioteca.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados
+- Request: close uninspected code paths and FFI; branch
+  j2/eng-core-010-fu2 stacked on j2/eng-core-010-fu, PR #106,
+  base commit 101c4d1; local origin/main abe7453. No network or push.
+- Sources: user instructions, own checkout sources and
+  documentation, std/Rust APIs and installed toolchain. No third-party code
+  copied or vendored, no new dependency or consulting other engines.
+- Paths: #[path = "..."] shares include! validation: .rs literal without
+  escapes and canonicalized target within the crates/** Rust inventory.
+  Whitespace, raw identifiers, raw strings and cfg_attr
+  attributes with multiple attributes or nested cfg_attr are inspected, regardless of their
+  condition. cfg(path = "...") predicates are not module attributes.
+  Nonexistent targets and actual files outside the inventory are rejected;
+  math.rs and examples/ are not excepted from this rule.
+- FFI: #[link_name = ...], also in cfg_attr, and
+  extern "..." { ... } / extern { ... } blocks, including raw ABI and macros, are rejected in
+  crates/** outside crates/*/examples/. extern crate,
+  extern functions and function pointer types are not confused with import blocks;
+  extern crate retains the guard's previous prohibitions.
+- Library: #![forbid(unsafe_code)] is added to all fifteen crates/*/src/lib.rs
+  and also to bindings/python/src/lib.rs: PyO3 0.25.1 compiles with the prohibition,
+  so no binding exception is needed. The guard requires the inner,
+  unconditional attribute at each library root, and checks the binding
+  separately. Explicit UNSAFE_LIBRARY_EXCEPTIONS list empty, without library
+  exceptions or globs. Attributes in comments, strings, submodules,
+  macros or cfg_attr, and deny(unsafe_code), do not satisfy the check.
+- Existing unsafe: engine-linalg/tests/heap_peak.rs implements GlobalAlloc
+  and delegates to System through unsafe to measure memory; it is an integration
+  test, outside the library. It is preserved without imposing forbid and
+  does not justify an engine-linalg exception. vendor/** is untouched.
+- Tests: five specific negatives for non-.rs path, path outside the
+  inventory (includes an actual binding .rs), link_name, extern block and
+  lib.rs without forbid. Positives for inspected paths, raw strings,
+  nested attributes, comments, strings, cfg predicates and examples/;
+  the examples/ exception does not relax paths or previous prohibitions.
+  Each of the five checks was temporarily removed: its specific
+  test failed by assertion in all five cases. With code restored,
+  all sixteen guard tests pass.
+- Documentation: docs/DETERMINISMO.md records the new scope, the list without
+  exceptions and the distinction between libraries and the GlobalAlloc test.
+  Mechanical algorithms, tolerances and Sturm FMA are unchanged; no
+  panic/unwrap/expect added to the library.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados
   para este ticket."
-- Verificación offline con CARGO_TARGET_DIR=/workspace/.cargo-target/me45
-  ya exportado, CARGO_NET_OFFLINE=true y Rust/Cargo 1.99.0:
+- Offline verification with CARGO_TARGET_DIR=/workspace/.cargo-target/me45
+  already exported, CARGO_NET_OFFLINE=true and Rust/Cargo 1.99.0:
   - cargo fmt --all -- --check: OK.
   - cargo clippy --offline --workspace --all-targets -- -D warnings: OK.
-  - cargo test --offline --workspace --no-fail-fast: OK, 527 pruebas incluidos
-    doctests, cero fallos/ignoradas; dieciséis tests de la guardia.
+  - cargo test --offline --workspace --no-fail-fast: OK, 527 tests including
+    doctests, zero failures/ignored; sixteen guard tests.
   - RUSTDOCFLAGS="-D warnings" cargo doc --offline --no-deps --workspace: OK.
   - cargo check --offline --workspace --target wasm32-unknown-unknown: OK.
-  - git diff --cached --check y bash clean-room/check.sh origin/main: OK,
-    sobre todos los cambios preparados.
-- Revisión humana clean-room: PENDIENTE (J4). Sin cambios a docs/CLEAN_ROOM.md,
-  .github/**, clean-room/** ni vendor/**.
+  - git diff --cached --check and bash clean-room/check.sh origin/main: OK,
+    on all staged changes.
+- Human clean-room review: PENDING (J4). No changes to docs/CLEAN_ROOM.md,
+  .github/**, clean-room/** or vendor/**.
 
 ## FU3 · MAM-23 · J4 r29/r30 · 2026-10-15
 
-- Solicitud: cerrar atributos/extern generados por macro_rules, export_name,
-  ensamblador y la excepción implícita de tests/examples; rama
-  j2/eng-core-010-fu3 basada en main 800ef3f, que incluye #106 y #108.
-- Fuentes: instrucciones del usuario, guardia, fuentes y documentación propias
-  del checkout, APIs std/Rust y toolchain local. Trabajo offline, sin consultar
-  fuentes de otros motores, copiar código de terceros ni añadir dependencias.
-- Guardia: rechaza atributos con metavariables, incluidas repeticiones y
-  cfg_attr, y extern con ABI/cuerpo/tokens variables dentro de macro_rules.
-  Rechaza export_name y asm!/global_asm!/naked_asm! en crates/**, incluidas
-  rutas core::arch/std::arch, identificadores crudos y delimitadores de macro.
-  Los atributos cfg_attr anidados y los envoltorios unsafe(...) se inspeccionan
-  sin depender de condiciones de compilación; se mantiene path/link_name,
-  inventario de includes y forbid(unsafe_code) en bibliotecas.
-- Tests/examples: SOURCE_POLICY_EXCEPTIONS sustituye la convención de unsafe
-  y la excepción FFI general de examples/ por tres rutas exactas, justificadas
-  y con permisos mínimos: heap_peak.rs solo unsafe (GlobalAlloc delegado en
-  System); determinism_wasm.rs y winkler_wasm.rs solo no_mangle y funciones
-  públicas extern "C". Los ejemplos actuales no usan unsafe y no lo permiten.
-  No se permiten bloques extern, link_name, export_name ni ensamblador en
-  ninguna excepción. No se heredan permisos por nombre o subdirectorio.
-  La guardia falla si desaparece un archivo exceptuado o cualquiera de sus
-  construcciones autorizadas, aunque siga usando las demás.
-- Pruebas: veinte tests nuevos, treinta y seis en la guardia. Negativos por
-  construcción en src/tests/examples y dentro de macros con tres delimitadores;
-  permisos extra, rutas fuera de lista, permisos obsoletos y archivo desaparecido.
-  Positivos para las excepciones mínimas, comentarios anidados, strings
-  normales/raw, caracteres, atributos inocuos y macros con atributos fijos.
-  Mutación temporal: 61 ejecuciones negativas confirmadas por fallo de aserción
-  del test seleccionado, sin contar errores de compilación ni tests vacíos.
-  Se retiró cada detector; también se omitieron cuerpos de macros, se restituyó
-  por separado una excepción general de tests/ y examples/, y se retiraron las
-  comprobaciones de permisos mínimos/obsoletos e inventario. Código restaurado.
-- Documentación: docs/DETERMINISMO.md distingue la convención anterior de la
-  nueva política codificada y detalla la lista exacta y su control de vigencia.
-  Sin cambios en bibliotecas, algoritmos mecánicos, tolerancias ni FMA de Sturm;
-  no se añaden panic/unwrap/expect en biblioteca.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados
+- Request: close attributes/extern generated by macro_rules, export_name,
+  assembly and the implicit tests/examples exception; branch
+  j2/eng-core-010-fu3 based on main 800ef3f, which includes #106 and #108.
+- Sources: user instructions, own checkout guard, sources and documentation,
+  std/Rust APIs and local toolchain. Offline work, without consulting
+  other engine sources, copying third-party code or adding dependencies.
+- Guard: rejects attributes with metavariables, including repetitions and
+  cfg_attr, and extern with variable ABI/body/tokens inside macro_rules.
+  Rejects export_name and asm!/global_asm!/naked_asm! in crates/**, including
+  core::arch/std::arch paths, raw identifiers and macro delimiters.
+  Nested cfg_attr attributes and unsafe(...) wrappers are inspected
+  independently of compilation conditions; path/link_name,
+  includes inventory and forbid(unsafe_code) in libraries are maintained.
+- Tests/examples: SOURCE_POLICY_EXCEPTIONS replaces the unsafe convention
+  and the general examples/ FFI exception with three exact, justified paths
+  with minimal permissions: heap_peak.rs only unsafe (GlobalAlloc delegated to
+  System); determinism_wasm.rs and winkler_wasm.rs only no_mangle and public
+  extern "C" functions. Current examples do not use unsafe and do not allow it.
+  No extern blocks, link_name, export_name or assembly are allowed in
+  any exception. Permissions are not inherited by name or subdirectory.
+  The guard fails if an excepted file or any of its authorized
+  constructs disappears, even if it still uses the others.
+- Tests: twenty new tests, thirty-six in the guard. Negatives per
+  construct in src/tests/examples and inside macros with three delimiters;
+  extra permissions, unlisted paths, stale permissions and missing file.
+  Positives for minimal exceptions, nested comments, normal/raw
+  strings, characters, harmless attributes and macros with constant attributes.
+  Temporary mutation: 61 negative runs confirmed by assertion failure
+  of the selected test, excluding compilation errors and empty tests.
+  Each detector was removed; macro bodies were also skipped, a general
+  tests/ and examples/ exception was restored separately, and
+  minimal/stale permission and inventory checks were removed. Code restored.
+- Documentation: docs/DETERMINISMO.md distinguishes the previous convention from the
+  new encoded policy and details the exact list and its validity checks.
+  No library, mechanical algorithm, tolerance or Sturm FMA changes;
+  no panic/unwrap/expect added to the library.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados
   para este ticket."
-- Verificación offline con CARGO_TARGET_DIR=/workspace/.cargo-target/me45
-  conservado del entorno y CARGO_NET_OFFLINE=true:
-  - Guardia inicial y 61 ejecuciones por mutación: Rust/Cargo 1.85.1 del PATH
-    inicial; todos los negativos fallaron en su aserción seleccionada.
-  - Verificación completa con Rust/Cargo 1.99.0 ya instalado localmente,
-    incluido su target wasm32; sin descargar ni instalar componentes:
+- Offline verification with CARGO_TARGET_DIR=/workspace/.cargo-target/me45
+  retained from the environment and CARGO_NET_OFFLINE=true:
+  - Initial guard and 61 mutation runs: Rust/Cargo 1.85.1 from the initial
+    PATH; all negatives failed at their selected assertion.
+  - Complete verification with Rust/Cargo 1.99.0 already installed locally,
+    including its wasm32 target; without downloading or installing components:
     cargo fmt --all -- --check: OK;
     cargo clippy --offline --workspace --all-targets -- -D warnings: OK;
-    cargo test --offline --workspace --no-fail-fast: OK, 565 pruebas incluidos
-    doctests, cero fallos/ignoradas, treinta y seis tests de la guardia;
+    cargo test --offline --workspace --no-fail-fast: OK, 565 tests including
+    doctests, zero failures/ignored, thirty-six guard tests;
     RUSTDOCFLAGS="-D warnings" cargo doc --offline --no-deps --workspace: OK;
     cargo check --offline --workspace --target wasm32-unknown-unknown: OK.
-  - git diff --cached --check y bash clean-room/check.sh origin/main: OK
-    sobre los tres archivos preparados para el commit.
-- Revisión humana clean-room: PENDIENTE (J4). Sin cambios a docs/CLEAN_ROOM.md,
-  .github/**, clean-room/** ni vendor/**. Sin red ni push.
+  - git diff --cached --check and bash clean-room/check.sh origin/main: OK
+    on the three files staged for commit.
+- Human clean-room review: PENDING (J4). No changes to docs/CLEAN_ROOM.md,
+  .github/**, clean-room/** or vendor/**. No network or push.

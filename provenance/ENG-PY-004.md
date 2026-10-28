@@ -1,57 +1,57 @@
-# Bitácora clean-room · ENG-PY-004
+# Clean-room log · ENG-PY-004
 
-- Ticket / PR: MAM-82 · ENG-PY-004 · PR #156; seguimiento local sin commit ni publicación.
-- Autor(es): Codex gpt-6.1-sol high · **2026-10-17** (America/Guayaquil).
-- Rol: implementador.
-- Contrato implementado: proyección tabular de `results/1` en el paquete
-  `mamut_engine` sobre PyO3; listas y NumPy opcional, sin modificar el motor.
-- Fuentes permitidas usadas: exclusivamente fuentes propias del checkout:
-  `bindings/python`, `crates/engine-api` (schemas, fixtures y serialización),
-  `crates/engine-analysis/src/results.rs` (orden, unidades y estaciones),
-  contratos de GDL de los elementos frame/truss propios, CLI propio,
+- Ticket / PR: MAM-82 · ENG-PY-004 · PR #156; local follow-up without commit or publication.
+- Author(s): Codex gpt-6.1-sol high · **2026-10-17** (America/Guayaquil).
+- Role: implementer.
+- Implemented contract: tabular projection of `results/1` in the
+  `mamut_engine` package over PyO3; lists and optional NumPy, without modifying the engine.
+- Permitted sources used: exclusively in-house sources from the checkout:
+  `bindings/python`, `crates/engine-api` (schemas, fixtures and serialization),
+  `crates/engine-analysis/src/results.rs` (order, units and stations),
+  DOF contracts of the in-house frame/truss elements, in-house CLI,
   `docs/adr/ADR-003-python-v1.md`, `provenance/ENG-PY-003.md`,
-  `docs/DETERMINISMO.md`, `docs/CLEAN_ROOM.md`, `provenance/TEMPLATE.md` y
-  scripts locales de construcción/artefactos. Sin fuentes externas.
-- Derivaciones propias: ninguna física nueva. El benchmark solo replica y
-  renumera el fixture analítico propio del voladizo. Las referencias Rust de
-  los 16 fixtures existentes son independientes del binding. Los datos mixtos
-  importados de la prueba tabular verifican representación, no física.
-- Código de terceros copiado: ninguno al repositorio. Sin cambios en Cargo.toml,
-  Cargo.lock, vendor, clean-room, workflows ni CODEOWNERS; sin dependencias Rust
-  nuevas, unsafe, ni liberaciones nuevas del GIL.
-- Validación: comparación exacta de documentos con engine-api Rust y tablas
-  contra sus filas originales; oráculos analíticos propios ya existentes.
-- Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados
-  para este ticket." Tampoco consulté código ni resultados de CalculiX o LAPACK,
-  ni salidas/informes de otros motores. Trabajo exclusivamente offline.
-- Revisor clean-room: **PENDIENTE (J4)**.
+  `docs/DETERMINISMO.md`, `docs/CLEAN_ROOM.md`, `provenance/TEMPLATE.md` and
+  local build/artifact scripts. No external sources.
+- Own derivations: no new physics. The benchmark only replicates and
+  renumbers the in-house analytical cantilever fixture. Rust references for
+  the 16 existing fixtures are independent of the binding. The mixed data
+  imported in the tabular test verify representation, not physics.
+- Third-party code copied: none into the repository. No changes to Cargo.toml,
+  Cargo.lock, vendor, clean-room, workflows or CODEOWNERS; no new Rust
+  dependencies, unsafe or new GIL releases.
+- Validation: exact comparison of documents with Rust engine-api and tables
+  against their original rows; existing in-house analytical oracles.
+- Oracle comparison (sibling repo, informative): no.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados
+  para este ticket." Nor did I consult code or results of CalculiX or LAPACK,
+  or outputs/reports of other engines. I work exclusively offline.
+- Clean-room reviewer: **PENDING (J4)**.
 
-## Decisiones y alcance
+## Decisions and scope
 
-[ADR-004](../docs/adr/ADR-004-numpy-python.md) registra el extra opcional
-`numpy>=1.23`, importación perezosa y `MissingNumPyError` (`PY-E-NUMPY`).
-`Results.to_arrays()` y `Results.to_numpy()` devuelven `ArrayResults` con
-documento completo independiente, estado y bloques por caso, combinación,
-modo, respuesta espectral y envolvente. Cada matriz lleva shape, IDs enteros,
-índice de estación, GDL, unidad por columna y ejes. Las fuerzas de extremo se
-separan por tipo de elemento. Se conservan los órdenes propios del documento.
+[ADR-004](../docs/adr/ADR-004-numpy-python.md) records the optional extra
+`numpy>=1.23`, lazy import and `MissingNumPyError` (`PY-E-NUMPY`).
+`Results.to_arrays()` and `Results.to_numpy()` return `ArrayResults` with
+an independent complete document, status and blocks per case, combination,
+mode, spectral response and envelope. Each matrix carries shape, integer IDs,
+station index, DOF, unit per column and axes. End forces are
+separated by element type. The document's own orders are preserved.
 
-NumPy recibe listas con `asarray(dtype=float64, order="C")`, reshape explícito
-y `.copy(order="C")`, incluyendo vacíos `(0,k)`. Memoria propia, sin vistas
-ni préstamos del backend; sobreviven a Results y no comparten almacenamiento
-entre exportaciones. El estado textual, nullable, extremos y convergencia
-permanecen en el documento completo. No se usan NaN como marcadores de null.
-Solo se transforman representaciones y se comprueban shapes/finitud/identidad;
-toda la física y aritmética de análisis permanece en Rust. No se cambian
-resultados numéricos ni se optimiza el GIL.
+NumPy receives lists with `asarray(dtype=float64, order="C")`, explicit reshape
+and `.copy(order="C")`, including empty `(0,k)`. Owned memory, without views
+or backend borrows; they outlive Results and do not share storage
+between exports. Textual status, nullable values, extrema and convergence
+remain in the complete document. NaN is not used as a null marker.
+Only representations are transformed and shapes/finiteness/identity checked;
+all physics and analysis arithmetic remains in Rust. No numerical
+results are changed and the GIL is not optimized.
 
-## Construcción y pruebas offline
+## Offline build and tests
 
 Rust 1.99.0 stable, maturin 1.15.0, CPython 3.13.5/Linux x86_64,
-NumPy 2.5.4 y pytest 9.1.1. `CARGO_NET_OFFLINE=true`, Cargo `--offline`,
-`PIP_NO_INDEX=1`, sin publicación en PyPI. `CARGO_TARGET_DIR` apunta al
-directorio autorizado, sin artefactos binarios versionados.
+NumPy 2.5.4 and pytest 9.1.1. `CARGO_NET_OFFLINE=true`, Cargo `--offline`,
+`PIP_NO_INDEX=1`, no PyPI publication. `CARGO_TARGET_DIR` points to the
+authorized directory, without versioned binary artifacts.
 
 ```bash
 export PATH="$RUST_TOOLCHAIN_BIN:$PATH"
@@ -62,12 +62,12 @@ python3 -m venv --system-site-packages "$CARGO_TARGET_DIR/mam82-consumer"
   --no-index --no-deps --no-cache-dir "$CARGO_TARGET_DIR/mam82-dist/"*.whl
 ```
 
-Pytest estaba provisionado en otro entorno local, fuera del site del Python
-del sistema. Se lo expuso mediante un `.pth` únicamente dentro del venv
-temporal, apuntando a `$PYTEST_SITE_PACKAGES`; sin descargar ni modificar
-paquetes externos. NumPy procede del site del sistema. Se generaron las
-16 referencias propias en `$CARGO_TARGET_DIR/mam82-references` con el binario
-`facade_reference` de Rust. Ejecución de la wheel instalada:
+Pytest was provisioned in another local environment, outside the system
+Python's site. It was exposed through a `.pth` only inside the temporary
+venv, pointing to `$PYTEST_SITE_PACKAGES`; without downloading or modifying
+external packages. NumPy comes from the system site. The
+16 in-house references were generated in `$CARGO_TARGET_DIR/mam82-references` with the
+Rust `facade_reference` binary. Installed wheel execution:
 
 ```bash
 export MAMUT_RUST_REFERENCES="$CARGO_TARGET_DIR/mam82-references"
@@ -77,106 +77,106 @@ export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1
   -q -p no:cacheprovider bindings/python/tests
 ```
 
-- Artefactos: **25 passed / 0 failed** en `scripts/tests`, ejecutados por el
-  constructor y `scripts/python-wheel-artifacts.py` para inspección y comparación.
-- Consumidor stdlib aislado sin NumPy: **38 passed / 0 failed** (unittest).
-- Consumidor temporal con NumPy: **59 passed / 0 failed**, además de
-  **241 subtests passed** (pytest, incluye los 38 básicos).
-- Ausencia simulada de NumPy en proceso nuevo: **6 passed / 0 failed,
-  1 skipped**, además de 14 subtests; `pytest.importorskip` salta el módulo
-  opcional limpiamente. La API básica y el error tipado se verifican sin NumPy.
-- Casos de frontera: NaN/±Inf, valores no representables como f64, shapes
-  incorrectos/vacíos, ndarray de entrada fuera del contrato JSON, IDs máximos
-  no consecutivos, duplicados/desconocidos, tipos de elementos mixtos,
-  unidades/etiquetas, stale, estado fallido, mutación y vida de copias.
+- Artifacts: **25 passed / 0 failed** in `scripts/tests`, run by the
+  builder and `scripts/python-wheel-artifacts.py` for inspection and comparison.
+- Isolated stdlib consumer without NumPy: **38 passed / 0 failed** (unittest).
+- Temporary consumer with NumPy: **59 passed / 0 failed**, plus
+  **241 subtests passed** (pytest, includes the 38 basic ones).
+- Simulated NumPy absence in a new process: **6 passed / 0 failed,
+  1 skipped**, plus 14 subtests; `pytest.importorskip` cleanly skips the
+  optional module. The basic API and typed error are verified without NumPy.
+- Boundary cases: NaN/±Inf, values unrepresentable as f64, incorrect/empty
+  shapes, input ndarray outside the JSON contract, nonconsecutive maximum
+  IDs, duplicates/unknowns, mixed element types,
+  units/labels, stale, failed status, mutation and copy lifetime.
 
 Wheel `mamut_engine-0.1.0-cp310-abi3-manylinux_2_34_x86_64.whl`:
-**dos construcciones release independientes, mismo SHA-256**:
+**two independent release builds, same SHA-256**:
 `bf353bdd5e1c2a2e3caa5f9bf7006d70cd59b990b1268db4291cb41bdb3f6b8f`.
-Evidencia: `$CARGO_TARGET_DIR/mam82-dist/REPRODUCIBILITY.json`, `SHA256SUMS`,
-SBOM/compatibilidad/smoke y `$CARGO_TARGET_DIR/mam82-dist.log`.
+Evidence: `$CARGO_TARGET_DIR/mam82-dist/REPRODUCIBILITY.json`, `SHA256SUMS`,
+SBOM/compatibility/smoke and `$CARGO_TARGET_DIR/mam82-dist.log`.
 
-## Rendimiento
+## Performance
 
-Plan y reproducción: [benchmark de frontera](../docs/PYTHON_BOUNDARY_BENCHMARKS.md).
-`scripts/benchmark-python-boundary.py` usa la wheel instalada y el ejemplo Rust
-`boundary_benchmark`; CLI y baselines se compilan release offline antes de medir.
-Tres ejecuciones completas con tamaños 1/16/64, calentamiento 2 y 7 muestras por
-métrica. Cada ejecución comprueba igualdad Rust/CLI/fachada. No hay umbrales CI.
+Plan and reproduction: [boundary benchmark](../docs/PYTHON_BOUNDARY_BENCHMARKS.md).
+`scripts/benchmark-python-boundary.py` uses the installed wheel and Rust example
+`boundary_benchmark`; CLI and baselines are built in release offline before measuring.
+Three complete runs with sizes 1/16/64, warm-up 2 and 7 samples per
+metric. Each run checks Rust/CLI/facade equality. There are no CI thresholds.
 
-Medianas de la tercera ejecución, **ms**, máquina compartida; evidencia local
-exploratoria, sin promesa de rendimiento ni aislamiento de CPU:
+Medians of the third run, **ms**, shared machine; exploratory local
+evidence, without performance promises or CPU isolation:
 
-| Réplicas | Rust API | CLI/proceso | PyO3/JSON | Fachada run | Parse Results | Listas | NumPy |
+| Replicas | Rust API | CLI/process | PyO3/JSON | Facade run | Parse Results | Lists | NumPy |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | 1 | 0.1334 | 5.0433 | 0.2247 | 1.2682 | 0.5406 | 0.5031 | 0.5117 |
 | 16 | 1.3964 | 4.4718 | 1.7600 | 8.4416 | 5.0583 | 2.8345 | 2.9979 |
 | 64 | 14.3334 | 22.2011 | 14.1618 | 41.9114 | 21.9639 | 10.9600 | 11.8592 |
 
-Las diferencias de medianas pueden ser negativas por ruido. CLI incluye arranque,
-E/S y sobre; exportar incluye stale/huella, copia de documento y tablas. No se
-identifica ese tiempo con el solve ni se suman fases solapadas. Informes con
-muestras/versiones/bytes/hashes: `$CARGO_TARGET_DIR/mam82-benchmark.json`,
-`$CARGO_TARGET_DIR/mam82-benchmark-2.json` y
-`$CARGO_TARGET_DIR/mam82-benchmark-3.json`. No se mide RSS ni importación fría.
+Differences of medians may be negative due to noise. CLI includes startup,
+I/O and envelope; exporting includes stale/fingerprint, document copy and tables. That
+time is not identified with solve and overlapping phases are not added. Reports with
+samples/versions/bytes/hashes: `$CARGO_TARGET_DIR/mam82-benchmark.json`,
+`$CARGO_TARGET_DIR/mam82-benchmark-2.json` and
+`$CARGO_TARGET_DIR/mam82-benchmark-3.json`. Neither RSS nor cold import is measured.
 
-## Comprobaciones obligatorias y determinismo
+## Mandatory checks and determinism
 
 - `cargo fmt --all -- --check`: OK.
 - `cargo clippy --workspace --all-targets --offline -- -D warnings`: OK.
 - `cargo test --workspace --offline`: **658 passed / 0 failed / 0 ignored**,
-  incluyendo doctests (104 suites).
+  including doctests (104 suites).
 - `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace --offline`: OK.
 - `cargo check --workspace --offline --target wasm32-unknown-unknown`: OK.
 - `bash clean-room/check.sh origin/main`: OK.
 - `git diff --check`: OK.
 
-Sin definir `MAMUT_ENGINE_GIT_COMMIT`, se ejecutaron los ejemplos
-`determinism_native`/`determinism_wasm` en debug y release, con
-`scripts/check-determinism.mjs`: **16/16 hashes nativo=wasm**, diez corridas
-por caso/target/perfil; `cmp` nativo debug/release OK. Comparación explícita
-con la tabla de `docs/DETERMINISMO.md`: **16/16 idénticos** en ambos perfiles.
-Logs y salidas en `$CARGO_TARGET_DIR/mam82-determinism-*`; comprobaciones del
-workspace en `$CARGO_TARGET_DIR/mam82-{fmt,clippy,test,doc,wasm}.log`.
+Without setting `MAMUT_ENGINE_GIT_COMMIT`, the examples
+`determinism_native`/`determinism_wasm` were run in debug and release, with
+`scripts/check-determinism.mjs`: **16/16 hashes nativo=wasm**, ten runs
+per case/target/profile; native debug/release `cmp` OK. Explicit comparison
+with the `docs/DETERMINISMO.md` table: **16/16 identical** in both profiles.
+Logs and outputs in `$CARGO_TARGET_DIR/mam82-determinism-*`; workspace
+checks in `$CARGO_TARGET_DIR/mam82-{fmt,clippy,test,doc,wasm}.log`.
 
-Pendiente: revisión clean-room J4 y plataformas/intérpretes distintos de los
-probados. No se requiere modificar las rutas protegidas ni publicar artefactos.
+Pending: J4 clean-room review and platforms/interpreters other than those
+tested. No need to modify protected paths or publish artifacts.
 
-## Seguimiento de revisión OpenCode · PR #156
+## OpenCode review follow-up · PR #156
 
-- Autor: Codex gpt-6.1-sol high · **2026-10-17** (America/Guayaquil).
-- Rol: implementador. Revisor clean-room: **PENDIENTE (J4)**.
-- Fuentes: exclusivamente el código, contratos, fixtures y scripts propios
-  citados arriba, más las observaciones de revisión aportadas por el usuario.
-  Sin fuentes externas, dependencias nuevas ni derivaciones físicas.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados
-  para este ticket." Tampoco consulté código ni resultados de CalculiX o
-  LAPACK ni resultados de otros motores. Trabajo offline; código de terceros
-  copiado: ninguno. Comparación con oráculo externo: no.
+- Author: Codex gpt-6.1-sol high · **2026-10-17** (America/Guayaquil).
+- Role: implementer. Clean-room reviewer: **PENDING (J4)**.
+- Sources: exclusively the in-house code, contracts, fixtures and scripts
+  cited above, plus review comments supplied by the user.
+  No external sources, new dependencies or physical derivations.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados
+  para este ticket." Nor did I consult code or results of CalculiX or
+  LAPACK or results of other engines. I work offline; third-party code
+  copied: none. External oracle comparison: no.
 
-Se conserva el `ModuleNotFoundError` original como `__cause__` mediante
-`raise MissingNumPyError(...) from exc`, con regresión en un proceso nuevo.
-La validación tabular rechaza explícitamente `isinstance(v, bool)`; se prueban
-True y False en desplazamientos, reacciones, fuerzas de extremo, fuerzas de
-estación y posición directamente en el exportador, evitando que el esquema
-JSON oculte esta comprobación.
+The original `ModuleNotFoundError` is preserved as `__cause__` through
+`raise MissingNumPyError(...) from exc`, with a regression in a new process.
+Tabular validation explicitly rejects `isinstance(v, bool)`; True and
+False are tested in displacements, reactions, end forces, station
+forces and position directly in the exporter, preventing the JSON
+schema from hiding this check.
 
-Las regresiones mutan todas las matrices exportadas y comprueban documento,
-snapshot (`to_dict` y `to_json`), una segunda exportación previa y una llamada
-posterior. Comprueban objetos/listas/filas distintos y, con NumPy, ausencia de
-memoria compartida y conservación de las copias tras liberar Results.
-`numpy_test.py` pasa a `test_numpy.py`, con `unittest.TestCase`, subtests y
-`unittest.skipUnless`; conserva los 16 fixtures Rust, los cuatro ndarray de
-entrada inválidos, shapes vacíos, cancelación, IDs, etiquetas, unidades,
-float64, orden C, memoria propia y finitud. Sin dependencia de pytest ni
-cambios al constructor oficial.
+Regressions mutate all exported matrices and check the document,
+snapshot (`to_dict` and `to_json`), a previous second export and a subsequent
+call. They check distinct objects/lists/rows and, with NumPy, absence of
+shared memory and preservation of copies after releasing Results.
+`numpy_test.py` becomes `test_numpy.py`, with `unittest.TestCase`, subtests and
+`unittest.skipUnless`; it preserves the 16 Rust fixtures, the four invalid input
+ndarray, empty shapes, cancellation, IDs, labels, units,
+float64, C order, owned memory and finiteness. No pytest dependency or
+changes to the official builder.
 
-La evidencia siguiente corresponde al seguimiento y sustituye los conteos
-pytest y el hash de wheel históricos de las secciones anteriores.
+The following evidence corresponds to the follow-up and supersedes the historical
+pytest counts and wheel hash in the preceding sections.
 
-### Reproducción y resultados del seguimiento
+### Follow-up reproduction and results
 
-Rust 1.99.0, maturin 1.15.0, CPython 3.13.5 y NumPy 2.5.4. Todo offline:
+Rust 1.99.0, maturin 1.15.0, CPython 3.13.5 and NumPy 2.5.4. All offline:
 
 ```bash
 export PATH="$HOME/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:$PATH"
@@ -205,29 +205,29 @@ for variant in with-numpy without-numpy; do
 done
 ```
 
-- Constructor oficial: **25 passed / 0 failed** en scripts/tests y **40 passed /
-  0 failed / 3 skipped** de 43 tests descubiertos en el consumidor sin NumPy.
-- Venv con NumPy 2.5.4: **43 passed / 0 failed / 0 skipped**; los tres métodos
-  NumPy se ejecutan mediante el mismo `unittest discover` del pipeline.
-- Venv sin NumPy (ausencia real comprobada): **40 passed / 0 failed / 3 skipped**.
-  El error tipado y su causa original se comprueban en ambos entornos.
-- Wheel: dos construcciones release independientes, contenido y SHA-256
-  idénticos: `56f8d9680ccf0615dba67aea2fc702f432ad5d987ff21a7096d26fdd8f567ab5`.
-  Evidencia: `$CARGO_TARGET_DIR/mam82-followup-dist/REPRODUCIBILITY.json`,
-  `SHA256SUMS`, SBOM/compatibilidad/smoke y `mam82-followup-wheel.log`.
+- Official builder: **25 passed / 0 failed** in scripts/tests and **40 passed /
+  0 failed / 3 skipped** out of 43 tests discovered in the consumer without NumPy.
+- Venv with NumPy 2.5.4: **43 passed / 0 failed / 0 skipped**; all three NumPy
+  methods run through the same `unittest discover` as the pipeline.
+- Venv without NumPy (actual absence verified): **40 passed / 0 failed / 3 skipped**.
+  The typed error and its original cause are checked in both environments.
+- Wheel: two independent release builds, identical content and SHA-256:
+  `56f8d9680ccf0615dba67aea2fc702f432ad5d987ff21a7096d26fdd8f567ab5`.
+  Evidence: `$CARGO_TARGET_DIR/mam82-followup-dist/REPRODUCIBILITY.json`,
+  `SHA256SUMS`, SBOM/compatibility/smoke and `mam82-followup-wheel.log`.
 - `cargo fmt --all -- --check`: OK.
 - `cargo clippy --workspace --all-targets --offline -- -D warnings`: OK.
 - `cargo test --workspace --offline`: **658 passed / 0 failed / 0 ignored**,
-  incluyendo doctests (104 suites).
+  including doctests (104 suites).
 - `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace --offline`: OK.
 - `cargo check --workspace --offline --target wasm32-unknown-unknown`: OK.
-- `bash clean-room/check.sh origin/main` y `git diff --check`: OK.
-- Determinismo: ejemplos propios `determinism_native`/`determinism_wasm` y
-  `scripts/check-determinism.mjs`, debug y release, diez corridas por caso:
-  **16/16 hashes nativo=wasm**, `cmp` debug/release OK y **16/16 idénticos** a
-  `docs/DETERMINISMO.md` en ambos perfiles, sin `MAMUT_ENGINE_GIT_COMMIT`.
+- `bash clean-room/check.sh origin/main` and `git diff --check`: OK.
+- Determinism: in-house examples `determinism_native`/`determinism_wasm` and
+  `scripts/check-determinism.mjs`, debug and release, ten runs per case:
+  **16/16 hashes nativo=wasm**, debug/release `cmp` OK and **16/16 identical** to
+  `docs/DETERMINISMO.md` in both profiles, without `MAMUT_ENGINE_GIT_COMMIT`.
 
-Logs y referencias persistentes bajo `$CARGO_TARGET_DIR/mam82-followup-*`.
-Cambios locales sin commit; sin modificar Rust, Cargo.toml/Cargo.lock, vendor,
-clean-room, docs/CLEAN_ROOM.md, workflows ni CODEOWNERS. Pendiente únicamente
-revisión clean-room **J4** y la matriz de otras plataformas ya pendiente.
+Persistent logs and references under `$CARGO_TARGET_DIR/mam82-followup-*`.
+Local changes without commit; no changes to Rust, Cargo.toml/Cargo.lock, vendor,
+clean-room, docs/CLEAN_ROOM.md, workflows or CODEOWNERS. Only clean-room
+review **J4** and the already pending matrix of other platforms remain pending.

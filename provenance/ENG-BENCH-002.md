@@ -1,83 +1,83 @@
-# ENG-BENCH-002 · Benchmarks publicados de P-Delta (MAM-582)
+# ENG-BENCH-002 · Published P-Delta benchmarks (MAM-582)
 
-Pruebas: `crates/engine-analysis/tests/bench_pdelta.rs`. Oráculo: solo valores publicados y
-soluciones cerradas de la ecuación diferencial de la viga-columna. Clean-room: no se abrió ni usó
-código ni salidas de OpenSees, Stabileo, CalculiX o LAPACK.
+Tests: `crates/engine-analysis/tests/bench_pdelta.rs`. Oracle: only published values and
+closed-form solutions of the beam-column differential equation. Clean-room: no
+code or outputs from OpenSees, Stabileo, CalculiX or LAPACK were opened or used.
 
-Revisión como autor: Codex (GPT-6), 2026-10-15 (America/Guayaquil), rol implementador.
-Fuentes de esta revisión: commit HEAD, código propio y derivaciones de esta nota; sin red,
-sin consultar los libros originales ni código de terceros. Las referencias publicadas se
-conservan del commit; las atribuciones pendientes siguen pendientes. Revisor clean-room: PENDIENTE.
+Review as author: Codex (GPT-6), 2026-10-15 (America/Guayaquil), implementer role.
+Sources for this review: commit HEAD, own code and derivations of this note; no network,
+without consulting the original books or third-party code. Published references are
+retained from the commit; pending attributions remain pending. Clean-room reviewer: PENDING.
 
-## Fuentes
+## Sources
 
 1. AISC, *ANSI/AISC 360-16 Specification for Structural Steel Buildings*, 7 jul. 2016,
-   Commentary C2.1 "General Analysis Requirements", párrafo "Analysis Benchmark Problems",
+   Commentary C2.1 "General Analysis Requirements", paragraph "Analysis Benchmark Problems",
    pp. 16.1-290 a 16.1-291; Fig. C-C2.2 (Case 1) y Fig. C-C2.3 (Case 2), p. 16.1-291.
-   Tolerancias (p. 16.1-291): momentos dentro del 3 % y flechas dentro del 5 %.
-   Se usan los valores entre corchetes ("exclude shear deformations"), porque `EulerFrame2D` no
-   tiene deformación por cortante.
-   - Datos geométricos leídos de las figuras: W14x48 eje fuerte (A = 14.1 in², I = 484 in⁴),
-     E = 29 000 ksi, L = 28 ft; caso 1 w = 0.200 kip/ft; caso 2 H = 1.0 kip. Comprobados con
+   Tolerances (p. 16.1-291): moments within 3 % and deflections within 5 %.
+   The bracketed values ("exclude shear deformations") are used, because `EulerFrame2D` has
+   no shear deformation.
+   - Geometric data read from the figures: W14x48 strong axis (A = 14.1 in², I = 484 in⁴),
+     E = 29 000 ksi, L = 28 ft; case 1 w = 0.200 kip/ft; case 2 H = 1.0 kip. Checked with
      P = 0: wL²/8 = 235.2 kip·in, 5wL⁴/384EI = 0.197 in, HL = 336 kip·in, HL³/3EI = 0.901 in.
-   - AISC 360-22 no se verificó en una fuente accesible: PENDIENTE confirmar que las tablas no cambian.
+   - AISC 360-22 was not verified in an accessible source: PENDING confirmation that the tables do not change.
 2. S. P. Timoshenko y J. M. Gere, *Theory of Elastic Stability*, 2.ª ed., McGraw-Hill, 1961,
-   cap. 1 (viga-columna simplemente apoyada con carga concentrada; χ(u) = 3(tan u − u)/u³ y
-   amplificación aproximada 1/(1 − P/Pe)). Sección y página: PENDIENTE de verificar en un ejemplar;
-   las fórmulas se re-derivan de EI v'''' + P v'' = q y son el oráculo efectivo.
+   cap. 1 (simply supported beam-column with concentrated load; χ(u) = 3(tan u − u)/u³ and
+   approximate amplification 1/(1 − P/Pe)). Section and page: PENDING verification in a copy;
+   the formulas are re-derived from EI v'''' + P v'' = q and are the effective oracle.
 3. W. F. Chen y E. M. Lui, *Structural Stability: Theory and Implementation*, Elsevier, 1987
-   (citado por AISC C2): PENDIENTE; no hubo fuente accesible y no se usaron valores.
+   (cited by AISC C2): PENDING; there was no accessible source and no values were used.
 
-## Modelo y discretización
+## Model and discretization
 
-- `EulerFrame2D` + `geometric_producer` (Kg consistente), `PDelta::run`, tolerancia 1e-10,
-  max 5000 pasos. Fuerzas en kip, longitudes en in, momentos en kip·in.
-  Escalas de convergencia: 1 in para traslaciones y 0.01 rad para giros.
-  Malla declarada: 8 elementos por miembro. P > 0 denota compresión y se aplica como −P en Ux;
-  las cargas laterales y las flechas tabuladas son positivas en Uy.
-- Caso 1: apoyos Ux,Uy / Uy; w con cargas nodales consistentes (wΔx en nodos interiores,
-  wΔx/2 en cada apoyo y ±wΔx²/12 en los giros extremos; los momentos interiores se cancelan).
-  M_mid por estática de media barra en la configuración deformada: wL²/8 + P·Δ_mid.
-- Caso 2: empotrado; M_base = −Rz_base del motor, positivo para H > 0.
-- Solución cerrada: caso 1 M = w/k²(sec u − 1), Δ = w/(EIk⁴)(sec u − 1) − wL²/(8P), u = kL/2;
-  caso 2 M = H tan(kL)/k, Δ = H(tan kL − kL)/(Pk); k = √(P/EI).
-- Carga puntual central Q (derivación propia): en el semivano izquierdo, 0 ≤ x ≤ L/2,
-  EI v'' + Pv = −Qx/2, con v(0) = 0 y v'(L/2) = 0. Así, con u = kL/2,
-  M_mid = Q tan(u)/(2k) y Δ_mid = [QL³/(48EI)]·3(tan u − u)/u³.
-  El límite P = 0 es M_mid = QL/4, Δ_mid = QL³/(48EI).
-  La aproximación Δ/Δ₀ ≈ 1/(1 − P/Pe) se comprueba al 2 % solo en los cocientes ensayados;
-  esta comprobación no se atribuye al libro pendiente de verificar.
+- `EulerFrame2D` + `geometric_producer` (consistent Kg), `PDelta::run`, tolerance 1e-10,
+  max 5000 steps. Forces in kip, lengths in in, moments in kip·in.
+  Convergence scales: 1 in for translations and 0.01 rad for rotations.
+  Declared mesh: 8 elements per member. P > 0 denotes compression and is applied as −P in Ux;
+  lateral loads and tabulated deflections are positive in Uy.
+- Case 1: supports Ux,Uy / Uy; w with consistent nodal loads (wΔx at interior nodes,
+  wΔx/2 at each support and ±wΔx²/12 at end rotations; interior moments cancel).
+  M_mid from half-bar statics in the deformed configuration: wL²/8 + P·Δ_mid.
+- Case 2: clamped; M_base = −Rz_base from the engine, positive for H > 0.
+- Closed-form solution: case 1 M = w/k²(sec u − 1), Δ = w/(EIk⁴)(sec u − 1) − wL²/(8P), u = kL/2;
+  case 2 M = H tan(kL)/k, Δ = H(tan kL − kL)/(Pk); k = √(P/EI).
+- Central point load Q (original derivation): on the left half-span, 0 ≤ x ≤ L/2,
+  EI v'' + Pv = −Qx/2, with v(0) = 0 and v'(L/2) = 0. Thus, with u = kL/2,
+  M_mid = Q tan(u)/(2k) and Δ_mid = [QL³/(48EI)]·3(tan u − u)/u³.
+  The P = 0 limit is M_mid = QL/4, Δ_mid = QL³/(48EI).
+  The approximation Δ/Δ₀ ≈ 1/(1 − P/Pe) is checked at 2 % only for the tested ratios;
+  this check is not attributed to the book pending verification.
 
-## Resultados (malla 8)
+## Results (mesh 8)
 
-Los errores se calculan antes de redondear los resultados mostrados.
+Errors are calculated before rounding the displayed results.
 
-| Caso | P | Magnitud | Engine | Referencia | Error % | Tol | Estado |
+| Case | P | Quantity | Engine | Reference | Error % | Tol | Status |
 |---|---|---|---|---|---|---|---|
-| AISC 1 | 0 | M_mid kip·in | 235.20 | 235 | 0.09 | 3 % | pasa |
-| AISC 1 | 150 | M_mid | 268.89 | 269 | 0.04 | 3 % | pasa |
-| AISC 1 | 300 | M_mid | 313.52 | 313 | 0.17 | 3 % | pasa |
-| AISC 1 | 450 | M_mid | 375.41 | 375 | 0.11 | 3 % | pasa |
-| AISC 1 | 0 | Δ_mid in | 0.1971 | 0.197 | 0.03 | 5 % | pasa |
-| AISC 1 | 150 | Δ_mid | 0.2246 | 0.224 | 0.27 | 5 % | pasa |
-| AISC 1 | 300 | Δ_mid | 0.2611 | 0.261 | 0.02 | 5 % | pasa |
-| AISC 1 | 450 | Δ_mid | 0.3116 | 0.311 | 0.19 | 5 % | pasa |
-| AISC 2 | 0 | M_base kip·in | 336.00 | 336 | 0.00 | 3 % | pasa |
-| AISC 2 | 100 | M_base | 469.07 | 469 | 0.01 | 3 % | pasa |
-| AISC 2 | 150 | M_base | 598.65 | 598 | 0.11 | 3 % | pasa |
-| AISC 2 | 200 | M_base | 848.98 | 848 | 0.12 | 3 % | pasa |
-| AISC 2 | 0 | Δ_tip in | 0.9009 | 0.901 | 0.02 | 5 % | pasa |
-| AISC 2 | 100 | Δ_tip | 1.3307 | 1.33 | 0.05 | 5 % | pasa |
-| AISC 2 | 150 | Δ_tip | 1.7510 | 1.75 | 0.06 | 5 % | pasa |
-| AISC 2 | 200 | Δ_tip | 2.5649 | 2.56 | 0.19 | 5 % | pasa |
-| T&G | P/Pe 0.2–0.7 | M, Δ vs cerrada | — | — | ≤ 0.0053 | 0.1 % | pasa |
+| AISC 1 | 0 | M_mid kip·in | 235.20 | 235 | 0.09 | 3 % | pass |
+| AISC 1 | 150 | M_mid | 268.89 | 269 | 0.04 | 3 % | pass |
+| AISC 1 | 300 | M_mid | 313.52 | 313 | 0.17 | 3 % | pass |
+| AISC 1 | 450 | M_mid | 375.41 | 375 | 0.11 | 3 % | pass |
+| AISC 1 | 0 | Δ_mid in | 0.1971 | 0.197 | 0.03 | 5 % | pass |
+| AISC 1 | 150 | Δ_mid | 0.2246 | 0.224 | 0.27 | 5 % | pass |
+| AISC 1 | 300 | Δ_mid | 0.2611 | 0.261 | 0.02 | 5 % | pass |
+| AISC 1 | 450 | Δ_mid | 0.3116 | 0.311 | 0.19 | 5 % | pass |
+| AISC 2 | 0 | M_base kip·in | 336.00 | 336 | 0.00 | 3 % | pass |
+| AISC 2 | 100 | M_base | 469.07 | 469 | 0.01 | 3 % | pass |
+| AISC 2 | 150 | M_base | 598.65 | 598 | 0.11 | 3 % | pass |
+| AISC 2 | 200 | M_base | 848.98 | 848 | 0.12 | 3 % | pass |
+| AISC 2 | 0 | Δ_tip in | 0.9009 | 0.901 | 0.02 | 5 % | pass |
+| AISC 2 | 100 | Δ_tip | 1.3307 | 1.33 | 0.05 | 5 % | pass |
+| AISC 2 | 150 | Δ_tip | 1.7510 | 1.75 | 0.06 | 5 % | pass |
+| AISC 2 | 200 | Δ_tip | 2.5649 | 2.56 | 0.19 | 5 % | pass |
+| T&G | P/Pe 0.2–0.7 | M, Δ vs closed form | — | — | ≤ 0.0053 | 0.1 % | pass |
 
-Caso 2 con P = 200 tiene P/Pe ≈ 0.65, con Pe = π²EI/(4L²) para el voladizo
-(AISC pide incluir 0.6–0.7). En los casos simplemente apoyados, Pe = π²EI/L².
-Todos los valores del motor coinciden con la solución cerrada a ≤ 0.1 %;
-el mayor error frente a los valores AISC conservados es 0.27 %.
+Case 2 with P = 200 has P/Pe ≈ 0.65, with Pe = π²EI/(4L²) for the cantilever
+(AISC requires including 0.6–0.7). In the simply supported cases, Pe = π²EI/L².
+All engine values agree with the closed-form solution to ≤ 0.1 %;
+the largest error against the retained AISC values is 0.27 %.
 
-## Sensibilidad de malla (error vs solución cerrada, P máximo)
+## Mesh sensitivity (error vs closed-form solution, maximum P)
 
 | n | C1 M | C1 Δ | C2 M | C2 Δ |
 |---|---|---|---|---|
@@ -86,29 +86,29 @@ el mayor error frente a los valores AISC conservados es 0.27 %.
 | 8 | 0.0007 % | 0.0019 % | 0.0002 % | 0.0003 % |
 | 16 | <0.0001 % | 0.0001 % | <0.0001 % | <0.0001 % |
 
-La prueba exige que los cuatro errores disminuyan en cada refinamiento.
-La tolerancia 1e-3 frente a la solución cerrada se exige en la malla declarada de 8 elementos;
-las mallas del estudio mantienen las tolerancias publicadas de 3 % en M y 5 % en Δ.
+The test requires all four errors to decrease with each refinement.
+Tolerance 1e-3 against the closed-form solution is required on the declared mesh of 8 elements;
+the study meshes maintain the published tolerances of 3 % in M and 5 % in Δ.
 
-## Diagnóstico: piso del residual relativo
+## Diagnostic: relative residual floor
 
-Con tolerancia 1e-12 el caso 2 (P = 200, malla 8) termina `NotConverged` tras 5000 pasos, y con
-1e-10 lo mismo ocurre con malla 32: el cambio relativo llega a ~3e-15, pero el residual relativo
-se estanca en ~4.8e-10 (piso de redondeo; el residual combina componentes de fuerza en kip y
-de momento en kip·in sin escalarlas por GDL; la rigidez traslacional crece como 12EI/Δx³).
-La comparación con las soluciones cerradas cuantifica la precisión de las mallas tabuladas;
-el estancamiento por sí solo no garantiza precisión para una ejecución `NotConverged`.
-Una tolerancia pedida por el usuario puede ser inalcanzable y el motor solo lo reporta como
-`NotConverged`. Se recomienda un seguimiento antes o
-junto con declarar P-Delta estable (p. ej. documentar el piso o normalizar el residual por GDL).
+With tolerance 1e-12, case 2 (P = 200, mesh 8) ends `NotConverged` after 5000 steps, and with
+1e-10 the same happens with mesh 32: relative change reaches ~3e-15, but the relative residual
+stagnates at ~4.8e-10 (rounding floor; the residual combines force components in kip and
+moment components in kip·in without scaling them by DOF; translational stiffness grows as 12EI/Δx³).
+Comparison with the closed-form solutions quantifies the accuracy of the tabulated meshes;
+stagnation alone does not guarantee accuracy for a `NotConverged` run.
+A tolerance requested by the user may be unattainable and the engine only reports it as
+`NotConverged`. Follow-up is recommended before or
+together with declaring P-Delta stable (e.g. documenting the floor or normalizing the residual by DOF).
 
-## Verificación de esta revisión
+## Verification of this review
 
-Sin red, con `CARGO_NET_OFFLINE=true` y `CARGO_TARGET_DIR=/tmp/me-bench-review-target`:
+Without network, with `CARGO_NET_OFFLINE=true` and `CARGO_TARGET_DIR=/tmp/me-bench-review-target`:
 
 - `cargo fmt`: OK.
 - `cargo clippy -p engine-analysis --all-targets -- -D warnings`: OK.
-- `cargo test -p engine-analysis --test bench_pdelta -- --nocapture`: OK, 4 pruebas;
-  resultados coherentes con ambas tablas. Referencias y tolerancias sin cambios.
+- `cargo test -p engine-analysis --test bench_pdelta -- --nocapture`: OK, 4 tests;
+  results consistent with both tables. References and tolerances unchanged.
 
-Sin commit ni push.
+No commit or push.

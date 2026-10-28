@@ -1,206 +1,206 @@
-# Bitácora clean-room · ENG-GEO-003
+# Clean-room log · ENG-GEO-003
 
-- Ticket / PR: MAM-46 · ENG-GEO-003; PR Mamut1195/mamut-engine#168 (commit base 97d34a2a4c88bda0070157d8a38ce099e6153dd8).
-- Autor(es): Codex gpt-6.1-sol high, 2026-10-20 (America/Guayaquil).
-- Rol: implementador. Especificador: J2, resumen de ecuaciones aportado en el ticket.
-- Contrato implementado: generadores de tablas SI propios `py.matlock_soft_clay`,
-  `py.reese_sand`, `py.user`; consumo por interpolación ENG-MAT-002 y futuro ENG-GEO-005.
-- Fuentes permitidas usadas: resumen J2 de Matlock, H. (1970), «Correlations
+- Ticket / PR: MAM-46 · ENG-GEO-003; PR Mamut1195/mamut-engine#168 (base commit 97d34a2a4c88bda0070157d8a38ce099e6153dd8).
+- Author(s): Codex gpt-6.1-sol high, 2026-10-20 (America/Guayaquil).
+- Role: implementer. Specifier: J2, equation summary supplied in the ticket.
+- Implemented contract: own SI table generators `py.matlock_soft_clay`,
+  `py.reese_sand`, `py.user`; consumption by ENG-MAT-002 interpolation and future ENG-GEO-005.
+- Permitted sources used: J2 summary of Matlock, H. (1970), «Correlations
   for Design of Laterally Loaded Piles in Soft Clay», Offshore Technology
-  Conference, Houston, **OTC 1204, edición 1970**, Ec. 1–5 y curva estática
-  de Fig. 5a descrita en la ficha; Reese, L. C., Cox, W. R., Koop, F. D.
+  Conference, Houston, **OTC 1204, edición 1970**, Ec. 1–5 and the static curve
+  of Fig. 5a described in the specification; Reese, L. C., Cox, W. R., Koop, F. D.
   (1974), «Analysis of Laterally Loaded Piles in Sand», Offshore Technology
   Conference, **OTC 2080, edición 1974**, Ec. 4–9 y 11–16, pasos 2 y 4–8.
-  No se consultaron los papers por red; se implementó la ficha del especificador,
-  sin reproducir prosa, tablas ni figuras de las publicaciones.
-- Derivaciones propias: apartados de esta bitácora, reducción afín,
-  intersección determinista, evaluación normalizada y fixtures SI.
-- Código de terceros copiado: ninguno. Sin nuevas dependencias externas.
-- Validación: analítica propia a partir de las ecuaciones citadas; tablas Rust
-  compartidas por nativo y wasm, con `source.kind = analytical` y cita explícita.
-- Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
-  Tampoco consulté código ni resultados de CalculiX, LAPACK ni otros motores
-  prohibidos. Sesión sin consultas externas ni uso de red; no hay datos de E3S.
-- Revisor clean-room: **PENDIENTE (J4)**.
+  The papers were not consulted over the network; the specifier's summary was implemented,
+  without reproducing prose, tables or figures from the publications.
+- Own derivations: sections of this log, affine reduction,
+  deterministic intersection, normalized evaluation and SI fixtures.
+- Third-party code copied: none. No new external dependencies.
+- Validation: own analytical validation from the cited equations; Rust tables
+  shared by native and wasm, with `source.kind = analytical` and explicit citation.
+- Oracle comparison (sibling repo, informational): no.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+  I also did not consult code or results from CalculiX, LAPACK or other prohibited
+  engines. Session without external queries or network use; there are no E3S data.
+- Clean-room reviewer: **PENDING (J4)**.
 
-## API y unidades
+## API and units
 
-Se añade `engine_geo::py`, sin modificar las ecuaciones ni parámetros de otros
-métodos. Los parámetros usan `Option<Real>` para representar ausencia y producen
-`EngineError`: ENG-E-0003 ausente, ENG-E-0010 dominio/degeneración/rango inválido,
-ENG-E-0008 no finito/desbordamiento. No hay defaults ni unwrap/expect/panic/unsafe
-nuevos en biblioteca. Las tablas se validan también por finitud de pendientes,
-orden estricto y monotonía, rechazando pérdida de pendientes positivas por
-subdesbordamiento. Se limita además el rango bilateral a diferencias finitas.
+`engine_geo::py` is added, without modifying equations or parameters of other
+methods. Parameters use `Option<Real>` to represent absence and produce
+`EngineError`: ENG-E-0003 missing, ENG-E-0010 invalid domain/degeneracy/range,
+ENG-E-0008 non-finite/overflow. No new defaults or unwrap/expect/panic/unsafe
+in the library. Tables are also validated for finite slopes,
+strict order and monotonicity, rejecting loss of positive slopes due to
+underflow. The bilateral range is also limited to finite differences.
 
-Las entradas usan m, N, Pa, N/m³; salida p en N/m, y en m. x es positiva hacia
-abajo y d=b es el diámetro. `effective_stress_pa(&dyn StressProfile, x)` consulta
-el perfil (incluido `StratifiedProfile`) sin extrapolación, convierte kPa a Pa
-por 1000 y rechaza σ'v negativa. El perfil puede representar tensión efectiva
-negativa, pero el dominio de estos generadores exige σ'v≥0. La procedencia
-Measured/Assumed se conserva consultando el reporte del propio perfil; el
-adaptador no declara como medidos los datos externos. c, ε50, J, geometría y los
-parámetros de arena siempre se aportan explícitamente: el perfil actual carece
-de dichos campos. Matlock acepta σ'v variable, sin imponer γ'x a un perfil.
-Reese requiere γ' constante explícita: no se sustituye por σ'v/x ni se inventa
-una extensión estratificada de la expresión homogénea para Xt.
+Inputs use m, N, Pa, N/m³; output p in N/m, y in m. x is positive
+downward and d=b is the diameter. `effective_stress_pa(&dyn StressProfile, x)` queries
+the profile (including `StratifiedProfile`) without extrapolation, converts kPa to Pa
+by 1000 and rejects negative σ'v. The profile may represent negative effective
+stress, but the domain of these generators requires σ'v≥0. Measured/Assumed
+provenance is preserved by querying the profile's own report; the
+adapter does not declare external data as measured. c, ε50, J, geometry and
+sand parameters are always supplied explicitly: the current profile lacks
+those fields. Matlock accepts variable σ'v, without imposing γ'x on a profile.
+Reese requires explicit constant γ': it is not replaced with σ'v/x and no
+stratified extension of the homogeneous expression for Xt is invented.
 
-`Sampling` exige un extremo de meseta y permite una lista explícita (incluso
-vacía) de y positivos, finitos, estrictamente crecientes y dentro del extremo.
-Se añaden origen, vértices obligatorios, meseta y reflejos impares; solo estos
-vértices internos se ordenan y deduplican. El extremo debe superar estrictamente
-8yc o yu; ningún punto del usuario se descarta. No se ofrece un n predeterminado.
-La aproximación entre puntos es secante; el usuario controla su refinamiento.
-Matlock tiene derivada infinita en cero; la tabla usa la secante al primer y>0.
-La rama de Matlock incluye 8yc; la de Reese incluye yk, ym y yu (en x=0, sin yk).
+`Sampling` requires a plateau endpoint and allows an explicit list (even
+empty) of positive, finite, strictly increasing y values within the endpoint.
+The origin, required vertices, plateau and odd reflections are added; only these
+internal vertices are sorted and deduplicated. The endpoint must strictly exceed
+8yc or yu; no user point is discarded. No default n is offered.
+The approximation between points is secant; the user controls its refinement.
+Matlock has infinite derivative at zero; the table uses the secant to the first y>0.
+The Matlock branch includes 8yc; Reese includes yk, ym and yu (at x=0, without yk).
 
-`py.user` recibe una rama y≥0 que ya debe incluir (0,0), exige al menos dos
-puntos, p≥0 no decreciente y refleja sin modificar sus extremos. `PyCurve::at`
-interpola solo en el intervalo tabulado, devolviendo error fuera. Las tablas
-Matlock/Reese tienen mesetas explícitas. `MultilinearElastic` prolonga los
-tramos extremos por su propio contrato: para `py.user` el consumidor debe
-aceptar explícitamente esa política o conservar el evaluador acotado. No se
-inyecta una meseta ni se extrapola silenciosamente desde el generador.
+`py.user` receives a y≥0 branch that must already include (0,0), requires at least two
+points, nondecreasing p≥0 and reflects without modifying its endpoints. `PyCurve::at`
+interpolates only within the tabulated interval, returning an error outside. The
+Matlock/Reese tables have explicit plateaus. `MultilinearElastic` extends the end
+segments by its own contract: for `py.user` the consumer must
+explicitly accept that policy or retain the bounded evaluator. No
+plateau is injected and no silent extrapolation is performed by the generator.
 
-La ley existente interpreta ε adimensional y σ [Pa]. El ensayo de integración
-usa L=2 m y área S=0.5 m² explícitos: ε=y/L, σ=pL/S, p=σS/L. Su tangente se
-recupera como dp/dy=(dσ/dε)S/L². Las tuplas pueden pasar directamente como
-interpolador numérico, pero el futuro pilote debe conservar las unidades y
-aplicar su propia longitud tributaria. No se incluye pilote, barra axial ni
-truss. No se exponen en engine-api/engine-input: falta el contrato físico de
-ENG-GEO-005 y añadir campos a modelos sin consumidor no aporta integración.
-La extensión JSON queda pendiente junto al pilote, sin bloquear este crate.
+The existing law interprets dimensionless ε and σ [Pa]. The integration test
+uses explicit L=2 m and area S=0.5 m²: ε=y/L, σ=pL/S, p=σS/L. Its tangent is
+recovered as dp/dy=(dσ/dε)S/L². Tuples may be passed directly as a
+numerical interpolator, but the future pile must preserve units and
+apply its own tributary length. No pile, axial bar or
+truss is included. They are not exposed in engine-api/engine-input: the physical contract of
+ENG-GEO-005 is missing and adding fields to models without a consumer provides no integration.
+The JSON extension remains pending together with the pile, without blocking this crate.
 
-## Parámetros a cargo del usuario
+## Parameters supplied by the user
 
-- Matlock: x≥0, d>0, c>0, σ'v≥0, J>0 y ε50>0, todos finitos y obligatorios.
-  Los J=0.5/0.25 y εc=0.005–0.020 mencionados en OTC 1204 son orientación,
-  nunca defaults ni límites universales de calibración.
+- Matlock: x≥0, d>0, c>0, σ'v≥0, J>0 and ε50>0, all finite and mandatory.
+  The J=0.5/0.25 and εc=0.005–0.020 mentioned in OTC 1204 are guidance,
+  never defaults or universal calibration limits.
 - Reese: x≥0, diámetro>0, 0<φ<π/2, γ'>0, 0<α<π/2, K0>0, A>B>0, k>0.
-  α=φ/2 y K0=0.4 se documentan como propuestas del paso 2 del método;
-  se exigen explícitos incluso en x=0. β y Ka sí se calculan por Ec. 6/7.
-  A y B solo están en Fig. 8/9 y k se proporciona en tabla del paper:
-  no se copian ni digitalizan; el usuario aporta estos parámetros.
-  Se exige además n>1, yk<ym y una intersección Xt positiva única bajo los
-  criterios descritos debajo. Se devuelven errores para otros dominios.
-- También son obligatorios los puntos/extremo de muestreo; no se supone una
-  deformación final, tolerancia empírica ni factor de suelo ausente.
+  α=φ/2 and K0=0.4 are documented as proposals from step 2 of the method;
+  they are required explicitly even at x=0. β and Ka are calculated by Eq. 6/7.
+  A and B are only in Fig. 8/9 and k is provided in a table in the paper:
+  they are not copied or digitized; the user supplies these parameters.
+  n>1, yk<ym and a unique positive intersection Xt are also required under the
+  criteria described below. Errors are returned for other domains.
+- Sampling points/endpoint are also mandatory; no final
+  deformation, empirical tolerance or missing soil factor is assumed.
 
 ## Matlock: derivación analítica
 
-Caso inventado en SI, no ejemplo publicado: d=1 m, c=20000 Pa, γ'=10000 N/m³,
-J=0.5, ε50=0.01, σ'v=γ'x. Ec. 3 da Np=3+x (x expresado en m para este caso);
-Ec. 2 limita a 9. Para x=2 m: Np=5 y Ec. 1 da pu=100000 N/m.
-Ec. 5 da yc=2.5·0.01·1=0.025 m. La estática de Fig. 5a permite:
+Invented SI case, not a published example: d=1 m, c=20000 Pa, γ'=10000 N/m³,
+J=0.5, ε50=0.01, σ'v=γ'x. Eq. 3 gives Np=3+x (x expressed in m for this case);
+Eq. 2 limits it to 9. For x=2 m: Np=5 and Eq. 1 gives pu=100000 N/m.
+Eq. 5 gives yc=2.5·0.01·1=0.025 m. The static curve of Fig. 5a allows:
 
 - y=yc/8=0.003125 m: p=0.5pu·(1/8)^(1/3)=25000 N/m.
 - y=yc=0.025 m: p=50000 N/m.
-- y=8yc=0.2 m: p=pu=100000 N/m, continuo con la meseta.
-- Extremo explícito y=0.4 m: p=pu. Se reflejan los signos para y negativo.
+- y=8yc=0.2 m: p=pu=100000 N/m, continuous with the plateau.
+- Explicit endpoint y=0.4 m: p=pu. Signs are reflected for negative y.
 
-Ec. 4: xr=6·1/(10000·1/20000+0.5)=6 m. Ec. 3 en x=6 da Np=9,
-en x=5 da 8 y en x=7 da 10 antes del límite (9 después). El fixture compara
-los tres puntos y el control independiente xr=6. En x=0, Np=3: no se impone
-una curva nula a la arcilla, porque Ec. 1/3 conservan resistencia superficial.
+Eq. 4: xr=6·1/(10000·1/20000+0.5)=6 m. Eq. 3 at x=6 gives Np=9,
+at x=5 gives 8 and at x=7 gives 10 before the limit (9 afterward). The fixture compares
+all three points and the independent check xr=6. At x=0, Np=3: a zero curve
+is not imposed on clay, because Eq. 1/3 retain surface resistance.
 
 ## Reese: derivación analítica
 
-Caso inventado para simplificar radicales: diámetro=1 m, γ'=10000 N/m³,
-φ=π/6, **α=π/6 explícito** (distinto de la propuesta φ/2), K0=0.4, A=1,
-B=0.5. No es un ejemplo del paper ni calibración recomendada. Se ejerce la
-libertad de α parametrizado; la conformidad también acepta α=φ/2 explícito.
+Invented case to simplify radicals: diámetro=1 m, γ'=10000 N/m³,
+φ=π/6, **explicit α=π/6** (different from the proposed φ/2), K0=0.4, A=1,
+B=0.5. It is not an example from the paper or a recommended calibration. The freedom
+of parameterized α is exercised; conformance also accepts explicit α=φ/2.
 β=π/3, tanβ=√3, tanφ=tanα=1/√3, sinβ=cosα=√3/2,
-tan(β−φ)=1/√3, Ka=1/3 (Ec. 6/7).
+tan(β−φ)=1/√3, Ka=1/3 (Eq. 6/7).
 
-Reduciendo Ec. 5 por γ'H para H>0:
+Dividing Eq. 5 by γ'H for H>0:
 
 q(H)=q1 H+q0,
 q1=K0·tanφ·sinβ/[tan(β−φ)cosα] + tan²β·tanα/tan(β−φ)
    +K0·tanβ·(tanφ·sinβ−tanα)=3+0.2√3,
 q0=diámetro·[tanβ/tan(β−φ)−Ka]=8/3 m.
 
-El corchete de Ec. 5 es afín en H: cada término interior tiene unidades de m;
-pct es cuadrático en H, con unidades N/m. Ec. 8 por γ'H da
-D=(80/3)+(6/5)√3=28.74512763574932 m. La ecuación para la raíz no trivial
-(paso 4) es (3+√3/5)Xt−[24+(6/5)√3]=0. Su raíz cerrada independiente es
+The bracket in Eq. 5 is affine in H: each inner term has units of m;
+pct is quadratic in H, with units N/m. Eq. 8 divided by γ'H gives
+D=(80/3)+(6/5)√3=28.74512763574932 m. The equation for the nontrivial root
+(step 4) is (3+√3/5)Xt−[24+(6/5)√3]=0. Its independent closed-form root is
 Xt=[24+(6/5)√3]/[3+√3/5]=7.792966107085287 m.
 
-En general la implementación exige q1>0, q0>0 y D−q0>0. Entonces
-f(H)=q1 H−(D−q0) crece para H>0, f(0)<0 y tiene una raíz positiva única.
-Se busca una cota superior empezando en diámetro y duplicando hasta
-128 veces; se hacen 96 bisecciones en orden fijo. Se exige ancho final
-≤8·EPSILON·cota superior (precisión relativa binary64); se rechaza una raíz
-que no se resuelva con ese presupuesto. Si no se encuentra cota o
-se desborda un intermedio, se devuelve error tipado. No se usa una tolerancia
-física supuesta ni la raíz trivial H=0; toda rama no soportada es explícita.
-Para H≤Xt se toma pct y para H>Xt pcd. Son continuas en la intersección.
+In general the implementation requires q1>0, q0>0 and D−q0>0. Then
+f(H)=q1 H−(D−q0) increases for H>0, f(0)<0 and has a unique positive root.
+An upper bound is sought starting at the diameter and doubling up to
+128 times; 96 bisections are performed in constant order. Final width
+≤8·EPSILON·cota superior is required (binary64 relative precision); a root
+that cannot be resolved within that budget is rejected. If no bound is found or
+an intermediate overflows, a typed error is returned. Neither an assumed physical
+tolerance nor the trivial root H=0 is used; every unsupported branch is explicit.
+For H≤Xt, pct is taken and for H>Xt, pcd. They are continuous at the intersection.
 
-Para H=2 m, Ec. 5 y 8 dan, calculados desde los radicales:
+For H=2 m, Eq. 5 and 8 give, calculated from the radicals:
 
 pct=20000·[26/3+(2/5)√3]=187189.73979388434 N/m,
 pcd=20000·[80/3+(6/5)√3]=574902.5527149864 N/m.
 
-H<Xt, luego pc=pct. Ec. 9/11: pu=pc y pm=pc/2.
-Pasos 6/7: yu=3/80=0.0375 m, ym=1/60 m y yu−ym=1/48 m.
-Ec. 13 da m=24pc [N/m²]; Ec. 14 da n=(pc/2)/(24pc/60)=5/4.
-Ec. 15 da C=(pc/2)/(1/60)^(4/5). Ec. 12 se evalúa como
-pm·(y/ym)^(1/n), equivalente sin potencias de magnitudes dimensionales.
+H<Xt, hence pc=pct. Eq. 9/11: pu=pc and pm=pc/2.
+Steps 6/7: yu=3/80=0.0375 m, ym=1/60 m and yu−ym=1/48 m.
+Eq. 13 gives m=24pc [N/m²]; Eq. 14 gives n=(pc/2)/(24pc/60)=5/4.
+Eq. 15 gives C=(pc/2)/(1/60)^(4/5). Eq. 12 is evaluated as
+pm·(y/ym)^(1/n), equivalent without powers of dimensional quantities.
 
-Para este caso se **elige** k=60pc por metro cuadrado =
-11231384.38763306 N/m³ (valor sintético, sin usar la tabla del paper).
-Así kH=120pc [N/m²]. De Ec. 16, normalizada:
+For this case k=60pc per square meter is **chosen** =
+11231384.38763306 N/m³ (synthetic value, without using the paper's table).
+Thus kH=120pc [N/m²]. From normalized Eq. 16:
 yk=ym·[pm/(kHym)]^[n/(n−1)]=(1/60)·(1/4)^5=1/61440 m.
-Es menor que ym. Los controles k/m/u son:
+It is less than ym. The k/m/u checks are:
 
-| Punto | y [m] | p [N/m] |
+| Point | y [m] | p [N/m] |
 | --- | --- | --- |
 | k | 0.000016276041666666666 | pc/512 = 365.60496053493034 |
 | m | 0.016666666666666666 | pc/2 = 93594.86989694217 |
 | u | 0.0375 | pc = 187189.73979388434 |
-| meseta | 0.4 | pc = 187189.73979388434 |
+| plateau | 0.4 | pc = 187189.73979388434 |
 
-Controles interiores independientes: p(yk/2)=pc/1024=182.80248026746517 N/m;
+Independent interior checks: p(yk/2)=pc/1024=182.80248026746517 N/m;
 p(ym/2)=(pc/2)·2^(−4/5)=53756.13654338948 N/m;
-p((ym+yu)/2)=3pc/4=140392.30484541325 N/m. Se evalúan como muestras,
-para distinguir la parábola analítica de su aproximación multilineal.
+p((ym+yu)/2)=3pc/4=140392.30484541325 N/m. They are evaluated as samples,
+to distinguish the analytical parabola from its multilinear approximation.
 
-Para H=10 m: pct=100000·[98/3+2√3]=3613076.828180442 N/m,
-pcd=100000·[80/3+(6/5)√3]=2874512.763574932 N/m. H>Xt, por tanto
-pu=pcd=2874512.763574932 N/m. Se conserva el mismo k explícito.
-Un control intermedio H=4<Xt da pct=40000·[44/3+(4/5)√3]
-=642092.2925088706 N/m, que también debe ser pu (A=1).
+For H=10 m: pct=100000·[98/3+2√3]=3613076.828180442 N/m,
+pcd=100000·[80/3+(6/5)√3]=2874512.763574932 N/m. H>Xt, therefore
+pu=pcd=2874512.763574932 N/m. The same explicit k is retained.
+An intermediate check H=4<Xt gives pct=40000·[44/3+(4/5)√3]
+=642092.2925088706 N/m, which must also be pu (A=1).
 
-Control adicional del α propuesto: α=φ/2=π/12, H=2 y los otros datos iguales.
-cosα=(√6+√2)/4 y tanα=2−√3. Los cuatro términos del corchete de Ec. 5 son,
-respectivamente, 0.7172603777344427, 5.7846096908265245,
-0.3215390309173471 y −1/3 m. Su suma por γ'H=20000 N/m² da
-pct=129801.51532289962 N/m. La pendiente de q(H) es
-1.9117045497391574 y Xt=13.64147036875595 m; son controles separados del
-test de conformidad, derivados de la fórmula sin la reducción del generador.
+Additional check of the proposed α: α=φ/2=π/12, H=2 and the other data unchanged.
+cosα=(√6+√2)/4 and tanα=2−√3. The four terms in the bracket of Eq. 5 are,
+respectively, 0.7172603777344427, 5.7846096908265245,
+0.3215390309173471 and −1/3 m. Their sum multiplied by γ'H=20000 N/m² gives
+pct=129801.51532289962 N/m. The slope of q(H) is
+1.9117045497391574 and Xt=13.64147036875595 m; they are separate checks of the
+conformance test, derived from the formula without the generator's reduction.
 
-Ramas degeneradas: A≤B o n≤1 son errores; yk≥ym también es error, sin
-sustituir la curva por otra. Comparaciones exactas sobre f64, sin tolerancia
-que acepte una degeneración. En x=0 se validan todos los parámetros y n por
-la forma independiente de pc: n=[B/(A−B)]·[(yu−ym)/ym]. Ec. 5/8 producen
-pct=pcd=0: se devuelve tabla nula, yk=None, sin dividir por kx. Las fórmulas
-normalizadas de n y yk son derivaciones algebraicas propias de Ec. 13–16.
+Degenerate branches: A≤B or n≤1 are errors; yk≥ym is also an error, without
+replacing the curve with another. Exact comparisons on f64, without tolerance
+that accepts a degeneracy. At x=0 all parameters and n are validated through
+the independent form of pc: n=[B/(A−B)]·[(yu−ym)/ym]. Eq. 5/8 produce
+pct=pcd=0: a zero table is returned, yk=None, without dividing by kx. The
+normalized formulas for n and yk are own algebraic derivations from Eq. 13–16.
 
-## Validación y alcance
+## Validation and scope
 
-Los tres fixtures en `crates/engine-validation/tests/support/py_table.rs`
-tienen fuente analítica, cita y controles literales derivados arriba. Comparten
-runner nativo/wasm, sin imports JS ni npm. Tolerancia A=1e-8 en la unidad SI de
-cada control y R=1e-12: margen de redondeo de radicales/libm/bisección, sin error
-de discretización en los vértices. No procede de un motor externo.
-Se usa exclusivamente `engine_core::math` para trascendentes deterministas.
+The three fixtures in `crates/engine-validation/tests/support/py_table.rs`
+have an analytical source, citation and literal checks derived above. They share
+a native/wasm runner, without JS imports or npm. Tolerance A=1e-8 in the SI unit of
+each check and R=1e-12: rounding margin for radicals/libm/bisection, without
+discretization error at vertices. It does not come from an external engine.
+Only `engine_core::math` is used for deterministic transcendental functions.
 
-Se añade solo una dependencia de desarrollo local engine-laws a
-engine-validation para verificar el consumo dimensional de las tablas; Cargo
-actualiza la arista correspondiente en el lockfile. La guardia escalar admite
-la ruta exacta del nuevo runner wasm con no_mangle y extern C, igual que los
-runners existentes; no admite unsafe ni amplía permisos por patrón.
-No se modifican clean-room/**, docs/CLEAN_ROOM.md, workflows, CODEOWNERS ni vendor.
+Only one local development dependency on engine-laws is added to
+engine-validation to verify dimensional consumption of the tables; Cargo
+updates the corresponding edge in the lockfile. The scalar guard accepts
+the exact path of the new wasm runner with no_mangle and extern C, like the
+existing runners; it does not allow unsafe or broaden permissions by pattern.
+clean-room/**, docs/CLEAN_ROOM.md, workflows, CODEOWNERS and vendor are not modified.
 
-La carga cíclica queda fuera (ENG-GEO-009). La revisión clean-room de J4 y la
-integración física del pilote/JSON (ENG-GEO-005) quedan pendientes.
+Cyclic loading remains outside scope (ENG-GEO-009). J4 clean-room review and
+physical pile/JSON integration (ENG-GEO-005) remain pending.

@@ -1,31 +1,31 @@
-# Bitácora clean-room · ENG-LA-008 (parte: presupuesto acumulado de memoria)
+# Clean-room log · ENG-LA-008 (part: cumulative memory budget)
 
-## Declaración adicional de la sesión ENG-LA-009
+## Additional declaration from the ENG-LA-009 session
 
-- Autor(es): J2 (agente, Grok Bot) · 2026-10-11 (America/Guayaquil), identificación solicitada; sesión ejecutada por Codex (GPT-6).
-- Rol: implementador del seguimiento modal propio; sin cambios en MemoryBudget (#38/#50).
-- Fuentes usadas en esta sesión: únicamente código y documentación propios del repo y derivaciones analíticas; sin red ni fuentes externas.
-- Código de terceros copiado: ninguno. Ver alcance, derivaciones y validación en `ENG-LA-009.md`.
-- Declaración: 'No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados'
-- Revisor clean-room: PENDIENTE (J4)
+- Author(s): J2 (agent, Grok Bot) · 2026-10-11 (America/Guayaquil), requested identification; session executed by Codex (GPT-6).
+- Role: implementer of the in-house modal follow-up; no changes to MemoryBudget (#38/#50).
+- Sources used in this session: only the repo's own code and documentation and analytical derivations; no network access or external sources.
+- Third-party code copied: none. See scope, derivations and validation in `ENG-LA-009.md`.
+- Declaration: 'No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados'
+- Clean-room reviewer: PENDING (J4)
 
-## Registro original
+## Original record
 
-- Ticket / PR: ENG-LA-008 (presupuesto acumulado de memoria en engine-linalg); rama `j2/la-008-memory-budget`
-- Autor(es): J2 (agente, Grok Bot) · 2026-10-11 (America/Guayaquil)
-- Rol: implementador
-- Contrato implementado: engine-linalg (API nueva `MemoryBudget`, `dense_bytes`, `sparse_bytes`; sin cambios en LinAlgBackend)
-- Fuentes permitidas usadas: ninguna externa; contabilidad elemental de bytes.
-- Derivaciones propias: contador explícito y determinista (sin SO, hilos ni estado global) con límite, uso y pico; `charge` rechaza con ENG-E-0013 sin alterar la cuenta; `zeros` y `solve_dense` cargan el conjunto de trabajo (A, B, X) y solo la solución queda cargada. `alloc_vec` sigue limitando cada reserva individual. Alcance: contabilidad por llamador; el backend no lleva presupuesto interno (cableado en factorize/eigen y solver disperso: PENDIENTE, ENG-LA-008 restante).
-- Código de terceros copiado: ninguno
-- Validación: analítico (suma de reservas permitidas excede el presupuesto; bordes de desborde/liberación; conjunto de trabajo exacto ±1 byte)
-- Comparación con oráculo: no
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
-- Revisor clean-room: PENDIENTE (J4)
+- Ticket / PR: ENG-LA-008 (cumulative memory budget in engine-linalg); branch `j2/la-008-memory-budget`
+- Author(s): J2 (agent, Grok Bot) · 2026-10-11 (America/Guayaquil)
+- Role: implementer
+- Implemented contract: engine-linalg (new API `MemoryBudget`, `dense_bytes`, `sparse_bytes`; no changes to LinAlgBackend)
+- Permitted sources used: no external sources; elementary byte accounting.
+- Own derivations: explicit and deterministic counter (no OS, threads or global state) with limit, usage and peak; `charge` rejects with ENG-E-0013 without changing the account; `zeros` and `solve_dense` charge the working set (A, B, X) and only the solution remains charged. `alloc_vec` continues to limit each individual allocation. Scope: per-caller accounting; the backend has no internal budget (wiring in factorize/eigen and sparse solver: PENDING, remaining ENG-LA-008).
+- Third-party code copied: none
+- Validation: analytical (sum of permitted allocations exceeds the budget; overflow/release boundaries; exact working set ±1 byte)
+- Oracle comparison: no
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+- Clean-room reviewer: PENDING (J4)
 
-## Segunda ronda (J4 r3, 2026-10-11)
+## Second round (J4 r3, 2026-10-11)
 
-- `ReferenceBackend::solve_dense` con A 0×0 devuelve B sin reservar vectores por columna (antes: pánico «capacity overflow» con B 0×usize::MAX).
-- `MemoryBudget::solve_dense` usa una guarda RAII: un pánico recuperado del backend libera la carga; `used` no queda cargado. `peak` documentado (conserva el máximo del conjunto de trabajo cargado). `release` sin identidad: doble liberación documentada como subcontabilidad del llamador.
-- Pruebas: `empty_system_with_huge_column_count_does_not_panic`, `recovered_backend_panic_does_not_leave_budget_charged`.
-- Revisor clean-room: PENDIENTE (J4)
+- `ReferenceBackend::solve_dense` with A 0×0 returns B without allocating vectors per column (previously: panic «capacity overflow» with B 0×usize::MAX).
+- `MemoryBudget::solve_dense` uses an RAII guard: a recovered backend panic releases the charge; `used` does not remain charged. `peak` documented (preserves the maximum charged working set). `release` without identity: double release documented as caller undercounting.
+- Tests: `empty_system_with_huge_column_count_does_not_panic`, `recovered_backend_panic_does_not_leave_budget_charged`.
+- Clean-room reviewer: PENDING (J4)

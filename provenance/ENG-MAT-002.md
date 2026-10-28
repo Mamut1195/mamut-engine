@@ -1,89 +1,89 @@
-# Bitácora clean-room · ENG-MAT-002
+# Clean-room log · ENG-MAT-002
 
-- Ticket / PR: ENG-MAT-002, ley uniaxial `multilinear_elastic`; entrega local sin commit ni push.
-- Autor(es): J2 (agente, Grok Bot), atribución solicitada por el usuario; implementación realizada por Codex, modelo GPT-6; fecha 2026-10-11 (America/Guayaquil). Sin delegación a otros agentes.
-- Rol: implementador, con derivaciones y fixtures analíticos propios.
-- Contrato implementado: `uniaxial/1` (versión 1.0), kind `multilinear_elastic`, método 0.1.0, dentro de `engine-laws`.
-- Fuentes permitidas usadas: solicitud ENG-MAT-002 del usuario, código y documentación internos enumerados abajo; sin fuentes externas, libros, manuales ni acceso a la red.
-- Derivaciones propias: [nota de esta bitácora](#derivaciones-propias-y-fixtures) y [pruebas analíticas](../crates/engine-laws/tests/multilinear.rs).
-- Código de terceros copiado: ninguno. Solo biblioteca estándar y las dependencias locales existentes `engine-core` y `engine-contracts`; sin crates ni dependencias nuevos.
-- Validación: analítico; valores exactos por tramos y extrapolación, tangentes por diferencias finitas, continuidad, simetría/asimetría, gaps, extremos numéricos, rechazo de entradas inválidas y conformidad uniaxial.
-- Comparación con oráculo (repo hermano, informativa): no. No se ejecutó ni consultó ningún motor externo.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket." Tampoco se consultaron fuentes externas ni manuales de otros motores. No hubo acceso a la red.
-- Revisor clean-room: PENDIENTE (J4).
+- Ticket / PR: ENG-MAT-002, uniaxial law `multilinear_elastic`; local delivery without commit or push.
+- Author(s): J2 (agent, Grok Bot), attribution requested by the user; implementation carried out by Codex, model GPT-6; date 2026-10-11 (America/Guayaquil). No delegation to other agents.
+- Role: implementer, with own analytical derivations and fixtures.
+- Implemented contract: `uniaxial/1` (version 1.0), kind `multilinear_elastic`, method 0.1.0, within `engine-laws`.
+- Permitted sources used: user's ENG-MAT-002 request, internal code and documentation listed below; no external sources, books, manuals or network access.
+- Own derivations: [note in this log](#derivaciones-propias-y-fixtures) and [analytical tests](../crates/engine-laws/tests/multilinear.rs).
+- Third-party code copied: none. Only standard library and the existing local dependencies `engine-core` and `engine-contracts`; no new crates or dependencies.
+- Validation: analytical; exact piecewise values and extrapolation, tangents through finite differences, continuity, symmetry/asymmetry, gaps, numerical extremes, rejection of invalid inputs and uniaxial conformance.
+- Oracle comparison (sibling repo, informative): no. No external engine was run or consulted.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket." Nor were external sources or manuals of other engines consulted. There was no network access.
+- Clean-room reviewer: PENDING (J4).
 
-## Documentos internos consultados
+## Internal documents consulted
 
 `provenance/TEMPLATE.md`, `provenance/ENG-MAT-001.md`, `docs/CLEAN_ROOM.md`,
-`CONTRIBUTING.md`, `clean-room/README.md` y `clean-room/check.sh`; implementación
-y pruebas existentes de `engine-laws`; trait `UniaxialLaw` y kit
-`conformance::check_uniaxial_law` de `engine-contracts`; catálogo y errores de
-`engine-core`; manifests del workspace. No se encontró un `AGENTS.md` aplicable
-en el repo ni en sus ascendientes. No se abrieron fuentes de motores prohibidos.
+`CONTRIBUTING.md`, `clean-room/README.md` and `clean-room/check.sh`; existing implementation
+and tests of `engine-laws`; trait `UniaxialLaw` and
+`conformance::check_uniaxial_law` kit of `engine-contracts`; catalog and errors of
+`engine-core`; workspace manifests. No applicable `AGENTS.md` was found
+in the repo or its ancestors. No sources of prohibited engines were opened.
 
-## Decisiones de implementación
+## Implementation decisions
 
-La API se exporta desde `engine_laws::uniaxial`, con implementación privada en
-`src/uniaxial/multilinear.rs`. Incluye ley, parámetros tipados, descriptor y
-fábrica que implementa el `UniaxialFactory` existente. Igual que ENG-MAT-001,
-no hay registro global, parser ni cambios en `engine-contracts`. La tabla y
-las pendientes se validan una vez y se conservan inmutables; el estado inicial,
-aceptado y de prueba tiene longitud cero. Ley y fábrica son `Send + Sync`.
+The API is exported from `engine_laws::uniaxial`, with private implementation in
+`src/uniaxial/multilinear.rs`. It includes law, typed parameters, descriptor and
+factory implementing the existing `UniaxialFactory`. Like ENG-MAT-001,
+there is no global registry, parser or changes to `engine-contracts`. The table and
+slopes are validated once and kept immutable; initial,
+committed and trial state has zero length. Law and factory are `Send + Sync`.
 
-Se reciben puntos explícitos ordenados `(ε, σ)` en SI; ε adimensional positiva
-en tracción y σ en Pa. Debe haber al menos dos puntos y un origen exacto
-`(0, 0)`, sin tolerancia ni corrección automática. Puntos reflejados definen una
-curva simétrica impar; puntos independientes definen una curva asimétrica.
-También se permiten tablas unilaterales con el origen en un extremo: el tramo
-extremo se prolonga al otro lado, salvo cuando el modo lo inhabilita.
+Explicit ordered points `(ε, σ)` in SI are received; ε is dimensionless and positive
+in tension and σ is in Pa. There must be at least two points and an exact origin
+`(0, 0)`, without tolerance or automatic correction. Reflected points define an
+odd symmetric curve; independent points define an asymmetric curve.
+One-sided tables with the origin at one end are also allowed: the end
+segment extends to the other side, except when the mode disables it.
 
-Los modos son ambos lados, solo-compresión y solo-tracción. El lado inactivo
-da exactamente σ = 0 y tangente = 0. El origen pertenece al lado activo;
-solo-compresión elige allí la pendiente izquierda si existe, y solo-tracción
-la derecha si existe. En los demás vértices se elige el tramo derecho, salvo
-el último punto, que usa el último tramo. `initial_tangent()` coincide siempre
-con `respond(0).tangent`, incluidas las tablas unilaterales.
+The modes are both sides, compression-only and tension-only. The inactive side
+gives exactly σ = 0 and tangent = 0. The origin belongs to the active side;
+compression-only chooses the left slope there if present, and tension-only
+the right one if present. At the other vertices the right segment is chosen, except
+the last point, which uses the last segment. `initial_tangent()` always matches
+`respond(0).tangent`, including one-sided tables.
 
-En un vértice de pendientes distintas o en la apertura del gap no existe
-derivada bilateral. El contrato exige declarar estos puntos; el kit existente
-acepta la elección con muestras cuyo intervalo ε ± h sea diferenciable,
-y comprueba por separado la tangente inicial contra la respuesta en el origen.
-No se afirma que la diferencia central coincida con una derivada unilateral
-en un quiebre. Los vértices se prueban directamente sin alterar el kit.
+At a vertex with different slopes or at gap opening there is no
+two-sided derivative. The contract requires declaring these points; the existing kit
+accepts the choice with samples whose ε ± h interval is differentiable,
+and separately checks the initial tangent against the response at the origin.
+It is not claimed that the central difference matches a one-sided derivative
+at a corner. Vertices are tested directly without altering the kit.
 
-Se admiten mesetas exactas y se rechazan pendientes negativas con
-`ENG-E-0010` y contexto del tramo. El mismo código cubre longitudes, orden,
-origen e historia inválidos, siguiendo el rango del trait existente. Una
-pendiente positiva reducida a cero por subdesbordamiento también se rechaza
-con `ENG-E-0010`, para no confundirla con una meseta válida. `ENG-E-0008` cubre
-entradas no finitas y desbordamientos en diferencias, cociente, producto y
-suma. El mensaje identifica la magnitud; no se añaden códigos al catálogo.
-Se valida toda la tabla, aunque un modo deshabilite uno de los lados, y se
-validan ε e historia antes de responder en el gap.
+Exact plateaus are allowed and negative slopes are rejected with
+`ENG-E-0010` and segment context. The same code covers invalid lengths, order,
+origin and history, following the existing trait's range. A
+positive slope reduced to zero by underflow is also rejected
+with `ENG-E-0010`, to avoid confusing it with a valid plateau. `ENG-E-0008` covers
+nonfinite inputs and overflows in differences, quotient, product and
+sum. The message identifies the quantity; no codes are added to the catalog.
+The entire table is validated, even if a mode disables one side, and
+ε and history are validated before responding in the gap.
 
-La búsqueda del tramo es binaria. Se usa el extremo más cercano como ancla
-para reducir cancelación; los puntos tabulados se devuelven exactamente.
-Una meseta evita calcular desplazamientos innecesarios y permite evaluar
-deformaciones extremas finitas. La implementación de la librería no contiene
-`panic!`, `unwrap` ni `expect`. Los índices privados quedan acotados por las
-invariantes del constructor; el usuario no puede mutar puntos ni pendientes.
+Segment search is binary. The nearest end is used as an anchor
+to reduce cancellation; tabulated points are returned exactly.
+A plateau avoids calculating unnecessary offsets and allows evaluating
+extreme finite strains. The library implementation contains no
+`panic!`, `unwrap` or `expect`. Private indices are bounded by the
+constructor invariants; the user cannot mutate points or slopes.
 
 ## Derivaciones propias y fixtures
 
-Para dos puntos consecutivos, Δε = εᵢ₊₁ − εᵢ > 0,
-Δσ = σᵢ₊₁ − σᵢ ≥ 0 y mᵢ = Δσ / Δε. La única función afín que pasa
-por ambos puntos es σ(ε) = σᵢ + mᵢ(ε − εᵢ), con dσ/dε = mᵢ.
-Usar el extremo derecho como ancla da la expresión equivalente
-σᵢ₊₁ + mᵢ(ε − εᵢ₊₁). Ambas llegan a la misma tensión en cada vértice,
-por lo que la curva es continua. Las prolongaciones extremas conservan esa
-continuidad y la pendiente del tramo exterior correspondiente. En el gap se
-define σ = 0; como el origen tiene σ = 0, la transición también es continua.
+For two consecutive points, Δε = εᵢ₊₁ − εᵢ > 0,
+Δσ = σᵢ₊₁ − σᵢ ≥ 0 and mᵢ = Δσ / Δε. The unique affine function passing
+through both points is σ(ε) = σᵢ + mᵢ(ε − εᵢ), with dσ/dε = mᵢ.
+Using the right end as anchor gives the equivalent expression
+σᵢ₊₁ + mᵢ(ε − εᵢ₊₁). Both reach the same stress at each vertex,
+so the curve is continuous. End extensions preserve that
+continuity and the slope of the corresponding outer segment. In the gap
+σ = 0 is defined; since the origin has σ = 0, the transition is also continuous.
 
-El fixture asimétrico propio usa puntos
-`(-3, -10), (-1, -6), (0, 0), (1, 4), (3, 6)`; las pendientes son
-`2, 6, 4, 1` Pa. Evaluaciones exactas, con datos representables en binario:
+The in-house asymmetric fixture uses points
+`(-3, -10), (-1, -6), (0, 0), (1, 4), (3, 6)`; the slopes are
+`2, 6, 4, 1` Pa. Exact evaluations, with binary-representable data:
 
-| ε | σ (Pa) | Tangente elegida (Pa) |
+| ε | σ (Pa) | Chosen tangent (Pa) |
 |---|---|---|
 | −4 | −12 | 2 |
 | −3 | −10 | 2 |
@@ -97,40 +97,40 @@ El fixture asimétrico propio usa puntos
 | 3 | 6 | 1 |
 | 4 | 7 | 1 |
 
-Para simetría se usan `(-3, -6), (-1, -4), (0, 0), (1, 4), (3, 6)`.
-Para mesetas: `(-2, -4), (-1, -4), (0, 0), (1, 4), (2, 4)`.
-Tablas mínimas `(0, 0), (1, 2)` y `(-1, -2), (0, 0)` reproducen σ = 2ε
-en ambos signos antes de aplicar el gap. La recta σ = ε se prueba con
-extremos `±f64::MAX` y el menor subnormal positivo; las mesetas se extrapolan
-hasta esos extremos finitos sin producto ni resta innecesarios.
+For symmetry `(-3, -6), (-1, -4), (0, 0), (1, 4), (3, 6)` are used.
+For plateaus: `(-2, -4), (-1, -4), (0, 0), (1, 4), (2, 4)`.
+Minimal tables `(0, 0), (1, 2)` and `(-1, -2), (0, 0)` reproduce σ = 2ε
+for both signs before applying the gap. The line σ = ε is tested with
+extremes `±f64::MAX` and the smallest positive subnormal; plateaus are extrapolated
+to those finite extremes without unnecessary multiplication or subtraction.
 
-Las diferencias centrales lejos de vértices usan h = 10⁻⁶ y error relativo
-menor que 10⁻⁶. La continuidad en todos los vértices y modos se verifica
-exactamente con h = 1/1024 y las pendientes de los lados respectivos.
-Los valores de los fixtures llevan `source` y `citation` a esta nota; son
-elecciones y derivaciones propias, sin resultados de otro motor.
+Central differences away from vertices use h = 10⁻⁶ and relative error
+less than 10⁻⁶. Continuity at all vertices and modes is verified
+exactly with h = 1/1024 and the slopes of the respective sides.
+Fixture values carry `source` and `citation` to this note; they are
+own choices and derivations, without results from another engine.
 
-## Verificación local
+## Local verification
 
-Verificaciones ejecutadas sin acceso a red, con `CARGO_NET_OFFLINE=true`.
-Las corridas finales usan el toolchain instalado estable (`rustc 1.99.0`,
-2026-09-28), anteponiendo `/home/box/.cargo/bin` al PATH; el target wasm ya
-estaba instalado y no se descargó nada.
+Checks run without network access, with `CARGO_NET_OFFLINE=true`.
+The final runs use the installed stable toolchain (`rustc 1.99.0`,
+2026-09-28), prepending `/home/box/.cargo/bin` to PATH; the wasm target was already
+installed and nothing was downloaded.
 
-- `cargo fmt` y `cargo fmt --check`: satisfactorios.
-- `cargo clippy --all-targets -- -D warnings`: satisfactorio.
-- `cargo test --workspace`: satisfactorio; 161 pruebas unitarias/de integración
-  y 35 doctests. La nueva ley aporta 12 pruebas de integración y un doctest;
-  el crate completo pasa 24 pruebas de integración y 3 doctests.
-- `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`: satisfactorio.
-- `cargo check --workspace --target wasm32-unknown-unknown`: satisfactorio.
-  Es comprobación de compilación; no se ejecutaron pruebas numéricas en wasm.
-- `bash clean-room/check.sh origin/main`: satisfactorio (`Clean-room: OK`),
-  incluyendo los tres archivos nuevos mediante `git add -N` en un índice y
-  directorio de objetos temporales bajo `/tmp`, sin tocar el índice ni los
-  objetos Git reales.
-- `git diff --check` con el mismo índice temporal: satisfactorio. El diff solo
-  contiene los cuatro archivos de `engine-laws` y esta bitácora.
+- `cargo fmt` and `cargo fmt --check`: successful.
+- `cargo clippy --all-targets -- -D warnings`: successful.
+- `cargo test --workspace`: successful; 161 unit/integration tests
+  and 35 doctests. The new law contributes 12 integration tests and one doctest;
+  the complete crate passes 24 integration tests and 3 doctests.
+- `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`: successful.
+- `cargo check --workspace --target wasm32-unknown-unknown`: successful.
+  This is a compilation check; no numerical tests were run in wasm.
+- `bash clean-room/check.sh origin/main`: successful (`Clean-room: OK`),
+  including the three new files through `git add -N` in a temporary index and
+  object directory under `/tmp`, without touching the real Git index or
+  objects.
+- `git diff --check` with the same temporary index: successful. The diff only
+  contains the four `engine-laws` files and this log.
 
-No se modifican rutas protegidas, manifests ni dependencias. No se crea commit
-ni se hace push. La revisión clean-room humana permanece PENDIENTE (J4).
+No changes to protected paths, manifests or dependencies. No commit is created
+or push made. Human clean-room review remains PENDING (J4).

@@ -1,148 +1,148 @@
-# Bitácora clean-room · ENG-CONT-001
+# Clean-room log · ENG-CONT-001
 
 - Ticket: MAM-867 (ENG-CONT-001).
-- Autor: agente Codex (GPT-6), 2026-10-21 (America/Guayaquil).
-- Rol: implementador.
-- Base local: `origin/main` = `7375fa25a34a3cb004bcaec84f645743b864ff89`.
+- Author: Codex agent (GPT-6), 2026-10-21 (America/Guayaquil).
+- Role: implementer.
+- Local base: `origin/main` = `7375fa25a34a3cb004bcaec84f645743b864ff89`.
 - Worktree: `/workspace/mamut-engine-cont1`.
-- Contratos: `cli-error/1`, `error-codes/1`, `error-codes-lock/1`.
-- Fuentes permitidas usadas: ticket y restricciones del usuario; código propio de
-  engine-cli, engine-api y catálogo engine-core; README del CLI,
-  `docs/DETERMINISMO.md`, `changelog.d/README.md`; API pública y rutas de emisión
-  del SDK ya vendorizado en el repositorio (solo lectura, sin cambios).
-- Derivaciones propias: diseño del sobre terminal, registro y guardias de
-  compatibilidad descritos en `crates/engine-cli/README.md`.
-- Código de terceros copiado: ninguno nuevo. El validador de tests se adapta del
-  propio `crates/engine-api/tests/support/mod.rs`, sin dependencias nuevas.
-- Comparación con oráculo: no.
-- Declaración: "No consulté código fuente de OpenSees, Frame3DD, Stabileo ni
+- Contracts: `cli-error/1`, `error-codes/1`, `error-codes-lock/1`.
+- Permitted sources used: ticket and user restrictions; own code from
+  engine-cli, engine-api and engine-core catalog; CLI README,
+  `docs/DETERMINISMO.md`, `changelog.d/README.md`; public API and emission paths
+  of the SDK already vendored in the repository (read-only, unchanged).
+- Own derivations: terminal envelope design, registry and compatibility
+  guards described in `crates/engine-cli/README.md`.
+- Third-party code copied: none new. The test validator is adapted from
+  the project's own `crates/engine-api/tests/support/mod.rs`, with no new dependencies.
+- Comparison with oracle: no.
+- Declaration: "No consulté código fuente de OpenSees, Frame3DD, Stabileo ni
   derivados para este ticket."
-- Sin red; no se consultaron fuentes restringidas ni logs de otras sesiones.
-- Sin cambios en vendor, Cargo.toml/Cargo.lock, .github, clean-room,
-  CLEAN_ROOM.md, CODEOWNERS, deny.toml, CHANGELOG.md, barra axial ni truss.
-- Revisor clean-room: pendiente de revisión humana.
+- No network; no restricted sources or logs from other sessions were consulted.
+- No changes to vendor, Cargo.toml/Cargo.lock, .github, clean-room,
+  CLEAN_ROOM.md, CODEOWNERS, deny.toml, CHANGELOG.md, axial bar or truss.
+- Clean-room reviewer: pending human review.
 
-## Decisiones y alcance
+## Decisions and scope
 
-`src/error.rs` centraliza todos los fallos terminales observables del adaptador.
-El esquema se publica junto al CLI (`schemas/cli-error-1.json`,
-`urn:mamut:cli-error:1`) para mantener separado el contrato de proceso de los
-contratos numéricos de engine-api. No cambia la API de esquemas del motor.
+`src/error.rs` centralizes all observable terminal failures of the adapter.
+The schema is published alongside the CLI (`schemas/cli-error-1.json`,
+`urn:mamut:cli-error:1`) to keep the process contract separate from the
+numerical contracts of engine-api. It does not change the engine schema API.
 
-Se elige cli-error/1 como único sobre terminal en stderr, conservando los campos
-compatibles del fallo de cli-run (`type`, identidad, `exitCode`, `outcome`,
-`error` y documento fallido opcional). `error.code` coincide con el nuevo `code`;
-se sustituye WF-E-* por ENG/API cuando hay diagnóstico principal o por CLI-E-*.
-En otros comandos se sustituye el antiguo `{exit_code,message}`. El comando
-real identifica `operation`; argumentos desconocidos y bytes no UTF-8 no se
-reflejan. `args_os` evita que std::env::args aborte ante argumentos no UTF-8.
+cli-error/1 is chosen as the sole terminal envelope on stderr, preserving the
+compatible cli-run failure fields (`type`, identity, `exitCode`, `outcome`,
+`error` and optional failed document). `error.code` matches the new `code`;
+WF-E-* is replaced by ENG/API when there is a primary diagnostic or by CLI-E-*.
+In other commands the old `{exit_code,message}` is replaced. The actual
+command identifies `operation`; unknown arguments and non-UTF-8 bytes are not
+reflected. `args_os` prevents std::env::args from aborting on non-UTF-8 arguments.
 
-Los diagnósticos y documentos del motor se conservan íntegros. El primer error
-identifica el código principal; entidades no implican una ubicación JSON única,
-por lo que pointer es null. Hint procede del diagnóstico o es null. Los textos
-base ingleses están en messages/en.json y las claves estables en el registro;
-no se implementa i18n ni se traducen diagnósticos existentes. ENG-E-0014 se mapea
-a inestabilidad / 4 también en el clasificador validate, como hace engine-api.
+Engine diagnostics and documents are preserved in full. The first error
+identifies the primary code; entities do not imply a unique JSON location,
+so pointer is null. Hint comes from the diagnostic or is null. The English
+base texts are in messages/en.json and stable keys in the registry;
+i18n is not implemented and existing diagnostics are not translated. ENG-E-0014 maps
+to instability / 4 also in the validate classifier, as engine-api does.
 
-El registro inicial congela 32 códigos (9 CLI, 14 ENG, 9 API). La versión de alta
-es la del registro, 1.0.0. El lock contiene definiciones completas inmutables,
-excepto status; se permiten deprecaciones y altas por adición. Los tests detectan
-ids duplicados, desaparición, cambios de definición y literales emitidos sin
-registro. El inventario léxico recorre src de todos los crates, omite comentarios,
-chars y elementos cfg(test); no analiza vendor ni códigos dinámicos. Todos los
-emisores actuales usan literales.
+The initial registry freezes 32 codes (9 CLI, 14 ENG, 9 API). The introduction version
+is that of the registry, 1.0.0. The lock contains complete immutable definitions,
+except status; deprecations and additive entries are permitted. Tests detect
+duplicate ids, disappearance, definition changes and emitted literals without
+registration. The lexical inventory traverses src of all crates, skips comments,
+chars and cfg(test) items; it does not analyze vendor or dynamic codes. All
+current emitters use literals.
 
-MCP: el `serve` de mamut-workflow-cli construye errores de tools mediante
-CliFailure::envelope, y McpServer del SDK construye los errores JSON-RPC. El
-CliConfig que recibe dispatch no expone reemplazo de estos sobres. Cambiar esos
-frames exigiría vendor o reemplazar/interceptar el transporte; se dejan intactos
-y se documenta la excepción autorizada. Los errores terminales de catálogo y
-transporte MCP sí adoptan cli-error/1. Se prueba el error RPC de parseo y la
-terminación por frame truncado para distinguir ambos canales.
+MCP: mamut-workflow-cli's `serve` constructs tool errors through
+CliFailure::envelope, and the SDK's McpServer constructs JSON-RPC errors. The
+CliConfig received by dispatch does not expose replacement of these envelopes. Changing those
+frames would require vendor or replacing/intercepting the transport; they remain intact
+and the authorized exception is documented. MCP catalog and transport terminal
+errors do adopt cli-error/1. The RPC parse error and termination
+on a truncated frame are tested to distinguish the two channels.
 
-Timeout (6) sigue reservado en origin/main; no se añade temporizador ni se toca
-el trabajo del PR #202. Se prueba el emisor con FailureKind::Timeout. Los
-códigos alcanzables 2/3/4/5/70 se prueban con el binario, incluida cancelación
-por archivo y pipe stdout cerrado. stderr roto impide entregar un sobre; se
-retorna 70 sin reintentar. Una E/S fallida después de escribir puede dejar bytes
-parciales; los fallos anteriores a la salida dejan stdout vacío.
+Timeout (6) remains reserved in origin/main; no timer is added and the work
+in PR #202 is untouched. The emitter is tested with FailureKind::Timeout. The
+reachable codes 2/3/4/5/70 are tested with the binary, including cancellation
+by file and a closed stdout pipe. Broken stderr prevents delivery of an envelope;
+70 is returned without retrying. Failed I/O after writing may leave partial
+bytes; failures before output leave stdout empty.
 
-## Validación local
+## Local validation
 
-Entorno: PATH con `$HOME/.cargo/bin`,
-`CARGO_TARGET_DIR=/workspace/.cargo-target/cont1`, Cargo siempre `--offline`.
+Environment: PATH with `$HOME/.cargo/bin`,
+`CARGO_TARGET_DIR=/workspace/.cargo-target/cont1`, Cargo always `--offline`.
 
 - `cargo fmt --check`: OK.
 - `cargo clippy --workspace --all-targets --offline -- -D warnings`: OK.
-- `cargo test --workspace --offline`: OK, 761 pruebas, 0 fallos, 0 ignoradas
-  (117 suites, incluidos doctests y SDK vendorizado que ya forma parte del workspace).
-- CLI: 31 pruebas propias (7 unitarias, 18 del binario/adaptador, 5 del registro,
-  1 de mutaciones del esquema). Validación de todos los FailureKind, timeout
-  reservado incluido, y de cada fallo observado en los tests del binario.
-- Comparación exacta de stdout de run exitoso con la reconstrucción del sobre
-  anterior a partir del SDK, y conservación de bytes canónicos del motor en los
-  fixtures existentes. Pruebas negativas de esquema y de congelación del registro.
-- `bash clean-room/check.sh origin/main`: OK, con todos los archivos nuevos
-  incluidos mediante `git add -N` en un índice temporal.
-- `git diff --check`: OK, también con el índice temporal.
+- `cargo test --workspace --offline`: OK, 761 tests, 0 failures, 0 ignored
+  (117 suites, including doctests and the vendored SDK already part of the workspace).
+- CLI: 31 own tests (7 unit, 18 binary/adapter, 5 registry,
+  1 schema mutation). Validation of all FailureKind, including reserved
+  timeout, and of each failure observed in the binary tests.
+- Exact comparison of successful run stdout with reconstruction of the previous
+  envelope from the SDK, and preservation of canonical engine bytes in the
+  existing fixtures. Negative schema and registry freeze tests.
+- `bash clean-room/check.sh origin/main`: OK, with all new files
+  included through `git add -N` in a temporary index.
+- `git diff --check`: OK, also with the temporary index.
 
-El índice real está en `/workspace/mamut-engine-r/.git/worktrees/mamut-engine-cont1`,
-fuera de las raíces escribibles; el intento de `git add -N` fue rechazado por el
-sistema de archivos de solo lectura. Para verificar el diff completo se usaron
+The real index is in `/workspace/mamut-engine-r/.git/worktrees/mamut-engine-cont1`,
+outside the writable roots; the `git add -N` attempt was rejected by the
+read-only filesystem. To verify the full diff,
 `GIT_INDEX_FILE=/tmp/mam867-review.index`,
-`GIT_OBJECT_DIRECTORY=/tmp/mam867-review-objects` y como
-`GIT_ALTERNATE_OBJECT_DIRECTORIES` el directorio de objetos original obtenido con
-`git rev-parse --git-path objects`. Tras `git read-tree HEAD`, se aplicó `git add -N`
-a los diez archivos nuevos y se ejecutó la guardia con ese entorno. Tanto el
-índice real como los objetos originales quedan intactos; los archivos nuevos
-siguen apareciendo como untracked en el `git status` normal.
-- Sin commit. `scripts/changelog-check.sh origin/main` no aplica sin commit,
-  conforme a las instrucciones; se añade `changelog.d/MAM-867.added.md`.
+`GIT_OBJECT_DIRECTORY=/tmp/mam867-review-objects` and, as
+`GIT_ALTERNATE_OBJECT_DIRECTORIES`, the original object directory obtained with
+`git rev-parse --git-path objects` were used. After `git read-tree HEAD`, `git add -N` was applied
+to the ten new files and the guard was run with that environment. Both the
+real index and the original objects remain intact; the new files
+still appear as untracked in normal `git status`.
+- No commit. `scripts/changelog-check.sh origin/main` does not apply without a commit,
+  according to the instructions; `changelog.d/MAM-867.added.md` is added.
 
-## Revisión MAM-867 · ronda 2
+## MAM-867 review · round 2
 
-- Se validan los archivos reales de registro y lock mediante `include_str!`.
-  La guardia exige ids únicos en ambos y compara el lock completo, en orden,
-  con 32 definiciones completas incrustadas en `tests/error_registry.rs`.
-  Comparar valores exactos evita introducir un hash propio o dependencias.
-- Una edición coordinada de registro y lock ya no permite borrar ni modificar
-  entradas congeladas. Los tests negativos mutan cada entrada y cada campo,
-  eliminan entradas en ambos archivos y alteran el orden del lock. También
-  prueban que deprecated conserve su definición y reserve el id frente a altas
-  duplicadas, tanto active como deprecated.
-- Cada alta exige extender registro, lock y ancla del test. Límite explícito:
-  quien modifique también el ancla puede eludir la guardia. Sin una referencia
-  externa inmutable no hay garantía automática frente a esa tercera edición;
-  la revisión debe exigir que el lock y el ancla solo crezcan por adición.
-- Se revisaron definiciones de códigos en `crates/*/src`, incluido el catálogo
-  `engine-core::catalog::CODES`, referencias indirectas y códigos locales API.
-  El registro ya contiene los 14 ENG y los 9 API actuales, incluido ENG-E-0014.
-  La cobertura recorre todos esos src y la regresión léxica incluye definiciones
-  const, static y CodeInfo usadas indirectamente, además de llamadas directas.
-- `experiments.py` reexporta el transporte de `_experiment_workflows.py`.
-  Se adapta ese transporte para cli-error/1 sin engineResults: conserva code,
-  error.message, diagnostics y el sobre completo en details. results/document
-  permanecen None. Sigue admitiendo el formato anterior SDK-EXIT-* y la ruta
-  con documento results/1 conserva sus excepciones y diagnósticos originales.
-  Tests nuevos ejercitan compile_workflow y run_workflow sin documento, las
-  categorías de salida, copias independientes y compatibilidad anterior; el
-  test con CLI real verifica también el fallo compile sin engineResults.
+- The actual registry and lock files are validated through `include_str!`.
+  The guard requires unique ids in both and compares the complete lock, in order,
+  with 32 complete definitions embedded in `tests/error_registry.rs`.
+  Comparing exact values avoids introducing a custom hash or dependencies.
+- Coordinated editing of registry and lock no longer permits deleting or modifying
+  frozen entries. Negative tests mutate each entry and each field,
+  remove entries in both files and alter lock order. They also
+  test that deprecated retains its definition and reserves the id against duplicate
+  additions, both active and deprecated.
+- Each addition requires extending registry, lock and test anchor. Explicit limit:
+  anyone also modifying the anchor may bypass the guard. Without an immutable
+  external reference there is no automatic guarantee against that third edit;
+  review must require the lock and anchor to grow only by addition.
+- Code definitions in `crates/*/src` were reviewed, including the
+  `engine-core::catalog::CODES` catalog, indirect references and local API codes.
+  The registry already contains the current 14 ENG and 9 API codes, including ENG-E-0014.
+  Coverage traverses all those src and the lexical regression includes const,
+  static and CodeInfo definitions used indirectly, as well as direct calls.
+- `experiments.py` reexports the transport from `_experiment_workflows.py`.
+  That transport is adapted for cli-error/1 without engineResults: it preserves code,
+  error.message, diagnostics and the complete envelope in details. results/document
+  remain None. It still supports the previous SDK-EXIT-* format and the path
+  with a results/1 document preserves its original exceptions and diagnostics.
+  New tests exercise compile_workflow and run_workflow without a document, exit
+  categories, independent copies and backward compatibility; the
+  test with the real CLI also verifies compile failure without engineResults.
 
-Validación offline de ronda 2:
+Round 2 offline validation:
 
 - `cargo fmt --check`: OK.
 - `cargo clippy --workspace --all-targets --offline -- -D warnings`: OK.
-- `cargo test --workspace --offline`: OK, 762 pruebas, 117 suites,
-  0 fallos y 0 ignoradas; 6 pruebas del registro.
-- Wheel debug construida con maturin 1.15.0 local, `build --offline --locked`,
-  sin dependencias nuevas; instalada con pip --no-index --no-deps en venv
-  temporal con NumPy ya instalado. Se generaron 27 referencias independientes
-  con facade_reference offline y se construyó engine-cli offline.
+- `cargo test --workspace --offline`: OK, 762 tests, 117 suites,
+  0 failures and 0 ignored; 6 registry tests.
+- Debug wheel built with local maturin 1.15.0, `build --offline --locked`,
+  without new dependencies; installed with pip --no-index --no-deps in a temporary
+  venv with NumPy already installed. 27 independent references were generated
+  with facade_reference offline and engine-cli was built offline.
 - `python -I -B -m unittest discover -s bindings/python/tests -v`: OK,
-  77 pruebas, sin omisiones, con MAMUT_EXPERIMENT_CLI y referencias Rust.
-  Log local: `/tmp/mam867-r2-python-test.log`; log de Cargo:
+  77 tests, no skips, with MAMUT_EXPERIMENT_CLI and Rust references.
+  Local log: `/tmp/mam867-r2-python-test.log`; Cargo log:
   `/tmp/mam867-r2-cargo-test.log`.
-- `bash clean-room/check.sh origin/main`: OK, incluyendo los diez archivos
-  nuevos mediante índice y objetos temporales bajo /tmp, sin alterar el índice
-  real. `git diff --check`: OK con el mismo inventario completo.
-- Sin red ni commit; se mantienen todas las restricciones de archivos del ticket.
+- `bash clean-room/check.sh origin/main`: OK, including the ten new
+  files through a temporary index and objects under /tmp, without altering the real
+  index. `git diff --check`: OK with the same complete inventory.
+- No network or commit; all ticket file restrictions are maintained.

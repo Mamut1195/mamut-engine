@@ -1,119 +1,119 @@
-# MAM-864 / ENG-SFC-013 · Autodescripción del CLI para agentes
+# MAM-864 / ENG-SFC-013 · CLI self-description for agents
 
-Fecha: **2026-10-22**. Autor: Codex, modelo **gpt-6.1-sol high**, implementador.
-Rama de trabajo basada en `origin/main`, con las incorporaciones de transporte
-de entrada, validación directa, timeout, señales y publicación de esquemas
-ya presentes.
+Date: **2026-10-22**. Author: Codex, model **gpt-6.1-sol high**, implementer.
+Working branch based on `origin/main`, with the additions for input
+transport, direct validation, timeout, signals and schema publication
+already present.
 
-## Fuentes y alcance
+## Sources and scope
 
-Se consultaron exclusivamente código y documentación locales: la fachada pública
-`engine-api` (`version`, `capabilities`, `schema_kinds`, `schema`, `explain` y sus
-constantes públicas), el adaptador `engine-cli`, el parser y despacho de la base
-vendorizada, `ExitCodes::engine_v1`, los esquemas y su publicador, las pruebas
-existentes y las convenciones de changelog y determinismo.
+Only local code and documentation were consulted: the public
+`engine-api` facade (`version`, `capabilities`, `schema_kinds`, `schema`, `explain` and its
+public constants), the `engine-cli` adapter, the parser and dispatch of the vendored
+base, `ExitCodes::engine_v1`, schemas and their publisher, existing
+tests and changelog and determinism conventions.
 
-Sin red ni dependencias nuevas. No se modifican vendor, Cargo, configuración de
-CI, archivos de protección, las reglas clean-room, barra axial ni truss. No se
-accede a procedencia restringida, directorios de auditoría, fuentes externas de
-referencia ni logs de otras sesiones. No se cambia cálculo ni serialización de
-run. No se ejecutan `git add` ni commit. Los temporales de Cargo, Rust y Python
-y los registros de verificación se sitúan en el directorio de compilación
-configurado, con el directorio temporal del entorno apuntando a una subcarpeta
-del mismo.
+No network or new dependencies. No changes to vendor, Cargo, CI
+configuration, protection files, clean-room rules, axial bar or truss. No
+access to restricted provenance, audit directories, external reference
+sources or logs from other sessions. No changes to run computation or serialization.
+No `git add` or commit is performed. Cargo, Rust and Python temporary files
+and verification logs are placed in the configured build
+directory, with the environment's temporary directory pointing to a subfolder
+of it.
 
-## Decisiones y contratos
+## Decisions and contracts
 
-La lógica se concentra en `crates/engine-cli/src/describe.rs`; `lib.rs` solo
-registra el módulo y lo invoca después de validar el timeout y antes de preparar
-entrada/workflows. Las consultas nuevas no abren archivos, leen stdin, crean
-workflows temporales, instalan señales ni inician temporizadores. Conservan la
-validación y precedencia flag/entorno del timeout existente.
+The logic is concentrated in `crates/engine-cli/src/describe.rs`; `lib.rs` only
+registers the module and invokes it after validating the timeout and before preparing
+input/workflows. The new queries do not open files, read stdin, create
+temporary workflows, install signals or start timers. They preserve the
+existing timeout validation and flag/environment precedence.
 
-- `describe --json`: documento `cli-describe/1` con identidad real, comandos,
-  aliases, argumentos, flags, subcomandos vacíos porque no existen comandos
-  anidados, entorno, entradas/salidas, tabla efectiva de salida y límites públicos.
-- `--help --json`, `help --json`, `-h --json`: bytes idénticos a la descripción.
-- `--version`: texto `mamut-engine <engine_version>` y newline.
-  `--version --json` serializa `engine_api::version()` sin campos añadidos;
-  su contrato externo es `version/1`. No se añade un subcomando `version`.
-- `capabilities`: serializa directamente el documento de la API y reutiliza
-  capabilities/1. No acepta `--json` porque su única salida es JSON.
-- `schema <id>`: `write_all` de los bytes originales de `engine_api::schema`,
-  sin reserializar ni añadir newline. Admite exactamente los ids de la API.
-- `explain <code>`: explicación original más newline; con `--json`, exactamente
-  el objeto `{code, explanation}`, contrato explain/1.
+- `describe --json`: `cli-describe/1` document with real identity, commands,
+  aliases, arguments, flags, empty subcommands because there are no nested
+  commands, environment, inputs/outputs, effective exit table and public limits.
+- `--help --json`, `help --json`, `-h --json`: bytes identical to the description.
+- `--version`: text `mamut-engine <engine_version>` and newline.
+  `--version --json` serializes `engine_api::version()` without added fields;
+  its external contract is `version/1`. No `version` subcommand is added.
+- `capabilities`: directly serializes the API document and reuses
+  capabilities/1. It does not accept `--json` because its only output is JSON.
+- `schema <id>`: `write_all` of the original `engine_api::schema` bytes,
+  without reserializing or adding a newline. It accepts exactly the API's ids.
+- `explain <code>`: original explanation plus newline; with `--json`, exactly
+  the `{code, explanation}` object, explain/1 contract.
 
-Éxito: 0. Id/código desconocido, argumento ausente o sobrante: 2, stdout vacío y
-un sobre `cli-error/1` en stderr con `CLI-E-USAGE`, registrado por main.
-Fallos de escritura: categoría interna, 70 y `CLI-E-INTERNAL`, también registrado,
-con posibilidad de stdout incompleto como en los comandos existentes.
+Success: 0. Unknown id/code, missing or extra argument: 2, empty stdout and
+a `cli-error/1` envelope on stderr with `CLI-E-USAGE`, registered by main.
+Write failures: internal category, 70 and `CLI-E-INTERNAL`, also registered,
+with the possibility of incomplete stdout as in existing commands.
 
-La base ya ofrece `describe` con un documento distinto: **se conserva sin cambios
-cuando no lleva `--json`**, incluidos sus metadatos históricos de timeout
-reservado. La versión nueva anuncia timeout efectivo/6 y conserva las categorías
-que comparten código mediante `exitCodeCategories`. La base no ofrece las otras
-consultas nuevas. La ayuda textual ya toma `mamut-engine` de
-`CliConfig::with_identity`; se verifica también la ayuda anidada y no se requiere
-sustitución ni edición del vendor. Estas decisiones constan en el README inglés,
-siguiendo el idioma de su sección en main.
+The base already offers `describe` with a different document: **it is preserved unchanged
+when it does not carry `--json`**, including its historical reserved timeout
+metadata. The new version advertises effective timeout/6 and preserves the categories
+that share a code through `exitCodeCategories`. The base does not offer the other
+new queries. Text help already takes `mamut-engine` from
+`CliConfig::with_identity`; nested help is also checked and no
+replacement or vendor editing is required. These decisions are recorded in the English README,
+following the language of its section in main.
 
-El inventario de esquemas usa `schema_kinds()` y `schema()` de la fachada y el
-índice publicado embebido mediante `include_str!`. Cada entrada anuncia id de
-contrato, `$id`, SHA-256 y `availableViaSchema`. Las huellas se toman del índice,
-que se verifica contra los bytes originales mediante pruebas y el publicador;
-no se añade una implementación ni dependencia criptográfica al adaptador.
-El inventario incluye `cli-error/1` de main y la lista de salidas lo anuncia
-como contrato terminal de stderr. Los esquemas adicionales del CLI se anuncian
-como publicación estática y no amplían los ids admitidos por la API. Cambiar la
-publicación requiere regenerar el índice y recompilar el binario.
+The schema inventory uses `schema_kinds()` and `schema()` from the facade and the
+published index embedded through `include_str!`. Each entry advertises contract
+id, `$id`, SHA-256 and `availableViaSchema`. Fingerprints are taken from the index,
+which is checked against the original bytes through tests and the publisher;
+no cryptographic implementation or dependency is added to the adapter.
+The inventory includes main's `cli-error/1` and the output list advertises it
+as the terminal stderr contract. Additional CLI schemas are advertised
+as static publication and do not expand the ids accepted by the API. Changing the
+publication requires regenerating the index and recompiling the binary.
 
-Los tres esquemas nuevos se guardan en `crates/engine-cli/schemas/`, se registran
-en `scripts/schema-sources.json` y se publican con
-`python3 scripts/generate-schemas.py --write`. No se cambia ningún byte de los
-esquemas previos de la API ni de su publicación.
+The three new schemas are stored in `crates/engine-cli/schemas/`, registered
+in `scripts/schema-sources.json` and published with
+`python3 scripts/generate-schemas.py --write`. No byte of the previous
+API schemas or their publication is changed.
 
-Merge: se integran los cambios de `origin/main` (#205 y #183), conservando el
-emisor `cli-error/1`, su registro de códigos y su publicación junto a los tres
-esquemas de MAM-864; el merge queda sin commit.
+Merge: changes from `origin/main` (#205 and #183) are integrated, preserving the
+`cli-error/1` emitter, its code registry and its publication alongside the three
+MAM-864 schemas; the merge remains uncommitted.
 
-## Pruebas y verificación
+## Tests and verification
 
-Siete pruebas nuevas con el binario comprueban contratos, determinismo y snapshot
-SHA-256 versionado del stdout completo de describe, equivalencia de la ayuda JSON,
-igualdad con version/capabilities/explain de la API, inventario y huellas contra
-cada archivo publicado, todos los esquemas API byte por byte, ayuda textual,
-códigos 0/2, argumentos inválidos y precedencia/validación del timeout. El
-snapshot evita copiar salidas completas en archivos fuente. El validador es el
-existente en `engine-api/tests/support/schema.rs`; para capabilities se resuelve
-su referencia externa al esquema real de method-descriptor en memoria, sin red.
-SHA-256 de las pruebas usa la biblioteca estándar de Python, ya requerida por la
-publicación. Las mutaciones negativas comprueban campos requeridos, adicionales
-y tipos anidados. Se retiran de un test anterior solo las dos expectativas de
-rechazo de comandos que ahora están implementados.
+Seven new binary tests check contracts, determinism and a versioned
+SHA-256 snapshot of the entire describe stdout, JSON help equivalence,
+equality with the API's version/capabilities/explain, inventory and fingerprints against
+each published file, all API schemas byte for byte, text help,
+0/2 codes, invalid arguments and timeout precedence/validation. The
+snapshot avoids copying full outputs into source files. The validator is the
+existing one in `engine-api/tests/support/schema.rs`; for capabilities,
+its external reference to the real method-descriptor schema is resolved in memory, without network.
+SHA-256 in the tests uses Python's standard library, already required by
+publication. Negative mutations check required and additional fields
+and nested types. Only the two rejection expectations for commands
+that are now implemented are removed from an earlier test.
 
-Una octava prueba comprueba los fallos de escritura de todas las consultas,
-incluidas las variantes JSON, contra el esquema `cli-error/1` y el registro de
-códigos de main. Los rechazos de argumentos también usan ese validador y
-comprueban `CLI-E-USAGE` y la operación sanitizada. Se actualiza el snapshot
-de describe para incluir `cli-error/1` como esquema publicado y salida terminal.
+An eighth test checks write failures of all queries,
+including JSON variants, against the `cli-error/1` schema and main's code
+registry. Argument rejections also use that validator and
+check `CLI-E-USAGE` and the sanitized operation. The describe snapshot is
+updated to include `cli-error/1` as a published schema and terminal output.
 
-Entorno: Cargo offline, herramientas Rust disponibles localmente y temporales
-en el directorio de compilación configurado.
+Environment: Cargo offline, locally available Rust tools and temporary files
+in the configured build directory.
 
-Rust/Cargo **1.99.0**, plataforma nativa Linux. Resultados finales:
+Rust/Cargo **1.99.0**, native Linux platform. Final results:
 
-| Comprobación | Resultado |
+| Check | Result |
 | --- | --- |
 | `cargo fmt --check` | OK |
 | `cargo clippy --workspace --all-targets --offline -- -D warnings` | OK |
 | `cargo test --workspace --offline` | 821 passed / 0 failed / 0 ignored |
-| `python3 scripts/generate-schemas.py --check` | OK; bytes, índice e inventario |
+| `python3 scripts/generate-schemas.py --check` | OK; bytes, index and inventory |
 | `python3 -m unittest scripts/tests/test_schema_publication.py` | 7 tests, OK |
-| Pruebas de engine-cli | 12 unitarias + 40 CLI + 8 consultas + 7 registro + 1 esquema de error, OK |
-| Identificadores prohibidos en texto nuevo | Sin coincidencias; se conserva el texto heredado de main |
+| engine-cli tests | 12 unit + 40 CLI + 8 queries + 7 registry + 1 error schema, OK |
+| Prohibited identifiers in new text | No matches; text inherited from main is preserved |
 | `git diff --check` | OK |
 
-Las pruebas existentes de run conservan comparación de bytes, manifiestos y
-resultados, incluidos stdin/ruta, workflows embebidos/explícitos, timeout y señales.
-Revisión humana clean-room externa: **PENDIENTE (J4)**.
+Existing run tests preserve byte, manifest and result
+comparisons, including stdin/path, embedded/explicit workflows, timeout and signals.
+External human clean-room review: **PENDING (J4)**.

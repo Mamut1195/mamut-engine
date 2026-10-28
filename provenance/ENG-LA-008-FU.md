@@ -1,82 +1,82 @@
-# Bitácora clean-room · ENG-LA-008-FU
+# Clean-room log · ENG-LA-008-FU
 
-- Ticket / PR: issue #77 · MAM-451; rama `j2/fix-77-heap-peak`, desde
+- Ticket / PR: issue #77 · MAM-451; branch `j2/fix-77-heap-peak`, from
   `origin/main` (`d1249f1`).
-- Autor(es): Codex gpt-6.1-sol high bajo dirección de J2, 2026-10-14
+- Author(s): Codex gpt-6.1-sol high under J2's direction, 2026-10-14
   America/Guayaquil.
-- Rol: implementador.
-- Contrato implementado: regresión de cotas de heap de `engine-linalg` para
-  `MemoryBudget::factorize` y `MemoryBudget::generalized_eigen`.
-- Fuentes permitidas usadas: únicamente código propio del repositorio,
-  `crates/engine-linalg/tests/heap_peak.rs`, `provenance/ENG-LA-008-WIRE.md` y
-  `provenance/TEMPLATE.md`. Sin red ni consulta de fuentes externas.
-- Derivaciones propias: aislamiento y contabilidad descritos abajo.
-- Código de terceros copiado: ninguno.
-- Validación: medición propia de bytes de Layout, regresión de aislamiento entre
-  hilos y estrés concurrente; verificaciones detalladas abajo.
-- Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
-- Revisor clean-room: PENDIENTE (J4).
+- Role: implementer.
+- Implemented contract: heap bound regression for `engine-linalg` for
+  `MemoryBudget::factorize` and `MemoryBudget::generalized_eigen`.
+- Permitted sources used: only the repository's own code,
+  `crates/engine-linalg/tests/heap_peak.rs`, `provenance/ENG-LA-008-WIRE.md` and
+  `provenance/TEMPLATE.md`. No network or consultation of external sources.
+- Own derivations: isolation and accounting described below.
+- Third-party code copied: none.
+- Validation: own measurement of Layout bytes, regression for isolation between
+  threads and concurrent stress; checks detailed below.
+- Oracle comparison (sibling repo, informational): no.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+- Clean-room reviewer: PENDING (J4).
 
-## Aislamiento y significado de la medición
+## Isolation and meaning of the measurement
 
-El GlobalAlloc anterior contaba todos los hilos de libtest. El Mutex solo
-serializaba las mediciones; no impedía reservas o liberaciones del harness en
-otros hilos, que podían alterar el pico o hacer que LIVE quedara bajo la base.
+The previous GlobalAlloc counted all libtest threads. The Mutex only
+serialized measurements; it did not prevent allocations or deallocations by the harness on
+other threads, which could alter the peak or make LIVE fall below the baseline.
 
-Se conserva el harness estándar: el indicador thread-local
-`Cell<bool>` con inicializador `const` habilita únicamente el hilo medidor.
-Así `cargo test --workspace` sigue descubriendo y ejecutando la prueba con su
-nombre y propaga los fallos de sus assertions mediante libtest. No hace falta
-`harness = false` ni un main alternativo.
+The standard harness is retained: the thread-local flag
+`Cell<bool>` with a `const` initializer enables only the measuring thread.
+Thus `cargo test --workspace` still discovers and runs the test under its
+name and propagates its assertion failures through libtest. There is no need for
+`harness = false` or an alternative main.
 
-El indicador no requiere reservas ni destructor. El allocator consulta TLS con
-`try_with`, ignora el acceso si TLS no está disponible y desactiva temporalmente
-el indicador mientras actualiza los contadores para proteger frente a reentrada.
-Estas actualizaciones usan solo Cell y atómicos, sin asignar memoria. Una guarda
-RAII desactiva el indicador incluso al desenrollar un pánico. El Mutex conserva
-la exclusión entre pruebas que usan los mismos contadores globales.
+The flag requires no allocations or destructor. The allocator queries TLS with
+`try_with`, ignores access if TLS is unavailable and temporarily disables
+the flag while updating counters to protect against reentrancy.
+These updates use only Cell and atomics, without allocating memory. An RAII
+guard disables the flag even during panic unwinding. The Mutex retains
+exclusion between tests that use the same global counters.
 
-Se habilita el contador durante toda la prueba, incluidas la construcción y
-liberación de entradas y resultados; cada operación conserva su base de bytes
-vivos y reinicia su pico. Las entradas ya existentes quedan excluidas de la
-medición por diferencia con esa base. Todas las restas de contadores usan
-`saturating_sub`, también en liberaciones y cambios de tamaño de realloc.
-La resta atómica de LIVE usa compare_exchange para conservar compatibilidad con
-el MSRV 1.85 sin usar APIs deprecadas por el toolchain 1.99.0.
+The counter is enabled throughout the test, including construction and
+deallocation of inputs and results; each operation retains its live-byte
+baseline and resets its peak. Existing inputs are excluded from the
+measurement by taking the difference from that baseline. All counter subtractions use
+`saturating_sub`, including deallocations and realloc size changes.
+The atomic subtraction of LIVE uses compare_exchange to retain compatibility with
+MSRV 1.85 without using APIs deprecated by toolchain 1.99.0.
 
-No se cambia ninguna cota, dimensión, fórmula de presupuesto ni assertion de la
-regresión original: permanecen los órdenes 0, 1, 3, 8, 9, 64, 65 y 256, las
-comprobaciones de pico y memoria retenida, y la exigencia de que la cota antigua
-subestime al menos un pico. La regresión adicional crea otro hilo antes de
-habilitar el contador, ejercita reservas, realloc creciente/decreciente y
-liberaciones, y exige que LIVE y PEAK permanezcan exactamente intactos. Reinicia
-PEAK con LIVE para que un pico de una prueba anterior no oculte interferencias.
-Otro caso libera un Vec construido antes de medir: comprueba que, aunque LIVE
-baje legítimamente de la base, pico y retenido medidos se saturen en cero.
+No bound, dimension, budget formula or assertion of the
+original regression is changed: orders 0, 1, 3, 8, 9, 64, 65 and 256 remain, as do the
+peak and retained memory checks, and the requirement that the old bound
+underestimate at least one peak. The additional regression creates another thread before
+enabling the counter, exercises allocations, growing/shrinking realloc and
+deallocations, and requires LIVE and PEAK to remain exactly unchanged. It resets
+PEAK to LIVE so that a peak from a previous test does not hide interference.
+Another case deallocates a Vec constructed before measuring: it checks that, even if LIVE
+legitimately falls below the baseline, the measured peak and retained memory saturate at zero.
 
-## Verificación offline
+## Offline verification
 
-Toolchain instalado: Rust/Cargo 1.99.0; se antepone
-`/home/box/.rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/bin` a PATH porque
-`/usr/bin` contiene 1.85.1. Todas las invocaciones de Cargo usan
-`CARGO_TARGET_DIR=/workspace/.cargo-target` y `CARGO_NET_OFFLINE=true`; las que
-aceptan ese flag usan además `--offline`. No se instala ningún componente.
+Installed toolchain: Rust/Cargo 1.99.0;
+`/home/box/.rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/bin` is prepended to PATH because
+`/usr/bin` contains 1.85.1. All Cargo invocations use
+`CARGO_TARGET_DIR=/workspace/.cargo-target` and `CARGO_NET_OFFLINE=true`; those that
+accept that flag also use `--offline`. No component is installed.
 
 - `cargo fmt --all -- --check`: OK.
 - `cargo clippy --offline --workspace --all-targets -- -D warnings`: OK.
 - `cargo test --offline -p engine-linalg --test heap_peak -- --nocapture`: OK,
-  las tres pruebas pasan.
-- `cargo test --offline --workspace`: OK, incluidos doctests y las tres pruebas
-  del contador; 19 ejecuciones completas en paralelo al estrés final.
+  all three tests pass.
+- `cargo test --offline --workspace`: OK, including doctests and the three counter
+  tests; 19 complete runs in parallel with the final stress test.
 - `RUSTDOCFLAGS="-D warnings" cargo doc --offline --no-deps --workspace`: OK.
 - `cargo check --offline --workspace --target wasm32-unknown-unknown`: OK.
 - `bash clean-room/check.sh origin/main`: OK.
 
-## Estrés concurrente
+## Concurrent stress
 
-Con el mismo entorno offline y CARGO_TARGET_DIR, se lanza en segundo plano un
-bucle de `cargo test --offline --workspace` en otro proceso. En primer plano:
+With the same offline environment and CARGO_TARGET_DIR, a loop of
+`cargo test --offline --workspace` is launched in the background in another process. In the foreground:
 
 ```bash
 for attempt in {1..50}; do
@@ -86,22 +86,22 @@ for attempt in {1..50}; do
 done
 ```
 
-El bucle del workspace se mantiene activo durante las 50 ejecuciones, no solo
-durante la primera. Al terminar se señala su parada y se espera a que complete
-su ejecución en curso, comprobando también su código de salida. Cada invocación
-tiene su log separado; se comprueba que la prueba filtrada se ejecutó y que no
-hubo fallos. Script local: `/tmp/me45-issue77-stress/run.sh`; logs de la versión
-final: `/tmp/me45-issue77-final/`.
+The workspace loop remains active during all 50 runs, not just
+the first. At the end, it is signaled to stop and allowed to complete
+its current run, also checking its exit code. Each invocation
+has a separate log; it is checked that the filtered test ran and that there
+were no failures. Local script: `/tmp/me45-issue77-stress/run.sh`; logs of the final
+version: `/tmp/me45-issue77-final/`.
 
-Resultado final del estrés: **50/50 OK**, con **19/19 ejecuciones completas del
-workspace OK**. Las tres pruebas del contador se ejecutaron también en cada
-invocación del workspace. Los seis picos reportados son idénticos en las 50
-ejecuciones; se mantienen las assertions para todos los órdenes, los picos,
-la memoria retenida y la insuficiencia de la cota antigua.
+Final stress result: **50/50 OK**, with **19/19 complete workspace
+runs OK**. The three counter tests also ran in every
+workspace invocation. The six reported peaks are identical across all 50
+runs; the assertions remain for all orders, peaks,
+retained memory and the insufficiency of the old bound.
 
-Picos reportados (bytes de Layout), sin modificar cotas:
+Reported peaks (Layout bytes), without changing bounds:
 
-| n | Pico factorize | Carga factorize | Cota antigua | Pico eigen | Carga eigen |
+| n | factorize peak | factorize charge | Old bound | eigen peak | eigen charge |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | 8 | 1856 | 2088 | 1344 | 4224 | 5800 |
 | 64 | 100864 | 101096 | 68096 | 263168 | 331496 |

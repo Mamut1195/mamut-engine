@@ -1,55 +1,55 @@
-# Bitácora clean-room · ENG-SOL-001
+# Clean-room log · ENG-SOL-001
 
-- Ticket / PR: ENG-SOL-001 «Newton-Raphson estático con control de carga».
-  Rama `j2/eng-sol-001`, apilada sobre ENG-ELM-005 (#48: `spring.nonlinear`,
-  incluye #46/#45) y ENG-ANL-001 (#52: `crates/engine-analysis`), sin fusionar.
-  Entrega local sin commit ni push.
-- Autor(es): J2 (agente, Grok Bot), atribución solicitada por el usuario;
-  agente ejecutor Codex (GPT-6), 2026-10-11 (America/Guayaquil).
-- Rol: implementador y autor de derivaciones y fixtures analíticos propios.
-- Contrato implementado: método `static.newton`, API tipada
-  `newton::StaticNewton::run` sobre `NewtonSystem<B>`; respuestas `element/1`
-  e historia de leyes `uniaxial/1`. Como StaticLinear, esta entrega no adapta
-  el método al trait AnalysisMethod (JSON, sink y control cooperativo).
-- Fuentes permitidas usadas: únicamente solicitud del usuario, código y
-  documentación internos de engine-core, engine-contracts, engine-assembly,
-  engine-elements-spring, engine-laws, engine-analysis, engine-model y frontera
-  de engine-linalg, incluida la política de errores del backend propio.
-  `provenance/TEMPLATE.md`, `docs/CLEAN_ROOM.md` y bitácoras ENG-ELM-005 y
-  ENG-ANL-001. Sin red, fuentes externas, manuales ni listados de terceros.
-- Derivaciones propias: [ecuaciones y soluciones de esta nota](#derivaciones-propias)
-  y [pruebas analíticas](../crates/engine-analysis/tests/newton.rs).
-- Código de terceros copiado: ninguno. Se reutilizan las leyes y el backend
-  propios existentes. Solo dos dev-dependencies internas por path para probar
-  el resorte y la ley reales; sin dependencias externas nuevas.
-- Validación: exclusivamente analítica, ecuaciones cerradas por tramos y
-  backend contador de factorizaciones/resoluciones; ejemplo Rustdoc ejecutable.
-- Comparación con oráculo (repo hermano, informativa): no. No se ejecutó
-  ningún motor externo ni se consultó ningún oráculo.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados".
-- Revisor clean-room: PENDIENTE (J4).
+- Ticket / PR: ENG-SOL-001 «Static Newton-Raphson with load control».
+  Branch `j2/eng-sol-001`, stacked on ENG-ELM-005 (#48: `spring.nonlinear`,
+  includes #46/#45) and ENG-ANL-001 (#52: `crates/engine-analysis`), unmerged.
+  Local delivery without commit or push.
+- Author(s): J2 (agent, Grok Bot), attribution requested by the user;
+  executing agent Codex (GPT-6), 2026-10-11 (America/Guayaquil).
+- Role: implementer and author of own derivations and analytical fixtures.
+- Contract implemented: `static.newton` method, typed API
+  `newton::StaticNewton::run` over `NewtonSystem<B>`; `element/1` responses
+  and `uniaxial/1` law history. Like StaticLinear, this delivery does not adapt
+  the method to the AnalysisMethod trait (JSON, sink and cooperative control).
+- Permitted sources used: only the user request, internal code and
+  documentation of engine-core, engine-contracts, engine-assembly,
+  engine-elements-spring, engine-laws, engine-analysis, engine-model and the
+  engine-linalg boundary, including the own backend's error policy.
+  `provenance/TEMPLATE.md`, `docs/CLEAN_ROOM.md` and ENG-ELM-005 and
+  ENG-ANL-001 logs. No network, external sources, manuals or third-party listings.
+- Own derivations: [equations and solutions in this note](#derivaciones-propias)
+  and [analytical tests](../crates/engine-analysis/tests/newton.rs).
+- Third-party code copied: none. The existing own laws and backend
+  are reused. Only two internal path dev-dependencies to test
+  the actual spring and law; no new external dependencies.
+- Validation: exclusively analytical, piecewise closed-form equations and
+  backend counting factorizations/solves; executable Rustdoc example.
+- Comparison with oracle (sibling repo, informative): no. No external
+  engine was run or oracle consulted.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados".
+- Clean-room reviewer: PENDING (J4).
 
-## Diseño y aceptación
+## Design and acceptance
 
-NewtonElement posee un Element puro, contexto SI e índices globales. Valida
-contrato element/1 con versión menor compatible, tamaños, coordenadas y orden
-nodo/GDL frente al DofMap. NewtonSystem conserva el LinearSystem existente y
-las historias aceptadas independientes, en orden de elementos variables.
-El desplazamiento inicial es el ya aceptado de LinearSystem; las historias
-iniciales proceden de Element::initial_state. La evaluación inicial valida la
-respuesta pero no acepta su historia de prueba ni factor de carga alguno.
+NewtonElement owns a pure Element, SI context and global indices. It validates
+the element/1 contract with compatible minor version, sizes, coordinates and
+node/DOF order against the DofMap. NewtonSystem retains the existing LinearSystem and
+the independent accepted histories, in variable-element order.
+The initial displacement is the one already accepted by LinearSystem; the initial
+histories come from Element::initial_state. The initial evaluation validates the
+response but accepts neither its trial history nor any load factor.
 
-Los elementos variables son **adicionales** a K_lineal: no deben duplicarse
-como rigidez de ElementContribution. Esta regla permite combinar elementos
-lineales constantes con cualquier Element no lineal de tangente simétrica.
-Las cargas equivalentes constantes se declaran en ElementContribution::loads
-(puede tener rigidez cero si solo aporta cargas); las nodales, en el modelo.
-No se interpreta Kg ni se altera la geometría de referencia desde el análisis.
+Variable elements are **additional** to K_lineal: they must not be duplicated
+as ElementContribution stiffness. This rule allows combining constant
+linear elements with any nonlinear Element with a symmetric tangent.
+Constant equivalent loads are declared in ElementContribution::loads
+(it may have zero stiffness if it only contributes loads); nodal loads, in the model.
+Kg is not interpreted and the reference geometry is not altered by the analysis.
 
-En cada evaluación, expand(u_f) incorpora u_p constante y gather obtiene u_e
-TOTAL. respond(ctx, u_e, historia_aceptada) devuelve fuerza, tangente consistente
-e historia de prueba. assemble_vector suma las fuerzas y assemble_matrix suma
-las tangentes; tamaños, finitud y simetría exacta se revalidan en cada evaluación.
+At each evaluation, expand(u_f) incorporates constant u_p and gather obtains TOTAL
+u_e. respond(ctx, u_e, historia_aceptada) returns force, consistent tangent
+and trial history. assemble_vector sums the forces and assemble_matrix sums
+the tangents; sizes, finiteness and exact symmetry are revalidated at each evaluation.
 
 ```text
 u = expand(u_f, u_p)
@@ -60,30 +60,30 @@ K_t,ff Δu_f = R_f
 u_f ← u_f + Δu_f
 ```
 
-La condensación selecciona la partición ff como LinearSystem. Δu_p=0: no se
-resta K_fp u_p en el RHS de corrección, porque u_p ya aparece en F_int(u).
-Cada corrección requiere exactamente una factorización y una resolución por
-backend de engine-linalg. Ensamblar o evaluar la respuesta no factoriza.
+Condensation selects the ff partition like LinearSystem. Δu_p=0: K_fp u_p is
+not subtracted in the correction RHS, because u_p already appears in F_int(u).
+Each correction requires exactly one factorization and one solve through the
+engine-linalg backend. Assembling or evaluating the response does not factorize.
 
-Después de actualizar u se reevalúa la respuesta usando **la misma historia
-aceptada del paso anterior**, nunca una historia de una iteración intermedia.
-Si todas las tolerancias activas se satisfacen, se acepta exactamente u y se
-mueven los trial_state validados a las historias aceptadas. Si falla el máximo,
-se devuelve Status::NotConverged con el paso fallido reportado, y se detiene la
-lista; resultados y sistema conservan u, factor e historias del último paso
-aceptado. Si no hubo aceptación previa, conservan u/historias iniciales y factor
-None. También los errores descartan pruebas; rollback de LinearSystem deja su
-trial_displacement igual a accepted_displacement. No hay reintentos ocultos,
-bisección, reducción de paso, búsqueda de línea ni regularización.
+After updating u, the response is reevaluated using **the same accepted history
+from the previous step**, never a history from an intermediate iteration.
+If all active tolerances are satisfied, exactly u is accepted and the
+validated trial_state values are moved to the accepted histories. If the maximum is exceeded,
+Status::NotConverged is returned with the failed step reported, and the list
+stops; results and system retain u, factor and histories of the last accepted
+step. If there was no prior acceptance, they retain initial u/histories and factor
+None. Errors also discard trials; LinearSystem rollback leaves its
+trial_displacement equal to accepted_displacement. There are no hidden retries,
+bisection, step reduction, line search or regularization.
 
-Los factores son absolutos sobre UN caso: [0.25, 0.5, 1] termina en F_total.
-Se permiten factores repetidos, cero, negativos y descarga explícita. Toda la
-lista, sus productos λF y las opciones se validan antes del primer commit.
-No se impone λ_final=1: el usuario puede pedir otro objetivo de carga.
+Factors are absolute over ONE case: [0.25, 0.5, 1] ends at F_total.
+Repeated, zero and negative factors and explicit unloading are allowed. The entire
+list, its products λF and the options are validated before the first commit.
+λ_final=1 is not imposed: the user may request another load target.
 
-## Criterios y diagnósticos
+## Criteria and diagnostics
 
-R se mide tras actualizar u. Δu es la última corrección realmente aplicada:
+R is measured after updating u. Δu is the last correction actually applied:
 
 ```text
 ‖R_f‖∞ ≤ tol_f · force_scale
@@ -91,101 +91,101 @@ R se mide tras actualizar u. Δu es la última corrección realmente aplicada:
 |Δu_fᵀR_f| ≤ tol_e · energy_scale
 ```
 
-Cada tolerancia es Option<Real>; None desactiva ese criterio. Al menos uno
-debe estar activo, todos los activos deben cumplirse, con comparación inclusiva.
-Tolerancias y escalas son finitas y estrictamente positivas; max_iterations>0.
-El reporte conserva normas absolutas y relativas, opciones/escalas usadas,
-iteraciones realizadas, factor y convergencia. Las escalas SI son explícitas,
-constantes, por defecto 1; no hay normalización oculta ni cambio entre iteraciones.
-Las normas mixtas SI son indicadores numéricos; no se afirma invariancia física
-al mezclar fuerzas/momentos ni traslaciones/giros.
+Each tolerance is Option<Real>; None disables that criterion. At least one
+must be active, all active ones must be met, with inclusive comparison.
+Tolerances and scales are finite and strictly positive; max_iterations>0.
+The report retains absolute and relative norms, options/scales used,
+iterations performed, factor and convergence. SI scales are explicit,
+constant, defaulting to 1; there is no hidden normalization or change between iterations.
+Mixed SI norms are numerical indicators; no physical invariance is claimed
+when mixing forces/moments or translations/rotations.
 
-Por defecto solo se activa fuerza (1e−10), máximo 25. Un problema lineal
-converge en una corrección con fuerza sola (también puede satisfacer energía).
-Si se exige además desplazamiento pequeño, puede requerir otra corrección:
-no se hace una resolución oculta para estimar una corrección futura.
-Solo fuerza/solo desplazamiento/solo energía pueden autorizar aceptación;
-no se añaden comprobaciones de fuerza cuando el usuario las ha desactivado.
+By default only force is active (1e−10), maximum 25. A linear problem
+converges in one correction with force alone (it may also satisfy energy).
+If small displacement is also required, it may need another correction:
+no hidden solve is performed to estimate a future correction.
+Force alone/displacement alone/energy alone may authorize acceptance;
+no force checks are added when the user has disabled them.
 
-ENG-E-0006: tangente singular, con traducción a nodo, GDL e índice global como
-LinearSystem; no se estabiliza un gap abierto sin otra rigidez física.
-ENG-E-0008: no finitos de entradas, fuerzas, tangentes, historias, correcciones,
-productos/sumas de trabajo y normas relativas. ENG-E-0010: parámetros,
-escalas, tamaños/contexto/contrato inválidos. Se propagan casos ausentes
-ENG-E-0003, duplicados ENG-E-0002 y diagnóstico incoherente de backend
-ENG-E-0012 como las APIs existentes. No se añaden panic!, unwrap ni expect
-al código de biblioteca. No cambia ningún contrato existente.
+ENG-E-0006: singular tangent, mapped to node, DOF and global index as in
+LinearSystem; an open gap is not stabilized without other physical stiffness.
+ENG-E-0008: non-finite inputs, forces, tangents, histories, corrections,
+work products/sums and relative norms. ENG-E-0010: invalid parameters,
+scales, sizes/context/contract. Missing cases ENG-E-0003, duplicates
+ENG-E-0002 and inconsistent backend diagnostic
+ENG-E-0012 are propagated as in the existing APIs. No panic!, unwrap or expect is added
+to library code. No existing contract changes.
 
 ## Derivaciones propias
 
-Todos los fixtures usan SI artificial, datos embebidos, sin red ni E/S durante
-las pruebas. Comparaciones analíticas absolutas <1e−9; residual por defecto
-≤1e−10. Las pruebas de igualdad de tolerancia usan números binarios exactos.
+All fixtures use artificial SI, embedded data, without network or I/O during
+tests. Absolute analytical comparisons <1e−9; default residual
+≤1e−10. Tolerance equality tests use exact binary numbers.
 
-1. **Bilineal a tierra:** puntos (δ,F)=(-.5,-18),(-.1,-10),(0,0),(.1,10),(.5,18).
-   F=100δ para |δ|≤.1 y F=sign(δ)[10+20(|δ|−.1)] fuera.
-   Para P=16, desde cero: u1=.16, F1=11.2, R1=4.8;
-   Δu2=4.8/20=.24, u2=.4 y F2=16. Exactamente dos factorizaciones y solves.
-   Para factores .25,.5,1 se aceptan u=.04,.08,.4 en 1,1,2 correcciones.
-2. **Serie:** primer resorte k=100/20 con vértice (.1,10), segundo k=200/40
-   con vértice (.1,20). Equilibrio F1=F2=P. δ1=P/100 si P≤10, o
-   .1+(P−10)/20; δ2=P/200 si P≤20, o .1+(P−20)/40. u1=δ1 y u2=δ1+δ2.
-   P=4,12,24 da (δ1,δ2)=(.04,.02),(.2,.06),(.8,.2).
-3. **Gap solo-compresión que se cierra:** puntos (-1.25,-100),(-.25,0),(0,0),
-   modo CompressionOnly. F_gap=100(u+.25) para u<−.25, cero fuera.
-   Resorte lineal físico k=10 en paralelo; carga −20. Desde abierto u=0,
-   u1=−2; cerrado, 10u+100(u+.25)=−20 → u=−45/110 en dos correcciones.
-   El mismo gap sin resorte paralelo es singular y produce ENG-E-0006.
-4. **Lineal y prescritos:** resorte entre nodos k=100, u1=.03, nodo 2 libre,
-   carga nodal 12 y equivalente 3, factor 2. u2=.03+2(12+3)/100=.33.
-   Converge en una corrección e iguala StaticLinear, sin escalar u1.
-   El resorte no lineal entre nodos con u1=.03 y P=16 da u2=.43.
-5. **Historia y rollback:** ley propia de prueba con k=100, límite |F−Hp|=10,
-   H=25. Predictor ξ=100(u−p)−25p; si |ξ|>10, p_trial=p+sign(ξ)(|ξ|−10)/125.
-   F=100(u−p_trial), tangente kH/(k+H)=20; rama elástica k=100.
-   Con max_iter=1 y factores .25,1,2: acepta u=.04,p=0; prueba u=.16,p=.048
-   y R=4.8, Δu=.12, trabajo=.576; devuelve el primer aceptado, dos
-   factorizaciones/solves totales y no intenta factor 2. Otra ejecución
-   acepta P=16,u=.4,p=.24; fallar después conserva esa historia no vacía.
-6. **Criterios independientes:** primera corrección del bilineal desde cero
-   da (‖R‖∞,‖Δu‖∞,|ΔuᵀR|)=(4.8,.16,.768). Se activan por separado con
-   escala 2 y tolerancias que pasan o fallan; cada criterio activo puede
-   impedir aceptar aunque los otros dos pasen. Los tres estrictos requieren
-   tres correcciones (la última es numéricamente cero). Backend a media
-   solución con P=8,k=2 produce Δu=2,R=4,trabajo=8: igualdad inclusiva exacta.
-7. **Sin estrategia oculta:** desde u=.4 descargar directamente a P=0 oscila
-   entre ±.4 con tangente 20. El ensayo exige cinco correcciones y cinco
-   factorizaciones, un único paso fallido λ=0 y el aceptado u=.4 intacto.
-   Una descarga con factores intermedios EXPLÍCITOS sí converge.
-8. **Errores:** se prueban opciones/factores/casos inválidos, overflow λF,
-   backend no finito y ley que entrega historia no finita después de aceptar
-   u=.04. El error conserva ese desplazamiento, su historia y factor .25.
-   Ubicaciones fuera de rango, tamaños y coordenadas inconsistentes se
-   rechazan antes de resolver.
+1. **Bilinear to ground:** points (δ,F)=(-.5,-18),(-.1,-10),(0,0),(.1,10),(.5,18).
+   F=100δ for |δ|≤.1 and F=sign(δ)[10+20(|δ|−.1)] outside.
+   For P=16, from zero: u1=.16, F1=11.2, R1=4.8;
+   Δu2=4.8/20=.24, u2=.4 and F2=16. Exactly two factorizations and solves.
+   For factors .25,.5,1, u=.04,.08,.4 are accepted in 1,1,2 corrections.
+2. **Series:** first spring k=100/20 with vertex (.1,10), second k=200/40
+   with vertex (.1,20). Equilibrium F1=F2=P. δ1=P/100 if P≤10, or
+   .1+(P−10)/20; δ2=P/200 if P≤20, or .1+(P−20)/40. u1=δ1 and u2=δ1+δ2.
+   P=4,12,24 gives (δ1,δ2)=(.04,.02),(.2,.06),(.8,.2).
+3. **Compression-only gap that closes:** points (-1.25,-100),(-.25,0),(0,0),
+   CompressionOnly mode. F_gap=100(u+.25) for u<−.25, zero outside.
+   Physical linear spring k=10 in parallel; load −20. From open u=0,
+   u1=−2; closed, 10u+100(u+.25)=−20 → u=−45/110 in two corrections.
+   The same gap without a parallel spring is singular and produces ENG-E-0006.
+4. **Linear and prescribed values:** inter-node spring k=100, u1=.03, node 2 free,
+   nodal load 12 and equivalent 3, factor 2. u2=.03+2(12+3)/100=.33.
+   Converges in one correction and matches StaticLinear, without scaling u1.
+   The nonlinear inter-node spring with u1=.03 and P=16 gives u2=.43.
+5. **History and rollback:** own test law with k=100, limit |F−Hp|=10,
+   H=25. Predictor ξ=100(u−p)−25p; if |ξ|>10, p_trial=p+sign(ξ)(|ξ|−10)/125.
+   F=100(u−p_trial), tangent kH/(k+H)=20; elastic branch k=100.
+   With max_iter=1 and factors .25,1,2: accepts u=.04,p=0; tries u=.16,p=.048
+   and R=4.8, Δu=.12, trabajo=.576; returns the first accepted state, two
+   total factorizations/solves and does not attempt factor 2. Another execution
+   accepts P=16,u=.4,p=.24; a subsequent failure retains that nonempty history.
+6. **Independent thresholds:** the first bilinear correction from zero
+   gives (‖R‖∞,‖Δu‖∞,|ΔuᵀR|)=(4.8,.16,.768). They are activated separately with
+   scale 2 and tolerances that pass or fail; each active threshold may
+   prevent acceptance even if the other two pass. All three strict criteria require
+   three corrections (the last is numerically zero). A half-solution backend
+   with P=8,k=2 produces Δu=2,R=4,trabajo=8: exact inclusive equality.
+7. **No hidden strategy:** from u=.4, unloading directly to P=0 oscillates
+   between ±.4 with tangent 20. The test requires five corrections and five
+   factorizations, a single failed step λ=0 and the accepted u=.4 intact.
+   Unloading with EXPLICIT intermediate factors does converge.
+8. **Errors:** invalid options/factors/cases, overflow λF,
+   non-finite backend and law returning non-finite history after accepting
+   u=.04 are tested. The error retains that displacement, its history and factor .25.
+   Out-of-range locations, inconsistent sizes and coordinates are
+   rejected before solving.
 
-## Verificación local
+## Local verification
 
-Verificación del 2026-10-11, sin red, con CARGO_NET_OFFLINE=true:
+Verification on 2026-10-11, without network, with CARGO_NET_OFFLINE=true:
 
-- `cargo fmt` y `cargo fmt --check`: OK.
+- `cargo fmt` and `cargo fmt --check`: OK.
 - `cargo clippy --all-targets -- -D warnings`: OK.
-- `cargo test --workspace`: OK, incluidas las 16 pruebas nuevas y el doctest
-  de uso de StaticNewton con la ley y el resorte reales.
+- `cargo test --workspace`: OK, including the 16 new tests and the doctest
+  for StaticNewton use with the actual law and spring.
 - `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`: OK.
-- `cargo check --workspace --target wasm32-unknown-unknown`: OK usando el
-  toolchain stable ya instalado de rustup, con `/home/box/.cargo/bin` al inicio
-  de PATH; sin descargas. Compilación wasm, no ejecución en runtime wasm.
-- `bash clean-room/check.sh origin/main`: OK; también se verifica el diff
-  incluyendo archivos nuevos con índice y objetos Git temporales en `/tmp`,
-  sin modificar el índice ni los objetos reales del usuario.
-- `git diff --check`: OK, también incluyendo archivos nuevos en el índice
-  temporal. Sin panic!, unwrap ni expect en engine-analysis/src ni en las
-  tres operaciones nuevas de engine-assembly.
+- `cargo check --workspace --target wasm32-unknown-unknown`: OK using the
+  stable toolchain already installed through rustup, with `/home/box/.cargo/bin` at the start
+  of PATH; no downloads. Wasm compilation, no execution in a wasm runtime.
+- `bash clean-room/check.sh origin/main`: OK; the diff is also checked
+  including new files with temporary Git index and objects in `/tmp`,
+  without modifying the user's real index or objects.
+- `git diff --check`: OK, also including new files in the temporary
+  index. No panic!, unwrap or expect in engine-analysis/src or in the
+  three new engine-assembly operations.
 
-Se modifica engine-analysis (módulo, exportación, ejemplo y pruebas), se añaden
-las tres operaciones compatibles de LinearSystem y dos dependencias internas
-de prueba; Cargo.lock solo registra esas dos relaciones entre crates existentes.
-Se amplía la declaración de ENG-ELM-005; ENG-ANL-001 ya contiene la declaración,
-autor y revisor solicitados. No se modifican leyes, elementos, contratos ni
-reglas clean-room. Sin dependencias externas nuevas, commit ni push.
-La revisión clean-room de J4 sigue PENDIENTE.
+engine-analysis is modified (module, export, example and tests), the three
+compatible LinearSystem operations and two internal test dependencies are
+added; Cargo.lock only records those two relationships between existing crates.
+The ENG-ELM-005 declaration is extended; ENG-ANL-001 already contains the requested
+declaration, author and reviewer. No laws, elements, contracts or clean-room
+rules are modified. No new external dependencies, commit or push.
+J4 clean-room review remains PENDING.

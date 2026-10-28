@@ -1,41 +1,41 @@
-# Bitácora clean-room · ENG-ELM-005
+# Clean-room log · ENG-ELM-005
 
-- Ticket / PR: ENG-ELM-005; entrega local sin commit ni push. Apila sobre
-  ENG-ELM-004 (`spring.linear`) y ENG-MAT-002 (`multilinear_elastic`).
-- Autor(es): J2 (agente, Grok Bot), atribución solicitada; sesión ejecutada por
-  Codex (GPT-6), 2026-10-11 (America/Guayaquil). Sin delegación a otros agentes.
-- Rol: implementador; derivaciones y fixtures analíticos propios.
-- Contrato implementado: element/1 · kind = `spring.nonlinear`.
-- Fuentes permitidas usadas: solicitud del usuario y código/documentación internos
-  enumerados abajo. Ninguna fuente externa; sin red, libros ni manuales externos.
-- Derivaciones propias: [esta nota](#derivaciones-propias-y-fixtures) y
-  [pruebas analíticas](../crates/engine-elements-spring/tests/nonlinear.rs).
-- Código de terceros copiado: ninguno. Sin crates ni dependencias nuevas,
-  incluidas dependencias de desarrollo; manifests y lockfile intactos.
-- Validación: analítico; forma cerrada, Newton manual, trayectoria reversible,
-  covarianza, diferencias finitas del kit con historia y entradas inválidas.
-- Comparación con oráculo (repo hermano, informativa): no. No se ejecutó ningún
-  motor externo ni se usaron resultados de oráculos.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados"
-- Revisor clean-room: PENDIENTE (J4).
+- Ticket / PR: ENG-ELM-005; local delivery without commit or push. Stacked on
+  ENG-ELM-004 (`spring.linear`) and ENG-MAT-002 (`multilinear_elastic`).
+- Author(s): J2 (agent, Grok Bot), requested attribution; session executed by
+  Codex (GPT-6), 2026-10-11 (America/Guayaquil). No delegation to other agents.
+- Role: implementer; own analytical derivations and fixtures.
+- Implemented contract: element/1 · kind = `spring.nonlinear`.
+- Permitted sources used: user request and internal code/documentation
+  listed below. No external sources; no network, external books or manuals.
+- Own derivations: [this note](#derivaciones-propias-y-fixtures) and
+  [analytical tests](../crates/engine-elements-spring/tests/nonlinear.rs).
+- Third-party code copied: none. No new crates or dependencies,
+  including development dependencies; manifests and lockfile unchanged.
+- Validation: analytical; closed form, manual Newton, reversible path,
+  covariance, kit finite differences with history and invalid inputs.
+- Oracle comparison (sibling repo, informational): no. No external
+  engine was run and no oracle results were used.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados"
+- Clean-room reviewer: PENDING (J4).
 
-## Documentos internos consultados
+## Internal documents consulted
 
 `provenance/TEMPLATE.md`, `docs/CLEAN_ROOM.md`, `provenance/ENG-ELM-004.md`,
-`provenance/ENG-MAT-002.md`; manifests del workspace; implementación y pruebas
-existentes de `engine-elements-spring` y `engine-elements-truss`; tipos, traits,
-ejemplos y kit de conformidad de `engine-contracts`; implementación y pruebas de
-`engine-laws::uniaxial`, incluido `multilinear_elastic`; tipos de `engine-core`;
-referencias de estado en `engine-assembly`; `clean-room/check.sh`.
-No hay AGENTS.md aplicable en el repo ni en sus ascendientes.
-No se abrieron fuentes ni rutas de motores prohibidos.
+`provenance/ENG-MAT-002.md`; workspace manifests; existing implementation and
+tests of `engine-elements-spring` and `engine-elements-truss`; types, traits,
+examples and conformance kit of `engine-contracts`; implementation and tests of
+`engine-laws::uniaxial`, including `multilinear_elastic`; types of `engine-core`;
+state references in `engine-assembly`; `clean-room/check.sh`.
+There is no applicable AGENTS.md in the repo or its ancestors.
+No sources or paths of prohibited engines were opened.
 
 ## Derivaciones propias y fixtures
 
-Sea c el acoplamiento global fijo, con la misma selección, normalización,
-rotación y orden canónico de GDL que en ELM-004. Entre nodos:
-δ=c·(u_j−u_i), b=[−c,c]. A tierra: δ=c·u_i, b=c.
-La ley se suministra como **fuerza-desplazamiento**, con longitud y área unitarias:
+Let c be the constant global coupling, with the same selection, normalization,
+rotation and canonical DOF order as in ELM-004. Between nodes:
+δ=c·(u_j−u_i), b=[−c,c]. To ground: δ=c·u_i, b=c.
+The law is supplied as **force-displacement**, with unit length and area:
 
 ```text
 ε = δ                 σ = F(δ, historia_aceptada)
@@ -43,139 +43,139 @@ f_int = b F           K = (dF/dδ) b bᵀ
 historia_elemento = historia_ley
 ```
 
-Para traslaciones: δ en m, F en N, tangente en N/m. Para giros: δ en rad,
-F representa momento en N·m y la tangente es N·m/rad. No hay conversión
-implícita de una tabla de material en Pa/adimensional a fuerza/desplazamiento.
-Seleccionar varios GDL de una familia suma sus proyecciones y produce un único
-modo acoplado; no son resortes independientes. La tangente se evalúa en cada
-prueba, sin reemplazarla por la tangente inicial ni por una secante.
+For translations: δ in m, F in N, tangent in N/m. For rotations: δ in rad,
+F represents moment in N·m and the tangent is N·m/rad. There is no implicit
+conversion of a material table in Pa/dimensionless to force/displacement.
+Selecting several DOFs of one family adds their projections and produces a single
+coupled mode; they are not independent springs. The tangent is evaluated at every
+trial, without replacing it with the initial tangent or a secant.
 
-K es simétrica por construcción, incluso para leyes con tangente nula o
-negativa; el elemento no restringe el rango constitutivo de una ley compatible.
-Entre nodos una traslación uniforme no modifica δ. Un apoyo a tierra elimina
-ese modo rígido. Un eje fijo entre nodos separados no es corrotacional y puede
-deformarse bajo giro rígido; masa y Kg son ausentes. Se heredan estos límites
-de ELM-004. Se admiten coordenadas coincidentes, sin longitud física.
+K is symmetric by construction, even for laws with zero or
+negative tangent; the element does not restrict the constitutive range of a compatible law.
+Between nodes a uniform translation does not modify δ. A ground support eliminates
+that rigid mode. A constant axis between separated nodes is not corotational and may
+deform under rigid rotation; mass and Kg are absent. These limitations are inherited
+from ELM-004. Coincident coordinates are allowed, without physical length.
 
-Al rotar modelo, u y eje propio con R, δ se conserva, f'=R f y K'=R K Rᵀ
-con bloques nodales. Una inversión de eje cambia el lado activo de una ley
-asimétrica: no se promete invariancia frente a esa inversión. Recuperación:
-acciones locales ±c_local F y resultantes constantes en las estaciones [0,1],
-que son etiquetas sin integración espacial. Solo se admiten cargas de tramo
-nulas; las cargas aplicadas al resorte son nodales.
+When rotating the model, u and its own axis with R, δ is preserved, f'=R f and K'=R K Rᵀ
+with nodal blocks. An axis reversal changes the active side of an
+asymmetric law: invariance under that reversal is not promised. Recovery:
+local actions ±c_local F and constant resultants at stations [0,1],
+which are labels without spatial integration. Only zero member
+loads are allowed; loads applied to the spring are nodal.
 
-### Bilineal reversible
+### Reversible bilinear
 
-Fixture propio: puntos (δ,F) en m/N
+Own fixture: points (δ,F) in m/N
 `(-0.5,-18), (-0.1,-10), (0,0), (0.1,10), (0.5,18)`.
-Así F=100δ para |δ|<0.1 y
-F=sign(δ)[10+20(|δ|−0.1)] fuera de ese intervalo.
-K generalizada es 100 N/m en el tramo central y 20 N/m en los exteriores.
-Se prueban ambos signos, extrapolación, nodos coincidentes, desplazamientos
-uniformes, recuperación y conexión a tierra/entre nodos.
-Newton para carga +16 N a tierra comienza en u=0: u₁=0.16 m,
-u₂=0.4 m; F(0.4)=16 N. La trayectoria de carga y descarga reproduce
-la misma fuerza y tangente al repetir δ, sin energía disipada ni historia.
+Thus F=100δ for |δ|<0.1 and
+F=sign(δ)[10+20(|δ|−0.1)] outside that interval.
+Generalized K is 100 N/m in the central segment and 20 N/m in the outer ones.
+Both signs, extrapolation, coincident nodes, uniform displacements,
+recovery and ground/between-node connection are tested.
+Newton for a +16 N load to ground starts at u=0: u₁=0.16 m,
+u₂=0.4 m; F(0.4)=16 N. The loading and unloading path reproduces
+the same force and tangent when repeating δ, without dissipated energy or history.
 
-### Gap solo-compresión
+### Compression-only gap
 
-Fixture propio: puntos `(-1.25,-100), (-0.25,0), (0,0)` en modo
-`CompressionOnly`. F=100(δ+0.25) para δ<−0.25 y F=0 para δ≥−0.25.
-La tangente es 100 N/m con contacto y cero en el gap abierto.
-Nunca da fuerza positiva: el apoyo no tira. En −0.25 se respeta la convención
-de MAT-002 (tramo derecho con tangente cero). No existe derivada bilateral allí.
-Newton para carga −20 N comienza con contacto en u=−1 m y converge a
-u=−0.45 m. En el gap la tangente nula requiere una estrategia de contacto del
-análisis; este elemento no añade regularización ni modifica la ley.
+Own fixture: points `(-1.25,-100), (-0.25,0), (0,0)` in
+`CompressionOnly` mode. F=100(δ+0.25) for δ<−0.25 and F=0 for δ≥−0.25.
+The tangent is 100 N/m in contact and zero in the open gap.
+It never gives positive force: the support does not pull. At −0.25 the MAT-002
+convention is respected (right segment with zero tangent). There is no two-sided derivative there.
+Newton for a −20 N load starts in contact at u=−1 m and converges to
+u=−0.45 m. In the gap, the zero tangent requires a contact strategy from the
+analysis; this element does not add regularization or modify the law.
 
-### Historia no vacía y conformidad
+### Nonempty history and conformance
 
-Ley plástica analítica **solo de pruebas**, con k=100 N/m y límite |F|≤10 N:
-historia p=desplazamiento plástico; predictor F_trial=100(δ−p).
-Si |F_trial|≤10: F=F_trial, tangente 100 y p_trial=p.
-En otro caso: F=sign(F_trial)10, tangente cero y p_trial=δ−F/100.
-En δ=0.2 m desde p=0 se obtiene F=10 N y p_trial=0.1 m.
-Descartar la prueba deja F(0)=0; aceptarla reproduce F(0.2)=10 y después
-F(0.15)=5 N, mientras que sin aceptación F(0.15)=10 N.
-Se verifica determinismo, copias independientes de historia inicial y ausencia
-de aceptación en respond, recover, Kg y fallos.
+Analytical plastic law **for tests only**, with k=100 N/m and limit |F|≤10 N:
+history p=plastic displacement; predictor F_trial=100(δ−p).
+If |F_trial|≤10: F=F_trial, tangent 100 and p_trial=p.
+Otherwise: F=sign(F_trial)10, tangent zero and p_trial=δ−F/100.
+At δ=0.2 m from p=0, F=10 N and p_trial=0.1 m are obtained.
+Discarding the trial leaves F(0)=0; accepting it reproduces F(0.2)=10 and then
+F(0.15)=5 N, whereas without acceptance F(0.15)=10 N.
+Determinism, independent copies of initial history and absence
+of acceptance in respond, recover, Kg and failures are verified.
 
-`check_element` se ejecuta en D2/D3 con historia plástica no vacía y ambas
-leyes multilineales. GDL global Ux y coordenadas coincidentes permiten aplicar
-los modos rígidos del kit sin excepciones. Las muestras con aceptación explícita
-son δ=0.02, 0.15, 0.12, −0.03, −0.4 m. Se evita −0.05 porque, después de
-p=0.05, coincide con el quiebre plástico de descarga: una diferencia central
-allí no representa la tangente unilateral. No se filtran diagnósticos ni se
-modifica el kit. Covarianza de ejes propios y apoyos a tierra se comprueba con
-fixtures separados, conforme a las limitaciones documentadas del kit existente.
+`check_element` runs in D2/D3 with nonempty plastic history and both
+multilinear laws. Global DOF Ux and coincident coordinates allow applying
+the kit's rigid modes without exceptions. Samples with explicit acceptance
+are δ=0.02, 0.15, 0.12, −0.03, −0.4 m. −0.05 is avoided because, after
+p=0.05, it coincides with the plastic unloading breakpoint: a central difference
+there does not represent the one-sided tangent. Diagnostics are not filtered and the
+kit is not modified. Covariance of own axes and ground supports is checked with
+separate fixtures, in accordance with the documented limitations of the existing kit.
 
-## Arquitectura, API y diagnósticos
+## Architecture, API and diagnostics
 
-`NonlinearSpring::new` conserva un `Arc<dyn UniaxialLaw>` ya resuelto;
-`from_params` lo obtiene de `ElementParams::law`. Como las barras existentes,
-la propiedad constitutiva vive en el elemento, sin cambiarla desde ctx.params.
-Se valida contrato uniaxial/1 (versiones menores compatibles), historia inicial
-y tangente inicial. `state_len` e `initial_state` describen exactamente la
-historia constitutiva validada, sin desplazamientos o fuerzas añadidos.
+`NonlinearSpring::new` retains an already resolved `Arc<dyn UniaxialLaw>`;
+`from_params` obtains it from `ElementParams::law`. As in the existing bars,
+the constitutive property lives in the element, without changing it from ctx.params.
+The uniaxial/1 contract (compatible minor versions), initial history
+and initial tangent are validated. `state_len` and `initial_state` describe exactly the
+validated constitutive history, without added displacements or forces.
 
-No hay nuevos métodos de commit/revert en element/1: la historia es propiedad
-del llamador. `respond` devuelve trial_state; tras converger el llamador sustituye
-su estado aceptado por esa prueba. Revert descarta la prueba y conserva el
-último aceptado. El elemento no contiene buffers mutables de pruebas.
+There are no new commit/revert methods in element/1: history is owned by
+the caller. `respond` returns trial_state; after converging the caller replaces
+its accepted state with that trial. Revert discards the trial and retains the
+last accepted state. The element contains no mutable trial buffers.
 
-La composición privada con `LinearSpring` de rigidez unitaria reutiliza la
-proyección (su fuerza generalizada vale δ), contexto, GDL, masa y cargas.
-Los helpers de matriz y recuperación reciben ahora la tangente y fuerza
-constitutivas; el comportamiento público de `spring.linear` se conserva.
-La respuesta valida además tamaño y finitud de la historia de prueba, fuerza
-y tangente, incluso si la ley suministrada incumple su contrato.
+Private composition with unit-stiffness `LinearSpring` reuses
+projection (its generalized force equals δ), context, DOFs, mass and loads.
+The matrix and recovery helpers now receive the constitutive tangent and
+force; the public behavior of `spring.linear` is preserved.
+The response also validates the size and finiteness of trial history, force
+and tangent, even if the supplied law violates its contract.
 
-ENG-E-0010: ley ausente/incompatible, tamaños, geometría, GDL, ejes, estaciones
-u otras entradas no admitidas. ENG-E-0008: entradas, historia inicial/aceptada/
-de prueba o resultados no finitos y desbordamientos de proyección/fuerza/rigidez.
-Los errores de la ley se propagan sin cambiar su código. Sin panic/unwrap/expect
-en biblioteca; los índices privados provienen de geometría previamente validada.
+ENG-E-0010: missing/incompatible law, sizes, geometry, DOFs, axes, stations
+or other unsupported inputs. ENG-E-0008: non-finite inputs, initial/accepted/
+trial history or results and projection/force/stiffness overflow.
+Law errors propagate without changing their code. No panic/unwrap/expect
+in the library; private indices come from previously validated geometry.
 
-El crate no dependía de engine-laws y se respeta la prohibición de añadir
-cualquier dependencia. El test integra **el archivo real existente**
-`engine-laws/src/uniaxial/multilinear.rs` mediante `#[path]`, sin copiar ni
-reescribir su interpolación. Un adaptador privado al binario de prueba aporta
-los validadores finitos/de tamaño y las interfaces auxiliares de descriptor y
-fábrica que ese módulo importa. Esto no cambia la biblioteca ni la API productiva
-ni añade dependencias. La conformidad de MAT-002 sigue probándose también en
-su crate original durante `cargo test --workspace`.
+The crate did not depend on engine-laws and the prohibition on adding
+any dependency is respected. The test integrates **the actual existing file**
+`engine-laws/src/uniaxial/multilinear.rs` through `#[path]`, without copying or
+rewriting its interpolation. An adapter private to the test binary supplies
+the finite/size validators and auxiliary descriptor and factory interfaces
+that the module imports. This does not change the library or production API
+or add dependencies. MAT-002 conformance is still also tested in
+its original crate during `cargo test --workspace`.
 
-## Pruebas y verificación local
+## Tests and local verification
 
-Diez pruebas de integración nuevas y un doctest en español. Tolerancia absoluta
-1e−9 en fuerzas, desplazamientos y matrices de estos fixtures SI; Newton exige
-residuo <1e−10 N; el kit usa h=1e−7 m y exige error relativo FD <1e−6.
-Los negativos incluyen ley incompatible, historia inicial inválida, historia
-aceptada de longitud errónea/no finita, salidas constitutivas defectuosas,
-propagación de error de ley, desplazamientos/contexto/ejes/cargas/estaciones
-inválidos, diferencias relativas y fuerzas desbordadas.
+Ten new integration tests and one doctest in Spanish. Absolute tolerance
+1e−9 in forces, displacements and matrices of these SI fixtures; Newton requires
+residual <1e−10 N; the kit uses h=1e−7 m and requires FD relative error <1e−6.
+Negatives include incompatible law, invalid initial history, accepted
+history of incorrect length/non-finite, defective constitutive outputs,
+propagation of law errors, invalid displacements/context/axes/loads/stations,
+relative differences and overflowing forces.
 
-Verificaciones finales, todas satisfactorias, con `CARGO_NET_OFFLINE=true`
-y el toolchain instalado en `/home/box/.cargo/bin` (sin instalaciones):
+Final checks, all successful, with `CARGO_NET_OFFLINE=true`
+and the toolchain installed at `/home/box/.cargo/bin` (no installations):
 
-- `cargo fmt` y `cargo fmt --check`.
+- `cargo fmt` and `cargo fmt --check`.
 - `cargo clippy --all-targets -- -D warnings`.
-- `cargo test --workspace`: todas las pruebas unitarias, de integración y
-  doctests; las diez pruebas nuevas y el doctest pasan.
+- `cargo test --workspace`: all unit tests, integration tests and
+  doctests; the ten new tests and the doctest pass.
 - `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`.
-- `cargo check --workspace --target wasm32-unknown-unknown`: compilación
-  satisfactoria; no se ejecutaron pruebas numéricas en un runtime wasm.
-- `bash clean-room/check.sh origin/main`: `Clean-room: OK`, también incluyendo
-  los tres archivos nuevos mediante un índice y directorio de objetos temporales
-  en `/tmp`; índice y objetos Git reales del usuario intactos.
-- `git diff --check`, incluidos los nuevos archivos en ese índice temporal.
-- Búsqueda de `panic!`, `unwrap` y `expect` en la biblioteca sin coincidencias.
+- `cargo check --workspace --target wasm32-unknown-unknown`: successful
+  compilation; no numerical tests were run in a wasm runtime.
+- `bash clean-room/check.sh origin/main`: `Clean-room: OK`, also including
+  the three new files through a temporary index and object directory
+  in `/tmp`; the user's real Git index and objects unchanged.
+- `git diff --check`, including the new files in that temporary index.
+- Search for `panic!`, `unwrap` and `expect` in the library with no matches.
 
-Solo se modifican seis archivos: lib.rs, stiffness.rs y recover.rs del crate,
-el módulo nonlinear.rs, sus pruebas y esta bitácora. Sin cambios en contratos,
-leyes, manifests, lockfile o reglas clean-room. Sin fuentes externas, red,
-oráculos, commit ni push. Revisor clean-room: PENDIENTE (J4).
+Only six files are modified: lib.rs, stiffness.rs and recover.rs in the crate,
+the nonlinear.rs module, its tests and this log. No changes to contracts,
+laws, manifests, lockfile or clean-room rules. No external sources, network,
+oracles, commit or push. Clean-room reviewer: PENDING (J4).
 
-## Ronda J4 r7
+## J4 round r7
 
-- Las pruebas usan la ley real `engine_laws::uniaxial::MultilinearElastic` como dev-dependency interna (path) en lugar de incluir su fuente por `#[path]`; se elimina el código de soporte sin usar. Cargo.lock regenerado (solo dependencia interna).
+- The tests use the actual `engine_laws::uniaxial::MultilinearElastic` law as an internal dev-dependency (path) instead of including its source through `#[path]`; unused support code is removed. Cargo.lock regenerated (internal dependency only).

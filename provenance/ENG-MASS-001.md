@@ -1,60 +1,60 @@
-# Bitácora clean-room · ENG-MASS-001
+# Clean-room log · ENG-MASS-001
 
-- Ticket / PR: ENG-MASS-001 «Masas»; rama apilada sobre ENG-LOAD-001, PR #51 no fusionado. Sin commit ni push en esta sesión.
-- Autor(es): J2 (agente, Grok Bot), 2026-10-11 (America/Guayaquil), etiqueta solicitada por el usuario. Modelo de ejecución: Codex basado en GPT-6.
-- Rol: especificador e implementador por derivaciones propias; sin actividad de auditor ni operador de oráculo.
-- Contrato implementado: módulo público `engine-loads::mass`; reutiliza `engine-model::NodalMass`, `DofMap`, `Element::mass`, `engine-contracts::MassKind` y `LinearSystem::global_mass`. Sin nueva numeración de GDL ni formulación elemental paralela.
-- Fuentes permitidas usadas: exclusivamente especificación del usuario, documentación, contratos y código interno pertinente de este repositorio. Ninguna fuente externa, consulta por red ni oráculo.
-- Derivaciones propias: ecuaciones (1)-(4) de esta nota, elaboradas para este ticket.
-- Código de terceros copiado: ninguno. Sin nuevas dependencias externas; solamente dependencias por ruta a crates existentes del workspace.
-- Validación: analítica, mediante energía cinética, tablas cerradas de masa y conversión de fuerza/peso a masa. Fixtures con `SOURCE` y `CITATION` en `crates/engine-loads/tests/mass.rs`.
-- Comparación con oráculo (repo hermano, informativa): no. No se consultó ni ejecutó ningún motor externo.
-- Declaración: 'No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados'.
-- Revisor clean-room: PENDIENTE (J4).
+- Ticket / PR: ENG-MASS-001 «Masas»; branch stacked on ENG-LOAD-001, unmerged PR #51. No commit or push in this session.
+- Author(s): J2 (agent, Grok Bot), 2026-10-11 (America/Guayaquil), label requested by the user. Execution model: Codex based on GPT-6.
+- Role: specifier and implementer through own derivations; no auditor or oracle operator activity.
+- Implemented contract: public module `engine-loads::mass`; reuses `engine-model::NodalMass`, `DofMap`, `Element::mass`, `engine-contracts::MassKind` and `LinearSystem::global_mass`. No new DOF numbering or parallel element formulation.
+- Permitted sources used: exclusively the user's specification, documentation, contracts and relevant internal code of this repository. No external sources, network queries or oracle.
+- Own derivations: equations (1)-(4) of this note, developed for this ticket.
+- Third-party code copied: none. No new external dependencies; only path dependencies on existing workspace crates.
+- Validation: analytical, through kinetic energy, closed-form mass tables and force/weight-to-mass conversion. Fixtures with `SOURCE` and `CITATION` in `crates/engine-loads/tests/mass.rs`.
+- Oracle comparison (sibling repo, informative): no. No external engine was consulted or run.
+- Declaration: 'No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados'.
+- Clean-room reviewer: PENDING (J4).
 
-## Ubicación y dependencias
+## Location and dependencies
 
-Se elige `crates/engine-loads/src/mass.rs`: engine-loads ya depende de
-engine-assembly, y engine-assembly no depende de engine-loads. Se añade
-engine-linalg por ruta para nombrar las matrices CSR existentes y su contrato
-de backend; no introduce ciclos ni dependencias externas. engine-elements-truss
-se añade únicamente como dependencia de pruebas, junto al frame ya existente.
-Los productores `Element::mass` se leyeron antes de implementar el módulo:
-ambas matrices son globales y LinearSystem ya suma masas nodales a las dos
-MassKind. No se cambia esa ruta ni se vuelve a sumar masa de elemento.
+`crates/engine-loads/src/mass.rs` is chosen: engine-loads already depends on
+engine-assembly, and engine-assembly does not depend on engine-loads.
+engine-linalg is added by path to name the existing CSR matrices and their backend
+contract; this introduces no cycles or external dependencies. engine-elements-truss
+is added only as a test dependency, alongside the existing frame.
+The `Element::mass` producers were read before implementing the module:
+both matrices are global and LinearSystem already adds nodal masses to both
+MassKind. That path is unchanged and element mass is not added again.
 
-## Derivaciones propias
+## Own derivations
 
-### (1) Energía cinética y masa total por dirección
+### (1) Kinetic energy and total mass per direction
 
-Para una velocidad nodal v, T=½vᵀMv. Una traslación rígida con velocidad
-unitaria d̂ tiene el mismo vector d̂ en las traslaciones de cada nodo y giros
-nulos: v=r_d. Una barra o viga de sección y densidad constantes tiene
-T=½∫rho·A·|d̂|²dx=½rho·A·L. Por tanto r_dᵀM_elemento r_d=rho·A·L.
+For a nodal velocity v, T=½vᵀMv. A rigid translation with unit
+velocity d̂ has the same vector d̂ in each node's translations and zero
+rotations: v=r_d. A bar or beam of constant section and density has
+T=½∫rho·A·|d̂|²dx=½rho·A·L. Therefore r_dᵀM_elemento r_d=rho·A·L.
 
-Una masa nodal diagonal anisótropa aporta Σ_a m_n,a·d̂_a²; una inercia nodal
-no contribuye porque su velocidad angular es cero. Al sumar aportes:
+An anisotropic diagonal nodal mass contributes Σ_a m_n,a·d̂_a²; a nodal inertia
+does not contribute because its angular velocity is zero. Summing contributions:
 
 masa(d)=r_dᵀM_global r_d=Σ_n Σ_a m_n,a·d̂_a²+Σ_e rho_e·A_e·L_e.
 
-Para d=X,Y,Z, se seleccionan solamente las masas de esa componente.
-Una masa nodal isotrópica aporta su escalar una vez por dirección, nunca
-tres veces. Se usa la matriz global completa, incluidos los GDL restringidos:
-la matriz reducida por apoyos no representa una traslación rígida completa.
-Se exige que todos los nodos declaren las traslaciones no nulas de d̂;
-eliminar una componente ausente daría una masa aparente menor y se rechaza.
+For d=X,Y,Z, only the masses of that component are selected.
+An isotropic nodal mass contributes its scalar once per direction, never
+three times. The full global matrix is used, including restrained DOFs:
+the support-reduced matrix does not represent a complete rigid translation.
+All nodes are required to declare the nonzero translations of d̂;
+eliminating a missing component would give a lower apparent mass and is rejected.
 
-### (2) Tablas analíticas de barra y viga
+### (2) Analytical tables for bar and beam
 
-Para dos nodos con interpolación axial t=1−x/L y r=x/L,
-∫t²dx=∫r²dx=L/3 y ∫tr dx=L/6. Cada dirección de una barra tiene
-M_consistente=(rho·A·L/6)[[2,1],[1,2]]. La suma contra [1,1] es rho·A·L.
-La masa concentrada reparte por simetría la mitad en cada extremo:
-M_concentrada=(rho·A·L/2)I, que cumple la misma identidad.
+For two nodes with axial interpolation t=1−x/L and r=x/L,
+∫t²dx=∫r²dx=L/3 and ∫tr dx=L/6. Each direction of a bar has
+M_consistente=(rho·A·L/6)[[2,1],[1,2]]. The sum against [1,1] is rho·A·L.
+Lumped mass distributes half at each end by symmetry:
+M_concentrada=(rho·A·L/2)I, which satisfies the same identity.
 
-Para la viga, la interpolación transversal Hermite es
-H=[t²(1+2r), Lrt², r²(1+2t), −Lr²t]. Integrar rho·A·HᵀH dx mediante
-∫₀¹r^k dr=1/(k+1) da la matriz, en orden [v_i,theta_i,v_j,theta_j]:
+For the beam, the transverse Hermite interpolation is
+H=[t²(1+2r), Lrt², r²(1+2t), −Lr²t]. Integrating rho·A·HᵀH dx through
+∫₀¹r^k dr=1/(k+1) gives the matrix, in order [v_i,theta_i,v_j,theta_j]:
 
 ```text
 (rho A L/420) *
@@ -64,102 +64,102 @@ H=[t²(1+2r), Lrt², r²(1+2t), −Lr²t]. Integrar rho·A·HᵀH dx mediante
 [ -13L     -3L²    -22L      4L²  ]
 ```
 
-Con giros cero y v_i=v_j=1, su suma es (156+54+54+156)/420=1.
-La traza traslacional transversal es 312/420 veces la masa y no sirve para
-computar la masa total. Las pruebas usan rho=3, A=2, L=4: masa=24 kg,
-diagonal axial consistente 8 kg, acoplamiento axial 4 kg y concentrada 12 kg
-por extremo/dirección. La tabla Hermite se comprueba con literales independientes.
-Para liberaciones, la transformación elástica H_release conserva una
-traslación rígida, porque v_i=v_j y theta_i=theta_j=0 dan giros liberados cero;
-por ello rᵀH_releaseᵀ M H_release r=rᵀMr. Se prueba sin liberaciones,
-con un extremo liberado y con ambos liberados.
+With zero rotations and v_i=v_j=1, its sum is (156+54+54+156)/420=1.
+The transverse translational trace is 312/420 times the mass and cannot be used to
+compute total mass. Tests use rho=3, A=2, L=4: masa=24 kg,
+consistent axial diagonal 8 kg, axial coupling 4 kg and lumped mass 12 kg
+per end/direction. The Hermite table is checked with independent literals.
+For releases, the elastic transformation H_release preserves a
+rigid translation, because v_i=v_j and theta_i=theta_j=0 give zero released rotations;
+therefore rᵀH_releaseᵀ M H_release r=rᵀMr. Tests cover no releases,
+one released end and both released ends.
 
-### (3) Cambio de orientación
+### (3) Change of orientation
 
-Una rotación ortogonal Q conserva |Qd̂|²=|d̂|² y L. La masa isotrópica de
-elemento conserva rho·A·L en cada dirección, aunque cambien las entradas de
-la matriz global de la viga. La barra se comprueba a lo largo de X, Y, Z y
-del vector (4/3,8/3,8/3), todos de longitud 4, con origen trasladado.
-La viga se comprueba con extremos (4,0), (0,4) y (2.4,3.2).
-Una dirección oblicua se normaliza antes de evaluar rᵀMr. Para masas nodales
-anisótropas, la expresión de (1) depende de la dirección y no se presume
-isotropía. Un fixture mezcla masa elemental con masas nodales de 15 kg en X,
-13 kg en Y e inercia 19 kg·m²: totales 39 y 37 kg; para d=(3,4,0),
+An orthogonal rotation Q preserves |Qd̂|²=|d̂|² and L. Isotropic element
+mass preserves rho·A·L in each direction, even if the entries of
+the beam's global matrix change. The bar is checked along X, Y, Z and
+the vector (4/3,8/3,8/3), all of length 4, with a translated origin.
+The beam is checked with endpoints (4,0), (0,4) and (2.4,3.2).
+An oblique direction is normalized before evaluating rᵀMr. For anisotropic nodal
+masses, the expression in (1) depends on direction and isotropy is not
+assumed. A fixture mixes element mass with nodal masses of 15 kg in X,
+13 kg in Y and inertia 19 kg·m²: totals 39 and 37 kg; for d=(3,4,0),
 24+15·9/25+13·16/25 kg.
 
-### (4) Masa derivada de un caso
+### (4) Mass derived from a case
 
-El usuario proporciona dirección d≠0, factor f≥0 y g_usuario>0, todos finitos.
-Se normaliza d usando s=máx|d_a|, d̂=(d/s)/|d/s|, evitando el desbordamiento
-de la norma para componentes grandes y su pérdida para direcciones subnormales.
-La proyección del peso en cada nodo es |F_n·d̂|. De peso=m·g:
+The user provides direction d≠0, factor f≥0 and g_usuario>0, all finite.
+d is normalized using s=máx|d_a|, d̂=(d/s)/|d/s|, avoiding overflow
+of the norm for large components and its loss for subnormal directions.
+The projection of weight at each node is |F_n·d̂|. From peso=m·g:
 
 m_n=|F_n·d̂|·f/g_usuario.
 
-F_n es la fuerza neta global por nodo del caso; se suman primero los aportes
-elementales y nodales y después se toma el absoluto. No se convierte la
-resultante global del modelo ni se toma el absoluto de cada aporte antes de
-sumarlo. Las fuerzas opuestas en nodos diferentes aportan masas positivas.
-Los momentos se validan como finitos pero no producen masa escalar. La masa
-obtenida se asigna a cada traslación declarada del nodo, sin inercia de giro.
-La dirección selecciona la fuente de peso; esta asignación es isotrópica en
-las traslaciones disponibles. No hay factor normativo ni gravedad por defecto.
+F_n is the net global force per node of the case; element and nodal
+contributions are summed first and then the absolute value is taken. The
+model's global resultant is not converted, nor is the absolute value of each contribution taken before
+summing it. Opposite forces at different nodes contribute positive masses.
+Moments are validated as finite but do not produce scalar mass. The obtained
+mass is assigned to each declared translation of the node, without rotational inertia.
+The direction selects the weight source; this assignment is isotropic in
+the available translations. There is no code factor or default gravity.
 
-Fixture: Fz=−120 y +80 N en dos nodos, d=−Z, f=0.25, g_usuario=10 m/s²:
-masas 3 y 2 kg, total 5 kg por dirección. Con fuerzas equivalentes elementales
-de +20 y −40 N sobre esos GDL, los netos son −100 y +40 N: 2.5+1=3.5 kg.
-Fuerza X=30 N y momento Z=999 N·m no aportan en la proyección −Z.
-Se verifica que el factor se aplica una sola vez y que la conversión no
-modifica las masas existentes. Se prueba rotación conjunta de F y d y cambio
-explícito de gravedad. Casos sin cargas y factor cero dan masas cero.
+Fixture: Fz=−120 and +80 N at two nodes, d=−Z, f=0.25, g_usuario=10 m/s²:
+masses 3 and 2 kg, total 5 kg per direction. With equivalent element forces
+of +20 and −40 N on those DOFs, the net values are −100 and +40 N: 2.5+1=3.5 kg.
+Force X=30 N and moment Z=999 N·m do not contribute to the −Z projection.
+It is verified that the factor is applied only once and that conversion does not
+modify existing masses. Joint rotation of F and d and an explicit change
+of gravity are tested. Cases without loads and zero factor give zero masses.
 
-## Errores y límites numéricos
+## Errors and numerical limits
 
-- ENG-E-0010: masas/inercias o factores negativos; g_usuario≤0; dirección nula;
-  tamaño de matriz/vector incompatible; masa positiva perdida a cero en el
-  producto por factor o división por g; reserva fallida del vector de trabajo.
-- ENG-E-0008: NaN, infinitos o desbordamiento en entradas y resultados, incluida
-  suma de masas por GDL, proyección, producto por factor, división y rᵀMr.
-- ENG-E-0003/0011: nodo/caso o GDL inexistentes. ENG-E-0002: ids repetidos.
-- Componentes repetidas dentro de una masa y asignaciones distintas al mismo
-  nodo/GDL se suman, según la semántica existente de LinearSystem.
-- Ningún panic, unwrap ni expect en el nuevo código de biblioteca. Pruebas
-  directas con MAX, NaN, infinitos, mínimo subnormal, dirección nula y listas
-  vacías: cualquier pánico haría fallar el test.
-- La medida direccional requiere una matriz física validada por su productor;
-  comprueba tamaño, diagonales no negativas y finitud del resultado, pero no
-  certifica simetría ni semidefinición positiva de una matriz CSR arbitraria.
-- Se rechazan productos intermedios desbordados aunque una reordenación pudiera
-  hacer representable el resultado. IEEE-754 no garantiza precisión relativa
-  de proyecciones subnormales ni recupera componentes de dirección que se
-  pierdan al dividir por su escala.
+- ENG-E-0010: negative masses/inertias or factors; g_usuario≤0; zero direction;
+  incompatible matrix/vector size; positive mass lost to zero in
+  multiplication by factor or division by g; failed working vector allocation.
+- ENG-E-0008: NaN, infinities or overflow in inputs and results, including
+  sum of masses per DOF, projection, multiplication by factor, division and rᵀMr.
+- ENG-E-0003/0011: nonexistent node/case or DOF. ENG-E-0002: repeated ids.
+- Repeated components within a mass and different assignments to the same
+  node/DOF are summed, according to the existing LinearSystem semantics.
+- No panic, unwrap or expect in the new library code. Direct
+  tests with MAX, NaN, infinities, minimum subnormal, zero direction and empty
+  lists: any panic would make the test fail.
+- The directional measure requires a physical matrix validated by its producer;
+  it checks size, nonnegative diagonals and finiteness of the result, but does not
+  certify symmetry or positive semidefiniteness of an arbitrary CSR matrix.
+- Overflowed intermediate products are rejected even if a reordering could
+  make the result representable. IEEE-754 does not guarantee relative precision
+  of subnormal projections or recover direction components
+  lost when dividing by their scale.
 
-## Metadatos de los tres tickets
+## Metadata of the three tickets
 
-Se interpreta «los tres tickets» como ENG-GEO-001, ENG-LOAD-001 y ENG-MASS-001.
-Se actualizan los metadatos pedidos; se conserva la evidencia histórica de
-ENG-GEO-001, incluida su consulta bibliográfica anterior. Esta sesión no
-consulta esa fuente ni ninguna otra fuente externa, y todas sus pruebas de
-masa son derivaciones analíticas propias.
+«los tres tickets» is interpreted as ENG-GEO-001, ENG-LOAD-001 and ENG-MASS-001.
+The requested metadata is updated; the historical evidence of
+ENG-GEO-001 is preserved, including its earlier bibliographic consultation. This session does not
+consult that source or any other external source, and all its mass
+tests are own analytical derivations.
 
-## Verificación de la sesión
+## Session verification
 
-Todos los comandos Cargo se ejecutaron sin red (`CARGO_NET_OFFLINE=true`).
+All Cargo commands were run without network access (`CARGO_NET_OFFLINE=true`).
 
-- `cargo fmt`: OK, salida 0.
-- `cargo clippy --all-targets -- -D warnings`: OK, salida 0.
-- `cargo test --workspace`: OK, salida 0; 220 pruebas y doctests del workspace,
-  incluidos 9 tests analíticos nuevos de masa y 1 doctest nuevo.
-- `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`: OK, salida 0.
-- `cargo check --workspace --target wasm32-unknown-unknown`: OK, salida 0,
-  con `PATH=/home/box/.cargo/bin:$PATH`, toolchain ya instalado rustc 1.99.0.
-  Los comandos nativos usaron rustc 1.85.1 (MSRV del workspace). No se
-  descargaron componentes. Esta comprobación verifica compilación wasm,
-  no ejecución ni igualdad numérica entre destinos.
-- `bash clean-room/check.sh origin/main`: OK, salida 0; incluye los tres archivos
-  nuevos mediante `git add -N` en un índice y objetos temporales en `/tmp`,
-  sin modificar el índice real. `git diff --check` sobre ese índice: OK.
-  Registro: `/tmp/eng-mass-001-clean-room.log`.
+- `cargo fmt`: OK, exit 0.
+- `cargo clippy --all-targets -- -D warnings`: OK, exit 0.
+- `cargo test --workspace`: OK, exit 0; 220 workspace tests and doctests,
+  including 9 new analytical mass tests and 1 new doctest.
+- `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`: OK, exit 0.
+- `cargo check --workspace --target wasm32-unknown-unknown`: OK, exit 0,
+  with `PATH=/home/box/.cargo/bin:$PATH`, already installed rustc 1.99.0 toolchain.
+  Native commands used rustc 1.85.1 (workspace MSRV). No
+  components were downloaded. This check verifies wasm compilation,
+  neither execution nor numerical equality between targets.
+- `bash clean-room/check.sh origin/main`: OK, exit 0; includes the three new
+  files through `git add -N` in a temporary index and objects in `/tmp`,
+  without modifying the real index. `git diff --check` on that index: OK.
+  Record: `/tmp/eng-mass-001-clean-room.log`.
 
-Los registros Cargo están en `/tmp/eng-mass-001-{fmt,clippy,test,doc}.log`.
-Sin commit ni push. Revisión clean-room: PENDIENTE (J4).
+Cargo records are at `/tmp/eng-mass-001-{fmt,clippy,test,doc}.log`.
+No commit or push. Clean-room review: PENDING (J4).

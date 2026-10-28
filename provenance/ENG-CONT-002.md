@@ -1,98 +1,98 @@
-# ENG-CONT-002 · MAM-868 · Contrato de éxito/aviso cli-run/1
+# ENG-CONT-002 · MAM-868 · cli-run/1 success/warning contract
 
-Fecha: **2026-10-21**. Trabajo local sin red en
-el worktree local, rama `j2/MAM-868-cli-run-contrato`.
-Base observada: HEAD y `origin/main` en
-`7375fa25a34a3cb004bcaec84f645743b864ff89`. No se consulta el estado remoto.
+Date: **2026-10-21**. Local work without network in
+the local worktree, branch `j2/MAM-868-cli-run-contrato`.
+Observed base: HEAD and `origin/main` at
+`7375fa25a34a3cb004bcaec84f645743b864ff89`. Remote state is not consulted.
 
-## Contrato y decisiones
+## Contract and decisions
 
-Se publica [cli-run-1.json](../crates/engine-cli/schemas/cli-run-1.json),
-versión contractual **1.0.0**, en `crates/engine-cli/schemas/`, siguiendo la
-convención indicada para MAM-867 / PR #205. La base local no contiene ese esquema
-de error; no se modifica su implementación ni ningún sobre de fallo.
-No existía `docs/contracts/`; la política queda en el
-[README del CLI](../crates/engine-cli/README.md#contrato-publicado-cli-run1--100).
+[cli-run-1.json](../crates/engine-cli/schemas/cli-run-1.json) is published,
+contract version **1.0.0**, in `crates/engine-cli/schemas/`, following the
+convention indicated for MAM-867 / PR #205. The local base does not contain that error
+schema; neither its implementation nor any failure envelope is modified.
+`docs/contracts/` did not exist; the policy is in the
+[CLI README](../crates/engine-cli/README.md#contrato-publicado-cli-run1--100).
 
-El sobre de stdout para `run` conserva exactamente los bytes que producía el
-adaptador. No se añade un campo `schema` ni se modifica `src/`. `type:result`,
-identidad, operación `run`, outcome/código (`ok`/0, `warning`/1), `data` y
-`engineResults` son obligatorios. El sobre y el informe validate son estrictos.
-`engineResults` publica un resultado completo por paso, en orden: results/1 o
-`{operation:"validate",status,diagnostics}`. El esquema relaciona outcome y
-código; `ok` exige resultados ok y `warning` al menos un resultado warning.
+The stdout envelope for `run` preserves exactly the bytes produced by the
+adapter. No `schema` field is added and `src/` is not modified. `type:result`,
+identity, `run` operation, outcome/code (`ok`/0, `warning`/1), `data` and
+`engineResults` are required. The envelope and validate report are strict.
+`engineResults` publishes one complete result per step, in order: results/1 or
+`{operation:"validate",status,diagnostics}`. The schema relates outcome and
+code; `ok` requires ok results and `warning` at least one warning result.
 
-Se cierra la decisión de salida: **engineResults es contrato del adaptador**.
-Un canal estándar de resultados completos queda como trabajo del SDK. No se
-modifica el SDK vendorizado, el transporte de entrada ni la decisión MCP.
-Durante V1 no se admiten cambios mayores. Las adiciones compatibles requieren
-versión menor; las aclaraciones sin cambios observables, parche. `engineVersion`
-sigue identificando al motor, sin duplicar la versión contractual en stdout.
+The output decision is settled: **engineResults is the adapter's contract**.
+A standard channel for complete results remains SDK work. The vendored SDK,
+input transport and MCP decision are not modified.
+Major changes are not permitted during V1. Compatible additions require
+a minor version; clarifications without observable changes, a patch. `engineVersion`
+still identifies the engine, without duplicating the contract version in stdout.
 
-`data` y sus estructuras anidadas pertenecen a `mamut-workflow-execution`.
-Se leyó su productor vendorizado únicamente para comprobar campos, estados y
-preimágenes: el adaptador preserva el manifiesto, que admite extensiones SDK.
-`recordFingerprint` siempre está presente en este productor, cubre data sin
-ese campo y no cubre el sobre. Las huellas de cada paso cubren su resultado sin los campos `cause` y `hint` de
-los diagnósticos (MAM-836: la huella cubre códigos y datos, no texto de mensajes).
-No se crea un segundo contrato de manifiesto.
-El esquema solo exige tipo objeto para `recordFingerprint` y las huellas
-anidadas: sus claves pertenecen al SDK y no se enumeran. Las partes del
-adaptador conservan sus restricciones estrictas.
+`data` and its nested structures belong to `mamut-workflow-execution`.
+Its vendored producer was read solely to check fields, states and
+preimages: the adapter preserves the manifest, which supports SDK extensions.
+`recordFingerprint` is always present in this producer, covers data without
+that field and does not cover the envelope. Each step's fingerprints cover its result without the `cause` and `hint` fields of
+the diagnostics (MAM-836: the fingerprint covers codes and data, not message text).
+No second manifest contract is created.
+The schema only requires object type for `recordFingerprint` and nested
+fingerprints: their keys belong to the SDK and are not enumerated. The adapter
+parts retain their strict restrictions.
 
-Los `$ref` usan `urn:mamut:results:1` y su definición `diagnostic` existentes.
-Se extrae el validador de pruebas de engine-api a
-[tests/support/schema.rs](../crates/engine-api/tests/support/schema.rs), compartido
-con el CLI. Conserva sus reglas y añade únicamente resolución local explícita
-de results/1 y `contains` para la agregación de avisos. Falla ante keywords,
-patrones o referencias desconocidos, sin red ni paquetes nuevos. Es un
-validador del subconjunto empleado, no un motor JSON Schema general.
+The `$ref` use the existing `urn:mamut:results:1` and its `diagnostic` definition.
+The engine-api test validator is extracted to
+[tests/support/schema.rs](../crates/engine-api/tests/support/schema.rs), shared
+with the CLI. It preserves its rules and adds only explicit local resolution
+of results/1 and `contains` for warning aggregation. It fails on unknown keywords,
+patterns or references, without network or new packages. It is a
+validator for the subset used, not a general JSON Schema engine.
 
-## Cobertura y bytes
+## Coverage and bytes
 
-[tests/contract.rs](../crates/engine-cli/tests/contract.rs) descubre los once
-fixtures de determinismo y los dieciséis JSON válidos de engine-api (incluidos
-los once SFC-010). Extrae únicamente `runs[*].engine_input` de E1 versionado;
-no usa valores esperados ni referencias numéricas externas. Añade el aviso de
-combinaciones ya presente en los tests CLI. Son **29 entradas × 2 workflows**
-(engine.run y engine.validate): **58 golden**, **55 códigos 0 y 3 códigos 1**.
-Cada caso ejecuta dos veces el binario real, valida stdout contra el esquema,
-comprueba stderr vacío, código/outcome y cantidad de pasos/resultados, y compara
-longitud y SHA-256 de todos los bytes. Los golden congelan también el orden y
-la estructura actuales.
+[tests/contract.rs](../crates/engine-cli/tests/contract.rs) discovers the eleven
+determinism fixtures and the sixteen valid engine-api JSONs (including
+the eleven SFC-010). It extracts only `runs[*].engine_input` from versioned E1;
+it does not use expected values or external numerical references. It adds the combination
+warning already present in CLI tests. There are **29 inputs × 2 workflows**
+(engine.run and engine.validate): **58 goldens**, **55 codes 0 and 3 codes 1**.
+Each case runs the real binary twice, validates stdout against the schema,
+checks empty stderr, code/outcome and step/result count, and compares
+the length and SHA-256 of all bytes. The goldens also freeze the current order and
+structure.
 
 [tests/golden/stdout-sha256.json](../crates/engine-cli/tests/golden/stdout-sha256.json)
-es el único golden versionado: manifiesto de versión 1 con nombre, longitud
-en bytes y SHA-256 por caso, más la procedencia de compilación base. No contiene
-stdout ni se conservan archivos `.stdout.json`. Los hashes cubren UTF-8 compacto
-con exactamente un LF final, sin CR. El binario ya usa `writeln!` y emite LF
-también en Windows; no se cambia ese comportamiento. El test rechaza CRLF y
-ausencia de LF; no normaliza stdout ni depende del locale o de rutas de ejecución.
-La base se generó en Linux x86_64 con `git_commit:null`. El hash de bytes crudos
-usa `hashlib` de Python 3, disponible en el entorno de paridad, sin dependencias
-nuevas de Cargo. Ante discrepancias se imprimen hashes y longitudes esperados y
-obtenidos y se guardan stdout real y comparable bajo
+is the only versioned golden: a version 1 manifest with name, byte length
+and SHA-256 per case, plus the base build provenance. It contains no
+stdout and no `.stdout.json` files are retained. The hashes cover compact UTF-8
+with exactly one final LF, without CR. The binary already uses `writeln!` and emits LF
+on Windows too; that behavior is unchanged. The test rejects CRLF and
+missing LF; it does not normalize stdout or depend on locale or execution paths.
+The base was generated on Linux x86_64 with `git_commit:null`. Raw byte hashing
+uses Python 3's `hashlib`, available in the parity environment, without new
+Cargo dependencies. On discrepancies, expected and obtained hashes and lengths
+are printed and actual and comparable stdout are saved under
 `env!("CARGO_TARGET_TMPDIR")/cli-contract-failure-<pid>/`.
 
-La política [DETERMINISMO.md](../docs/DETERMINISMO.md) incluye `target` y
-`git_commit` en los resultados: no pueden compararse literalmente entre builds
-distintos. Para otra compilación, se lleva stdout a la procedencia del manifiesto sustituyendo
-literalmente esos dos metadatos y las huellas dependientes (resultado de paso y
-manifiesto). Las preimágenes de paso son los resultados sin `cause` ni `hint` de
-sus diagnósticos (MAM-836). Se verifican primero las preimágenes del stdout real y se recalculan
-por JCS/SHA-256 mediante la API pública existente. Los metadatos se obtienen
-de engine-api compilado, independientemente del stdout bajo prueba. No se
-proyectan campos ni se reserializa el stdout real; números, claves, arrays,
-espacios y diagnósticos permanecen congelados. Un test de ida/vuelta comprueba
-la sustitución para triples macOS x86_64/arm64 y Windows MSVC, incluyendo una
-revisión de compilación no nula. Es una prueba del materializador, no una
-ejecución del binario en esos sistemas.
+The [DETERMINISMO.md](../docs/DETERMINISMO.md) policy includes `target` and
+`git_commit` in results: they cannot be compared literally across different
+builds. For another build, stdout is brought to the manifest's provenance by literally replacing
+those two metadata fields and dependent fingerprints (step result and
+manifest). Step preimages are the results without `cause` or `hint` in
+their diagnostics (MAM-836). Preimages of actual stdout are verified first and recalculated
+through JCS/SHA-256 using the existing public API. Metadata is obtained
+from compiled engine-api, independently of the stdout under test. Fields are not
+projected and actual stdout is not reserialized; numbers, keys, arrays,
+spaces and diagnostics remain frozen. A round-trip test checks
+the substitution for macOS x86_64/arm64 and Windows MSVC triples, including a
+non-null build revision. It is a materializer test, not an
+execution of the binary on those systems.
 
-Los tests negativos cubren campos obligatorios, identidad, tipo de engineResults,
-versión/estado results, vector numérico, tipos de huellas, diagnósticos, correspondencia
-de avisos y rechazo de extensiones del adaptador; las extensiones SDK se aceptan.
+Negative tests cover required fields, identity, engineResults type,
+results version/status, numeric vector, fingerprint types, diagnostics, warning
+correspondence and rejection of adapter extensions; SDK extensions are accepted.
 
-Regeneración explícita local:
+Explicit local regeneration:
 
 ```sh
 export PATH=$HOME/.cargo/bin:$PATH
@@ -103,83 +103,83 @@ MAMUT_UPDATE_CLI_GOLDENS=1 cargo test -p engine-cli --test contract --offline \
 cargo test -p engine-cli --test contract --offline
 ```
 
-Sin la variable no se escribe ningún golden. Solo admite `1` o ausencia;
-regenerar con `CI` o `GITHUB_ACTIONS` definidos falla antes de escribir.
-Los golden ausentes u obsoletos se rechazan. Siempre se revisa el diff.
+Without the variable no golden is written. Only `1` or absence is accepted;
+regenerating with `CI` or `GITHUB_ACTIONS` defined fails before writing.
+Missing or stale goldens are rejected. The diff is always reviewed.
 
-Se buscó ENG-PY-006, MAM-86, paridad y conformance en crates y bindings/python.
-La prueba existente de paridad de bytes Rust/Python está en
+ENG-PY-006, MAM-86, parity and conformance were searched for in crates and bindings/python.
+The existing Rust/Python byte parity test is in
 [test_run.py](../bindings/python/tests/test_run.py),
-`RunTest.test_cantilever_matches_rust_bytes_and_sha256`. Se enlazan allí los
-golden CLI y desde el [README Python](../bindings/python/README.md).
-Se conserva la referencia directa Rust del binding. No se ejecuta la suite de
-wheel Python por un cambio de comentarios y enlaces; sí el workspace Rust.
+`RunTest.test_cantilever_matches_rust_bytes_and_sha256`. The CLI goldens are linked
+there and from the [Python README](../bindings/python/README.md).
+The binding's direct Rust reference is preserved. The Python wheel suite is not run
+for a comment and link change; the Rust workspace is run.
 
-## Verificación local y límites
+## Local verification and limits
 
-Entorno: Rust 1.99.0, Cargo offline,
+Environment: Rust 1.99.0, offline Cargo,
 `CARGO_TARGET_DIR=<directorio-target-del-worktree>`, Linux x86_64.
 
 - `cargo fmt --check`: OK.
 - `cargo clippy --workspace --all-targets --offline -- -D warnings`: OK.
 - `cargo test -p engine-cli --test contract --offline`: **3 tests OK**.
-- `cargo test --workspace --offline`: **OK, 752 tests aprobados en 116 suites,
-  sin fallos ni ignorados**, incluidas las tres pruebas nuevas del contrato.
-- Guardia de regeneración con `CI=1`: rechazo esperado y manifiesto con sus
-  **58 casos sin cambios**, comprobado byte a byte antes/después.
-- Discrepancia de hash inyectada temporalmente: se verifican el hash esperado y
-  obtenido en el fallo y los bytes de diagnóstico bajo `CARGO_TARGET_TMPDIR`.
-  El manifiesto se restaura byte a byte y el contrato vuelve a pasar.
+- `cargo test --workspace --offline`: **OK, 752 tests passed in 116 suites,
+  no failures or ignored tests**, including the three new contract tests.
+- Regeneration guard with `CI=1`: expected rejection and manifest with its
+  **58 cases unchanged**, checked byte by byte before/after.
+- Temporarily injected hash discrepancy: expected and obtained hashes
+  are verified in the failure and diagnostic bytes under `CARGO_TARGET_TMPDIR`.
+  The manifest is restored byte by byte and the contract passes again.
 - `git diff --check`: OK.
-- `bash clean-room/check.sh origin/main`: **OK**, con los archivos nuevos
-  incluidos mediante `git add --intent-to-add` en un índice temporal. El
-  manifiesto de hashes y los objetos SDK opacos permiten conservar la guardia
-  sin cambios ni excepciones nuevas. Se comprueban además los archivos nuevos
-  y modificados completos contra la lista de identificadores prohibidos.
+- `bash clean-room/check.sh origin/main`: **OK**, with new files
+  included through `git add --intent-to-add` in a temporary index. The
+  hash manifest and opaque SDK objects allow preserving the guard
+  without changes or new exceptions. Complete new and modified files are also
+  checked against the forbidden identifier list.
 
-El índice real y la base de objetos Git son de solo lectura en este entorno.
-La ejecución indicada arriba usa también un directorio de objetos temporal en
-un directorio temporal local, con los objetos originales como alternativos de solo lectura.
-No se escribe en el índice ni en los objetos originales.
+The real index and Git object database are read-only in this environment.
+The execution indicated above also uses a temporary object directory in
+a local temporary directory, with the original objects as read-only alternates.
+Neither the original index nor objects are written to.
 
-La ejecución real en **macOS y Windows necesita una matriz en `rust.yml`**,
-**decisión de Jonathan**. No se edita `.github/workflows`; esta evidencia solo
-acredita Linux. No se declara CI multiplataforma ejecutada.
+Actual execution on **macOS and Windows needs a matrix in `rust.yml`**,
+**Jonathan's decision**. `.github/workflows` is not edited; this evidence only
+supports Linux. No executed cross-platform CI is claimed.
 
-No se modifican vendor, manifiestos/lock de Cargo, workflows, clean-room,
-CLEAN_ROOM.md, CODEOWNERS, deny.toml, barra axial ni truss. No se abre material
-restringido ni se incorporan resultados de otros motores. El script clean-room
-se ejecuta sin modificarlo; la revisión humana J4 continúa pendiente.
-No se edita CHANGELOG.md: se añade únicamente
-[changelog.d/MAM-868.added.md](../changelog.d/MAM-868.added.md). No se hace commit.
+No changes are made to vendor, Cargo manifests/lock, workflows, clean-room,
+CLEAN_ROOM.md, CODEOWNERS, deny.toml, axial bar or truss. No restricted material
+is opened and no results from other engines are incorporated. The clean-room script
+is run without modification; human J4 review remains pending.
+CHANGELOG.md is not edited: only
+[changelog.d/MAM-868.added.md](../changelog.d/MAM-868.added.md) is added. No commit is made.
 
 
-## Merge de origin/main · 2026-10-22
+## origin/main merge · 2026-10-22
 
-Autor: **Codex gpt-6.1-sol high**. Se conserva lo incorporado por main,
-incluidos #205 y #183, y se integra #208. Los tres archivos en conflicto quedan
-sin marcadores. El índice permanece intacto: no se hace commit, staging, rebase
-ni abort del merge.
+Author: **Codex gpt-6.1-sol high**. What main incorporated is preserved,
+including #205 and #183, and #208 is integrated. The three conflicting files
+have no markers remaining. The index remains intact: no commit, staging, rebase
+or merge abort is performed.
 
-La única implementación del validador es la de main en
-`crates/engine-api/tests/support/schema.rs`; los helpers del CLI delegan en ella.
-Se amplía con `contains`, las referencias locales conocidas de results/1 y los
-patrones de cli-error/1, conservando el patrón más estricto de diagnósticos API.
-`cli-run/1` se registra junto a `cli-error/1` en `additional_schemas`; el generador
-publica `schemas/cli-run/1.json` y actualiza `schemas/index.json`. Los errores de
-run conservan cli-error/1 y su registro; no se añaden códigos. Los 58 golden
-siguen pasando sin regeneración ni cambios: solo hashes, longitudes y metadatos.
-Se conserva `changelog.d/MAM-868.added.md`; no se edita CHANGELOG.md.
+The only validator implementation is main's in
+`crates/engine-api/tests/support/schema.rs`; CLI helpers delegate to it.
+It is extended with `contains`, known local results/1 references and
+cli-error/1 patterns, preserving the stricter API diagnostic pattern.
+`cli-run/1` is registered alongside `cli-error/1` in `additional_schemas`; the generator
+publishes `schemas/cli-run/1.json` and updates `schemas/index.json`. run errors
+retain cli-error/1 and its registry; no codes are added. The 58 goldens
+still pass without regeneration or changes: only hashes, lengths and metadata.
+`changelog.d/MAM-868.added.md` is preserved; CHANGELOG.md is not edited.
 
-Verificación offline con temporales exclusivamente bajo `CARGO_TARGET_DIR`:
+Offline verification with temporary files exclusively under `CARGO_TARGET_DIR`:
 `cargo fmt --check`, `cargo clippy --workspace --all-targets --offline -- -D warnings`
-y `cargo test --workspace --offline` verdes (**816 tests, 125 suites, sin fallos
-ni ignorados**), incluido el test de cobertura del registro de errores.
-`cargo test -p engine-cli --offline --test contract`: **3 tests OK**, sin variable
-de actualización; el nombre real del paquete Cargo es `engine-cli`.
-`python3 scripts/generate-schemas.py --write` y `--check` verdes;
+and `cargo test --workspace --offline` green (**816 tests, 125 suites, no failures
+or ignored tests**), including the error registry coverage test.
+`cargo test -p engine-cli --offline --test contract`: **3 tests OK**, without the update
+variable; the actual Cargo package name is `engine-cli`.
+`python3 scripts/generate-schemas.py --write` and `--check` green;
 `python3 -m unittest scripts/tests/test_schema_publication.py`: **7 tests OK**.
-Pytest sobre `bindings/python/tests/test_run.py`: **9 tests y 36 subtests OK**,
-con pytest y dependencias de la caché local, copia del paquete Python y extensión
-nativa compilada offline; la referencia de bytes se genera con `facade_reference`.
-Esta comprobación no construye ni verifica una wheel. No se usa red.
+Pytest on `bindings/python/tests/test_run.py`: **9 tests and 36 subtests OK**,
+with pytest and dependencies from the local cache, a copy of the Python package and native
+extension compiled offline; the byte reference is generated with `facade_reference`.
+This check does not build or verify a wheel. No network is used.

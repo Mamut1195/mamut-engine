@@ -1,114 +1,114 @@
-# ENG-SFC-014 · MAM-865 · Timeout y señales del CLI
+# ENG-SFC-014 · MAM-865 · CLI timeout and signals
 
-Fecha: **2026-10-21**. Base: `origin/main`; worktree
-`/workspace/mamut-engine-sfc14`. Complementa #174 H1. Sin red ni fuentes de
-otros motores; no se consultaron los materiales restringidos del ticket.
+Date: **2026-10-21**. Base: `origin/main`; worktree
+`/workspace/mamut-engine-sfc14`. Complements #174 H1. No network or sources from
+other engines; restricted ticket materials were not consulted.
 
-## Implementación y decisiones
+## Implementation and decisions
 
-- `timeout::parse_timeout_args`, en un módulo propio de `engine-cli`, retira
-  exclusivamente `--timeout <s>` y deja el resto al parser SDK. La llamada en
-  `lib.rs` es pequeña para minimizar conflictos con el preparseo de #197.
-  Segundos finitos >0, fraccionarios/científicos; valor inválido, omitido o flag
-  duplicado: 2. El flag prevalece sobre `MAMUT_ENGINE_TIMEOUT`, incluso inválida.
-  Positivos menores que la resolución del reloj vencen inmediatamente;
-  valores finitos fuera del rango de `Instant` se esperan por tramos acotados.
-- Un hilo std espera un deadline monotónico y marca el `Arc<CancelToken>`
-  existente. `CancelFlag` del SDK no es `Send`; permanece en el hilo llamador
-  y `Control::sync` sincroniza ambas fronteras. Un canal despierta el temporizador
-  al terminar y `Drop` recoge el hilo. Sin timeout no se crea hilo ni cambia la
-  salida. El reloj nunca interviene en aritmética, progreso ni manifiestos.
-- El SDK vendorizado ya publica `FailureKind::Timeout` y código 6. El adaptador
-  traduce la cancelación causada por el vencimiento a ese fallo: stdout vacío;
-  stderr termina en el sobre
-  cli-run/1 con `exitCode: 6`, `outcome: "timeout"` y mensaje sanitizado.
-  Se omiten documentos parciales; una cancelación previamente observada
-  conserva el código 5. No se modifica vendor. Se conserva el metadato histórico
-  de categorías reservadas de `describe` para no alterar bytes sin timeout.
-- Ronda 2, precedencia terminal: `timeout::resolve` convierte únicamente
-  `Cancelled` en `Timeout` cuando venció el temporizador. Un despacho ya
-  completado con éxito/warning o un error distinto de cancelación conserva su
-  resultado, incluso si el plazo expira antes de la comprobación posterior.
-  El plazo sigue siendo cooperativo durante E/S: su mera expiración no invalida
-  un resultado terminal. Una prueba unitaria determinista inyecta el estado
-  vencido y comprueba éxito, errores terminales y ambas clases de cancelación.
-- Ronda 2, NDJSON: `EventWriter::write_fmt` materializa cada evento SDK emitido
-  con `writeln!`, incluido el salto de línea, antes de pasarlo a stderr con
-  `write_all`. El sobre de error usa el mismo adaptador. La atomicidad es del
-  buffer de cada línea; los fallos reales de E/S conservan el código 70.
-  El temporizador solo marca el token y no escribe en stderr.
-- Revisión de bucles: Newton consulta en validación de factores, pasos,
-  iteraciones, evaluaciones de elementos y antes de aceptar estado, con rollback
-  del estado de prueba ante cancelación. Estático, P-Delta y modal pasan el
-  control a factorización/solve y eigensolver; espectro lo pasa a modal y CQC.
-  Recuperación y combinaciones consultan entre miembros/nodos/términos.
-  Consolidación conserva la consulta por subpaso y bloques LDLᵀ de SFC-010;
-  añade consultas en validación, ensamblaje, salidas, integración y sustitución.
-  La referencia consulta en productos/solve densos, Cholesky, Jacobi,
-  normalización, inercia Sturm y condensación/recuperación Guyan. Las variantes
-  cooperativas son aditivas; los callbacks de progreso conservan sus eventos.
-  Ninguna expresión numérica, reducción, pivote, tolerancia o resultado de una
-  ejecución completada se modifica. Véase `docs/DETERMINISMO.md`.
-- La guarda de determinismo conserva la prohibición de concurrencia en fuentes
-  numéricas y permite únicamente el token `thread` en la ruta exacta
-  `crates/engine-cli/src/timeout.rs`. Una regresión comprueba el alcance mínimo:
-  otras rutas, colecciones hash y Rayon siguen prohibidos. La excepción solo
-  permite el temporizador expresamente solicitado, sin cálculo paralelo.
-- La guarda `val032_runs` exige hashes de fuentes actuales: se sincronizan solo
-  los dos SHA-256 de `pdelta.rs` y `modal.rs` en el índice de validación. No se
-  regeneran fixtures, referencias, modelos ni tolerancias.
+- `timeout::parse_timeout_args`, in its own `engine-cli` module, removes
+  exclusively `--timeout <s>` and leaves the rest to the SDK parser. The call in
+  `lib.rs` is small to minimize conflicts with #197 preparsing.
+  Finite seconds >0, fractional/scientific; invalid or omitted value or duplicate
+  flag: 2. The flag takes precedence over `MAMUT_ENGINE_TIMEOUT`, even if invalid.
+  Positive values below clock resolution expire immediately;
+  finite values outside the `Instant` range are waited for in bounded segments.
+- A std thread waits for a monotonic deadline and marks the existing `Arc<CancelToken>`.
+  The SDK's `CancelFlag` is not `Send`; it remains on the calling thread
+  and `Control::sync` synchronizes both boundaries. A channel wakes the timer
+  on completion and `Drop` joins the thread. Without timeout no thread is created or output
+  changed. The clock never intervenes in arithmetic, progress or manifests.
+- The vendored SDK already publishes `FailureKind::Timeout` and code 6. The adapter
+  maps cancellation caused by expiration to that failure: empty stdout;
+  stderr ends with the
+  cli-run/1 envelope with `exitCode: 6`, `outcome: "timeout"` and sanitized message.
+  Partial documents are omitted; previously observed cancellation
+  preserves code 5. Vendor is not modified. The historical reserved category
+  metadata of `describe` is preserved to avoid altering bytes without timeout.
+- Round 2, terminal precedence: `timeout::resolve` converts only
+  `Cancelled` into `Timeout` when the timer expired. A dispatch already
+  completed with success/warning or an error other than cancellation preserves its
+  result, even if the deadline expires before the subsequent check.
+  The deadline remains cooperative during I/O: its mere expiration does not invalidate
+  a terminal result. A deterministic unit test injects the expired
+  state and checks success, terminal errors and both kinds of cancellation.
+- Round 2, NDJSON: `EventWriter::write_fmt` materializes each SDK event emitted
+  with `writeln!`, including the newline, before passing it to stderr with
+  `write_all`. The error envelope uses the same adapter. Atomicity applies to the
+  buffer of each line; real I/O failures preserve code 70.
+  The timer only marks the token and does not write to stderr.
+- Loop review: Newton checks during factor validation, steps,
+  iterations, element evaluations and before accepting state, with rollback
+  of trial state on cancellation. Static, P-Delta and modal pass
+  control to factorization/solve and eigensolver; spectrum passes it to modal and CQC.
+  Recovery and combinations check between members/nodes/terms.
+  Consolidation retains the check per substep and LDLᵀ blocks from SFC-010;
+  it adds checks in validation, assembly, outputs, integration and substitution.
+  The reference checks in dense products/solve, Cholesky, Jacobi,
+  normalization, Sturm inertia and Guyan condensation/recovery. The cooperative
+  variants are additive; progress callbacks retain their events.
+  No numerical expression, reduction, pivot, tolerance or result of a
+  completed run is modified. See `docs/DETERMINISMO.md`.
+- The determinism guard retains the prohibition on concurrency in numerical
+  sources and allows only the `thread` token in the exact path
+  `crates/engine-cli/src/timeout.rs`. A regression checks minimal scope:
+  other paths, hash collections and Rayon remain prohibited. The exception only
+  allows the expressly requested timer, without parallel computation.
+- The `val032_runs` guard requires current source hashes: only
+  the two SHA-256 values of `pdelta.rs` and `modal.rs` in the validation index are synchronized. No
+  fixtures, references, models or tolerances are regenerated.
 
-## C: señales bloqueadas por la política
+## C: signals blocked by policy
 
-**SIGINT/SIGTERM no implementadas.** `std` no proporciona una API de registro
-de manejadores para estas señales. Están prohibidos cambios en Cargo.toml/lock
-y los crates mantienen `forbid(unsafe_code)`; instalar handlers mediante FFI
-propia incumpliría la política. Ctrl-C y SIGTERM conservan el comportamiento
-del SO, sin garantía de salida cooperativa 5.
+**SIGINT/SIGTERM not implemented.** `std` does not provide an API for registering
+handlers for these signals. Changes to Cargo.toml/lock are prohibited
+and the crates retain `forbid(unsafe_code)`; installing handlers through own
+FFI would violate the policy. Ctrl-C and SIGTERM retain OS
+behavior, without a guarantee of cooperative exit 5.
 
-**Decisión pendiente de Jonathan:** autorizar una dependencia `signal-hook`
-en `engine-cli`, con registro y puente de señales hacia el token fuera del
-manejador; alternativamente `libc`, que requeriría resolver también la política
-de unsafe/FFI. No se solicitan excepciones implícitas ni se añade dependencia
-en este ticket. El mecanismo disponible de cancelación externa sigue siendo
+**Decision pending Jonathan:** authorize a `signal-hook` dependency
+in `engine-cli`, with signal registration and bridging to the token outside the
+handler; alternatively `libc`, which would also require resolving the
+unsafe/FFI policy. No implicit exceptions are requested or dependency added
+in this ticket. The available external cancellation mechanism remains
 `MAMUT_ENGINE_CANCEL_FILE` (5).
 
-El timeout es cooperativo, no un terminador forzoso: las lecturas bloqueantes
-de stdin/archivos y la E/S del SDK no se interrumpen. Los backends ajenos que
-no implementen los nuevos hooks conservan sus kernels indivisibles. El sobre
-terminal corresponde a `run`; MCP conserva sus frames y semántica SDK.
+The timeout is cooperative, not a forceful terminator: blocking reads
+of stdin/files and SDK I/O are not interrupted. Other backends that
+do not implement the new hooks retain their indivisible kernels. The terminal
+envelope applies to `run`; MCP preserves its frames and SDK semantics.
 
-## Pruebas y reproducción
+## Tests and reproduction
 
-Pruebas de binario en `crates/engine-cli/tests/cli.rs`:
+Binary tests in `crates/engine-cli/tests/cli.rs`:
 
-- Consolidación derivada del fixture `consolidation` de
-  `crates/engine-api/tests/support/sfc010.rs`: cuatro capas, 80 elementos,
-  64 intervalos alternos de 1/1,25 s, 72000 subpasos y dos salidas. Coste
-  declarado `64·80³ + 72000·80² = 493568000`, inferior a 500000000; también
-  cumple cotas de intervalos, subpasos y trabajo por elementos. La corrida
-  completa sin timeout verifica entrada válida y código 0; medición local
-  inicial: **8,48 s** en debug antes de añadir controles a la sustitución.
-- Flag y variable con timeout **0,15 s**: código 6, stdout vacío y sobre timeout;
-  el proceso debe finalizar en **<1,15 s** desde spawn. Un watchdog mata y recoge
-  el hijo si hay regresión, para no bloquear la suite.
-- Valores inválidos, flag duplicado/sin valor, precedencia sobre variable
-  inválida o diminuta, valores finitos enormes y timeout amplio de 60 s.
-  Comparación directa de bytes stdout/stderr y salida rápida sin esperar 60 s.
-- Se conserva la prueba existente del cancel file antes/después de spawn: 5.
-- NDJSON + timeout por flag y variable: plazos de 1 ns, 0,1 ms, 1 ms y 150 ms
-  sobre la consolidación pesada. Todas las líneas de stderr se parsean como
-  JSON válido, terminan en salto de línea y la última es el sobre timeout 6
-  sin documentos parciales; se exige observar también progreso `started`.
-  Una prueba unitaria con escritor estricto comprueba determinísticamente que
-  cada evento y el sobre llegan como una línea JSON completa, sin fragmentos.
+- Consolidation derived from the `consolidation` fixture of
+  `crates/engine-api/tests/support/sfc010.rs`: four layers, 80 elements,
+  64 alternating intervals of 1/1,25 s, 72000 substeps and two outputs. Declared
+  cost `64·80³ + 72000·80² = 493568000`, below 500000000; it also
+  meets interval, substep and element-work bounds. The full run
+  without timeout checks valid input and code 0; initial local
+  measurement: **8,48 s** in debug before adding checks to substitution.
+- Flag and variable with timeout **0,15 s**: code 6, empty stdout and timeout envelope;
+  the process must finish in **<1,15 s** from spawn. A watchdog kills and reaps
+  the child on regression, to avoid blocking the suite.
+- Invalid values, duplicate/valueless flag, precedence over an invalid
+  or tiny variable, huge finite values and generous timeout of 60 s.
+  Direct stdout/stderr byte comparison and quick exit without waiting 60 s.
+- The existing cancel file test before/after spawn is retained: 5.
+- NDJSON + timeout by flag and variable: deadlines of 1 ns, 0,1 ms, 1 ms and 150 ms
+  on heavy consolidation. All stderr lines are parsed as
+  valid JSON, end with a newline and the last is the timeout 6 envelope
+  without partial documents; observing `started` progress is also required.
+  A unit test with a strict writer deterministically checks that
+  each event and the envelope arrive as a complete JSON line, without fragments.
 
-Regresiones de dominio: cancelación dentro de una corrección Newton sin perder
-el último paso aceptado; interrupción en cada checkpoint del camino modal de
-referencia, igualdad de bits de modos/vectores; consolidación con control sin
-cancelar frente al backend sin caché conserva todos los bits.
+Domain regressions: cancellation within a Newton correction without losing
+the last accepted step; interruption at every checkpoint of the reference modal
+path, bit equality of modes/vectors; consolidation with control without
+cancellation versus the uncached backend preserves all bits.
 
-Entorno de verificación, toolchain del repositorio Rust 1.99.0:
+Verification environment, repository Rust 1.99.0 toolchain:
 
 ```sh
 export PATH=$HOME/.cargo/bin:$PATH
@@ -119,18 +119,18 @@ cargo test --workspace --offline
 bash clean-room/check.sh origin/main
 ```
 
-Resultados finales, repetidos en ronda 2: **las cuatro verificaciones pasan**.
+Final results, repeated in round 2: **all four checks pass**.
 `cargo fmt --check`
-sin diferencias; Clippy de todo el workspace/all-targets sin advertencias;
-`cargo test --workspace --offline`: **758 pruebas pasan, 0 fallos, 0 ignoradas**
-en 115 suites (incluidas suites vacías y doctests). La suite de integración CLI
-tiene 19 pruebas y la unitaria, 6. La ronda 2 añade tres regresiones: precedencia
-terminal determinista, escritura de líneas completas y binario NDJSON + timeout.
-`git diff --check` también pasa.
+without differences; Clippy across the entire workspace/all-targets without warnings;
+`cargo test --workspace --offline`: **758 tests pass, 0 failures, 0 ignored**
+in 115 suites (including empty suites and doctests). The CLI integration suite
+has 19 tests and the unit suite, 6. Round 2 adds three regressions: deterministic terminal
+precedence, complete line writing and NDJSON + timeout binary.
+`git diff --check` also passes.
 
-`clean-room/check.sh` solo inspecciona archivos conocidos por Git. Para incluir
-los dos archivos nuevos sin modificar el índice real ni escribir en `.git`,
-se ejecutó el mismo comando con un índice y almacén de objetos temporales:
+`clean-room/check.sh` only inspects files known to Git. To include
+the two new files without modifying the real index or writing to `.git`,
+the same command was run with a temporary index and object store:
 
 ```sh
 mam865_git_objects=$(git rev-parse --path-format=absolute --git-path objects)
@@ -144,32 +144,32 @@ git -c core.hooksPath=/dev/null add -N -- \
 bash clean-room/check.sh origin/main
 ```
 
-Resultado: **Clean-room: OK**, incluyendo ambos archivos nuevos. El entorno
-temporal se limita a ese comando; el índice real permanece sin cambios.
+Result: **Clean-room: OK**, including both new files. The temporary
+environment is limited to that command; the real index remains unchanged.
 
-No se modifican Cargo.toml/lock, vendor, CI, políticas clean-room, barra axial
-ni truss. No se crea commit.
+No changes to Cargo.toml/lock, vendor, CI, clean-room policies, axial bar
+or truss. No commit is created.
 
-## Señales SIGINT/SIGTERM (decisión #203, PR #214) — 2026-10-21
+## SIGINT/SIGTERM signals (decision #203, PR #214) — 2026-10-21
 
-Implementación propia sobre la API pública y segura de `signal-hook =0.4.5`
+Own implementation on the public and safe API of `signal-hook =0.4.5`
 (`flag::register`, `low_level::unregister`; MIT OR Apache-2.0, crates.io).
-Dependencia solo `cfg(unix)` con `default-features = false`; transitivas nuevas en
-Cargo.lock: signal-hook-registry 1.4.8, errno 0.3.14, windows-sys 0.61.2 y
-windows-link 0.2.1 (las dos últimas solo en Windows vía errno). Sin `unsafe`
-propio: `#![forbid(unsafe_code)]` se mantiene en lib.rs y main.rs.
+Dependency only `cfg(unix)` with `default-features = false`; new transitive dependencies in
+Cargo.lock: signal-hook-registry 1.4.8, errno 0.3.14, windows-sys 0.61.2 and
+windows-link 0.2.1 (the last two only on Windows through errno). No own `unsafe`
+code: `#![forbid(unsafe_code)]` is retained in lib.rs and main.rs.
 
-`crates/engine-cli/src/signals.rs` registra un `Arc<AtomicBool>` por señal; un
-hilo `std` lo consulta cada 5 ms y cancela el mismo `CancelToken` del plazo, de
-modo que `run` termina con código 5, stdout vacío y sobre `outcome: "cancelled"`.
-La guardia de determinismo admite `thread` solo en las rutas exactas
-`timeout.rs` y `signals.rs` del CLI. No se consultó código de terceros ajeno a la
-documentación pública de signal-hook.
+`crates/engine-cli/src/signals.rs` registers an `Arc<AtomicBool>` per signal; a
+`std` thread checks it every 5 ms and cancels the same deadline `CancelToken`, so
+that `run` ends with code 5, empty stdout and `outcome: "cancelled"` envelope.
+The determinism guard accepts `thread` only in the exact CLI paths
+`timeout.rs` and `signals.rs`. No third-party code beyond signal-hook's public
+documentation was consulted.
 
-Limitaciones documentadas en el README: señal previa a la instalación de los
-manejadores → disposición por defecto (sin código 5); una SIGINT ignorada por el
-padre queda sustituida por el manejador.
+Limitations documented in the README: signal before handler installation
+→ default disposition (without code 5); a SIGINT ignored by the
+parent is replaced by the handler.
 
-Pruebas: `sigint_cancels_heavy_consolidation_with_five`,
-`sigterm_cancels_heavy_consolidation_with_five` y
+Tests: `sigint_cancels_heavy_consolidation_with_five`,
+`sigterm_cancels_heavy_consolidation_with_five` and
 `cli_cancellation_exceptions_only_allow_threads_in_their_exact_sources`.

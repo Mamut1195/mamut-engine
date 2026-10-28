@@ -1,17 +1,17 @@
-# Bitácora clean-room · kit SystemView seguimiento T2 (J4 retro)
+# Clean-room log · SystemView kit T2 follow-up (J4 retro)
 
-- Ticket / PR: T2 de /workspace/j4rev/tickets/engine-retro.md; rama `j2/conf-sysview-overwrite`
-- Autor(es): J2 (agente, Grok Bot) · 2026-10-11 (America/Guayaquil)
-- Rol: implementador
-- Contrato implementado: SystemView (kit de conformidad en engine-contracts)
-- Fuentes permitidas usadas: ninguna externa; el propio contrato del trait (las salidas se sobrescriben).
-- Derivaciones propias: `check_system_view` evalúa masa, tangente y Kg con salida en ceros y con centinela simétrico proporcional a la magnitud de la matriz limpia (1e3·máx(|a|,1); J4 #30: uno fijo no detectaba K=1e12) y exige resultados idénticos; un sistema que acumule falla. También se exige que la segunda salida conserve la dimensión. Bajas de T2 (h acotado, rotaciones infinitesimales): PRs aparte.
-- Código de terceros copiado: ninguno
-- Validación: analítico (prueba `system_kit_detects_accumulation_in_matrix_outputs` con sistemas que acumulan en tangente, masa y Kg + control limpio)
-- Comparación con oráculo: no
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
-- Revisor clean-room: PENDIENTE (J4)
+- Ticket / PR: T2 from /workspace/j4rev/tickets/engine-retro.md; branch `j2/conf-sysview-overwrite`
+- Author(s): J2 (agent, Grok Bot) · 2026-10-11 (America/Guayaquil)
+- Role: implementer
+- Contract implemented: SystemView (conformance kit in engine-contracts)
+- Permitted sources used: none external; the trait's own contract (outputs are overwritten).
+- Own derivations: `check_system_view` evaluates mass, tangent and Kg with zero output and with a symmetric sentinel proportional to the magnitude of the clean matrix (1e3·máx(|a|,1); J4 #30: a constant one did not detect K=1e12) and requires identical results; a system that accumulates fails. The second output is also required to retain the dimension. T2 LOW findings (bounded h, infinitesimal rotations): separate PRs.
+- Third-party code copied: none
+- Validation: analytical (test `system_kit_detects_accumulation_in_matrix_outputs` with systems that accumulate in tangent, mass and Kg + clean control)
+- Comparison with oracle: no
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+- Clean-room reviewer: PENDING (J4)
 
-## Ronda J4 (K=1e306)
+## J4 round (K=1e306)
 
-- `overwritten` ya no usa expect/unwrap: errores de construcción → diagnóstico (take). Con magnitud ~1e306 el centinela 1e3·máx desbordaba y paniqueaba; ahora usa la propia magnitud si el factor desborda. Prueba con K=1e306 en `system_kit_detects_accumulation_in_matrix_outputs`.
+- `overwritten` no longer uses expect/unwrap: construction errors → diagnostic (take). With magnitude ~1e306 the 1e3·máx sentinel overflowed and panicked; it now uses the magnitude itself if the factor overflows. Test with K=1e306 in `system_kit_detects_accumulation_in_matrix_outputs`.

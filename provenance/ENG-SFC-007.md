@@ -1,119 +1,119 @@
-# Bitácora clean-room · ENG-SFC-007 · MAM-94
+# Clean-room log · ENG-SFC-007 · MAM-94
 
-- Autor: Codex, 2026-10-15, America/Guayaquil.
-- Rol: implementador, bajo la solicitud del usuario.
-- Rama: `j2/eng-sfc-007`, basada en main; HEAD inicial
-  `800ef3f` (ENG-CORE-010-FU2). Dependencias PY-002/API-001 presentes.
-- Fuentes: solicitud del usuario; código, contratos, fixtures y pruebas locales
-  de engine-api; scaffold bindings/python; manifiestos y provenance existentes;
-  documentación de tipos y conversiones de PyO3 0.25.1 en el registro Cargo
-  local. Herramientas Rust, Python y maturin ya instaladas. Sin red.
-- Derivaciones propias: adaptación de la fachada Rust a Python, conversión de
-  valores JSON, excepciones con contexto, token atómico y progreso diferido.
-  Sin implementación numérica ni acceso directo a solvers desde el binding.
-- Código de terceros copiado: ninguno. Sin dependencias nuevas del registro;
-  se reutilizan engine-api, serde_json 1.0.154 y PyO3 0.25.1 disponibles offline.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
-- Sin cambios de licencia declarada ni textos legales añadidos; sin cambios a
-  docs/CLEAN_ROOM.md, .github/**, clean-room/** ni vendor/**. Sin publicación.
-- Revisor clean-room externo: PENDIENTE (J4).
+- Author: Codex, 2026-10-15, America/Guayaquil.
+- Role: implementer, under the user's request.
+- Branch: `j2/eng-sfc-007`, based on main; initial HEAD
+  `800ef3f` (ENG-CORE-010-FU2). PY-002/API-001 dependencies present.
+- Sources: user request; local engine-api code, contracts, fixtures and
+  tests; bindings/python scaffold; existing manifests and provenance;
+  PyO3 0.25.1 type and conversion documentation in the local Cargo
+  registry. Rust, Python and maturin tools already installed. No network.
+- Own derivations: adaptation of the Rust facade to Python, conversion of
+  JSON values, exceptions with context, atomic token and deferred progress.
+  No numerical implementation or direct access to solvers from the binding.
+- Third-party code copied: none. No new registry dependencies;
+  engine-api, serde_json 1.0.154 and PyO3 0.25.1 available offline are reused.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+- No declared license changes or legal texts added; no changes to
+  docs/CLEAN_ROOM.md, .github/**, clean-room/** or vendor/**. No publication.
+- External clean-room reviewer: PENDING (J4).
 
-## Contrato y decisiones
+## Contract and decisions
 
-`_native` expone validate/run/capabilities/schema/explain/version; __init__.py,
-_native.pyi y py.typed componen la API tipada instalada. validate devuelve un
-objeto con diagnostics; los defectos topológicos siguen siendo diagnósticos,
-como en engine-api. run devuelve exactamente el documento canónico results/1
-para ok/warning. version devuelve el objeto engine_version/contracts de la
-fachada, sustituyendo la cadena del scaffold; __version__ conserva la cadena.
-No se duplica la implementación del motor.
+`_native` exposes validate/run/capabilities/schema/explain/version; __init__.py,
+_native.pyi and py.typed make up the installed typed API. validate returns an
+object with diagnostics; topological defects remain diagnostics,
+as in engine-api. run returns exactly the canonical results/1 document
+for ok/warning. version returns the facade's engine_version/contracts
+object, replacing the scaffold string; __version__ retains the string.
+The engine implementation is not duplicated.
 
-Los fallos de frontera y de análisis producen EngineError o sus subclases
-InvalidInputError, AnalysisError, CancelledError e InternalEngineError. Se
-preservan code, entities y cause del primer error; los fallos de run conservan
-además document y diagnostics completos. Los errores de frontera usan la misma
-traducción que engine-api::run (API-E-INPUT o ENG-E-0009). Los nombres/códigos
-no publicados también se tratan como API-E-INPUT, con su causa original.
+Boundary and analysis failures produce EngineError or its subclasses
+InvalidInputError, AnalysisError, CancelledError and InternalEngineError. The
+first error's code, entities and cause are preserved; run failures also retain
+full document and diagnostics. Boundary errors use the same
+mapping as engine-api::run (API-E-INPUT or ENG-E-0009). Unpublished names/codes
+are also treated as API-E-INPUT, with their original cause.
 
-run y validate usan py.allow_threads. CancelToken contiene un Arc del token
-atómico de engine-api; otro hilo Python puede solicitar cancelación. El motor
-consulta el token existente entre etapas/iteraciones/modos; no se ejecuta código
-Python en iteraciones. La cancelación es cooperativa: no interrumpe un solve,
-eigensolver, ensamblado o parseo indivisible. El token no se restablece.
+run and validate use py.allow_threads. CancelToken contains an Arc of the
+engine-api atomic token; another Python thread may request cancellation. The engine
+checks the existing token between stages/iterations/modes; no Python code is run
+in iterations. Cancellation is cooperative: it does not interrupt an indivisible solve,
+eigensolver, assembly or parse. The token is not reset.
 
-El callback Rust de progreso acumula eventos solo si se solicitó progress.
-Después del run se readquiere el GIL y se entregan en orden a Python, incluidos
-los eventos previos a un fallo. Es progreso diferido; cancel() desde ese callback
-llega después del análisis y solo afecta futuros usos del token. Se documenta
-usar otro hilo para cancelar el análisis en curso. Los errores del callback se
-propagan, salvo que exista un error del motor, que tiene prioridad.
+The Rust progress callback accumulates events only if progress was requested.
+After run, the GIL is reacquired and they are delivered to Python in order, including
+events preceding a failure. This is deferred progress; cancel() from that callback
+arrives after analysis and only affects future token uses. Using another
+thread to cancel the current analysis is documented. Callback errors are
+propagated, unless there is an engine error, which takes priority.
 
-Las operaciones usan una barrera catch_unwind/AssertUnwindSafe común que
-traduce fallos a InternalEngineError (ENG-E-0012, entities vacías, cause
-explícita). PyO3 mantiene además su barrera en el código generado. La prueba
-Rust inyecta resume_unwind desde un callback de engine-api y comprueba que la
-barrera lo contiene y que el siguiente análisis funciona. No se introduce
-panic!, unwrap() ni expect() en la biblioteca.
+Operations use a common catch_unwind/AssertUnwindSafe barrier that
+maps failures to InternalEngineError (ENG-E-0012, empty entities, explicit
+cause). PyO3 also retains its barrier in generated code. The Rust
+test injects resume_unwind from an engine-api callback and checks that the
+barrier contains it and the next analysis works. No
+panic!, unwrap() or expect() is introduced in the library.
 
-El arnés unitario del cdylib sigue desactivado: en este entorno hay Python pero
-no libpython3.13 para enlazar un intérprete embebido (el intento inicial lo
-confirmó). La prueba Rust de integración comparte directamente el módulo de
-contención sin enlazar PyO3, y las pruebas Python ejercitan la extensión
-instalada. No se añaden hooks de fallo a la API pública.
+The cdylib unit harness remains disabled: this environment has Python but
+no libpython3.13 for linking an embedded interpreter (the initial attempt
+confirmed it). The Rust integration test directly shares the containment
+module without linking PyO3, and Python tests exercise the installed
+extension. No failure hooks are added to the public API.
 
-Python permanece fuera de default-members, y todas sus dependencias son solo
-nativas. En wasm32 el crate está vacío, sin engine-api ni PyO3. La comprobación
-del DAG confirma que ningún crate del motor depende del binding o de PyO3;
-no se cambia el workspace ni los crates del motor.
+Python remains outside default-members, and all its dependencies are native
+only. On wasm32 the crate is empty, without engine-api or PyO3. The DAG
+check confirms that no engine crate depends on the binding or PyO3;
+neither the workspace nor engine crates are changed.
 
-## Caso real y tolerancias
+## Real case and tolerances
 
-Fixture propia de engine-api:
+Own engine-api fixture:
 `crates/engine-api/fixtures/input/valid/cantilever-linear-static.json`.
-El ejemplo Rust `facade_reference` llama directamente a engine_api::run y emite
-el documento sin añadir saltos de línea. unittest compara los bytes y SHA-256
-de la wheel instalada contra esa referencia en tres ejecuciones. Tolerancia de
-transporte: cero; no se reserializan floats en Python.
+The Rust `facade_reference` example calls engine_api::run directly and emits
+the document without adding newlines. unittest compares the bytes and SHA-256
+of the installed wheel against that reference in three runs. Transport
+tolerance: zero; floats are not reserialized in Python.
 
-SHA-256 results/1 (Rust y Python):
+results/1 SHA-256 (Rust and Python):
 `9f0674dd8a18a094b99e16c803eefa89b992085632c379432c221105e1282bb2`.
 
-Comprobación analítica independiente del transporte: voladizo D2 con P=12,
-L=4, E=200, I=3. Integrar EI y''=-P(L-x) con desplazamiento y giro nulos en
-el empotramiento da y(L)=-PL³/(3EI); equilibrio da R=P y M=PL. Las tolerancias
-relativa y absoluta 1e-12 admiten redondeo f64 del pequeño sistema bien
-condicionado; no compensan divergencias entre Python y Rust.
+Analytical check independent of transport: D2 cantilever with P=12,
+L=4, E=200, I=3. Integrating EI y''=-P(L-x) with zero displacement and rotation at
+the restrained end gives y(L)=-PL³/(3EI); equilibrium gives R=P and M=PL. Relative
+and absolute tolerances 1e-12 allow f64 rounding of the small well-conditioned
+system; they do not compensate for differences between Python and Rust.
 
-Pruebas Python: contrato público y distribución, capacidades/esquemas/catálogo,
-todas las fixtures de entrada inválida, diagnósticos con entidades, mecanismo,
-avisos y métodos avanzados, entrega diferida/reentrante del callback, errores
-de callback y de tipos, token precancelado permanente, cancelación desde otro
-hilo con GIL liberado. Esta última usa espacios JSON válidos bajo el límite de
-8 MiB para mantener trabajo en el motor mientras el hilo adquiere el GIL;
-no altera límites ni introduce sleeps de sincronización.
+Python tests: public contract and distribution, capabilities/schemas/catalog,
+all invalid input fixtures, diagnostics with entities, mechanism,
+warnings and advanced methods, deferred/reentrant callback delivery, callback
+and type errors, permanent precancelled token, cancellation from another
+thread with GIL released. The latter uses valid JSON whitespace below the
+8 MiB limit to keep work in the engine while the thread acquires the GIL;
+it does not alter limits or introduce synchronization sleeps.
 
-## Verificación y reproducción
+## Verification and reproduction
 
-Entorno exportado: PATH=/home/box/.cargo/bin:$PATH,
+Exported environment: PATH=/home/box/.cargo/bin:$PATH,
 RUSTUP_TOOLCHAIN=stable (rustc 1.99.0),
 CARGO_TARGET_DIR=/workspace/.cargo-target/mamut-engine,
-CARGO_NET_OFFLINE=true y PIP_NO_INDEX=1. CPython 3.13.5/Linux;
-maturin 1.15.0. Sin red en construcción, instalación ni pruebas.
+CARGO_NET_OFFLINE=true and PIP_NO_INDEX=1. CPython 3.13.5/Linux;
+maturin 1.15.0. No network during building, installation or tests.
 
 - cargo fmt --check: OK.
 - cargo clippy --offline --workspace --all-targets -- -D warnings: OK.
 - cargo clippy --offline -p mamut-engine-py --all-targets -- -D warnings: OK.
-- cargo test --offline --workspace: OK, 546 pruebas, 0 fallos/ignoradas;
-  incluye la prueba Rust de contención del binding.
+- cargo test --offline --workspace: OK, 546 tests, 0 failures/ignored;
+  includes the Rust binding containment test.
 - RUSTDOCFLAGS="-D warnings" cargo doc --offline --no-deps --workspace: OK.
 - cargo check --offline --workspace --all-targets --target wasm32-unknown-unknown: OK.
-- cargo metadata y cargo tree para WASM: aislamiento verificado.
-- maturin build --offline: OK, wheel cp310-abi3-manylinux_2_34_x86_64.
-- Instalación pip --no-index en venv nuevo y unittest: OK, 12 pruebas.
-- git diff --check y bash clean-room/check.sh origin/main: OK.
+- cargo metadata and cargo tree for WASM: isolation verified.
+- maturin build --offline: OK, cp310-abi3-manylinux_2_34_x86_64 wheel.
+- pip --no-index installation in a new venv and unittest: OK, 12 tests.
+- git diff --check and bash clean-room/check.sh origin/main: OK.
 
-Reproducción completa en `bindings/python/README.md`. Comandos principales,
-desde la raíz con el entorno anterior:
+Full reproduction in `bindings/python/README.md`. Main commands,
+from the root with the preceding environment:
 
 ```bash
 mkdir -p /tmp/eng-sfc-007/wheels
@@ -131,40 +131,40 @@ MAMUT_RUST_REFERENCE=/tmp/eng-sfc-007/cantilever-rust.json \
   -s bindings/python/tests -v
 ```
 
-La ejecución de validación se hizo desde /tmp usando la ruta absoluta de tests;
-la importación procede de site-packages del venv nuevo. Artefactos, referencia
-y logs locales en `/tmp/eng-sfc-007/`. No se verificaron Windows/macOS ni otros
-intérpretes. El ABI estable no constituye una matriz de plataformas probada.
+Validation was run from /tmp using the absolute test path;
+the import comes from site-packages of the new venv. Local artifacts, reference
+and logs in `/tmp/eng-sfc-007/`. Windows/macOS and other
+interpreters were not checked. The stable ABI does not constitute a tested platform matrix.
 
-## r41 · Integración de main (#117) y smoke de la fachada
+## r41 · Integration of main (#117) and facade smoke
 
-- Solicitud J4 r41, MAM-94, 2026-10-15. Merge ya iniciado en
+- J4 r41 request, MAM-94, 2026-10-15. Merge already started in
   `j2/eng-sfc-007`: HEAD `9557d8c`, MERGE_HEAD `b0c39f4` (origin/main).
-  Se conserva el merge, sin abortarlo ni hacer rebase.
-- Fuentes: ambos lados del conflicto del README, scripts y pruebas locales de
-  PY-007 (#117), implementación y pruebas de la fachada (#119), manifiestos y
-  ejemplo Rust `facade_reference`. Sin red ni código de terceros copiado.
-- README integrado: API, EngineError, CancelToken, GIL y progreso al terminar,
-  pruebas Python, construcción reproducible, artefactos, matriz y rollback.
-  El README usa variables para las rutas locales. El rollback admite la cadena
-  de wheels antiguas y el dict de la fachada actual.
-- Smoke adaptado a `version()["engine_version"]`; compara también el dict
-  nativo completo y los contratos con COMPATIBILITY. `SMOKE.json` conserva la
-  versión escalar y registra los contratos. COMPATIBILITY y la propiedad
-  `mamut:contract_status` del SBOM declaran la fachada completa
+  The merge is retained, without aborting or rebasing it.
+- Sources: both sides of the README conflict, local PY-007 (#117) scripts and
+  tests, facade implementation and tests (#119), manifests and
+  Rust `facade_reference` example. No network or third-party code copied.
+- Integrated README: API, EngineError, CancelToken, GIL and progress on completion,
+  Python tests, reproducible building, artifacts, matrix and rollback.
+  The README uses variables for local paths. Rollback accepts the old
+  wheels' string and the current facade's dict.
+- Smoke adapted to `version()["engine_version"]`; it also compares the full native
+  dict and contracts with COMPATIBILITY. `SMOKE.json` preserves the
+  scalar version and records contracts. COMPATIBILITY and the SBOM's
+  `mamut:contract_status` property declare the full facade
   validate/run/capabilities/schema/explain/version.
-- El script genera primero una referencia independiente mediante engine-api y
-  exporta `MAMUT_RUST_REFERENCE` al ejecutar las pruebas de la wheel en el venv
-  nuevo, con PATH limitado a sus binarios. Las regresiones comprueban el dict,
-  versiones/contratos incompatibles, Rust visible y estado de contrato de ambos
-  artefactos. Sin cambios numéricos propios de esta integración.
+- The script first generates an independent reference through engine-api and
+  exports `MAMUT_RUST_REFERENCE` when running wheel tests in the new
+  venv, with PATH limited to its binaries. Regressions check the dict,
+  incompatible versions/contracts, visible Rust and contract status of both
+  artifacts. No numerical changes specific to this integration.
 
-Entorno: Rust 1.99.0, maturin 1.15.0, CPython 3.13.5, Linux x86_64.
-`CARGO_TARGET_DIR` exportado en todas las verificaciones; Cargo offline/locked,
-`CARGO_NET_OFFLINE=true`, `RUSTUP_AUTO_INSTALL=0` y `PIP_NO_INDEX=1`.
-Las herramientas ya estaban instaladas; no se descargaron dependencias.
+Environment: Rust 1.99.0, maturin 1.15.0, CPython 3.13.5, Linux x86_64.
+`CARGO_TARGET_DIR` exported in all checks; Cargo offline/locked,
+`CARGO_NET_OFFLINE=true`, `RUSTUP_AUTO_INSTALL=0` and `PIP_NO_INDEX=1`.
+Tools were already installed; no dependencies were downloaded.
 
-Reproducción desde la raíz, seleccionando binarios locales y una salida nueva:
+Reproduction from the root, selecting local binaries and a new output:
 
 ```bash
 export PATH="$RUST_TOOLCHAIN_BIN:$PATH"
@@ -184,33 +184,33 @@ cargo check --offline --locked --workspace --all-targets --target wasm32-unknown
 bash clean-room/check.sh origin/main
 ```
 
-Resultados r41:
+r41 results:
 
-- Script completo: OK. Dos builds release con targets independientes, wheel
-  idéntica `mamut_engine-0.1.0-cp310-abi3-manylinux_2_34_x86_64.whl`.
+- Full script: OK. Two release builds with independent targets, identical
+  wheel `mamut_engine-0.1.0-cp310-abi3-manylinux_2_34_x86_64.whl`.
   SHA-256: `0841090a11bc0030644bdd95188bcbe19b1b6089f1f96d25ee4095e6a80bc0e2`.
-- Portabilidad de todos los miembros ZIP y metadatos, LICENSE/NOTICE sin
-  alteraciones, artefactos y comprobación de SHA256SUMS: OK.
-- Smoke en venv nuevo, sin rustc/cargo/rustup en PATH: OK; engine/binding 0.1.0,
-  contratos engine-input/1 y results/1. Pruebas Python sobre esa wheel: 12 OK,
-  incluida igualdad exacta con la referencia Rust, errores y cancelación/GIL.
+- Portability of all ZIP members and metadata, unchanged LICENSE/NOTICE,
+  artifacts and SHA256SUMS verification: OK.
+- Smoke in a new venv, without rustc/cargo/rustup in PATH: OK; engine/binding 0.1.0,
+  engine-input/1 and results/1 contracts. Python tests on that wheel: 12 OK,
+  including exact equality with the Rust reference, errors and cancellation/GIL.
 - `python3 -m unittest discover -s scripts/tests`: 13 OK.
-- fmt, ambos clippy con warnings denegados, test del workspace (570 pruebas,
-  0 fallos/ignoradas), doc con warnings denegados y check wasm32 con todos los
+- fmt, both clippy checks with warnings denied, workspace test (570 tests,
+  0 failures/ignored), doc with warnings denied and wasm32 check with all
   targets: OK.
-- `git diff --check` y `bash clean-room/check.sh origin/main`: OK.
+- `git diff --check` and `bash clean-room/check.sh origin/main`: OK.
 
-Evidencia local: `$CARGO_TARGET_DIR/python-dist-r41/` y logs
+Local evidence: `$CARGO_TARGET_DIR/python-dist-r41/` and logs
 `$CARGO_TARGET_DIR/{python-wheel,fmt,clippy-workspace,clippy-python,test-workspace,doc,wasm,clean-room}-r41.log`.
-No se versionan los artefactos. Sin cambios a licencias, docs/CLEAN_ROOM.md,
-.github/**, clean-room/** ni vendor/**. Sin publicación. Otras plataformas e
-intérpretes siguen pendientes; revisión clean-room externa J4 pendiente.
-Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+Artifacts are not versioned. No changes to licenses, docs/CLEAN_ROOM.md,
+.github/**, clean-room/** or vendor/**. No publication. Other platforms and
+interpreters remain pending; external J4 clean-room review pending.
+Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
 
-## Seguimiento ENG-PY-003 · 2026-10-17
+## ENG-PY-003 follow-up · 2026-10-17
 
-Codex gpt-6.1-sol high añade el transporte privado de canonización y huella
-JCS de engine-api para la fachada Python tipada, sin cálculo físico en Python.
-La revisión frente al main actual, pruebas de la wheel, compatibilidad de
-contratos y declaración clean-room de esta ampliación se registran en
-[ENG-PY-003](ENG-PY-003.md). Revisor clean-room: **PENDIENTE (J4)**.
+Codex gpt-6.1-sol high adds private transport of engine-api canonicalization and
+JCS fingerprinting for the typed Python facade, without physical computation in Python.
+Review against current main, wheel tests, contract compatibility
+and the clean-room declaration for this extension are recorded in
+[ENG-PY-003](ENG-PY-003.md). Clean-room reviewer: **PENDING (J4)**.

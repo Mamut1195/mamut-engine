@@ -1,233 +1,233 @@
-# Bitácora clean-room · ENG-ANL-002
+# Clean-room log · ENG-ANL-002
 
-## Registro de ampliación ENG-VAL-001 (2026-10-11)
+## ENG-VAL-001 extension record (2026-10-11)
 
-- Ticket / PR: ENG-ANL-002 (#61), validación modal desde ENG-VAL-001;
-  ampliación de tests, sin modificar el análisis modal.
-- Autor(es): J2 (agente, Grok Bot), etiqueta solicitada; ejecutor Codex basado
-  en GPT-6 · 2026-10-11 (America/Guayaquil).
-- Rol: implementador de fixtures y autor de derivaciones propias, sin delegación.
-- Contrato implementado: validación de `Modal::run` con APIs públicas.
-- Fuentes permitidas usadas: petición, APIs/pruebas propias del workspace,
-  `provenance/TEMPLATE.md`, `docs/CLEAN_ROOM.md`; sin red ni fuentes externas.
-- Derivaciones propias: [ENG-VAL-001, D1–D4](ENG-VAL-001.md#ampliación-dinámica-y-2º-orden).
-- Código de terceros copiado: ninguno; sin dependencias nuevas.
-- Validación: analítica, 12 fixtures nuevos; ver recuento y verificaciones en
-  ENG-VAL-001. Sin ejemplos publicados ni citas de libro inventadas.
-- Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados".
-- Revisor clean-room: PENDIENTE (J4).
+- Ticket / PR: ENG-ANL-002 (#61), modal validation from ENG-VAL-001;
+  test extension, without modifying the modal analysis.
+- Author(s): J2 (agent, Grok Bot), requested label; executing Codex based
+  on GPT-6 · 2026-10-11 (America/Guayaquil).
+- Role: implementer of fixtures and author of original derivations, without delegation.
+- Implemented contract: validation of `Modal::run` with public APIs.
+- Permitted sources used: request, own workspace APIs/tests,
+  `provenance/TEMPLATE.md`, `docs/CLEAN_ROOM.md`; no network or external sources.
+- Original derivations: [ENG-VAL-001, D1–D4](ENG-VAL-001.md#ampliación-dinámica-y-2º-orden).
+- Third-party code copied: none; no new dependencies.
+- Validation: analytical, 12 new fixtures; see count and verifications in
+  ENG-VAL-001. No published examples or invented book citations.
+- Oracle comparison (sibling repo, informational): no.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados".
+- Clean-room reviewer: PENDING (J4).
 
-## Registro previo del ticket
+## Previous ticket record
 
-- Ticket / PR: ENG-ANL-002 «Análisis modal», rama `j2/eng-anl-002` apilada
-  sobre ENG-MASS-001 (#55 → #51, sin fusionar), ENG-ANL-001 (#52, sin
-  fusionar) y la parte implementable de ENG-LA-009 (#58, sin fusionar).
-  Sin commit ni push.
-- Autor(es): J2 (agente, Grok Bot) · etiqueta solicitada por el usuario;
-  ejecutor Codex basado en GPT-6 · 2026-10-11 (America/Guayaquil).
-- Rol: implementador y autor de derivaciones analíticas propias, sin delegación.
-- Contrato implementado: `modal`, API `engine_analysis::modal::Modal::run`
-  sobre `LinearSystem`; resultados modales y participación direccional.
-  No adapta el trait genérico `AnalysisMethod` (sink/control/settings).
-- Fuentes permitidas usadas: exclusivamente la petición del usuario y las APIs
-  y código propios pertinentes del workspace: engine-analysis, engine-assembly,
-  engine-loads, engine-linalg, engine-core, engine-contracts, engine-model y
-  engine-elements-frame; `provenance/TEMPLATE.md` y `docs/CLEAN_ROOM.md`.
-  Sin red, bibliografía externa, resultados publicados ni oráculos.
-- Derivaciones propias: [ecuaciones y límites de esta nota](#derivaciones-propias)
-  y [fixtures analíticos](../crates/engine-analysis/tests/modal.rs), marcados
+- Ticket / PR: ENG-ANL-002 «Modal analysis», branch `j2/eng-anl-002` stacked
+  on ENG-MASS-001 (#55 → #51, unmerged), ENG-ANL-001 (#52, unmerged)
+  and the implementable part of ENG-LA-009 (#58, unmerged).
+  No commit or push.
+- Author(s): J2 (agent, Grok Bot) · label requested by the user;
+  executing Codex based on GPT-6 · 2026-10-11 (America/Guayaquil).
+- Role: implementer and author of original analytical derivations, without delegation.
+- Implemented contract: `modal`, API `engine_analysis::modal::Modal::run`
+  over `LinearSystem`; modal results and directional participation.
+  Does not adapt the generic trait `AnalysisMethod` (sink/control/settings).
+- Permitted sources used: exclusively the user's request and the relevant
+  own APIs and code of the workspace: engine-analysis, engine-assembly,
+  engine-loads, engine-linalg, engine-core, engine-contracts, engine-model and
+  engine-elements-frame; `provenance/TEMPLATE.md` and `docs/CLEAN_ROOM.md`.
+  No network, external bibliography, published results or oracles.
+- Original derivations: [equations and limits of this note](#derivaciones-propias)
+  and [analytical fixtures](../crates/engine-analysis/tests/modal.rs), marked
   `SOURCE` / `CITATION`.
-- Código de terceros copiado: ninguno. Una dependencia interna nueva por path:
-  engine-loads; sin dependencias externas nuevas.
-- Validación: exclusivamente analítica: edificio de cortante, vigas
-  Euler–Bernoulli, identidades de energía, completitud y rotación.
-- Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: 'No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados'.
-- Revisor clean-room: PENDIENTE (J4).
+- Third-party code copied: none. One new internal path dependency:
+  engine-loads; no new external dependencies.
+- Validation: exclusively analytical: shear building, Euler–Bernoulli
+  beams, energy identities, completeness and rotation.
+- Oracle comparison (sibling repo, informational): no.
+- Declaration: 'No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados'.
+- Clean-room reviewer: PENDING (J4).
 
-## Apilado y declaraciones anteriores
+## Stacking and previous declarations
 
-Los tres tickets previos del contexto son ENG-MASS-001, ENG-ANL-001 y
-ENG-LA-009. Sus bitácoras existentes contienen la declaración completa arriba,
-la autoría J2 (agente, Grok Bot) y «Revisor clean-room: PENDIENTE (J4)».
-Esta sesión no sustituye sus derivaciones ni afirma que sus PR estén fusionados.
-ENG-MASS-001 (#55) depende a su vez de ENG-LOAD-001 (#51). El módulo modal
-consume esas interfaces apiladas y la entrega parcial #58, sin implementar
-la reducción pendiente de GDL sin masa ni un solver nuevo.
+The three previous tickets in the context are ENG-MASS-001, ENG-ANL-001 and
+ENG-LA-009. Their existing logs contain the full declaration above,
+J2 authorship (agent, Grok Bot) and «Revisor clean-room: PENDIENTE (J4)».
+This session does not replace their derivations or claim that their PRs are merged.
+ENG-MASS-001 (#55) in turn depends on ENG-LOAD-001 (#51). The modal module
+consumes those stacked interfaces and the partial delivery #58, without implementing
+the pending reduction of massless DOFs or a new solver.
 
-## Interfaz y decisiones
+## Interface and decisions
 
-`Modal::run(system, count, kind, directions)` recibe count, MassKind y una
-lista no vacía de direcciones explícitas. Cada dirección se normaliza con
-`engine_loads::mass::rigid_translation`. Los giros de r son cero. Se conserva
-el orden de las direcciones; se pueden repetir o invertir sin error.
-No hay factores normativos, gravedad implícita ni umbral de masa exigible.
+`Modal::run(system, count, kind, directions)` receives count, MassKind and a
+nonempty list of explicit directions. Each direction is normalized with
+`engine_loads::mass::rigid_translation`. The rotations of r are zero. The
+order of the directions is retained; they may be repeated or reversed without error.
+There are no code-prescribed factors, implicit gravity or required mass threshold.
 
-`LinearSystem::lowest_modes(kind, count)` usa el backend del sistema con las
-matrices K_ff y M_ff que este ya redujo de K global y `global_mass(kind)`.
-No se duplican ni reensamblan masas. No cambia estados aceptados/de prueba.
-El módulo normaliza de nuevo la forma con la masa elegida antes de evaluar
-participación. No usa `Constraints::expand`, pues incluiría asentamientos:
-las perturbaciones modales prescritas son siempre cero.
+`LinearSystem::lowest_modes(kind, count)` uses the system backend with the
+matrices K_ff and M_ff that it already reduced from global K and `global_mass(kind)`.
+Masses are neither duplicated nor reassembled. It does not change accepted/trial states.
+The module renormalizes the shape with the chosen mass before evaluating
+participation. It does not use `Constraints::expand`, because that would include settlements:
+prescribed modal perturbations are always zero.
 
-Los resultados incluyen λ, ω, f, T, formas libres y globales, Γ, M*, sumas
-acumuladas y fracciones individuales/acumuladas. Un λ numéricamente nulo
-se representa con ω=f=0 y T=None (periodo infinito), sin generar infinito
-IEEE-754. Se conserva el conteo de modos rígidos o posibles mecanismos.
-Una dirección con masa global cero tiene fracción None; no se divide por cero.
-Count=0 conserva la semántica de lowest_modes: no exige M definida positiva
-ni factoriza, pero valida direcciones y devuelve sus totales con sumas cero.
+Results include λ, ω, f, T, free and global shapes, Γ, M*, cumulative
+sums and individual/cumulative fractions. A numerically zero λ
+is represented with ω=f=0 and T=None (infinite period), without generating IEEE-754
+infinity. The count of rigid modes or possible mechanisms is retained.
+A direction with zero global mass has fraction None; there is no division by zero.
+Count=0 retains the semantics of lowest_modes: it does not require positive-definite M
+or factorize, but validates directions and returns their totals with zero sums.
 
 ## Derivaciones propias
 
-### Problema modal, participación y completitud
+### Modal problem, participation and completeness
 
-De M_ff q̈+K_ff q=0 y q=φ exp(iωt) resulta K_ffφ=ω²M_ffφ.
-Para M_ff definida positiva, se toma φ/√(φᵀM_ffφ), de modo que φᵀM_ffφ=1.
-Entonces ω=√λ, f=ω/(2π) y T=2π/ω si λ>0.
+From M_ff q̈+K_ff q=0 and q=φ exp(iωt) follows K_ffφ=ω²M_ffφ.
+For positive-definite M_ff, take φ/√(φᵀM_ffφ), so that φᵀM_ffφ=1.
+Then ω=√λ, f=ω/(2π) and T=2π/ω if λ>0.
 
-La proyección de la excitación traslacional r_f en cada forma da
-Γ_n=φ_nᵀM_ff r_f/(φ_nᵀM_ffφ_n). Con normalización a masa,
-M*_n=(φ_nᵀM_ff r_f)². Una base modal completa Φ satisface ΦᵀM_ffΦ=I;
-como Φ es cuadrada e invertible, ΦΦᵀ=M_ff⁻¹. Así:
+Projection of the translational excitation r_f onto each shape gives
+Γ_n=φ_nᵀM_ff r_f/(φ_nᵀM_ffφ_n). With mass normalization,
+M*_n=(φ_nᵀM_ff r_f)². A complete modal basis Φ satisfies ΦᵀM_ffΦ=I;
+since Φ is square and invertible, ΦΦᵀ=M_ff⁻¹. Thus:
 
 Σ_n M*_n = r_fᵀ M_ff ΦΦᵀ M_ff r_f = r_fᵀ M_ff r_f.
 
-Esta identidad es para todos los n GDL libres con M_ff positiva, sin eliminar
-GDL de masa nula. Se prueba con todos los modos del edificio de 1, 4 y 9 pisos
-(ambos tipos de masa) y todos los modos axiales/flexionales de las dos vigas.
-No se afirma completitud de un espectro truncado.
+This identity applies to all n free DOFs with positive M_ff, without eliminating
+zero-mass DOFs. It is tested with all modes of the 1, 4 and 9 story building
+(both mass kinds) and all axial/bending modes of the two beams.
+Completeness of a truncated spectrum is not claimed.
 
-La masa global de la dirección se calcula mediante `engine_loads::mass::total_mass`,
-equivalente a `system_total_mass`, sobre r completo y M global: rᵀMr.
-Es el denominador de las fracciones solicitadas. Los apoyos pueden tener masa
-o acoplamientos consistentes: en ese caso rᵀMr no tiene por qué coincidir con
-r_fᵀM_ff r_f. Se exponen `total_mass` y `free_mass` para hacer esta diferencia
-explícita. Los tests de completitud fijan a cero las componentes prescritas
-de r y evalúan el producto independiente con M global; así obtienen exactamente
-r_fᵀM_ff r_f. El edificio usa masa solo en pisos libres y alcanza fracción 1.
-Las vigas y una barra axial restringida comprueban una fracción final menor
-que 1 sin modificar artificialmente la masa del denominador.
+The global mass of the direction is calculated using `engine_loads::mass::total_mass`,
+equivalent to `system_total_mass`, over full r and global M: rᵀMr.
+It is the denominator of the requested fractions. Supports may have mass
+or consistent couplings: in that case rᵀMr need not coincide with
+r_fᵀM_ff r_f. `total_mass` and `free_mass` are exposed to make this difference
+explicit. The completeness tests set the prescribed components
+of r to zero and evaluate the independent product with global M; thus they obtain exactly
+r_fᵀM_ff r_f. The building uses mass only on free stories and reaches fraction 1.
+The beams and a restrained axial bar check a final fraction less
+than 1 without artificially modifying the mass in the denominator.
 
-### Edificio de cortante de N pisos iguales, derivación propia
+### Shear building with N identical stories, original derivation
 
-Sea q_0=0 en la base, masa m por piso y rigidez k por entrepiso.
-La energía V=½k Σ_{j=1}^N(q_j−q_{j−1})² produce K con diagonales 2k
-hasta el piso N−1, última diagonal k y vecinas −k. M=mI.
-Para φ_j=sin(jθ), la ecuación interior es:
+Let q_0=0 at the base, mass m per story and stiffness k per story.
+The energy V=½k Σ_{j=1}^N(q_j−q_{j−1})² produces K with diagonals 2k
+up to story N−1, last diagonal k and neighboring entries −k. M=mI.
+For φ_j=sin(jθ), the interior equation is:
 
 −φ_{j−1}+2φ_j−φ_{j+1}=2(1−cosθ)φ_j=4sin²(θ/2)φ_j.
 
-La última ecuación es φ_N−φ_{N−1}=(λm/k)φ_N; se puede escribir como
-la interior introduciendo φ_{N+1}=φ_N. La condición superior exige:
+The last equation is φ_N−φ_{N−1}=(λm/k)φ_N; it may be written as
+the interior one by introducing φ_{N+1}=φ_N. The top condition requires:
 
 sin((N+1)θ)−sin(Nθ)=2cos((2N+1)θ/2)sin(θ/2)=0.
 
-Se excluye θ=0 (forma nula con base fija). Las N raíces distintas son
-θ_n=(2n−1)π/(2N+1), n=1,…,N; por tanto:
+θ=0 is excluded (zero shape with restrained base). The N distinct roots are
+θ_n=(2n−1)π/(2N+1), n=1,…,N; therefore:
 
 ω_n=2√(k/m) sin((2n−1)π/[2(2N+1)]),
 φ_{j,n}=sin(j(2n−1)π/(2N+1)).
 
-Se divide cada forma por √(m Σ_j φ_{j,n}²). La participación esperada es
-m Σ_j φ_{j,n}/√(m Σ_j φ_{j,n}²), con el signo elegido por el backend;
-la masa efectiva es su cuadrado. No se usan cifras publicadas. Los tests
-usan k=17, m=3, N=1,4,9; tolerancias ~3e−12 relativas para frecuencias,
-3e−12 absolutas para formas/proyecciones y 3e−11 para masas.
+Each shape is divided by √(m Σ_j φ_{j,n}²). The expected participation is
+m Σ_j φ_{j,n}/√(m Σ_j φ_{j,n}²), with the sign chosen by the backend;
+the effective mass is its square. No published figures are used. The tests
+use k=17, m=3, N=1,4,9; relative tolerances ~3e−12 for frequencies,
+absolute 3e−12 for shapes/projections and 3e−11 for masses.
 
-### Vigas Euler–Bernoulli, derivación propia
+### Euler–Bernoulli beams, original derivation
 
-EI w''''+ρA ẅ=0 y w=W exp(iωt) dan W''''=β⁴W,
-β⁴=ρAω²/EI. Su solución es combinación de sin, cos, sinh y cosh.
+EI w''''+ρA ẅ=0 and w=W exp(iωt) give W''''=β⁴W,
+β⁴=ρAω²/EI. Its solution is a combination of sin, cos, sinh and cosh.
 
-Simplemente apoyada: W=W''=0 en x=0,L elimina cos/cosh en el primero
-y obliga sin(βL)=0 en el segundo: β_nL=nπ.
+Simply supported: W=W''=0 at x=0,L eliminates cos/cosh at the first end
+and requires sin(βL)=0 at the second: β_nL=nπ.
 
-Voladizo: W=W'=0 en el origen da
+Cantilever: W=W'=0 at the origin gives
 W=a(cosh βx−cos βx)+b(sinh βx−sin βx).
-W''=W'''=0 en L deja el sistema con filas
-[cosh βL+cos βL, sinh βL+sin βL] y
+W''=W'''=0 at L leaves the system with rows
+[cosh βL+cos βL, sinh βL+sin βL] and
 [sinh βL−sin βL, cosh βL+cos βL].
-Su determinante es 2(1+cos βL cosh βL), luego
-cos βL cosh βL+1=0. Los tests obtienen las primeras tres raíces por bisección
-propia en (0.1,π), (π+0.1,2π), (2π+0.1,3π), 55 iteraciones; no copian
-aproximaciones de raíces de otra fuente.
+Its determinant is 2(1+cos βL cosh βL), hence
+cos βL cosh βL+1=0. The tests obtain the first three roots by their own
+bisection in (0.1,π), (π+0.1,2π), (2π+0.1,3π), 55 iterations; they do not copy
+root approximations from another source.
 
-En ambos casos ω_n=(β_nL)²√(EI/(ρA))/L². Se usa el frame2d existente,
-masa consistente, E=ρ=A=L=1, I=10⁻⁴. Esto separa los tres primeros modos
-flexionales de los axiales sin suprimir los GDL axiales ni introducir inercia
-rotatoria/deformación de corte. Se refinan 4 → 12 elementos: los errores
-relativos de las tres primeras ω deben caer por un factor >10 y quedar <3e−4.
-No se promete exactitud continua con malla finita.
+In both cases ω_n=(β_nL)²√(EI/(ρA))/L². The existing frame2d is used,
+consistent mass, E=ρ=A=L=1, I=10⁻⁴. This separates the first three bending
+modes from the axial ones without suppressing axial DOFs or introducing rotary
+inertia/shear deformation. The mesh is refined from 4 → 12 elements: the relative
+errors of the first three ω must decrease by a factor >10 and remain <3e−4.
+Continuum accuracy with a finite mesh is not promised.
 
-### Ortogonalidad, rotación y casos límite
+### Orthogonality, rotation and limit cases
 
-La simetría de K y M da (λ_i−λ_j)φ_iᵀMφ_j=0; una base M-ortonormal
-satisface ΦᵀKΦ=diag(λ). Se verifican ambas identidades, también para todos
-los modos de las vigas, con tolerancia 2e−9 escalada por λ para K.
+Symmetry of K and M gives (λ_i−λ_j)φ_iᵀMφ_j=0; an M-orthonormal basis
+satisfies ΦᵀKΦ=diag(λ). Both identities are verified, also for all
+beam modes, with tolerance 2e−9 scaled by λ for K.
 
-Una rotación ortogonal Q transforma traslaciones de φ y r y deja Rz igual;
-K'=QKQᵀ, M'=QMQᵀ conservan λ, φᵀMφ, φᵀMr y M*. Se rota conjuntamente
-cada viga, sus apoyos (ambas traslaciones restringidas) y la dirección en
-0.7 rad. Se comparan frecuencias, masas, |Γ| y formas transformadas, admitiendo
-el signo arbitrario de cada modo; tolerancias entre 2e−10 y 3e−9.
+An orthogonal rotation Q transforms translations of φ and r and leaves Rz unchanged;
+K'=QKQᵀ, M'=QMQᵀ preserve λ, φᵀMφ, φᵀMr and M*. Each beam,
+its supports (both translations restrained) and the direction are rotated together by
+0.7 rad. Frequencies, masses, |Γ| and transformed shapes are compared, allowing
+the arbitrary sign of each mode; tolerances between 2e−10 and 3e−9.
 
-Un único GDL axial libre con E=ρ=A=L=1 tiene K_ff=1,
-M_ff=1/2 concentrada o 1/3 consistente: λ=2 o 3 y M*=M_ff.
-El mismo test aplica un asentamiento de 0.2 a la base y acepta previamente
-u_f=0.7: φ en el apoyo sigue cero y los estados permanecen intactos.
+A single free axial DOF with E=ρ=A=L=1 has K_ff=1,
+lumped M_ff=1/2 or consistent 1/3: λ=2 or 3 and M*=M_ff.
+The same test applies a settlement of 0.2 at the base and previously accepts
+u_f=0.7: φ at the support remains zero and the states remain intact.
 
-## Errores y límites
+## Errors and limits
 
-- ENG-E-0010: direcciones vacías/nulas, count>n y restricciones numéricas de
-  lowest_modes (masa indefinida, K indefinida). No se regularizan matrices.
-- ENG-E-0008: entradas o resultados no finitos/desbordados, incluidos Γ,
-  productos de masa, sumas, cocientes y periodos.
-- ENG-E-0011: componentes de traslación ausentes para la dirección pedida.
-- ENG-E-0006: M_ff singular; se conserva código/mensaje del solver y se añade
-  nodo/GDL global si existe entidad con índice reducido. Sin índice se conserva
-  el diagnóstico original; índice inexistente da ENG-E-0012. En el frame con
-  masa concentrada la rotación libre sin masa señala nodo 2, Rz, global 5.
-  La condensación/reducción de esos GDL sigue pendiente en ENG-LA-009/ASM.
-- ENG-E-0007: falta de convergencia, espectro incompleto o corte de multiplicidad;
-  se propaga sin devolver menos modos. Se prueba un corte de dos modos nulos.
-- ENG-E-0012: espectro incompatible, negativo/desordenado o forma sin norma
-  positiva devuelta por un backend que incumple el contrato.
-- No hay `panic!`, `unwrap` ni `expect` en la nueva biblioteca. No se cambia el
-  `expect` preexistente del adaptador `SystemView::dof_label` de engine-assembly;
-  el análisis modal no llama a esa ruta.
-- Se heredan el camino denso O(n²) de memoria y las tolerancias numéricas de
-  Cholesky/Jacobi/Sturm de ENG-LA-009. Un corte dentro de modos múltiples se
-  rechaza y exige pedir el grupo completo. No se garantiza precisión de
-  proyecciones subnormales o problemas extremadamente mal condicionados.
+- ENG-E-0010: empty/zero directions, count>n and numerical restrictions of
+  lowest_modes (indefinite mass, indefinite K). Matrices are not regularized.
+- ENG-E-0008: nonfinite/overflowed inputs or results, including Γ,
+  mass products, sums, quotients and periods.
+- ENG-E-0011: missing translation components for the requested direction.
+- ENG-E-0006: singular M_ff; the solver code/message is retained and a
+  global node/DOF is added if an entity with reduced index exists. Without an index the
+  original diagnostic is retained; nonexistent index gives ENG-E-0012. In the frame with
+  lumped mass the massless free rotation indicates node 2, Rz, global 5.
+  Condensation/reduction of those DOFs remains pending in ENG-LA-009/ASM.
+- ENG-E-0007: nonconvergence, incomplete spectrum or multiplicity cut;
+  it is propagated without returning fewer modes. A cut of two zero modes is tested.
+- ENG-E-0012: incompatible, negative/unordered spectrum or shape without a positive
+  norm returned by a backend that violates the contract.
+- There is no `panic!`, `unwrap` or `expect` in the new library. The
+  preexisting `expect` in the `SystemView::dof_label` adapter of engine-assembly is not changed;
+  the modal analysis does not call that path.
+- The dense O(n²) memory path and numerical tolerances of
+  Cholesky/Jacobi/Sturm from ENG-LA-009 are inherited. A cut within repeated modes is
+  rejected and requires requesting the entire group. Accuracy of
+  subnormal projections or extremely ill-conditioned problems is not guaranteed.
 
-## Verificación de la sesión
+## Session verification
 
-Todas las comprobaciones Cargo se ejecutaron con `CARGO_NET_OFFLINE=true`.
+All Cargo checks were run with `CARGO_NET_OFFLINE=true`.
 
-- `cargo fmt`: OK, salida 0.
-- `cargo clippy --all-targets -- -D warnings`: OK, salida 0. Se corrigió una
-  iteración por índice del nuevo test señalada por Clippy antes de repetirlo.
-- `cargo test --workspace`: OK, salida 0; 245 pruebas y doctests, incluidos
-  los 6 tests modales nuevos. Se repitió después del ajuste del test.
-- `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`: OK, salida 0.
-- `cargo check --workspace --target wasm32-unknown-unknown`: OK, salida 0,
-  con `PATH=/home/box/.cargo/bin:$PATH RUSTUP_TOOLCHAIN=stable`.
-- `bash clean-room/check.sh origin/main`: OK, salida 0. Incluye los tres
-  archivos nuevos mediante `git add -N` en un índice y objetos temporales
-  bajo `/tmp`, sin modificar índice ni objetos reales del repositorio.
-  `git diff --check` sobre ese índice: OK.
+- `cargo fmt`: OK, exit 0.
+- `cargo clippy --all-targets -- -D warnings`: OK, exit 0. An
+  index-based iteration in the new test flagged by Clippy was corrected before rerunning it.
+- `cargo test --workspace`: OK, exit 0; 245 tests and doctests, including
+  the 6 new modal tests. It was rerun after the test adjustment.
+- `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`: OK, exit 0.
+- `cargo check --workspace --target wasm32-unknown-unknown`: OK, exit 0,
+  with `PATH=/home/box/.cargo/bin:$PATH RUSTUP_TOOLCHAIN=stable`.
+- `bash clean-room/check.sh origin/main`: OK, exit 0. Includes the three
+  new files through `git add -N` in a temporary index and objects
+  under `/tmp`, without modifying the repository's real index or objects.
+  `git diff --check` on that index: OK.
 
-Compilación nativa, pruebas y rustdoc usaron rustc 1.85.1 (MSRV); Clippy
-instalado es 0.1.99. El intento wasm con el compilador del sistema falló por
-falta de std para ese destino. Se utilizó el toolchain `stable` ya instalado,
-rustc 1.99.0, que sí tiene el destino wasm. No se instaló ni descargó nada.
-El chequeo wasm verifica compilación, no ejecución de pruebas ni igualdad
-numérica entre destinos. Una primera preparación del índice temporal usó por
-error el directorio de objetos del worktree; se corrigió al directorio común
-de Git y se ejecutó el chequeo correctamente, siempre con escritura en `/tmp`.
+Native compilation, tests and rustdoc used rustc 1.85.1 (MSRV); installed Clippy
+is 0.1.99. The wasm attempt with the system compiler failed due to
+missing std for that target. The already installed `stable` toolchain was used,
+rustc 1.99.0, which does have the wasm target. Nothing was installed or downloaded.
+The wasm check verifies compilation, not test execution or numerical
+equality between targets. An initial preparation of the temporary index mistakenly used
+the worktree's object directory; it was corrected to the common Git directory
+and the check was run successfully, always writing to `/tmp`.
 
-Registros: `/tmp/eng-anl-002-{fmt,clippy,test,doc,wasm-stable,clean-room}.log`;
-el intento wasm inicial queda en `/tmp/eng-anl-002-wasm.log`.
-Sin commit ni push. Revisor clean-room: PENDIENTE (J4).
+Logs: `/tmp/eng-anl-002-{fmt,clippy,test,doc,wasm-stable,clean-room}.log`;
+the initial wasm attempt remains in `/tmp/eng-anl-002-wasm.log`.
+No commit or push. Clean-room reviewer: PENDING (J4).

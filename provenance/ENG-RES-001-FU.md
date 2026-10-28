@@ -1,37 +1,37 @@
-# Bitácora clean-room · ENG-RES-001-FU
+# Clean-room log · ENG-RES-001-FU
 
-- Ticket / PR: issue #69, seguimientos J4 r14 de #53, ENG-RES-001.
-- Autor(es): Codex gpt-6.1-sol high · 2026-10-14 (America/Guayaquil).
-- Rol: implementador y autor de derivaciones analíticas propias.
-- Contrato implementado: recuperación `element/1` en `CaseResults::recover`;
-  coherencia de cargas y miembros previa a CLI/API y `results/1`.
-- Fuentes permitidas usadas: petición del ticket y APIs/código propios de
-  engine-analysis, engine-assembly, engine-contracts y elementos del repositorio;
-  `provenance/TEMPLATE.md` y `provenance/ENG-RES-001.md`. Sin red ni fuentes externas.
-- Derivaciones propias: fórmulas y regla de equilibrio de esta bitácora;
-  [pruebas analíticas](../crates/engine-analysis/tests/results.rs).
-- Código de terceros copiado: ninguno. Sin dependencias nuevas.
-- Validación: analítica propia, equilibrio nodal y viga bajo carga uniforme.
-- Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
-- Revisor clean-room: PENDIENTE (J4).
+- Ticket / PR: issue #69, J4 r14 follow-ups to #53, ENG-RES-001.
+- Author(s): Codex gpt-6.1-sol high · 2026-10-14 (America/Guayaquil).
+- Role: implementer and author of own analytical derivations.
+- Implemented contract: `element/1` recovery in `CaseResults::recover`;
+  load and member consistency before CLI/API and `results/1`.
+- Permitted sources used: ticket request and own APIs/code from
+  engine-analysis, engine-assembly, engine-contracts and repository elements;
+  `provenance/TEMPLATE.md` and `provenance/ENG-RES-001.md`. No network or external sources.
+- Own derivations: formulas and equilibrium rule in this log;
+  [analytical tests](../crates/engine-analysis/tests/results.rs).
+- Third-party code copied: none. No new dependencies.
+- Validation: own analytical work, nodal equilibrium and beam under uniform load.
+- Comparison with oracle (sibling repo, informative): no.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+- Clean-room reviewer: PENDING (J4).
 
-## Regla de coherencia y tolerancia
+## Consistency rule and tolerance
 
-El ensamblado conserva vectores de fuerzas equivalentes, no las distribuciones
-originales de tramo ni los elementos. No puede reconstruir genéricamente las
-cargas originales de `MemberRecovery`. Se conservan las cargas nodales explícitas
-por caso en el mismo recorrido de ensamblaje, sin mezclarlas con las equivalentes
-elementales. `global_nodal_force` expone esa fuente, escalada una vez por el factor.
+The assembly retains equivalent force vectors, not the original span
+distributions or elements. It cannot generically reconstruct the
+original loads of `MemberRecovery`. Explicit nodal loads are retained
+per case in the same assembly traversal, without mixing them with equivalent
+element loads. `global_nodal_force` exposes that source, scaled once by the factor.
 
-Para cada miembro se obtienen las acciones de extremo **sobre el miembro** en
-global como `p_e = Element::respond(u_e, committed).internal_force − Σ load_vector`.
-Es la recuperación global de esas acciones usando `element/1`: no se infieren
-transformaciones de los vectores locales, cuyo sistema de ejes depende del kind.
-Las cargas suministradas se escalan una vez, incluyendo factores negativos o cero;
-los desplazamientos prescritos conservan sus valores físicos.
+For each member, end actions **on the member** in global
+coordinates are obtained as `p_e = Element::respond(u_e, committed).internal_force − Σ load_vector`.
+This is the global recovery of those actions using `element/1`: no
+transformations are inferred from local vectors, whose axis system depends on the kind.
+Supplied loads are scaled once, including negative or zero factors;
+prescribed displacements retain their physical values.
 
-Las acciones del miembro sobre el nodo tienen signo opuesto. Por cada GDL global:
+Member actions on the node have the opposite sign. For each global DOF:
 
 ```text
 r_d = −Σ p_e,d + F_nodal,d + R_d + D_d
@@ -39,47 +39,47 @@ s_d = Σ |f_int,e,d| + Σ |f_carga,e,d| + |F_nodal,d| + |R_d| + Σ |D_d|
 |r_d| / max(1, s_d) ≤ 1e-9
 ```
 
-`R` se recalcula con K y las cargas físicas del sistema. `D` son las acciones
-de restricciones de diafragma, si existen, recuperadas del mismo sistema.
-La escala se calcula antes de cancelar los términos elementales; así los
-momentos nulos en una viga simplemente apoyada admiten el redondeo al restar
-fuerzas internas y cargas equivalentes. Cada GDL usa exclusivamente sus unidades
-N o N·m: no se mezclan normas de fuerzas y momentos. El piso de 1 N o 1 N·m
-sigue la convención SI de los informes de análisis; implica una tolerancia
-absoluta de 1e-9 en componentes de escala menor que uno. El umbral relativo
-1e-9 deja margen sobre el redondeo de doble precisión en ensamblaje, solución,
-proyección y recuperación, y está muy por debajo de la discrepancia de la sonda.
-Esta es una verificación numérica, no una tolerancia física de aceptación.
+`R` is recalculated with K and the system's physical loads. `D` denotes the actions
+of diaphragm constraints, if any, recovered from the same system.
+The scale is calculated before cancellation of element terms; thus zero
+moments in a simply supported beam allow for rounding when subtracting
+internal forces and equivalent loads. Each DOF uses exclusively its units
+N or N·m: force and moment norms are not mixed. The floor of 1 N or 1 N·m
+follows the SI convention of analysis reports; it implies an absolute tolerance
+of 1e-9 in components with scale less than one. The relative threshold
+1e-9 leaves margin above double-precision rounding in assembly, solving,
+projection and recovery, and is well below the probe discrepancy.
+This is a numerical check, not a physical acceptance tolerance.
 
-La lista de recuperación debe incluir todos los miembros del sistema; las
-consultas parciales se hacen después mediante `query`. Un desequilibrio genera
-ENG-E-0010 con caso, nodo, GDL global y miembros incidentes suministrados, más el
-residual relativo en el mensaje. Un miembro omitido no puede identificarse por
-id porque el ensamblado no conserva ese registro. Aportes erróneos que se
-cancelen nodalmente, o miembros sin acciones en el estado concreto, pueden ser
-indistinguibles por equilibrio; no se promete validar identidad completa del
-modelo. No se modifica historia ni estado aceptado/de prueba.
+The recovery list must include all system members;
+partial queries are made afterward through `query`. An imbalance generates
+ENG-E-0010 with case, node, global DOF and supplied incident members, plus the
+relative residual in the message. An omitted member cannot be identified by
+id because the assembly does not retain that registry. Erroneous contributions that
+cancel nodally, or members without actions in the specific state, may be
+indistinguishable by equilibrium; full model identity validation is not
+promised. No history or committed/trial state is modified.
 
-Se verifican tamaños y finitud de `respond.internal_force` y `load_vector`
-antes de indexarlos para el equilibrio. Tamaños incoherentes generan ENG-E-0012
-con el miembro. Se mantienen los controles de estaciones y acciones locales.
+Sizes and finiteness of `respond.internal_force` and `load_vector` are checked
+before indexing them for equilibrium. Inconsistent sizes generate ENG-E-0012
+with the member. Station and local action checks are retained.
 
-## Estaciones y alcance de extremos
+## Stations and scope of extrema
 
-Se normaliza −0.0 a +0.0 antes de ordenar/deduplicar estaciones y también al
-recibir la salida elemental. La igualdad numérica admite ambas representaciones,
-pero las estaciones publicadas, consultas y ubicaciones de extremos usan +0.0.
-En empates algebraicos exactos se conserva la menor estación x/L.
+−0.0 is normalized to +0.0 before sorting/deduplicating stations and also when
+receiving element output. Numerical equality accepts both representations,
+but published stations, queries and extrema locations use +0.0.
+Exact algebraic ties retain the lowest station x/L.
 
-La afirmación de extremos exactos bajo cargas uniformes queda acotada a frame2d:
-se añaden raíces interiores de cortante y de la derivada del momento. Frame3d
-no dispone de esa búsqueda y sus extremos pertenecen a las estaciones recuperadas.
-La serialización `results/1` sigue fuera de alcance.
+The claim of exact extrema under uniform loads is limited to frame2d:
+interior roots of shear and the moment derivative are added. Frame3d
+does not have that search and its extrema belong to recovered stations.
+`results/1` serialization remains out of scope.
 
-## Oráculos analíticos propios
+## Own analytical oracles
 
-Con L=4 m, w=6 N/m y carga transversal −w, el equilibrio de una viga
-simplemente apoyada da Ry_i=Ry_j=wL/2=12 N. Integrando el cortante:
+With L=4 m, w=6 N/m and transverse load −w, equilibrium of a simply
+supported beam gives Ry_i=Ry_j=wL/2=12 N. Integrating shear:
 
 ```text
 M(x) = wx(L−x)/2
@@ -87,69 +87,69 @@ M′(x) = w(L−2x)/2 = 0 => x=L/2
 Mz_max = wL²/8 = 12 N·m
 ```
 
-La sonda sin cargas de recuperación utilizaba solo los giros de la solución
-cargada, produciendo Mz máximo 8 N·m. Ahora se rechaza por equilibrio nodal;
-la misma solución recuperada con sus cargas da 12 N·m, incluso solicitando solo
-los extremos, porque se añade la estación crítica.
+The probe without recovery loads used only the rotations of the loaded
+solution, producing maximum Mz 8 N·m. It is now rejected by nodal equilibrium;
+the same solution recovered with its loads gives 12 N·m, even when requesting only
+the ends, because the critical station is added.
 
-En la viga biempotrada en flexión, la simetría y los giros nulos dan acciones
-de extremo Mi=+wL²/12 y Mj=−wL²/12, de módulo 8 N·m. Por cara positiva:
-`M(x)=−wL²/12+wx(L−x)/2`, mínimos −8 N·m en ambos extremos y máximo
-wL²/24=4 N·m en el centro. Se conserva este oráculo existente.
+In the beam restrained at both ends in bending, symmetry and zero rotations give end
+actions Mi=+wL²/12 and Mj=−wL²/12, with magnitude 8 N·m. On the positive face:
+`M(x)=−wL²/12+wx(L−x)/2`, minima −8 N·m at both ends and maximum
+wL²/24=4 N·m at the center. This existing oracle is preserved.
 
-Con par terminal +8 N·m, equilibrio: Ry_i=14 N y Ry_j=10 N;
-`M(x)=14x−3x²`, pico en x=14/6 m con valor 14²/(2w). Una carga −7 N
-directamente sobre el apoyo aumenta su reacción a 21 N sin cambiar el diagrama.
-La prueba nueva verifica esa combinación, además de rechazar cargas cambiadas,
-miembros omitidos y un elemento con rigidez distinta a la ensamblada.
+With end couple +8 N·m, equilibrium: Ry_i=14 N and Ry_j=10 N;
+`M(x)=14x−3x²`, peak at x=14/6 m with value 14²/(2w). A load −7 N
+directly on the support increases its reaction to 21 N without changing the diagram.
+The new test checks that combination, as well as rejecting changed loads,
+omitted members and an element with stiffness different from that assembled.
 
-Un elemento falso propio delega la física al frame del repositorio y altera
-longitudes de salida, estaciones o el signo del cero para probar la frontera.
-N, Vz, T y My constantes y nulos permiten probar empates exactos sin depender
-de redondeos de Mz. No se usan archivos, procesos ni fuentes externas en fixtures.
+An own fake element delegates physics to the repository frame and alters
+output lengths, stations or the sign of zero to test the boundary.
+Constant and zero N, Vz, T and My allow testing exact ties without depending
+on Mz rounding. No files, processes or external sources are used in fixtures.
 
-## Verificación local
+## Local verification
 
-Verificación del 2026-10-14, sin red, con `CARGO_NET_OFFLINE=true` y
-`CARGO_TARGET_DIR=/workspace/.cargo-target` en todos los comandos Cargo.
-Se usó `RUSTFLAGS='--cfg eng_res001_fu_69'`, una marca sin usos en el código,
-para aislar los artefactos de otras compilaciones del directorio compartido:
-antes de aislarlos, se observó una dependencia cacheada que carecía del nuevo
-método pese a estar presente en el archivo fuente.
+Verification on 2026-10-14, without network, with `CARGO_NET_OFFLINE=true` and
+`CARGO_TARGET_DIR=/workspace/.cargo-target` in all Cargo commands.
+`RUSTFLAGS='--cfg eng_res001_fu_69'` was used, a marker unused in the code,
+to isolate artifacts from other builds in the shared directory:
+before isolating them, a cached dependency was observed that lacked the new
+method despite its presence in the source file.
 
 - `cargo fmt --check`: OK.
 - `cargo clippy --all-targets -- -D warnings`: OK.
-- `cargo test --workspace`: OK, 388 pruebas (incluidos doctests), cero fallos;
-  13 pruebas de integración de resultados, cuatro nuevas.
+- `cargo test --workspace`: OK, 388 tests (including doctests), zero failures;
+  13 result integration tests, four new.
 - `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --workspace`: OK.
-- `cargo check --workspace --target wasm32-unknown-unknown`: OK, usando
-  `PATH=/home/box/.cargo/bin:$PATH` y el toolchain stable y destino ya instalados.
-  Valida compilación, no ejecución en un runtime wasm. No se descargó nada.
-- `bash clean-room/check.sh origin/main`: OK, con los seis archivos del cambio
-  en el índice para incluir la bitácora nueva.
-- `git diff --check` y `git diff --cached --check`: OK. No se añadieron
-  `panic!`, `unwrap` ni `expect` al código de biblioteca. Sin cambios a
-  `docs/CLEAN_ROOM.md`, `.github/**` ni `clean-room/**`.
+- `cargo check --workspace --target wasm32-unknown-unknown`: OK, using
+  `PATH=/home/box/.cargo/bin:$PATH` and the already installed stable toolchain and target.
+  Validates compilation, not execution in a wasm runtime. Nothing was downloaded.
+- `bash clean-room/check.sh origin/main`: OK, with the six changed files
+  in the index to include the new log.
+- `git diff --check` and `git diff --cached --check`: OK. No
+  `panic!`, `unwrap` or `expect` were added to library code. No changes to
+  `docs/CLEAN_ROOM.md`, `.github/**` or `clean-room/**`.
 
-### Reversión temporal comprobada
+### Verified temporary rollback
 
-Se guardó el `results.rs` corregido y se sustituyó temporalmente por
-`git show HEAD:crates/engine-analysis/src/results.rs`, manteniendo todas las
-pruebas nuevas intactas. `cargo test -p engine-analysis --test results`
-devolvió exit 101: **9 pruebas existentes pasaron y las 4 nuevas fallaron**.
+The corrected `results.rs` was saved and temporarily replaced by
+`git show HEAD:crates/engine-analysis/src/results.rs`, keeping all
+new tests intact. `cargo test -p engine-analysis --test results`
+returned exit 101: **9 existing tests passed and the 4 new ones failed**.
 
-- Sonda `loads=[]`: se aceptó la recuperación; falló la exigencia ENG-E-0010.
-- Cargas cambiadas/miembros incoherentes: se aceptó la primera recuperación
-  con cargas omitidas; falló la exigencia de diagnóstico con entidades.
-- Estación −0.0: bits obtenidos 9223372036854775808, esperados 0 para +0.0.
-- Elemento falso: las salidas malformadas de `respond`/`load_vector` no eran
-  comprobadas; falló la exigencia ENG-E-0012. Los controles preexistentes de
-  tamaños locales y estaciones se conservan y también se ejercitan.
+- `loads=[]` probe: recovery was accepted; the ENG-E-0010 requirement failed.
+- Changed loads/inconsistent members: the first recovery with omitted loads
+  was accepted; the requirement for a diagnostic with entities failed.
+- Station −0.0: bits obtained 9223372036854775808, expected 0 for +0.0.
+- Fake element: malformed `respond`/`load_vector` outputs were not
+  checked; the ENG-E-0012 requirement failed. Preexisting local size
+  and station checks are retained and also exercised.
 
-El archivo corregido se restauró mediante `finally` antes de las verificaciones
-del workspace. Las 13 pruebas de resultados pasaron con la corrección, y el
-workspace final pasó completo. No se revirtió ni modificó el historial Git
-para esta comprobación.
+The corrected file was restored through `finally` before workspace
+checks. The 13 result tests passed with the correction, and the
+final workspace passed in full. Git history was neither reverted nor modified
+for this check.
 
-Herramientas nativas de test/rustdoc: Cargo/rustc 1.85.1; Clippy 0.1.99 y
-compilación wasm con stable/rustc 1.99.0 ya instalado. Sin push.
+Native test/rustdoc tools: Cargo/rustc 1.85.1; Clippy 0.1.99 and
+wasm compilation with already installed stable/rustc 1.99.0. No push.

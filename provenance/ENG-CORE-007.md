@@ -1,170 +1,170 @@
-# Bitácora clean-room · ENG-CORE-007
+# Clean-room log · ENG-CORE-007
 
-- Ticket / PR: ENG-CORE-007, «Contratos v1 en Rust (traits)» · rama `j2/eng-core-007-traits`; sin commit, push ni PR en esta sesión.
-- Autor(es): Codex (GPT-6) como agente de especificación, implementación, documentación y verificación bajo instrucciones del usuario · 2026-10-10 (America/Guayaquil). No se delegó a otros agentes.
-- Rol: especificador e implementador; sin actividad de operador de oráculo ni auditor de similitud.
-- Contrato implementado: crate `engine-contracts`; `uniaxial/1`, `section/1`, `element/1`, `analysis/1` y transporte mínimo `results/1`. Traits `UniaxialLaw`, `SectionLaw`, `Element`, `ElementFactory`, `SystemView`, `AnalysisMethod`, `ResultSink`, `RunControl`, tipos de intercambio, kit público `conformance` y plantillas públicas `examples`. No incluye solver lineal, solver de autovalores, registro de métodos, ensamblador ni esquema completo de resultados.
-- Fuentes permitidas usadas: exclusivamente las categorías permitidas en [docs/CLEAN_ROOM.md §4](../docs/CLEAN_ROOM.md), contratos internos y derivaciones propias. Referencia bibliográfica: William McGuire, Richard H. Gallagher y Ronald D. Ziemian, *Matrix Structural Analysis*, 2.ª edición, John Wiley & Sons, 2000. Autores, título, edición y año confirmados mediante la [ficha institucional de Bucknell](https://digitalcommons.bucknell.edu/books/7/); edición/editorial contrastadas con el [sitio editorial de Wiley](https://bcs.wiley.com/he-bcs/Books?action=index&bcsId=4986&itemId=0471376515). **Capítulo/sección/número de ecuación: PENDIENTE**, no se consultó el texto del libro ni se atribuyeron páginas o ecuaciones específicas. No se descargaron listados de código, software complementario ni el PDF del libro. La validación numérica se basa en la derivación propia de forma cerrada descrita abajo, no en datos supuestamente extraídos del libro.
-- Derivaciones propias: [nota analítica de esta bitácora](#derivación-analítica-propia-y-casos-verificados), [contratos](../crates/engine-contracts/src/traits.rs), [kit de conformidad](../crates/engine-contracts/src/conformance.rs), [ejemplos](../crates/engine-contracts/src/examples.rs) y [pruebas](../crates/engine-contracts/src/tests.rs).
-- Código de terceros copiado: ninguno. Todo el código es propio. Única dependencia del nuevo crate: `engine-core` por path; biblioteca estándar de Rust. No se modificaron `engine-core` ni `engine-model`.
-- Validación: analítica, con formas cerradas σ=Eε, N=EAε0, Mz=EIκz, k=EA/L, fuerzas de barra, equilibrio axial bajo carga uniforme y conservación de masa. Referencia estándar: McGuire, Gallagher y Ziemian, *Matrix Structural Analysis*, 2.ª ed. (2000); capítulo/ejercicio/página **PENDIENTE**, sin atribuir un ejemplo publicado concreto. Además, conformidad genérica, pruebas negativas y doctests propios. No se declara validado un método productivo a partir de estos mocks.
-- Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
-- Revisor clean-room: PENDIENTE de revisión humana; esta sesión no realiza auditoría de similitud ni aprobación de merge.
+- Ticket / PR: ENG-CORE-007, «V1 contracts in Rust (traits)» · branch `j2/eng-core-007-traits`; no commit, push or PR in this session.
+- Author(s): Codex (GPT-6) as specification, implementation, documentation and verification agent under user instructions · 2026-10-10 (America/Guayaquil). No delegation to other agents.
+- Role: specifier and implementer; no oracle operator or similarity auditor activity.
+- Contract implemented: crate `engine-contracts`; `uniaxial/1`, `section/1`, `element/1`, `analysis/1` and minimal `results/1` transport. Traits `UniaxialLaw`, `SectionLaw`, `Element`, `ElementFactory`, `SystemView`, `AnalysisMethod`, `ResultSink`, `RunControl`, exchange types, public `conformance` kit and public `examples` templates. Does not include a linear solver, eigenvalue solver, method registry, assembler or complete results schema.
+- Permitted sources used: exclusively the categories permitted in [docs/CLEAN_ROOM.md §4](../docs/CLEAN_ROOM.md), internal contracts and own derivations. Bibliographic reference: William McGuire, Richard H. Gallagher y Ronald D. Ziemian, *Matrix Structural Analysis*, 2.ª edición, John Wiley & Sons, 2000. Authors, title, edition and year confirmed through the [Bucknell institutional record](https://digitalcommons.bucknell.edu/books/7/); edition/publisher checked against the [Wiley publisher site](https://bcs.wiley.com/he-bcs/Books?action=index&bcsId=4986&itemId=0471376515). **Chapter/section/equation number: PENDING**, the book text was not consulted and no specific pages or equations were attributed. No code listings, supplementary software or book PDF were downloaded. Numerical validation is based on the own closed-form derivation described below, not on data supposedly extracted from the book.
+- Own derivations: [analytical note in this log](#derivación-analítica-propia-y-casos-verificados), [contracts](../crates/engine-contracts/src/traits.rs), [conformance kit](../crates/engine-contracts/src/conformance.rs), [examples](../crates/engine-contracts/src/examples.rs) and [tests](../crates/engine-contracts/src/tests.rs).
+- Third-party code copied: none. All code is original. Sole dependency of the new crate: `engine-core` by path; Rust standard library. Neither `engine-core` nor `engine-model` was modified.
+- Validation: analytical, with closed forms σ=Eε, N=EAε0, Mz=EIκz, k=EA/L, bar forces, axial equilibrium under uniform load and mass conservation. Standard reference: McGuire, Gallagher y Ziemian, *Matrix Structural Analysis*, 2.ª ed. (2000); chapter/exercise/page **PENDING**, without attributing a specific published example. Also generic conformance, negative tests and own doctests. No production method is declared validated from these mocks.
+- Comparison with oracle (sibling repo, informational): no.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+- Clean-room reviewer: PENDING human review; this session performs no similarity audit or merge approval.
 
-## Documentos internos consultados
+## Internal documents consulted
 
-Se leyeron primero `docs/CLEAN_ROOM.md`, `provenance/TEMPLATE.md`,
+`docs/CLEAN_ROOM.md`, `provenance/TEMPLATE.md`,
 `provenance/ENG-CORE-003.md`, `clean-room/forbidden_identifiers.txt`,
-`crates/engine-core/src/*.rs`, `crates/engine-model/src/*.rs` y
-`docs/CONVENCION_EJES.md`. También se consultaron la configuración del workspace,
-los manifests existentes, `README.md` y el comprobador `clean-room/check.sh`.
-No hay `AGENTS.md` aplicable en el repo ni en sus directorios ascendientes.
+`crates/engine-core/src/*.rs`, `crates/engine-model/src/*.rs` and
+`docs/CONVENCION_EJES.md` were read first. The workspace configuration,
+existing manifests, `README.md` and the `clean-room/check.sh` checker were also consulted.
+There is no applicable `AGENTS.md` in the repo or its ancestor directories.
 
-La especificación autorizada se leyó directamente, sin modificarla ni copiarla
-fuera del repo: `/workspace/motor-rust/01_ARQUITECTURA_Y_CONTRATOS.md`,
-§§4.1–4.10, y `/workspace/motor-rust/04_TICKETS.md`, ENG-CORE-007.
-Los contratos se implementaron con tipos propios y documentación original.
-No se abrieron rutas ni fuentes prohibidas por el protocolo.
+The authorized specification was read directly, without modifying or copying it
+outside the repo: `/workspace/motor-rust/01_ARQUITECTURA_Y_CONTRATOS.md`,
+§§4.1–4.10, and `/workspace/motor-rust/04_TICKETS.md`, ENG-CORE-007.
+The contracts were implemented with own types and original documentation.
+No paths or sources forbidden by the protocol were opened.
 
-## Decisiones de alcance y arquitectura
+## Scope and architecture decisions
 
-1. **Sin dependencias externas nuevas.** `JsonValue` es un enum mínimo propio con
-   nulo, lógico, número real, texto, array y objeto ordenado. No parsea ni serializa
-   JSON. Los consumidores validan tipos, números finitos, claves y rangos; los
-   esquemas de las fábricas y métodos son `String` de JSON Schema. La frontera
-   JSON y los esquemas completos corresponden a otros tickets. Esto sustituye
-   la dependencia de serialización sugerida en el documento de arquitectura.
-2. **Almacenamiento matricial provisional.** `DMat` conserva dimensiones y un
-   `Vec<Real>` fila-mayor, validando tamaño/desbordamiento y finitud. `SymMatrix`
-   valida cuadratura y simetría exacta, sin escoger tolerancias físicas implícitas.
-   `SparsityPattern` usa máscara booleana densa fila-mayor simétrica. Los tres
-   **se reemplazan por el backend de ENG-LA-007**. No se implementan factorización,
-   resolución, ordenamiento ni autovalores. Las fórmulas cerradas de los ejemplos
-   y las operaciones privadas del kit sirven exclusivamente a su verificación.
-3. **ModelView mínimo propio.** Presta dimensión y pares (NodeId, coordenadas).
-   `ElementParams` conserva propiedades SI y referencias opcionales ya resueltas
-   a sección/ley mediante `Arc`. No adapta ni altera `engine-model`. La fábrica
-   de ejemplo recibe E, A y densidad, los guarda en el elemento y no necesita
-   referencias de nodos ni propiedades adicionales del contexto.
-4. **Ejes aprobados del repo.** Se aplica X-Y horizontal y Z vertical en D3,
-   D2 en X-Y con Z=0 y GDL Ux, Uy, Rz. Prevalece la decisión aprobada en
-   `docs/CONVENCION_EJES.md` sobre la mención pendiente de Y vertical en la
-   especificación inicial. No se define una convención nueva de elevación D2.
-5. **Estado explícito.** Historia plana y finita, de longitud exacta declarada;
-   respuesta pura con deformaciones/desplazamientos totales y estado aceptado.
-   El kit recorre una trayectoria aceptando el estado de prueba entre muestras,
-   verifica repetibilidad y que la respuesta con entrada aceptada conserve fuerzas.
-   Incluye una ley de prueba con historia no vacía para ejercer ese recorrido.
-   `SystemView` sobrescribe salidas, acepta exactamente u y hace rollback
-   idempotente sin borrar el último aceptado.
-6. **Tipos de apoyo mínimos.** Carga de miembro uniforme en ejes globales;
-   estaciones x/L con [N,Vy,Vz,T,My,Mz]. `CaseRef` es nominal. `Requirements`
-   declara masa, Kg, no linealidad y casos. Las claves/valores de resultados
-   cubren bloques y metadatos mínimos; la procedencia completa, consultas y
-   serialización de `results/1` siguen en ENG-CORE-005. Normas de informes
-   relativas adimensionales; el productor declara su escalado para GDL mixtos.
-7. **Mocks explícitos.** Ley y sección elásticas, barra lineal D2, fábrica,
-   sistema de resorte escalar, sink en memoria, control observable y método
-   de aceptación de desplazamientos prescritos. El método no resuelve equilibrio;
-   sus normas cero indican ausencia de corrección iterativa, con tolerancias
-   explícitas de 1e-8. Se acepta antes de emitir al sink; un fallo de E/S posterior
-   conserva ese último estado ya aceptado y se propaga como error. La cancelación
-   previa no acepta ni emite nada. No hay reintentos ocultos.
-8. **Diagnósticos existentes.** Se reutilizan `ContractId`, `Dof`, `Dim`, `Real`,
-   `NodeId`, `DofIndex`, `Diagnostic`, `EngineError` y `EResult` del núcleo.
-   Incumplimientos de conformidad usan ENG-E-0009 con detalle en `hint`; errores
-   de implementaciones conservan su código/contexto. La referencia nominal
-   `EntityRef::Law(kind)` del kit identifica el componente probado, sin afirmar
-   que exista una entidad constitutiva con ese nombre en el modelo.
-9. **Sin cambios editoriales no convencionales.** El README existente solo enlaza
-   decisiones fundacionales; no hay convención de altas de crates ni CHANGELOG.
-   No se añadieron líneas allí, ni archivos legales o cambios en rutas protegidas.
+1. **No new external dependencies.** `JsonValue` is a minimal own enum with
+   null, boolean, real number, text, array and ordered object. It does not parse or serialize
+   JSON. Consumers validate types, finite numbers, keys and ranges; factory
+   and method schemas are JSON Schema `String`. The JSON
+   boundary and complete schemas belong to other tickets. This replaces
+   the serialization dependency suggested in the architecture document.
+2. **Provisional matrix storage.** `DMat` preserves dimensions and a
+   row-major `Vec<Real>`, validating size/overflow and finiteness. `SymMatrix`
+   validates squareness and exact symmetry, without choosing implicit physical tolerances.
+   `SparsityPattern` uses a symmetric dense row-major boolean mask. All three
+   **are replaced by the ENG-LA-007 backend**. No factorization,
+   solving, ordering or eigenvalues are implemented. The examples' closed formulas
+   and the kit's private operations serve exclusively for their verification.
+3. **Minimal own ModelView.** Borrows dimension and (NodeId, coordinates) pairs.
+   `ElementParams` preserves SI properties and optional references already resolved
+   to section/law through `Arc`. It does not adapt or alter `engine-model`. The example
+   factory receives E, A and density, stores them in the element and needs no
+   node references or additional context properties.
+4. **Approved repo axes.** X-Y horizontal and Z vertical are applied in D3,
+   D2 in X-Y with Z=0 and DOFs Ux, Uy, Rz. The approved decision in
+   `docs/CONVENCION_EJES.md` prevails over the pending mention of vertical Y in the
+   initial specification. No new D2 elevation convention is defined.
+5. **Explicit state.** Flat and finite history, of exact declared length;
+   pure response with total strains/displacements and accepted state.
+   The kit traverses a path accepting the trial state between samples,
+   verifies repeatability and that the response with accepted input preserves forces.
+   Includes a test law with nonempty history to exercise that traversal.
+   `SystemView` overwrites outputs, accepts exactly u and performs idempotent
+   rollback without deleting the last accepted state.
+6. **Minimal supporting types.** Uniform member load in global axes;
+   x/L stations with [N,Vy,Vz,T,My,Mz]. `CaseRef` is nominal. `Requirements`
+   declares mass, Kg, nonlinearity and cases. Result keys/values
+   cover minimal blocks and metadata; complete provenance, queries and
+   `results/1` serialization remain in ENG-CORE-005. Dimensionless relative
+   report norms; the producer declares its scaling for mixed DOFs.
+7. **Explicit mocks.** Elastic law and section, linear D2 bar, factory,
+   scalar spring system, in-memory sink, observable control and prescribed
+   displacement acceptance method. The method does not solve equilibrium;
+   its zero norms indicate absence of iterative correction, with explicit
+   tolerances of 1e-8. Acceptance occurs before emission to the sink; a subsequent I/O failure
+   preserves that last already accepted state and propagates as an error. Prior
+   cancellation neither accepts nor emits anything. There are no hidden retries.
+8. **Existing diagnostics.** Core `ContractId`, `Dof`, `Dim`, `Real`,
+   `NodeId`, `DofIndex`, `Diagnostic`, `EngineError` and `EResult` are reused.
+   Conformance violations use ENG-E-0009 with detail in `hint`; implementation
+   errors retain their code/context. The kit's nominal reference
+   `EntityRef::Law(kind)` identifies the component tested, without asserting
+   that a constitutive entity with that name exists in the model.
+9. **No unconventional editorial changes.** The existing README only links
+   foundational decisions; there is no convention for adding crates or CHANGELOG.
+   No lines were added there, or legal files or changes to protected paths.
 
 ## Derivación analítica propia y casos verificados
 
-Para un material lineal se adopta σ=Eε, así dσ/dε=E. Una sección D2 sin
-acoplamiento integra tensión axial y flexión: N=EAε0 y Mz=EIκz; su tangente
-es diagonal (EA, EI). Unidades: E en Pa, A en m², I en m⁴, ε0 adimensional
-y κz en m⁻¹, de donde N en N y Mz en N·m.
+For a linear material σ=Eε is adopted, thus dσ/dε=E. An uncoupled D2 section
+integrates axial stress and bending: N=EAε0 and Mz=EIκz; its tangent
+is diagonal (EA, EI). Units: E in Pa, A in m², I in m⁴, ε0 dimensionless
+and κz in m⁻¹, yielding N in N and Mz in N·m.
 
-Para una barra entre i y j, L=||xj−xi|| y n=(xj−xi)/L. En D2 se define
-b=[−nx,−ny,0,nx,ny,0]. La elongación es δ=bᵀu; ε=δ/L, N=EAδ/L y
-k=EA/L. La energía elástica es U=½kδ², así F=∂U/∂u=k b(bᵀu)
-y K=∂F/∂u=k bbᵀ. Esto demuestra simetría. Una traslación común o rotación
-infinitesimal de los dos extremos produce bᵀu=0, por lo que F=0. Al rotar
-coordenadas y desplazamientos simultáneamente, F y K se transforman por la
-misma rotación; no cambia el comportamiento físico.
+For a bar between i and j, L=||xj−xi|| and n=(xj−xi)/L. In D2,
+b=[−nx,−ny,0,nx,ny,0] is defined. Elongation is δ=bᵀu; ε=δ/L, N=EAδ/L and
+k=EA/L. Elastic energy is U=½kδ², thus F=∂U/∂u=k b(bᵀu)
+and K=∂F/∂u=k bbᵀ. This demonstrates symmetry. A common translation or infinitesimal
+rotation of the two ends produces bᵀu=0, so F=0. When rotating
+coordinates and displacements simultaneously, F and K transform by the
+same rotation; physical behavior does not change.
 
-Con E=200 Pa, A=3 m², L=2 m y δ=0.01 m, k=300 N/m y N=3 N; las
-acciones locales de caras son −3 N en i y +3 N en j. La prueba contrasta
-estos valores directamente y comprueba N=3 N en todas las estaciones sin carga.
-Con E=200 Pa y ε=0.02, σ=4 Pa. Con EA=600 N, EI=10 N·m²,
-ε0=0.02 y κz=−0.03 m⁻¹, N=12 N y Mz=−0.3 N·m.
+With E=200 Pa, A=3 m², L=2 m and δ=0.01 m, k=300 N/m and N=3 N; the
+local face actions are −3 N at i and +3 N at j. The test compares
+these values directly and checks N=3 N at all unloaded stations.
+With E=200 Pa and ε=0.02, σ=4 Pa. With EA=600 N, EI=10 N·m²,
+ε0=0.02 and κz=−0.03 m⁻¹, N=12 N and Mz=−0.3 N·m.
 
-Una carga axial uniforme q da fuerzas nodales equivalentes qL/2 en ambos
-extremos. La recuperación resta esas cargas a las acciones elásticas y,
-por equilibrio dN/dx=−q, obtiene N(ξ)=N_el+qL(½−ξ), ξ=x/L.
-Con q=4 N/m, L=2 m y desplazamientos nulos, acciones en ambas caras
-−4 N y estaciones N(0)=4, N(½)=0, N(1)=−4 N; su resultante equilibra qL.
-Cargas transversales o momentos se rechazan porque esta barra no tiene flexión.
+A uniform axial load q gives equivalent nodal forces qL/2 at both
+ends. Recovery subtracts those loads from elastic actions and,
+by equilibrium dN/dx=−q, obtains N(ξ)=N_el+qL(½−ξ), ξ=x/L.
+With q=4 N/m, L=2 m and zero displacements, actions on both faces
+−4 N and stations N(0)=4, N(½)=0, N(1)=−4 N; their resultant balances qL.
+Transverse loads or moments are rejected because this bar has no bending.
 
-Para masa m=ρAL, cada dirección traslacional tiene masa concentrada
-(m/2) diag(1,1) o consistente (m/6)[[2,1],[1,2]], obtenida integrando
-las funciones lineales 1−ξ y ξ. Ambas conservan m bajo traslación uniforme;
-con ρ=2 kg/m³, A=3 m², L=2 m, se comprueba m=12 kg por dirección.
-Los giros no tienen inercia en esta barra. No se atribuyen estos números a
-un ejemplo del libro: son casos propios con solución cerrada.
+For mass m=ρAL, each translational direction has lumped mass
+(m/2) diag(1,1) or consistent mass (m/6)[[2,1],[1,2]], obtained by integrating
+the linear functions 1−ξ and ξ. Both conserve m under uniform translation;
+with ρ=2 kg/m³, A=3 m², L=2 m, m=12 kg per direction is checked.
+Rotations have no inertia in this bar. These numbers are not attributed to
+a book example: they are own cases with a closed-form solution.
 
-## Conformidad, cobertura y límites
+## Conformance, coverage and limits
 
-El kit público incluye comprobaciones para los ocho traits. Para RunControl,
-que no ofrece lectura de eventos, recibe una traza observada de cualquier
-implementación; comprueba fracciones, monotonía y notas. El kit de sink envía
-entradas válidas/invalidas; la prueba del sink concreto comprueba retención y
-atomicidad. El kit de fábrica ejecuta los invariantes físicos sobre su producto.
-Los de sistema y método ejercen salidas, aceptación, rollback, escalado de caso,
-informes y cancelación. Los invariantes no observables a través de un trait
-(p. ej. almacenamiento interno del sink) requieren lectura propia en sus pruebas.
+The public kit includes checks for all eight traits. For RunControl,
+which offers no event reading, it receives an observed trace from any
+implementation; checks fractions, monotonicity and notes. The sink kit sends
+valid/invalid entries; the concrete sink test checks retention and
+atomicity. The factory kit runs physical invariants on its product.
+The system and method kits exercise outputs, acceptance, rollback, case scaling,
+reports and cancellation. Invariants not observable through a trait
+(e.g. internal sink storage) require their own reading in tests.
 
-Tangentes: diferencias centrales manteniendo fijo el estado aceptado, con error
-relativo norma infinito estrictamente menor que 1e-6. Comparaciones de estado,
-simetría y covarianza: 1e-10 relativo + 1e-12 absoluto. Modos rígidos: residuo
-escalado por tangente y amplitud, 1e-10 relativo + 1e-12 absoluto. Se ejecutan
-tres modos D2 y seis D3, y dos rotaciones no triviales por cada eje permitido.
-La covarianza exige GDL cerrados bajo rotación; orientaciones globales contenidas
-en parámetros necesitarían un fixture que las transforme expresamente. El kit
-no infiere el rango de una ley ni prueba todos sus puntos: el consumidor aporta
-muestras diferenciables interiores y un incremento absoluto apropiado en SI.
+Tangents: central differences holding the accepted state constant, with infinity-norm
+relative error strictly less than 1e-6. State,
+symmetry and covariance comparisons: 1e-10 relative + 1e-12 absolute. Rigid modes: residual
+scaled by tangent and amplitude, 1e-10 relative + 1e-12 absolute. Three
+D2 and six D3 modes are run, and two nontrivial rotations for each permitted axis.
+Covariance requires DOFs closed under rotation; global orientations contained
+in parameters would need a fixture that expressly transforms them. The kit
+does not infer a law's range or test all its points: the consumer supplies
+interior differentiable samples and an appropriate absolute SI increment.
 
-Diecinueve pruebas unitarias y cuatro doctests del nuevo crate: conformidad de
-cada ejemplo, solución cerrada y cargas, masa conservada, estado no vacío,
-sección espacial de cuatro componentes y barra espacial independiente de prueba
-para verificar cada uno de los seis modos rígidos y rotaciones de los tres ejes.
-Pruebas negativas detectan derivadas falsas, NaN/inf, tamaños/historias/contratos
-incorrectos, tensión aceptada inconsistente, fuerza rígida espuria, masa asimétrica,
-violación de covarianza, salida de sistema incompleta, falta de informes,
-convergencia falsa y cancelación ignorada. Se ejercen entradas, geometría,
-parámetros, estaciones, cargas, resultados anidados, desbordamientos y errores E/S.
+Nineteen unit tests and four doctests in the new crate: conformance of
+each example, closed-form solution and loads, conserved mass, nonempty state,
+four-component spatial section and independent spatial test bar
+to verify each of the six rigid modes and rotations about the three axes.
+Negative tests detect false derivatives, NaN/inf, incorrect sizes/histories/contracts,
+inconsistent accepted stress, spurious rigid force, asymmetric mass,
+covariance violation, incomplete system output, missing reports,
+false convergence and ignored cancellation. Inputs, geometry,
+parameters, stations, loads, nested results, overflows and I/O errors are exercised.
 
-## Verificación local
+## Local verification
 
-Resultados finales de la sesión:
+Final session results:
 
-- `~/.cargo/bin/cargo fmt --check`: satisfactorio.
-- `~/.cargo/bin/cargo clippy --all-targets -- -D warnings`: satisfactorio.
-- `~/.cargo/bin/cargo test`: satisfactorio; workspace completo, 43 pruebas
-  unitarias y 25 doctests, incluidos 19 y 4 respectivamente del nuevo crate.
-- `RUSTDOCFLAGS="-D warnings" ~/.cargo/bin/cargo doc --no-deps`: satisfactorio.
-- `bash clean-room/check.sh origin/main`: satisfactorio; también ejecutado
-  con índice/objetos temporales para incluir todos los archivos nuevos sin
-  cambiar el índice real del usuario. Revisión adicional de identificadores
-  prohibidos y rutas protegidas en todos los archivos del ticket: satisfactoria.
+- `~/.cargo/bin/cargo fmt --check`: successful.
+- `~/.cargo/bin/cargo clippy --all-targets -- -D warnings`: successful.
+- `~/.cargo/bin/cargo test`: successful; full workspace, 43 unit
+  tests and 25 doctests, including 19 and 4 respectively from the new crate.
+- `RUSTDOCFLAGS="-D warnings" ~/.cargo/bin/cargo doc --no-deps`: successful.
+- `bash clean-room/check.sh origin/main`: successful; also run
+  with temporary index/objects to include all new files without
+  changing the user's real index. Additional review of forbidden identifiers
+  and protected paths in all ticket files: successful.
 
-`#![deny(missing_docs)]` obliga a documentar toda la API pública. La primera
-corrida detectó una comparación decimal exacta en un doctest (3×0.2 frente a
-0.6); se corrigió a comparación con tolerancia absoluta 1e-12. No cambió la
-formulación. Rustdoc estricto detectó notación matemática con corchetes
-interpretada como enlaces; se marcó como código en la documentación. Cargo.lock solo registra el crate local y su dependencia existente.
-No se ejecutó CI remota, benchmark productivo, comparación con oráculo ni pruebas
-wasm; esos trabajos no forman parte de esta entrega de contratos.
+`#![deny(missing_docs)]` requires documenting the entire public API. The first
+run detected an exact decimal comparison in a doctest (3×0.2 versus
+0.6); it was corrected to a comparison with absolute tolerance 1e-12. The formulation
+was unchanged. Strict rustdoc detected mathematical notation with brackets
+interpreted as links; it was marked as code in documentation. Cargo.lock only records the local crate and its existing dependency.
+No remote CI, production benchmark, oracle comparison or wasm tests were
+run; that work is not part of this contract delivery.

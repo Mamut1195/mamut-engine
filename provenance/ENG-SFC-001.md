@@ -1,132 +1,132 @@
-# Bitácora clean-room · ENG-SFC-001
+# Clean-room log · ENG-SFC-001
 
-- Ticket / PR: ENG-SFC-001 (MAM-90), «Bindings WebAssembly»; rama
-  `j2/eng-sfc-001`, basada en `origin/main`. Commit local solicitado; sin push.
-- Autor(es): agente Codex bajo instrucciones del usuario, 2026-10-15
+- Ticket / PR: ENG-SFC-001 (MAM-90), «WebAssembly bindings»; branch
+  `j2/eng-sfc-001`, based on `origin/main`. Local commit requested; no push.
+- Author(s): Codex agent under user instructions, 2026-10-15
   (America/Guayaquil).
-- Rol: implementador.
-- Contrato implementado: adaptación de engine-api (`validate`, `run`,
-  `capabilities`, `schema`, `version`, `explain`), `engine-input/1` y
-  `results/1`, usando strings JSON; sin redefinir contratos ni matemática.
-- Fuentes permitidas usadas: instrucciones del ticket en esta sesión;
-  `crates/engine-api/src/{lib,run,json,limits}.rs`, manifest, ejemplos y tests;
-  fixtures publicados `crates/engine-api/fixtures/input/{valid,invalid}`;
-  `crates/engine-linalg/tests/determinism_guard.rs`, manifests y scripts
-  locales de determinismo/clean-room; metadata del registro local de
-  wasm-bindgen 0.2.129. No se consultaron repositorios hermanos ni fuentes
-  de otros motores. Sin red, fetch ni descargas.
-- Derivaciones propias: ninguna matemática. Fachada, protocolo de worker y
-  arneses de paridad escritos para este ticket. No se añaden trascendentes;
-  toda la matemática sigue en engine-api y sus dependencias, incluida
+- Role: implementer.
+- Implemented contract: adaptation of engine-api (`validate`, `run`,
+  `capabilities`, `schema`, `version`, `explain`), `engine-input/1` and
+  `results/1`, using JSON strings; without redefining contracts or mathematics.
+- Permitted sources used: ticket instructions in this session;
+  `crates/engine-api/src/{lib,run,json,limits}.rs`, manifest, examples and tests;
+  published fixtures `crates/engine-api/fixtures/input/{valid,invalid}`;
+  `crates/engine-linalg/tests/determinism_guard.rs`, local manifests and
+  determinism/clean-room scripts; local registry metadata for
+  wasm-bindgen 0.2.129. No sibling repositories or sources
+  from other engines were consulted. No network, fetch or downloads.
+- Own derivations: none mathematical. Facade, worker protocol and
+  parity harnesses written for this ticket. No transcendentals are added;
+  all mathematics remains in engine-api and its dependencies, including
   engine_core::math.
-- Código de terceros copiado: ninguno. Dependencias del registro local
-  referenciadas por Cargo; glue de wasm-bindgen generado únicamente en pkg
-  ignorado. No se incorporan binarios ni artefactos generados al commit.
-- Validación: comparación byte a byte con engine-api nativo de todos los
-  fixtures V1 publicados (5 válidos y 9 inválidos), no un oráculo externo.
-  El path real es `engine-api/fixtures/input`; no existe `src/fixtures/input`.
-- Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
-- Revisor clean-room: PENDIENTE (J4).
+- Third-party code copied: none. Local registry dependencies
+  referenced through Cargo; wasm-bindgen glue generated only in ignored
+  pkg. No binaries or generated artifacts are included in the commit.
+- Validation: byte-for-byte comparison with native engine-api of all
+  published V1 fixtures (5 valid and 9 invalid), not an external oracle.
+  The real path is `engine-api/fixtures/input`; `src/fixtures/input` does not exist.
+- Comparison with oracle (sibling repo, informative): no.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados para este ticket."
+- Clean-room reviewer: PENDING (J4).
 
-## Implementación y límites
+## Implementation and limits
 
-`crates/engine-wasm` contiene una fachada wasm-bindgen fina, compilable
-nativamente. `run` devuelve el documento canónico de engine-api sin
-reescritura. Validación y callbacks usan serialización de tipos de
-engine-api y su normalizador canónico. Los errores conservan `ApiError`
-como string JSON; errores lanzados por callbacks se propagan después de
-cancelar. `schema` conserva el documento publicado y `explain` devuelve un
-literal string JSON. No se usa serde-wasm-bindgen porque el transporte es
-texto JSON, sin mapear los contratos a objetos JS.
+`crates/engine-wasm` contains a thin wasm-bindgen facade, compilable
+natively. `run` returns the canonical engine-api document without
+rewriting. Validation and callbacks use engine-api type serialization
+and its canonical normalizer. Errors preserve `ApiError`
+as a JSON string; errors thrown by callbacks are propagated after
+cancellation. `schema` preserves the published document and `explain` returns a
+JSON string literal. serde-wasm-bindgen is not used because transport is
+JSON text, without mapping contracts to JS objects.
 
-La biblioteca mantiene `#![forbid(unsafe_code)]`, sin panic, unwrap ni
-expect en su código fuente. wasm-bindgen 0.2.129 compila con esa política;
-no fue necesario modificar ni usar la lista
-`UNSAFE_LIBRARY_EXCEPTIONS` (actualmente vacía) de la guardia de
-determinismo. La suite del workspace incluye esa guardia y pasa.
+The library retains `#![forbid(unsafe_code)]`, without panic, unwrap or
+expect in its source code. wasm-bindgen 0.2.129 compiles with that policy;
+it was not necessary to modify or use the
+`UNSAFE_LIBRARY_EXCEPTIONS` list (currently empty) of the determinism
+guard. The workspace suite includes that guard and passes.
 
-`js/worker.js` es módulo ES; `js/main.js` envía requests y recibe strings de
-progreso/resultados mediante postMessage. Con aislamiento de origen, el
-cliente comparte un flag JS de 4 bytes, consultado en callbacks, y llama al
-CancelToken original de engine-api. El mensaje cancel también se publica,
-pero queda en cola mientras Rust ejecuta de forma síncrona: **no se atribuye
-cancelación activa a ese mensaje**. Los pasos de engine-api son
-indivisibles, incluida la factorización; cancelación entre pasos/modos/
-iteraciones, sin promesa de latencia máxima. Si la señal llega después de
-terminar, puede conservarse el resultado completo. Sin SharedArrayBuffer,
-se termina el worker y se rechaza con AbortError; no se inventa un
-results/1 cancelado. El cliente puede crear otro worker en el próximo
-request. Ejemplo HTML, servidor loopback con COOP/COEP y arnés de navegador
-incluidos; sin dependencias npm.
+`js/worker.js` is an ES module; `js/main.js` sends requests and receives
+progress/result strings through postMessage. With origin isolation, the
+client shares a 4-byte JS flag, checked in callbacks, and calls the
+original engine-api CancelToken. The cancel message is also posted,
+but remains queued while Rust executes synchronously: **active cancellation
+is not attributed to that message**. Engine-api steps are
+indivisible, including factorization; cancellation between steps/modes/
+iterations, without a maximum latency promise. If the signal arrives after
+completion, the full result may be retained. Without SharedArrayBuffer,
+the worker is terminated and rejected with AbortError; no cancelled
+results/1 is invented. The client may create another worker on the next
+request. HTML example, loopback server with COOP/COEP and browser harness
+included; no npm dependencies.
 
-## Cambios de Cargo
+## Cargo changes
 
-- Nuevo miembro `crates/engine-wasm` en `members` y `default-members` porque
-  compila nativo. Tipos `cdylib` y `rlib`; no se modifica el perfil release.
-- Dependencias directas: engine-api local; serde `=1.0.229` y serde_json
-  `=1.0.154` ya presentes; wasm-bindgen **`=0.2.129`** y js-sys **`=0.3.106`**.
-- Cargo.lock añade engine-wasm y 11 paquetes externos resueltos offline:
-  wasm-bindgen y sus tres crates macro/shared, js-sys, bumpalo,
-  futures-core/task/util, pin-project-lite y slab. No se actualizan versiones
-  existentes. CLI 0.2.129 comprobada por el script antes de compilar.
+- New member `crates/engine-wasm` in `members` and `default-members` because
+  it compiles natively. Types `cdylib` and `rlib`; the release profile is not modified.
+- Direct dependencies: local engine-api; serde `=1.0.229` and serde_json
+  `=1.0.154` already present; wasm-bindgen **`=0.2.129`** and js-sys **`=0.3.106`**.
+- Cargo.lock adds engine-wasm and 11 external packages resolved offline:
+  wasm-bindgen and its three macro/shared crates, js-sys, bumpalo,
+  futures-core/task/util, pin-project-lite and slab. Existing versions are not
+  updated. CLI 0.2.129 checked by the script before compilation.
 
-## Tamaños medidos
+## Measured sizes
 
-`scripts/build-wasm.sh` genera `pkg/size-report.md`. Mediciones release con
+`scripts/build-wasm.sh` generates `pkg/size-report.md`. Release measurements with
 rustc **1.99.0 (b940084d7 2026-09-28)**, wasm-bindgen CLI **0.2.129**, target
-`wasm32-unknown-unknown`; gzip **`-9 -n`** (sin nombre ni timestamp). Sin
-wasm-opt, LTO adicional ni cambios al perfil del workspace.
+`wasm32-unknown-unknown`; gzip **`-9 -n`** (without name or timestamp). No
+wasm-opt, additional LTO or workspace profile changes.
 
-| Artefacto | Bytes crudos | Bytes gzip -9 | Frente a ≤ 1.000.000 bytes gzip propuestos |
+| Artifact | Raw bytes | gzip -9 bytes | Against proposed ≤ 1.000.000 gzip bytes |
 | --- | ---: | ---: | --- |
-| Cargo release, antes de wasm-bindgen | 1.908.323 | 496.172 | PASS |
+| Cargo release, before wasm-bindgen | 1.908.323 | 496.172 | PASS |
 | wasm-bindgen `--target web`, engine_wasm_bg.wasm | 1.455.396 | 383.805 | PASS |
 | wasm-bindgen `--target nodejs`, engine_wasm_bg.wasm | 1.455.396 | 383.805 | PASS |
 
-**Presupuesto de ≤ 1 MB gzip: PROPUESTO, PENDIENTE de confirmación.**
-Se usa la interpretación decimal más estricta (1.000.000 bytes); estas
-mediciones quedan también por debajo de 1 MiB. Son tamaños del .wasm;
-el glue JS web suma 13.533 bytes crudos, y el cliente/worker son adicionales.
-No se presentan como tamaño total de aplicación. SHA-256 del wasm web:
+**Budget of ≤ 1 MB gzip: PROPOSED, PENDING confirmation.**
+The stricter decimal interpretation (1.000.000 bytes) is used; these
+measurements also remain below 1 MiB. These are .wasm sizes;
+the web JS glue adds 13.533 raw bytes, and the client/worker are additional.
+They are not presented as total application size. Web wasm SHA-256:
 `b255bdbc4b6328a89fc5fd937d1c316ad489c360bf525ac1f913507ce15f6d36`.
 
-## Verificación local
+## Local verification
 
-Todos los comandos Cargo usan
-`export CARGO_TARGET_DIR=/workspace/.cargo-target/mamut-engine` y
+All Cargo commands use
+`export CARGO_TARGET_DIR=/workspace/.cargo-target/mamut-engine` and
 `PATH=/home/box/.rustup/toolchains/1.99.0-x86_64-unknown-linux-gnu/bin:$PATH`.
-Compilación, pruebas y docs con `--offline --locked`; no hubo red.
-Node **v22.19.0**, binario `/home/box/.local/bin/node`; CLI
+Compilation, tests and docs with `--offline --locked`; there was no network.
+Node **v22.19.0**, binary `/home/box/.local/bin/node`; CLI
 `/workspace/tools-bin/wbg/bin/wasm-bindgen`.
 
-| Comando / evidencia | Resultado |
+| Command / evidence | Result |
 | --- | --- |
 | `cargo fmt --all -- --check` | PASS |
 | `cargo clippy --offline --locked --workspace --all-targets -- -D warnings` | PASS |
-| `cargo test --offline --locked --workspace --no-fail-fast` | PASS: 545 tests/doctests; cero fallos |
+| `cargo test --offline --locked --workspace --no-fail-fast` | PASS: 545 tests/doctests; zero failures |
 | `RUSTDOCFLAGS="-D warnings" cargo doc --offline --locked --no-deps --workspace` | PASS |
 | `cargo check --offline --locked --workspace --target wasm32-unknown-unknown` | PASS |
-| `bash clean-room/check.sh origin/main` | PASS sobre cambios añadidos al índice |
-| `bash scripts/build-wasm.sh` | PASS: build release, CLI web+nodejs, oráculo nativo, suite Node y reporte |
-| Node, target nodejs | PASS: 14 fixtures, results/1 idéntico byte a byte, progreso, validación, metadatos, errores y cancelación |
-| Node, target web ES module | PASS: los mismos 14 fixtures y pruebas directas |
-| worker_threads, adaptador exclusivo de pruebas | PASS: worker.js y main.js reales, 14 fixtures, todas las operaciones, progreso, cancelación activa con flag compartido, fallback terminate y reutilización |
-| `git diff --check` y sintaxis JS/Bash/Python | PASS |
-| Chrome headless | **PENDIENTE**: instalado, pero el sandbox impide sockets y arranque |
-| Firefox | **PENDIENTE**: no se ejecutó motor de navegador |
-| Safari | **PENDIENTE**: no se ejecutó motor de navegador |
+| `bash clean-room/check.sh origin/main` | PASS on staged changes |
+| `bash scripts/build-wasm.sh` | PASS: release build, web+nodejs CLI, native oracle, Node suite and report |
+| Node, nodejs target | PASS: 14 fixtures, byte-for-byte identical results/1, progress, validation, metadata, errors and cancellation |
+| Node, web ES module target | PASS: the same 14 fixtures and direct tests |
+| worker_threads, test-only adapter | PASS: real worker.js and main.js, 14 fixtures, all operations, progress, active cancellation with shared flag, terminate fallback and reuse |
+| `git diff --check` and JS/Bash/Python syntax | PASS |
+| Chrome headless | **PENDING**: installed, but the sandbox prevents sockets and startup |
+| Firefox | **PENDING**: no browser engine was run |
+| Safari | **PENDING**: no browser engine was run |
 
-Se intentó arrancar el servidor offline con `python3 scripts/serve-wasm.py`:
-`PermissionError: [Errno 1] Operation not permitted` al crear el socket.
-Chrome con perfil en `/tmp/eng-sfc-chrome`, `--headless --no-sandbox
---disable-gpu --disable-dev-shm-usage --dump-dom about:blank` terminó con
-salida 133 y `setsockopt: Operation not permitted`. No se pidieron permisos
-ni se intentó ejecutar fuera del sandbox. El arnés
-`crates/engine-wasm/js/test-browser.html` queda listo para ejecutar en
-Chrome/Firefox/Safari con servidor local autorizado; publica PASS/FAIL.
-La ejecución del adaptador Node **no certifica navegadores**. La aceptación
-multinavegador permanece pendiente, junto con la confirmación del presupuesto.
+An attempt was made to start the offline server with `python3 scripts/serve-wasm.py`:
+`PermissionError: [Errno 1] Operation not permitted` when creating the socket.
+Chrome with profile in `/tmp/eng-sfc-chrome`, `--headless --no-sandbox
+--disable-gpu --disable-dev-shm-usage --dump-dom about:blank` terminated with
+exit 133 and `setsockopt: Operation not permitted`. No permissions were requested
+and no attempt was made to execute outside the sandbox. The harness
+`crates/engine-wasm/js/test-browser.html` remains ready to run in
+Chrome/Firefox/Safari with an authorized local server; it publishes PASS/FAIL.
+Execution of the Node adapter **does not certify browsers**. Multibrowser
+acceptance remains pending, along with budget confirmation.
 
-No se modifican `docs/CLEAN_ROOM.md`, `.github/**`, `clean-room/**` ni
-`vendor/**`. Sin subagentes, push ni artefactos .wasm/pkg comiteados.
+No changes to `docs/CLEAN_ROOM.md`, `.github/**`, `clean-room/**` or
+`vendor/**`. No subagents, push or committed .wasm/pkg artifacts.

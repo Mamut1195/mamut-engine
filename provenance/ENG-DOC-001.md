@@ -1,74 +1,74 @@
-# ENG-DOC-001 · MAM-870 · Guía «CLI para agentes» y ejemplos ejecutables
+# ENG-DOC-001 · MAM-870 · «CLI for agents» guide and executable examples
 
-Fecha: **2026-10-23**. Trabajo local sin red, rama `j2/MAM-870-guia-cli-agentes`
-creada desde `origin/main` (`00189ad`, que incluye #205, #208, #210, #217 y #218).
+Date: **2026-10-23**. Local work without network, branch `j2/MAM-870-guia-cli-agentes`
+created from `origin/main` (`00189ad`, which includes #205, #208, #210, #217 and #218).
 
-## Alcance
+## Scope
 
-- [GUIA_CLI_AGENTES.md](../docs/GUIA_CLI_AGENTES.md): receta de tuberías,
-  tabla de códigos de salida, manejo de errores y límites, escrita solo con lo
-  que hay en `main`. No documenta `--lang` ni el catálogo i18n de #219 (MAM-836,
-  abierto): el ticket no se da por dependiente de él. Si #219 se fusiona, la guía
-  y su prueba siguen válidas salvo cambios de texto en `describe --json`, que la
-  prueba compara como subconjunto.
+- [GUIA_CLI_AGENTES.md](../docs/GUIA_CLI_AGENTES.md): pipeline recipe,
+  exit code table, error handling and limits, written only with what
+  exists in `main`. Does not document `--lang` or the #219 i18n catalog (MAM-836,
+  open): the ticket is not considered dependent on it. If #219 merges, the guide
+  and its test remain valid except for text changes in `describe --json`, which the
+  test compares as a subset.
 - [two-storey-frame.json](../docs/examples/agent-cli/two-storey-frame.json):
-  pórtico plano D2 de dos pisos (SI, 6 nodos, 6 barras, caso `wind`) construido
-  para este ticket; sin datos externos.
-- [agent_guide.rs](../crates/engine-cli/tests/agent_guide.rs): cinco pruebas.
-- Un enlace desde el README de engine-cli (sección «Agent discovery and API
-  queries»). No se tocan `src/`, contratos, esquemas ni golden.
+  two-storey D2 plane frame (SI, 6 nodes, 6 bars, case `wind`) built
+  for this ticket; no external data.
+- [agent_guide.rs](../crates/engine-cli/tests/agent_guide.rs): five tests.
+- A link from the engine-cli README («Agent discovery and API
+  queries» section). `src/`, contracts, schemas and goldens are untouched.
 
-## Qué se verifica en CI
+## What is verified in CI
 
-`cargo test -p engine-cli --test agent_guide` hace lo siguiente con el binario
-real:
+`cargo test -p engine-cli --test agent_guide` does the following with the real
+binary:
 
-1. Ejecuta los 17 bloques `agent-example` de la guía en orden, con un único
-   `TMPDIR` compartido, y compara código de salida y stdout exactos con el bloque
-   `agent-output` de mismo id. Usa solo `sh`, utilidades POSIX y `python3`.
-2. Comprueba que los enlaces relativos y las anclas internas resuelven.
-3. Compara la tabla de códigos de salida con `exitCodes` de `describe --json` y
-   la tabla de códigos `CLI-E-*` con `docs/contracts/error-codes-1.json`, en
-   ambos sentidos.
-4. Compara la tabla de límites con `limits` de `describe --json`.
-5. Ejecuta el modelo de ejemplo y contrasta el desplazamiento Ux de la cubierta
-   (nodo 5, caso `wind`) con la estimación a mano de edificio de cortante
-   (k = 2·12·E·I/h³ por piso; Ux ≈ 5,5827e-3 m) con tolerancia del 1 %. El motor
-   da 5,610851e-3 m (0,5 % de diferencia).
+1. Executes the guide's 17 `agent-example` blocks in order, with a single
+   shared `TMPDIR`, and compares exact exit code and stdout with the
+   `agent-output` block of the same id. Uses only `sh`, POSIX utilities and `python3`.
+2. Checks that relative links and internal anchors resolve.
+3. Compares the exit code table with `exitCodes` from `describe --json` and
+   the `CLI-E-*` code table with `docs/contracts/error-codes-1.json`, in
+   both directions.
+4. Compares the limits table with `limits` from `describe --json`.
+5. Runs the example model and compares roof Ux displacement
+   (node 5, case `wind`) with the shear-building hand estimate
+   (k = 2·12·E·I/h³ per storey; Ux ≈ 5,5827e-3 m) with a tolerance of 1 %. The engine
+   gives 5,610851e-3 m (0,5 % difference).
 
-La salida de los ejemplos es determinista (mismos bytes con la misma entrada,
-versión y objetivo). El ejemplo de timeout usa `--timeout 0.000001` y dio exit 6
-en 100 de 100 ejecuciones locales; el de cancelación usa
-`MAMUT_ENGINE_CANCEL_FILE` con un archivo preexistente. El comportamiento de
-SIGINT/SIGTERM (exit 5, `CLI-E-CANCELLED`) se comprobó a mano con un modelo
-pesado y no forma parte de las pruebas por depender de tiempos. Lo mismo ocurre
-con el cierre anticipado de la tubería (exit 70), que la guía documenta como
-dependiente del momento.
+Example output is deterministic (same bytes with the same input,
+version and target). The timeout example uses `--timeout 0.000001` and gave exit 6
+in 100 of 100 local runs; the cancellation example uses
+`MAMUT_ENGINE_CANCEL_FILE` with a preexisting file. SIGINT/SIGTERM
+behavior (exit 5, `CLI-E-CANCELLED`) was checked manually with a heavy
+model and is not part of the tests because it depends on timing. The same applies
+to early pipe closure (exit 70), which the guide documents as
+timing-dependent.
 
-## Prueba de usabilidad registrada
+## Recorded usability test
 
-Criterio del ticket: un agente sin contexto completa validar → ejecutar → leer
-el desplazamiento de cubierta usando solo `describe --json` y la guía.
+Ticket criterion: an agent without context completes validate → run → read
+the roof displacement using only `describe --json` and the guide.
 
-- Agente: una sesión nueva de Codex (gpt-6.1-sol, esfuerzo alto, sin red) en un
-  directorio de trabajo aparte que contenía únicamente el binario, la guía y el
-  modelo de ejemplo; sin acceso a código fuente, README ni esta ficha.
-- Resultado: validar → exit 0 (`status: ok`); ejecutar → exit 0; leyó
-  `engineResults[0]` → caso `wind` → nodo 5 → `displacements[0]`:
-  **+5,610850782776847e-3 m**, igual al valor de la guía. Fricciones declaradas:
-  ninguna. Terminó en menos de un minuto.
-- Desviaciones y límites: el agente imprimió también el JSON del modelo (es la
-  entrada de la tarea) y el prompt le daba la ruta del modelo y el nombre del
-  caso. Es una sola sesión; no sustituye una prueba con personas ni con otros
-  agentes, y conviene repetirla si la guía cambia de forma sustancial.
+- Agent: a new Codex session (gpt-6.1-sol, high effort, without network) in a
+  separate working directory containing only the binary, guide and
+  example model; no access to source code, README or this record.
+- Result: validate → exit 0 (`status: ok`); run → exit 0; read
+  `engineResults[0]` → case `wind` → node 5 → `displacements[0]`:
+  **+5,610850782776847e-3 m**, equal to the guide's value. Reported friction:
+  none. Finished in less than a minute.
+- Deviations and limits: the agent also printed the model JSON (it is the
+  task input) and the prompt gave it the model path and case
+  name. This is a single session; it does not replace a test with people or other
+  agents, and repeating it is advisable if the guide changes substantially.
 
-## Notas de revisión
+## Review notes
 
-- Convención de ejes: el motor fija el plano D2 como X–Y pero no declara Y como
-  vertical; la guía lo advierte y el modelo usa Y como cota por convención del
-  ejemplo (ver CONVENCION_EJES).
-- Conflicto posible con #219: ambos PR tocan `crates/engine-cli/README.md`. Este
-  PR añade solo tres líneas bajo «Agent discovery and API queries»; los
-  hunks de #219 observados están en otras zonas, por lo que no se espera
-  conflicto de texto, pero sí que revisar tras la fusión de cualquiera de los dos.
-- Registro de cambios: `changelog.d/MAM-870.added.md`.
+- Axis convention: the engine sets the D2 plane as X–Y but does not declare Y as
+  vertical; the guide warns of this and the model uses Y as elevation by the example's
+  convention (see CONVENCION_EJES).
+- Possible conflict with #219: both PRs touch `crates/engine-cli/README.md`. This
+  PR adds only three lines under «Agent discovery and API queries»; the
+  observed #219 hunks are elsewhere, so no text conflict is expected,
+  but review is required after either one merges.
+- Change record: `changelog.d/MAM-870.added.md`.

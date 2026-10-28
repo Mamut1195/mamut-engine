@@ -1,98 +1,98 @@
-# Bitácora clean-room · ENG-RES-001
+# Clean-room log · ENG-RES-001
 
-- Ticket / PR: ENG-RES-001 «Resultados estructurales y postproceso». Apila sobre
-  ENG-ANL-001 (`engine-analysis`, `StaticLinear`/`StaticResults`, PR #52 aún sin
-  fusionar). Sin commit ni push.
-- Autor(es): J2 (agente, Grok Bot) · identificación solicitada por el usuario;
-  agente ejecutor Codex (GPT-6) · 2026-10-11 (America/Guayaquil).
-- Rol: implementador y autor de derivaciones analíticas propias.
-- Contrato implementado: módulo `engine_analysis::results` dentro de
-  `engine-analysis`, con recuperación mediante `element/1`. Modelo de datos
-  propio con campos públicos documentados, preparado para serialización futura.
-  El esquema `results/1` y su serialización quedan pendientes de ENG-CORE-005:
-  no se inventan JSON, hashes, metadatos serializados ni adaptadores ResultSink.
-- Fuentes permitidas usadas: exclusivamente la petición del ticket, las APIs
-  propias de engine-core, engine-contracts, engine-assembly, engine-model,
-  engine-analysis, engine-elements-frame y engine-elements-truss, y la frontera
-  pública/backend de referencia existente de engine-linalg para pruebas.
-  Plantilla: `provenance/TEMPLATE.md`. Sin red ni fuentes externas.
-- Derivaciones propias: [nota de esta bitácora](#derivaciones-propias) y
-  [pruebas analíticas embebidas](../crates/engine-analysis/tests/results.rs).
-- Código de terceros copiado: ninguno. Sin crate ni dependencias nuevas.
-- Validación: exclusivamente analítica, por equilibrio y formas cerradas propias;
-  sin comparación con otros motores.
-- Comparación con oráculo (repo hermano, informativa): no.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados".
-- Revisor clean-room: PENDIENTE (J4).
+- Ticket / PR: ENG-RES-001 «Structural results and postprocessing». Stacks on
+  ENG-ANL-001 (`engine-analysis`, `StaticLinear`/`StaticResults`, PR #52 still
+  unmerged). No commit or push.
+- Author(s): J2 (agent, Grok Bot) · identification requested by the user;
+  executing agent Codex (GPT-6) · 2026-10-11 (America/Guayaquil).
+- Role: implementer and author of own analytical derivations.
+- Implemented contract: `engine_analysis::results` module within
+  `engine-analysis`, with recovery through `element/1`. Own data model
+  with documented public fields, prepared for future serialization.
+  The `results/1` schema and its serialization remain pending ENG-CORE-005:
+  no JSON, hashes, serialized metadata or ResultSink adapters are invented.
+- Permitted sources used: exclusively the ticket request, the own APIs
+  of engine-core, engine-contracts, engine-assembly, engine-model,
+  engine-analysis, engine-elements-frame and engine-elements-truss, and the existing
+  public boundary/reference backend of engine-linalg for tests.
+  Template: `provenance/TEMPLATE.md`. No network or external sources.
+- Own derivations: [note in this log](#derivaciones-propias) and
+  [embedded analytical tests](../crates/engine-analysis/tests/results.rs).
+- Third-party code copied: none. No new crate or dependencies.
+- Validation: exclusively analytical, through equilibrium and own closed forms;
+  no comparison with other engines.
+- Comparison with oracle (sibling repo, informative): no.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo, CalculiX, code_aster, OOFEM, carapace, anaStruct, Kratos, LAPACK, Eigen, faer, nalgebra ni derivados".
+- Clean-room reviewer: PENDING (J4).
 
-## Diseño y convenciones
+## Design and conventions
 
-`CaseResults::recover(solution, system, members)` usa únicamente el vector
-`global_displacements` de `StaticCaseResult`, que incluye los desplazamientos
-prescritos. Comprueba tamaño, finitud y coherencia con los prescritos del sistema.
-Obtiene cada `u_e` por el DofMap, nodo y luego GDL según el elemento, y llama a
-`Element::recover(ctx, u_e, committed, loads, stations)` sin aceptar ni modificar
-historia. No utiliza las copias de desplazamientos libres o reacciones del caso:
-recalcula las reacciones mediante K y las cargas físicas del sistema.
+`CaseResults::recover(solution, system, members)` uses only the
+`global_displacements` vector from `StaticCaseResult`, which includes prescribed
+displacements. It checks size, finiteness and consistency with the system's prescribed values.
+It obtains each `u_e` through the DofMap, node and then DOF according to the element, and calls
+`Element::recover(ctx, u_e, committed, loads, stations)` without accepting or modifying
+history. It does not use the case's copies of free displacements or reactions:
+it recalculates reactions through K and the system's physical loads.
 
-El sistema ensamblado no conserva los elementos ni sus cargas originales de
-tramo. `MemberRecovery` aporta id, conectividad, elemento, dimensión, parámetros,
-historia aceptada y cargas **sin escalar** del caso concreto. La lista debe incluir
-todos los miembros del sistema; el seguimiento #69 verifica su equilibrio nodal
-contra las cargas nodales y reacciones del mismo ensamblado, según la regla en
-[ENG-RES-001-FU](ENG-RES-001-FU.md). No hay registro implícito de miembros
-en LinearSystem: una referencia ausente se diagnostica al consultar los ids de
-CaseResults o al resolver nodos/GDL en DofMap; el identificador numérico no es
-un índice de vector. Los ids repetidos se rechazan. Las cargas de tramo se
-escalan una vez por el factor del caso; los asentamientos nunca se escalan.
+The assembled system does not retain the elements or their original span
+loads. `MemberRecovery` supplies id, connectivity, element, dimension, parameters,
+committed history and **unscaled** loads of the specific case. The list must include
+all system members; follow-up #69 checks their nodal equilibrium
+against the nodal loads and reactions of the same assembly, according to the rule in
+[ENG-RES-001-FU](ENG-RES-001-FU.md). There is no implicit member registry
+in LinearSystem: a missing reference is diagnosed when querying the ids of
+CaseResults or resolving nodes/DOFs in DofMap; the numeric identifier is not
+a vector index. Repeated ids are rejected. Span loads are
+scaled once by the case factor; settlements are never scaled.
 
-Nodos y miembros se devuelven por id ascendente. Los vectores nodales tienen
-seis componentes globales: `[Ux,Uy,Uz,Rx,Ry,Rz]` (m/rad) y
-`[Fx,Fy,Fz,Mx,My,Mz]` (N/N·m). Las componentes no declaradas y las reacciones de
-GDL libres valen cero. En D2, Rz ocupa la sexta componente, no la tercera.
-Las acciones de extremo mantienen el orden local declarado por el elemento;
-frame2d usa `[Ni,Vi,Mi,Nj,Vj,Mj]`. Los diagramas usan la cara positiva local
-`[N,Vy,Vz,T,My,Mz]`, con N positivo en tracción. En frame2d, V=Vy y M=Mz;
-Vz, T y My son cero. En armaduras solo N es distinto de cero.
+Nodes and members are returned in ascending id order. Nodal vectors have
+six global components: `[Ux,Uy,Uz,Rx,Ry,Rz]` (m/rad) and
+`[Fx,Fy,Fz,Mx,My,Mz]` (N/N·m). Undeclared components and free DOF
+reactions are zero. In D2, Rz occupies the sixth component, not the third.
+End actions retain the local order declared by the element;
+frame2d uses `[Ni,Vi,Mi,Nj,Vj,Mj]`. Diagrams use the local positive face
+`[N,Vy,Vz,T,My,Mz]`, with N positive in tension. In frame2d, V=Vy and M=Mz;
+Vz, T and My are zero. In trusses only N is nonzero.
 
-Las estaciones predeterminadas son `[0, 0.25, 0.5, 0.75, 1]`. Una lista explícita
-las sustituye; siempre se añaden 0 y 1, se ordena y se deduplica. Una lista vacía
-obtiene los extremos y las raíces críticas aplicables. Para frame2d con carga
-uniforme transversal no nula se añaden las estaciones interiores de cortante
-nulo y de derivada de momento nula. Toda resultante se obtiene otra vez del
-elemento, que incluye las cargas exactamente; no se interpolan las acciones de
-extremo. La recuperación valida tamaños, estaciones y finitud de la salida.
+Default stations are `[0, 0.25, 0.5, 0.75, 1]`. An explicit list
+replaces them; 0 and 1 are always added, sorted and deduplicated. An empty list
+obtains the ends and applicable critical roots. For frame2d with a nonzero uniform
+transverse load, interior stations of zero shear
+and zero moment derivative are added. Every resultant is obtained again from the
+element, which includes the loads exactly; end actions are not
+interpolated. Recovery validates output sizes, stations and finiteness.
 
-Cada campo local tiene máximo y mínimo **algebraicos**, valor y estación x/L.
-En empates se conserva la menor estación. Para **frame2d** las
-cargas uniformes dan N/V afines y M cuadrático, por lo que extremos de tramo
-más las raíces añadidas dan extremos exactos. **Frame3d no añade estaciones
-críticas interiores**: sus extremos se limitan a las estaciones recuperadas.
-Para otros kinds se documenta
-que los extremos se limitan a las estaciones recuperadas; no se promete buscar
-raíces interiores de campos arbitrarios ni se aproxima su interpolación.
+Each local field has **algebraic** maximum and minimum, value and station x/L.
+Ties retain the lowest station. For **frame2d**, uniform
+loads yield affine N/V and quadratic M, so span ends
+plus the added roots yield exact extrema. **Frame3d does not add interior
+critical stations**: its extrema are limited to recovered stations.
+For other kinds it is documented
+that extrema are limited to recovered stations; there is no promise to search for
+interior roots of arbitrary fields or approximate their interpolation.
 
-`query(nodes, members, fields)` devuelve una proyección propia con solo los
-campos seleccionados. `None` significa todos; `Some(&[])`, ninguno. La lista de
-ids conserva el orden del resultado y no duplica entidades; los campos locales
-mantienen el orden N/Vy/Vz/T/My/Mz. Desplazamientos, reacciones y acciones de
-extremo excluidos son `None`; estaciones y extremos contienen solo los campos
-locales elegidos. Un campo que no aplica al bloque no añade valores. Los ids
-ausentes generan ENG-E-0003, con su entidad; duplicados en recuperación,
-ENG-E-0002; tamaños, prescritos o estaciones fuera de `[0,1]`, ENG-E-0010;
-no finitos/desbordamiento, ENG-E-0008; salidas elementales incoherentes,
-ENG-E-0012. Se propagan errores elementales con el miembro en entidades.
+`query(nodes, members, fields)` returns an own projection with only the
+selected fields. `None` means all; `Some(&[])`, none. The list of
+ids preserves result order and does not duplicate entities; local fields
+retain the N/Vy/Vz/T/My/Mz order. Excluded displacements, reactions and end
+actions are `None`; stations and extrema contain only the selected
+local fields. A field that does not apply to the block adds no values. Missing
+ids generate ENG-E-0003, with their entity; duplicates in recovery,
+ENG-E-0002; sizes, prescribed values or stations outside `[0,1]`, ENG-E-0010;
+nonfinite values/overflow, ENG-E-0008; inconsistent element outputs,
+ENG-E-0012. Element errors are propagated with the member in entities.
 
 ## Derivaciones propias
 
-Datos artificiales SI: E=200 Pa, A=2 m², I=3 m⁴, L=4 m, w=6 N/m, P=12 N.
-Las pruebas comprueban valores con tolerancia absoluta 1e-9 SI y estaciones
-con 1e-12; el informe de equilibrio del análisis debe tener residual relativo
-menor que 1e-12. No hay archivos, procesos, red ni oráculos en los fixtures.
+Artificial SI data: E=200 Pa, A=2 m², I=3 m⁴, L=4 m, w=6 N/m, P=12 N.
+Tests check values with absolute tolerance 1e-9 SI and stations
+with 1e-12; the analysis equilibrium report must have a relative residual
+less than 1e-12. There are no files, processes, network or oracles in the fixtures.
 
-### Raíces interiores exactas
+### Exact interior roots
 
-En los ejes locales de frame2d, bajo cargas uniformes qy y mz:
+In frame2d local axes, under uniform loads qy and mz:
 
 ```text
 V(x) = V(0) − qy x
@@ -101,95 +101,95 @@ V(x*)=0       => x*/L = V(0)/(qy L)
 M′(x**)=0     => x**/L = (V(0)+mz)/(qy L)
 ```
 
-Sin par distribuido, ambas raíces coinciden. Se añaden solo si caen
-estrictamente en `(0,1)`. qy se proyecta de global a local con
-`qy=−sin(alpha) qX + cos(alpha) qY`, sumando todas las cargas escaladas.
-La comprobación de interior precede a la división para evitar desbordar raíces
-exteriores. Se usa la recuperación elemental exacta para evaluar cada raíz.
+Without a distributed couple, both roots coincide. They are added only if they fall
+strictly in `(0,1)`. qy is projected from global to local with
+`qy=−sin(alpha) qX + cos(alpha) qY`, summing all scaled loads.
+The interior check precedes division to avoid overflow of exterior
+roots. Exact element recovery is used to evaluate each root.
 
-### Viga simplemente apoyada
+### Simply supported beam
 
-Con qy=−w, Ry_i=Ry_j=wL/2; V(x)=−wL/2+wx y
-M(x)=wx(L−x)/2. La raíz está en x=L/2 y Mmax=wL²/8=12 N·m.
-La prueba pide únicamente x/L=0.2 y 0.8 (desordenadas y repetidas) y comprueba
-que se añade 0.5, además de los extremos. Los giros son
-theta_i=−wL³/(24EI), theta_j=+wL³/(24EI). El momento a 0.2 se comprueba contra
-la parábola. Con un par terminal +8 N·m, Ry_i=14 N, Ry_j=10 N y
-M(x)=14x−3x²: el máximo se desplaza a x/L=7/12 y vale 14²/(2w).
+With qy=−w, Ry_i=Ry_j=wL/2; V(x)=−wL/2+wx and
+M(x)=wx(L−x)/2. The root is at x=L/2 and Mmax=wL²/8=12 N·m.
+The test requests only x/L=0.2 and 0.8 (unordered and repeated) and checks
+that 0.5 is added, along with the ends. Rotations are
+theta_i=−wL³/(24EI), theta_j=+wL³/(24EI). The moment at 0.2 is checked against
+the parabola. With an end couple +8 N·m, Ry_i=14 N, Ry_j=10 N and
+M(x)=14x−3x²: the maximum shifts to x/L=7/12 and equals 14²/(2w).
 
-Una variante gira la viga 90° y suma dos cargas uniformes globales +X. Se
-comprueban factores 2, −1.5 y 0; el factor negativo cambia el máximo positivo
-por un mínimo negativo y el factor nulo anula cargas y resultados.
+One variant rotates the beam 90° and sums two global +X uniform loads.
+Factors 2, −1.5 and 0 are checked; the negative factor changes the positive maximum
+into a negative minimum and the zero factor zeroes loads and results.
 
-### Voladizo con cargas nodales
+### Cantilever with nodal loads
 
-Una fuerza terminal axial H=5 N da N=H y u_x=HL/(EA). La fuerza transversal
-−P da V=−P y M(x)=−P(L−x), v(L)=−PL³/(3EI), theta(L)=−PL²/(2EI).
-Acciones de extremo: `[−H,P,PL,H,−P,0]`. Una carga adicional −7 N en el apoyo
-da Ry=P+7, Rx=−H y Mz=PL; no modifica los diagramas del miembro. Se comprueban
-los brazos usando coordenadas no situadas en el origen, el equilibrio y los
-extremos de campos constantes. Se vacían las copias reducidas/reacciones del
-StaticCaseResult para verificar que se usa el vector global.
+An axial end force H=5 N gives N=H and u_x=HL/(EA). The transverse force
+−P gives V=−P and M(x)=−P(L−x), v(L)=−PL³/(3EI), theta(L)=−PL²/(2EI).
+End actions: `[−H,P,PL,H,−P,0]`. An additional load −7 N at the support
+gives Ry=P+7, Rx=−H and Mz=PL; it does not modify the member diagrams. Checks cover
+the lever arms using coordinates away from the origin, equilibrium and
+constant-field extrema. The reduced/reaction copies of
+StaticCaseResult are emptied to verify that the global vector is used.
 
-### Viga biempotrada en flexión
+### Beam restrained at both ends in bending
 
-Con giros y desplazamientos transversales nulos en ambos extremos, las acciones
-locales son Mi=+wL²/12, Mj=−wL²/12 y Vi=Vj=wL/2. Por cara positiva,
-M(x)=−wL²/12+wx(L−x)/2: mínimos en los extremos, −wL²/12, y máximo en el
-centro, +wL²/24. La prueba pide una lista vacía y encuentra el centro.
+With zero rotations and transverse displacements at both ends, local
+actions are Mi=+wL²/12, Mj=−wL²/12 and Vi=Vj=wL/2. On the positive face,
+M(x)=−wL²/12+wx(L−x)/2: minima at the ends, −wL²/12, and maximum at the
+center, +wL²/24. The test requests an empty list and finds the center.
 
-LinearSystem rechaza modelos con todos los GDL prescritos. Se deja Ux_j libre
-sin carga axial, conservando el empotramiento de TODOS los GDL de flexión.
-EA/L>0 fuerza Ux_j=0; al no haber acoplamiento axial-flexión en esta viga recta,
-su solución es exactamente la biempotrada con carga transversal. No se cambia
-el ensamblador para este ticket. Una variante aplica mz=3 N de par distribuido:
-V=0 ocurre en x/L=0.625, pero M′=0 sigue en 0.5; se recuperan ambas estaciones.
+LinearSystem rejects models with all DOFs prescribed. Ux_j is left free
+without axial load, retaining the restraint of ALL bending DOFs.
+EA/L>0 forces Ux_j=0; since there is no axial-bending coupling in this straight beam,
+its solution is exactly that of a beam restrained at both ends under transverse load. No changes are made to
+the assembler for this ticket. One variant applies mz=3 N of distributed couple:
+V=0 occurs at x/L=0.625, but M′=0 remains at 0.5; both stations are recovered.
 
-### Armadura y asentamiento
+### Truss and settlement
 
-Dos barras entre bases (−4,0) y (4,0) y ápice (0,3), L_barra=5 m.
-De equilibrio vertical, 2N(3/5)=−P: N=−5P/6=−10 N en cada barra.
-Reacciones verticales P/2 y horizontales opuestas ±4P/6. Los diagramas son
-constantes, todas las otras resultantes locales nulas. Se comprueban consultas
-de nodos/miembros/campos, listas vacías, ids repetidos y referencias ausentes.
+Two bars between bases (−4,0) and (4,0) and apex (0,3), L_barra=5 m.
+From vertical equilibrium, 2N(3/5)=−P: N=−5P/6=−10 N in each bar.
+Vertical reactions P/2 and opposite horizontal reactions ±4P/6. Diagrams are
+constant, all other local resultants zero. Checks cover queries
+of nodes/members/fields, empty lists, repeated ids and missing references.
 
-Dos barras axiales en serie, longitud total 4 m, con u_i=0 y u_j=0.03 m, sin
-carga, dan N=EA(0.03)/L=3 N, desplazamiento medio 0.015 m y reacciones ±3 N.
-Con factor 2 los asentamientos y estas acciones se conservan. Un GDL interior
-libre permite resolver el sistema sin modificar la restricción existente.
+Two axial bars in series, total length 4 m, with u_i=0 and u_j=0.03 m, without
+load, give N=EA(0.03)/L=3 N, midpoint displacement 0.015 m and reactions ±3 N.
+With factor 2 the settlements and these actions are preserved. A free interior
+DOF allows solving the system without modifying the existing restriction.
 
-### Entradas inválidas
+### Invalid inputs
 
-Se prueban estaciones negativas, mayores que uno, NaN y ±infinito;
-miembros/conectividades repetidos; nodos ausentes; tamaños de conectividad,
-historia y desplazamientos globales incoherentes; carga/factor no finitos;
-carga fuera del plano; caso ausente y desplazamiento prescrito incoherente.
-Los diagnósticos deben pertenecer al catálogo. Los errores no modifican los
-estados aceptado y de prueba. Sin `panic!`, `unwrap` ni `expect` en el módulo.
+Tests cover negative stations, stations greater than one, NaN and ±infinity;
+repeated members/connectivities; missing nodes; inconsistent connectivity,
+history and global displacement sizes; nonfinite load/factor;
+out-of-plane load; missing case and inconsistent prescribed displacement.
+Diagnostics must belong to the catalog. Errors do not modify
+committed and trial states. No `panic!`, `unwrap` or `expect` in the module.
 
-## Verificación local
+## Local verification
 
-Verificación del 2026-10-11, sin acceso a red:
+Verification on 2026-10-11, without network access:
 
-- `cargo fmt` y `cargo fmt --check`: OK.
+- `cargo fmt` and `cargo fmt --check`: OK.
 - `cargo clippy --all-targets -- -D warnings`: OK.
-- `cargo test --workspace`: OK; 215 pruebas, incluidas las nueve pruebas de
-  integración nuevas del postproceso y los doctests existentes.
+- `cargo test --workspace`: OK; 215 tests, including the nine new
+  postprocessing integration tests and existing doctests.
 - `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace`: OK.
-- `cargo check --workspace --target wasm32-unknown-unknown`: OK, usando
-  `PATH=/home/box/.cargo/bin:$PATH RUSTUP_TOOLCHAIN=stable`, con el destino y
-  toolchain ya instalados. No se descargó nada.
-- `bash clean-room/check.sh origin/main`: OK. También se ejecutó con un índice
-  y directorio de objetos temporales en `/tmp`, usando los objetos originales
-  en lectura y `git add --intent-to-add` en el índice temporal, para incluir los
-  tres archivos nuevos en el diff comprobado. No se modificó el índice real,
-  no se crearon commits y no se hizo push.
-- `git diff --check`: OK, incluidos los archivos nuevos mediante el mismo
-  índice temporal. Sin `panic!`, `.unwrap()` ni `.expect()` en el módulo ni
-  en sus pruebas nuevas.
+- `cargo check --workspace --target wasm32-unknown-unknown`: OK, using
+  `PATH=/home/box/.cargo/bin:$PATH RUSTUP_TOOLCHAIN=stable`, with the target and
+  toolchain already installed. Nothing was downloaded.
+- `bash clean-room/check.sh origin/main`: OK. Also run with a temporary index
+  and object directory in `/tmp`, using the original objects
+  read-only and `git add --intent-to-add` in the temporary index, to include the
+  three new files in the checked diff. The real index was not modified,
+  no commits were created and no push was performed.
+- `git diff --check`: OK, including new files through the same
+  temporary index. No `panic!`, `.unwrap()` or `.expect()` in the module or
+  its new tests.
 
-Pruebas nativas y rustdoc: Cargo/rustc 1.85.1 del sistema. Clippy instalado:
-0.1.99; compilación wasm: toolchain stable existente, rustc 1.99.0.
-El chequeo wasm valida compilación, no ejecución en un runtime wasm.
-La serialización `results/1` de ENG-CORE-005 y la revisión clean-room J4
-siguen pendientes según el alcance del ticket.
+Native tests and rustdoc: system Cargo/rustc 1.85.1. Installed Clippy:
+0.1.99; wasm compilation: existing stable toolchain, rustc 1.99.0.
+The wasm check validates compilation, not execution in a wasm runtime.
+ENG-CORE-005 `results/1` serialization and J4 clean-room review
+remain pending according to the ticket scope.

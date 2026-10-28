@@ -1,164 +1,164 @@
-# Bitácora clean-room · ENG-VAL-005
+# Clean-room log · ENG-VAL-005
 
-- Ticket / PR: MAM-105 · ENG-VAL-005, oráculos libres como línea base
-  independiente. Cambios sin commit ni push.
-- Autor(es): Codex gpt-6.1-sol high · 2026-10-17 (America/Guayaquil).
-- Rol: especificador e implementador de metadatos y pruebas de validación.
-- Contrato implementado: inventario de oráculos V1 y guardia sobre las tablas
-  existentes; `fixture/1` conserva su contrato y declara explícitamente los
-  límites que antes obtenía por defecto.
-- Fuentes permitidas usadas: petición del ticket; `docs/CLEAN_ROOM.md`, §4/§8;
-  `provenance/TEMPLATE.md`; derivaciones locales ENG-VAL-001 (estática y
-  D1–D12), ENG-GEO-002 (viga sobre lecho), ENG-GEO-006 (serie, convolución y
-  autofunciones multicapa r32), ENG-CORE-009 (`fixture/1`) y ENG-BENCH-002
-  (viga-columna). No se consultaron fuentes externas ni se usó red.
-- Derivaciones propias: se conservan y enlazan las notas anteriores desde
-  [ORACULOS.md](../crates/engine-validation/ORACULOS.md), con ecuaciones,
-  condiciones y parámetros ya versionados. No se introduce un método físico.
-- Código de terceros copiado: ninguno. Sin dependencias nuevas ni cambios
-  de Cargo.toml/Cargo.lock, vendor, workflows o reglas clean-room.
-- Validación: soluciones analíticas propias y pruebas numéricas existentes;
-  guardia de fuente, cita, justificación, tolerancia y cobertura por caso.
-  Referencias bibliográficas no cotejadas: PENDIENTES, detalladas en la matriz.
-- Comparación con oráculo (repo hermano, informativa): no. No se abrió ningún
-  archivo de ese repositorio ni se incorporaron datos o resultados de motores.
-- Declaración: "No consulté código fuente de OpenSees, Stabileo ni derivados
+- Ticket / PR: MAM-105 · ENG-VAL-005, free oracles as an independent
+  baseline. Changes without commit or push.
+- Author(s): Codex gpt-6.1-sol high · 2026-10-17 (America/Guayaquil).
+- Role: specifier and implementer of metadata and validation tests.
+- Contract implemented: V1 oracle inventory and guard over the existing
+  tables; `fixture/1` retains its contract and explicitly declares the
+  limits it previously obtained by default.
+- Permitted sources used: ticket request; `docs/CLEAN_ROOM.md`, §4/§8;
+  `provenance/TEMPLATE.md`; local derivations ENG-VAL-001 (statics and
+  D1–D12), ENG-GEO-002 (beam on foundation), ENG-GEO-006 (series, convolution and
+  r32 multilayer eigenfunctions), ENG-CORE-009 (`fixture/1`) and ENG-BENCH-002
+  (beam-column). No external sources were consulted or network used.
+- Own derivations: the previous notes are retained and linked from
+  [ORACULOS.md](../crates/engine-validation/ORACULOS.md), with equations,
+  conditions and parameters already versioned. No physical method is introduced.
+- Third-party code copied: none. No new dependencies or changes
+  to Cargo.toml/Cargo.lock, vendor, workflows or clean-room rules.
+- Validation: own analytical solutions and existing numerical tests;
+  source, citation, justification, tolerance and coverage guard per case.
+  Unchecked bibliographic references: PENDING, detailed in the matrix.
+- Comparison with oracle (sibling repo, informative): no. No file
+  from that repository was opened or engine data or results incorporated.
+- Declaration: "No consulté código fuente de OpenSees, Stabileo ni derivados
   para este ticket. Tampoco consulté ni usé código o resultados de CalculiX o
   LAPACK, ni salidas de OpenSees o Stabileo."
-- Revisor clean-room: PENDIENTE (J4).
+- Clean-room reviewer: PENDING (J4).
 
-## Decisiones y alcance
+## Decisions and scope
 
-Se inventarían 91 casos de engine-validation: 73 de ENG-VAL-001, seis Winkler,
-siete de consolidación (incluido multicapa no transformable) y cinco JSON
-`fixture/1`. Cada caso tiene ecuación o valores esperados, fuente y tolerancia;
-las suites numéricas existentes siguen recorriendo todas sus filas.
-No hay artefactos identificados como ENG-VAL-002 en el árbol inspeccionado.
-Se documenta también el contraste analítico independiente de los benchmarks
-publicados P-Delta existentes, sin copiar sus tablas o figuras.
+91 engine-validation cases are inventoried: 73 from ENG-VAL-001, six Winkler,
+seven consolidation (including nontransformable multilayer) and five JSON
+`fixture/1`. Each case has an equation or expected values, source and tolerance;
+the existing numerical suites continue to traverse all their rows.
+There are no artifacts identified as ENG-VAL-002 in the inspected tree.
+The independent analytical comparison of the existing published P-Delta
+benchmarks is also documented, without copying their tables or figures.
 
-La guardia `tests/oracles.rs` comprueba todas las tablas y fixtures, rechaza
-fuentes ausentes o de motores prohibidos, verifica límites finitos y positivos
-y detecta casos omitidos, duplicados o tolerancias desactualizadas en la matriz.
-Sus controles negativos retiran fuente, valores esperados o tolerancia de cada
-JSON y ensayan fuentes prohibidas y límites inválidos. El test de fixtures
-existente comprueba que el inventario embebido coincide con todos los JSON del
-directorio; no puede quedar un archivo sin ejecutar.
+The `tests/oracles.rs` guard checks all tables and fixtures, rejects
+missing sources or sources from prohibited engines, verifies finite and positive limits
+and detects omitted or duplicate cases or outdated tolerances in the matrix.
+Its negative controls remove source, expected values or tolerance from each
+JSON and test prohibited sources and invalid limits. The existing fixture test
+checks that the embedded inventory matches all JSON in the
+directory; no file can be left unexecuted.
 
-Los cinco JSON añaden absolute=relative=1e-10, idénticos al default anterior.
-Consolidación mueve los límites existentes a metadatos compartidos y usados
-por los ejecutores nativo/wasm: asiento/s∞<0.0015, U relativo<0.005,
-presión/100<0.004 y flujo relativo<0.03. No cambia ningún valor esperado,
-entrada mecánica, fórmula, operador de aceptación ni tolerancia efectiva.
+The five JSON add absolute=relative=1e-10, identical to the previous default.
+Consolidation moves the existing limits to shared metadata used
+by the native/wasm runners: settlement/s∞<0.0015, relative U<0.005,
+pressure/100<0.004 and relative flow<0.03. No expected value,
+mechanical input, formula, acceptance operator or effective tolerance changes.
 
-ENG-REL-001 depende de ENG-VAL-005 y no exige ENG-VAL-003. OpenSees queda
-solo como contraste adicional externo, nunca como único oráculo ni requisito
-de CI o release. No entran sus archivos ni resultados al repositorio.
+ENG-REL-001 depends on ENG-VAL-005 and does not require ENG-VAL-003. OpenSees remains
+only an additional external comparison, never the sole oracle or a CI
+or release requirement. Its files and results do not enter the repository.
 
-## Verificación offline
+## Offline verification
 
-Se usa la toolchain stable provisionada, `CARGO_NET_OFFLINE=true`,
-`PIP_NO_INDEX=1` y un directorio de compilación aislado `$CARGO_TARGET_DIR`.
+The provisioned stable toolchain, `CARGO_NET_OFFLINE=true`,
+`PIP_NO_INDEX=1` and an isolated build directory `$CARGO_TARGET_DIR` are used.
 
-| Comprobación | Resultado |
+| Check | Result |
 | --- | --- |
 | `cargo fmt --all -- --check` | OK |
 | `cargo clippy --workspace --all-targets --offline -- -D warnings` | OK |
-| `cargo test --workspace --offline` | 661 passed, 0 failed, 0 ignored, incluidos doctests |
+| `cargo test --workspace --offline` | 661 passed, 0 failed, 0 ignored, including doctests |
 | `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace --offline` | OK |
 | `cargo check --workspace --offline --target wasm32-unknown-unknown` | OK |
-| `bash clean-room/check.sh origin/main` | OK, incluidos los tres archivos nuevos |
+| `bash clean-room/check.sh origin/main` | OK, including the three new files |
 
-La suite focalizada de engine-validation pasó 24 tests, incluidos los tres
-nuevos, y recorre los 91 casos. La comparación de los cinco JSON contra HEAD
-confirmó igualdad de `input`, `expected`, `source` y los demás campos previos;
-solo se añadió la tolerancia explícita idéntica al default anterior.
+The targeted engine-validation suite passed 24 tests, including the three
+new ones, and traverses the 91 cases. Comparison of the five JSON against HEAD
+confirmed equality of `input`, `expected`, `source` and the other previous fields;
+only the explicit tolerance identical to the previous default was added.
 
-El índice Git real es de solo lectura. La primera invocación de clean-room no
-contó el provenance nuevo porque todavía era un archivo sin seguimiento.
-Se ejecutó la misma guardia con `GIT_INDEX_FILE` apuntando a un índice temporal
-bajo `$CARGO_TARGET_DIR/eng-val-005-evidence/`, inicializado desde HEAD y con
-entradas para ORACULOS.md, tests/oracles.rs y esta bitácora. Así el diff
-inspecciona sus contenidos completos. No se modificó el índice real ni se
-alteró la guardia para obtener el resultado.
+The real Git index is read-only. The first clean-room invocation did not
+count the new provenance because it was still an untracked file.
+The same guard was run with `GIT_INDEX_FILE` pointing to a temporary index
+under `$CARGO_TARGET_DIR/eng-val-005-evidence/`, initialized from HEAD and with
+entries for ORACULOS.md, tests/oracles.rs and this log. Thus the diff
+inspects their full contents. The real index was not modified and the guard
+was not altered to obtain the result.
 
-Determinismo: los 16 hashes publicados en `docs/DETERMINISMO.md` coinciden
-exactamente con los calculados; diez corridas por caso en nativo y wasm,
-perfil debug, `MAMUT_ENGINE_GIT_COMMIT` sin definir. El script existente
-`scripts/check-determinism.mjs` verificó igualdad entre targets, repetibilidad
-y cero imports externos. El documento de hashes permanece intacto.
+Determinism: the 16 hashes published in `docs/DETERMINISMO.md` match
+exactly those calculated; ten runs per case in native and wasm,
+debug profile, `MAMUT_ENGINE_GIT_COMMIT` unset. The existing
+`scripts/check-determinism.mjs` script verified equality between targets, repeatability
+and zero external imports. The hash document remains intact.
 
-Ejecución wasm adicional, offline y con los ejecutores existentes: seis casos
-Winkler, siete de consolidación más convergencia y cinco `fixture/1`, estos
-últimos en ambos targets del runner (diez filas aprobadas). Esto ejecuta los
-harnesses y documentos cuyos metadatos cambiaron, además de compilarlos.
-Logs de comprobaciones, hashes y reportes solo en
-`$CARGO_TARGET_DIR/eng-val-005-evidence/`; no se añaden resultados al repo.
+Additional wasm execution, offline and with the existing runners: six
+Winkler cases, seven consolidation plus convergence and five `fixture/1`, the
+latter in both runner targets (ten rows passed). This executes the
+harnesses and documents whose metadata changed, in addition to compiling them.
+Check logs, hashes and reports only in
+`$CARGO_TARGET_DIR/eng-val-005-evidence/`; no results are added to the repo.
 
-`git diff --check`: OK. Sin cambios en bibliotecas numéricas, entradas de
-determinismo, Cargo.toml/Cargo.lock ni archivos protegidos.
+`git diff --check`: OK. No changes to numerical libraries, determinism
+inputs, Cargo.toml/Cargo.lock or protected files.
 
 ## Seguimiento de revisión OpenCode · PR #155
 
-- Autor: Codex gpt-6.1-sol high · 2026-10-17 (America/Guayaquil).
-- Rol: especificador e implementador de metadatos y guardias.
-- Fuentes: solo las derivaciones locales citadas arriba y la solicitud de
-  seguimiento; sin red ni consulta de bibliografía externa.
-- Declaración clean-room: no consulté ni usé código o resultados de OpenSees,
-  Stabileo, CalculiX o LAPACK; no copié tablas, figuras ni código de terceros.
-- Revisor clean-room: PENDIENTE (J4).
+- Author: Codex gpt-6.1-sol high · 2026-10-17 (America/Guayaquil).
+- Role: specifier and implementer of metadata and guards.
+- Sources: only the local derivations cited above and the follow-up
+  request; no network or consultation of external bibliography.
+- Clean-room declaration: I did not consult or use code or results from OpenSees,
+  Stabileo, CalculiX or LAPACK; I did not copy third-party tables, figures or code.
+- Clean-room reviewer: PENDING (J4).
 
-Las citas de Winkler y consolidación apuntan ahora a secciones concretas de las
-derivaciones propias; CQC conserva la evaluación algebraica D11 como fuente.
-Las atribuciones no cotejadas se reúnen en «Referencia bibliográfica opcional
-(por cotejar)» de ORACULOS.md y no son el oráculo de aceptación.
+Winkler and consolidation citations now point to specific sections of the
+own derivations; CQC retains the D11 algebraic evaluation as its source.
+Unchecked attributions are gathered in «Optional bibliographic reference
+(to be checked)» in ORACULOS.md and are not the acceptance oracle.
 
-El inventario se calcula sumando las longitudes de las tablas y fixtures,
-incluido el caso espectral multicapa individual. La guardia compara los nombres
-en ambos sentidos e informa qué casos faltan o sobran en la matriz y en las
-tablas/fixtures, además de rechazar duplicados. Cada fila debe enlazar un ancla
-de encabezado existente en el archivo de provenance correspondiente. Los cinco
-JSON enlazan la sección de sus derivaciones; multicapa transformable enlaza su
-desarrollo específico.
+The inventory is calculated by summing the lengths of the tables and fixtures,
+including the individual multilayer spectral case. The guard compares names
+in both directions and reports which cases are missing or extra in the matrix and in the
+tables/fixtures, as well as rejecting duplicates. Each row must link a heading
+anchor existing in the corresponding provenance file. The five
+JSON link the section of their derivations; transformable multilayer links its
+specific development.
 
-Los controles negativos incluyen enlaces sin ancla, anclas/archivos inexistentes,
-diferencias de inventario, citas con la palabra PENDIENTE (sin distinguir
-mayúsculas) y justification vacía o compuesta solo de espacios/tabuladores/saltos
-de línea en cada fixture/1. «Independiente» sigue siendo texto válido.
-Cada JSON justifica ahora el default según escala de los resultados, rigideces,
-condicionamiento y ceros del caso. No se modifica el contrato de la biblioteca.
+Negative controls include links without anchors, nonexistent anchors/files,
+inventory differences, citations containing the word PENDIENTE (case-insensitive)
+and empty justification or justification consisting only of spaces/tabs/newlines
+in each fixture/1. «Independiente» remains valid text.
+Each JSON now justifies the default according to the scale of the results, stiffnesses,
+conditioning and zeros of the case. The library contract is not modified.
 
-Comparación contra HEAD: los cinco JSON conservan todos sus datos, incluidas
-entradas, resultados y límites; solo cambian citation y tolerance.justification.
-Las tres tablas modificadas conservan todos sus literales numéricos. No se
-modifican bibliotecas, dependencias, archivos protegidos ni hashes publicados.
+Comparison against HEAD: the five JSON retain all their data, including
+inputs, results and limits; only citation and tolerance.justification change.
+The three modified tables retain all their numeric literals. No libraries,
+dependencies, protected files or published hashes are modified.
 
-### Verificación del seguimiento
+### Follow-up verification
 
-Toolchain stable rustc 1.99.0, `CARGO_TARGET_DIR=/workspace/.cargo-target/me-val5`,
-`CARGO_NET_OFFLINE=true` y `PIP_NO_INDEX=1`. Todo ejecutado sin red:
+Stable toolchain rustc 1.99.0, `CARGO_TARGET_DIR=/workspace/.cargo-target/me-val5`,
+`CARGO_NET_OFFLINE=true` and `PIP_NO_INDEX=1`. All run without network:
 
-| Comprobación | Resultado |
+| Check | Result |
 | --- | --- |
 | `cargo fmt --all -- --check` | OK |
 | `cargo clippy --workspace --all-targets --offline -- -D warnings` | OK |
-| `cargo test --workspace --offline` | 665 passed, 0 failed, 0 ignored, incluidos doctests |
+| `cargo test --workspace --offline` | 665 passed, 0 failed, 0 ignored, including doctests |
 | `RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace --offline` | OK |
 | `cargo check --workspace --offline --target wasm32-unknown-unknown` | OK |
-| `bash clean-room/check.sh origin/main` | OK, sin índice alternativo |
+| `bash clean-room/check.sh origin/main` | OK, without an alternative index |
 
-Guardia de oráculos: siete tests aprobados, cuatro añadidos en el seguimiento;
-el inventario calculado coincide con las 91 filas actuales. Los 16 hashes
-recalculados coinciden exactamente con `docs/DETERMINISMO.md`. Cruce debug
-nativo/wasm con los ejecutores existentes y `scripts/check-determinism.mjs`:
-diez corridas por caso/target, igualdad bit a bit y cero imports externos.
-`MAMUT_ENGINE_GIT_COMMIT` sin definir, como en la tabla publicada.
+Oracle guard: seven tests passed, four added in the follow-up;
+the calculated inventory matches the current 91 rows. The 16 recalculated
+hashes match `docs/DETERMINISMO.md` exactly. Native/wasm debug
+comparison with the existing runners and `scripts/check-determinism.mjs`:
+ten runs per case/target, bit-for-bit equality and zero external imports.
+`MAMUT_ENGINE_GIT_COMMIT` unset, as in the published table.
 
-Logs y resúmenes locales en `$CARGO_TARGET_DIR/eng-val-005-followup/`.
-`git diff --check`: OK. Cambios sin commitear en el árbol de trabajo.
+Local logs and summaries in `$CARGO_TARGET_DIR/eng-val-005-followup/`.
+`git diff --check`: OK. Uncommitted changes in the working tree.
 
-## Pendientes
+## Pending items
 
-Revisión clean-room de J4; cotejo humano de las referencias bibliográficas y
-localizadores marcados PENDIENTES en ORACULOS.md. La aceptación numérica usa
-las derivaciones locales y no depende de completar esas atribuciones.
+J4 clean-room review; human cross-check of the bibliographic references and
+locators marked PENDING in ORACULOS.md. Numerical acceptance uses
+the local derivations and does not depend on completing those attributions.
