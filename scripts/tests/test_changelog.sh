@@ -37,11 +37,11 @@ expect_fail() {
     local expected=$1
     shift
     if "$@" > "$scratch/stdout" 2> "$scratch/stderr"; then
-        fail "se esperaba un error: $*"
+        fail "expected an error: $*"
     fi
     local message
     message=$(< "$scratch/stderr")
-    [[ $message == *"$expected"* ]] || fail "mensaje esperado '$expected', recibido '$message'"
+    [[ $message == *"$expected"* ]] || fail "expected message '$expected', received '$message'"
 }
 assemble() { bash scripts/changelog-assemble.sh "$@"; }
 check() { bash scripts/changelog-check.sh base; }
@@ -120,14 +120,14 @@ assemble 1.2.3 2026-10-21 --dry-run > "$scratch/preview-two"
 cmp "$scratch/preview-one" "$scratch/preview-two"
 cmp "$scratch/expected" "$scratch/preview-one"
 cmp "$scratch/original" CHANGELOG.md
-[[ $(git status --porcelain=v1 --untracked-files=all) == "$before" ]] || fail 'dry-run modificó archivos'
+[[ $(git status --porcelain=v1 --untracked-files=all) == "$before" ]] || fail 'dry-run changed files'
 for file in "$scratch/original-fragments"/*; do cmp "$file" "changelog.d/${file##*/}"; done
-pass 'dry-run sin mutaciones; orden, formato, legado y versiones anteriores exactos'
+pass 'dry-run without mutations; exact order, formatting, legacy content, and previous versions'
 commit_all release-inputs
 assemble 1.2.3 2026-10-21
 cmp "$scratch/expected" CHANGELOG.md
 remaining=(changelog.d/*)
-[[ ${#remaining[@]} == 1 && ${remaining[0]} == changelog.d/README.md ]] || fail 'no eliminó solo los fragmentos'
+[[ ${#remaining[@]} == 1 && ${remaining[0]} == changelog.d/README.md ]] || fail 'did not remove only the fragments'
 cp CHANGELOG.md "$scratch/assembled-one"
 cp "$scratch/original" CHANGELOG.md
 cp -- "$scratch/original-fragments/"* changelog.d/
@@ -136,9 +136,9 @@ rm changelog.d/MAM-2.added.md
 cp "$scratch/original-fragments/MAM-2.added.md" changelog.d/
 SOURCE_DATE_EPOCH=1792540800 TZ=Pacific/Honolulu assemble 1.2.3
 cmp "$scratch/assembled-one" CHANGELOG.md
-pass 'dos ensamblados idénticos byte a byte; fecha desde SOURCE_DATE_EPOCH en UTC'
+pass 'two byte-identical assemblies; date from SOURCE_DATE_EPOCH in UTC'
 expect_fail 'ya existe' assemble 1.2.3 2026-10-21
-pass 'rechazo de versión duplicada'
+pass 'duplicate version rejected'
 
 new_repo
 printf 'Contenido\n' > changelog.d/MAM-1.added.md
@@ -151,7 +151,7 @@ for bad in MAM-x.added.md MAM-1.other.md MAM-1.added.txt .gitkeep; do
     printf 'Inválido\n' > "changelog.d/$bad"
     expect_fail "nombre de fragmento inválido: changelog.d/$bad" assemble 1.0 2026-10-21
     cmp CHANGELOG.md "$scratch/original"
-    [[ -f changelog.d/MAM-1.added.md ]] || fail 'un error eliminó fragmentos'
+    [[ -f changelog.d/MAM-1.added.md ]] || fail 'an error removed fragments'
     rm -- "changelog.d/$bad"
 done
 mkdir changelog.d/MAM-2.fixed.md
@@ -169,13 +169,13 @@ printf '# Sin Unreleased\n' > CHANGELOG.md
 expect_fail 'falta el encabezado' assemble 1.0 2026-10-21
 printf '## Unreleased\n\n## Unreleased\n' > CHANGELOG.md
 expect_fail 'más de una sección' assemble 1.0 2026-10-21
-pass 'fechas, nombres, archivos vacíos, enlaces y encabezados inválidos sin consumo de fragmentos'
+pass 'invalid dates, names, empty files, links, and headings without consuming fragments'
 
 new_repo
 assemble 1.0 2026-10-21
 printf '# Changelog\n\n## Unreleased\n\n## 1.0 - 2026-10-21\n\n' > "$scratch/expected-empty"
 cmp "$scratch/expected-empty" CHANGELOG.md
-pass 'release sin fragmentos ni legado'
+pass 'release without fragments or legacy content'
 
 new_repo
 printf 'Entrada\n' > changelog.d/MAM-1.added.md
@@ -187,7 +187,7 @@ expect_fail 'CHANGELOG.md debe estar versionado en Git' assemble 1.0 2026-10-21
 cmp "$scratch/original" CHANGELOG.md
 cmp "$scratch/original-fragment" changelog.d/MAM-1.added.md
 git add CHANGELOG.md
-pass 'ensamblado rechaza CHANGELOG.md sin seguimiento sin modificar archivos'
+pass 'assembly rejects untracked CHANGELOG.md without changing files'
 
 for dirty in unstaged staged untracked; do
     case "$dirty" in
@@ -203,16 +203,16 @@ for dirty in unstaged staged untracked; do
     expect_fail 'el árbol de trabajo Git debe estar limpio' assemble 1.0 2026-10-21
     cmp "$scratch/original" CHANGELOG.md
     cmp "$scratch/original-fragment" changelog.d/MAM-1.added.md
-    [[ $(git status --porcelain --untracked-files=all) == "$before" ]] || fail 'el rechazo modificó el árbol'
+    [[ $(git status --porcelain --untracked-files=all) == "$before" ]] || fail 'rejection changed the tree'
 done
-pass 'ensamblado rechaza cambios sin preparar, preparados y sin seguimiento sin mutaciones'
+pass 'assembly rejects unstaged, staged, and untracked changes without mutations'
 
 mv .git "$scratch/nonrepo-git"
 expect_fail 'se requiere un árbol de trabajo Git' assemble 1.0 2026-10-21
 cmp "$scratch/original" CHANGELOG.md
 cmp "$scratch/original-fragment" changelog.d/MAM-1.added.md
 assemble --dry-run 1.0 2026-10-21 > "$scratch/nonrepo-preview"
-pass 'ensamblado requiere un árbol Git; dry-run funciona fuera de Git'
+pass 'assembly requires a Git tree; dry-run works outside Git'
 
 new_repo
 printf 'documentación\n' > notes.md
@@ -222,9 +222,9 @@ expect_fail 'uso:' bash scripts/changelog-check.sh
 expect_fail "BASE_REF no puede empezar por '-': -HEAD" bash scripts/changelog-check.sh -HEAD
 output_path="$scratch/injected-output"
 expect_fail "BASE_REF no puede empezar por '-': --output=$output_path" bash scripts/changelog-check.sh "--output=$output_path"
-[[ ! -e $output_path ]] || fail 'BASE_REF creó un archivo con --output'
+[[ ! -e $output_path ]] || fail 'BASE_REF created a file with --output'
 expect_fail 'BASE_REF no resuelve a un commit: no-such-ref' bash scripts/changelog-check.sh no-such-ref
-pass 'check: documentación exenta y referencia/argumentos inválidos rechazados'
+pass 'check: documentation is exempt and invalid references/arguments are rejected'
 
 for area in crates bindings; do
     new_repo
@@ -245,7 +245,7 @@ for area in crates bindings; do
     expect_fail 'no debe editar CHANGELOG.md' check
     CHANGELOG_RELEASE=1 check
 done
-pass 'check: crates y bindings exigen fragmento, rechazan CHANGELOG y permiten release'
+pass 'check: crates and bindings require a fragment, reject CHANGELOG, and allow release'
 
 new_repo
 printf 'Original\n' > changelog.d/MAM-10.added.md
@@ -255,7 +255,7 @@ printf 'cambio\n' >> crates/example.txt
 printf 'Modificado\n' > changelog.d/MAM-10.added.md
 commit_all modified-fragment
 expect_fail 'requieren al menos un fragmento nuevo' check
-pass 'check: modificar un fragmento existente no cuenta como añadido'
+pass 'check: changing an existing fragment does not count as an addition'
 
 for candidate in MAM-bad.fixed.md MAM-11.unknown.md MAM-12.fixed.md; do
     new_repo
@@ -273,7 +273,7 @@ printf 'cambio\n' >> bindings/example.txt
 ln -s ../bindings/example.txt changelog.d/MAM-12.fixed.md
 commit_all symlink-fragment
 expect_fail 'archivo regular' check
-pass 'check: nombres inválidos, fragmentos vacíos y enlaces rechazados'
+pass 'check: invalid names, empty fragments, and links rejected'
 
 new_repo
 git checkout --quiet -b first
@@ -283,11 +283,11 @@ git checkout --quiet -b second base
 printf 'Segunda rama\n' > changelog.d/MAM-21.added.md
 commit_all second-fragment
 git merge --quiet --no-edit first
-[[ -f changelog.d/MAM-20.added.md && -f changelog.d/MAM-21.added.md ]] || fail 'faltan fragmentos tras merge'
-[[ -z $(git ls-files --unmerged) ]] || fail 'merge con conflictos'
+[[ -f changelog.d/MAM-20.added.md && -f changelog.d/MAM-21.added.md ]] || fail 'missing fragments after merge'
+[[ -z $(git ls-files --unmerged) ]] || fail 'merge conflicts'
 assemble 1.0 2026-10-21
 printf '# Changelog\n\n## Unreleased\n\n## 1.0 - 2026-10-21\n\n### Añadido\n\n- Primera rama\n\n- Segunda rama\n\n' > "$scratch/expected-merge"
 cmp "$scratch/expected-merge" CHANGELOG.md
-pass 'dos ramas añaden fragmentos, fusionan sin conflictos y ensamblan ambas entradas'
+pass 'two branches add fragments, merge without conflicts, and assemble both entries'
 
-printf 'Changelog: %s grupos de pruebas OK.\n' "$checks"
+printf 'Changelog: %s test groups OK.\n' "$checks"

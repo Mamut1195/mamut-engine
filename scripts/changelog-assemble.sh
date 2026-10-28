@@ -15,7 +15,7 @@ for arg in "$@"; do
 done
 (( ${#args[@]} >= 1 && ${#args[@]} <= 2 )) || fail "$usage"
 version=${args[0]}
-[[ $version =~ ^[A-Za-z0-9][A-Za-z0-9.+_-]*$ ]] || fail 'VERSION inválida (usa un identificador sin espacios).'
+[[ $version =~ ^[A-Za-z0-9][A-Za-z0-9.+_-]*$ ]] || fail 'Invalid VERSION (use an identifier without spaces).'
 if (( ${#args[@]} == 2 )); then
     release_date=${args[1]}
 else
@@ -28,8 +28,8 @@ normalized_date=$(date -u --date="$release_date" +%F) || fail 'DATE inválida.'
 
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd -- "$root"
-[[ -f CHANGELOG.md && ! -L CHANGELOG.md ]] || fail 'falta un CHANGELOG.md regular.'
-[[ -d changelog.d && ! -L changelog.d ]] || fail 'falta el directorio changelog.d.'
+[[ -f CHANGELOG.md && ! -L CHANGELOG.md ]] || fail 'a regular CHANGELOG.md is missing.'
+[[ -d changelog.d && ! -L changelog.d ]] || fail 'the changelog.d directory is missing.'
 shopt -s nullglob dotglob
 fragments=()
 for file in changelog.d/*; do
@@ -65,7 +65,7 @@ done < CHANGELOG.md
 if (( ! dry_run )); then
     [[ $(git rev-parse --is-inside-work-tree 2>/dev/null) == true ]] || fail 'se requiere un árbol de trabajo Git.'
     git ls-files --error-unmatch -- CHANGELOG.md >/dev/null 2>&1 || fail 'CHANGELOG.md debe estar versionado en Git.'
-    tree_status=$(git status --porcelain --untracked-files=all --ignore-submodules=none) || fail 'no se pudo comprobar el estado del árbol de trabajo Git.'
+    tree_status=$(git status --porcelain --untracked-files=all --ignore-submodules=none) || fail 'could not check the Git working tree status.'
     [[ -z $tree_status ]] || fail 'el árbol de trabajo Git debe estar limpio (incluidos archivos sin seguimiento).'
 fi
 
@@ -139,5 +139,5 @@ else
     mv -- "$publish" CHANGELOG.md
     publish=''
     if (( ${#fragments[@]} > 0 )); then rm -- "${fragments[@]}"; fi
-    printf 'Changelog: versión %s ensamblada; %s fragmentos eliminados.\n' "$version" "${#fragments[@]}" >&2
+    printf 'Changelog: version %s assembled; %s fragments removed.\n' "$version" "${#fragments[@]}" >&2
 fi

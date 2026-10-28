@@ -1,4 +1,4 @@
-//! Comprueba la misma barrera usada por PyO3 sin enlazar un intérprete embebido.
+//! Checks the same barrier used by PyO3 without linking an embedded interpreter.
 #![cfg(not(target_arch = "wasm32"))]
 #[path = "../src/unwind.rs"]
 mod unwind;

@@ -1,4 +1,4 @@
-"""Contrato público de la wheel instalada; solo biblioteca estándar."""
+"""Checks the installed wheel's public contract using only the standard library."""
 
 from importlib.metadata import version as distribution_version
 import unittest

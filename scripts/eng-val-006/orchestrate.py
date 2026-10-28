@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Orquestador del Engine para ENG-VAL-006.
+"""Orchestrates the Engine for ENG-VAL-006.
 
-Mide el binario release. No lanza la campaña contra el VPS: el valor por defecto
-queda disponible para esa corrida, y --smoke hace una pasada local mínima.
-Las tablas salen después, solo de los CSV.
+Measures the release binary. Does not launch the campaign against the VPS: the default
+remains available for that run, and --smoke performs a minimal local pass.
+Produces tables afterwards, only from the CSV files.
 
-`LocalHost.measure` retiene en memoria, hasta que el proceso termina, el stdout
-del motor y el stderr de GNU time (`subprocess.run` con `capture_output=True`).
-No lee esa salida en flujo: una corrida completa cabe en RAM antes de extraer
-el bloque de `time -v`.
+`LocalHost.measure` retains Engine stdout and GNU time stderr in memory until
+the process ends (`subprocess.run` with `capture_output=True`).
+Does not stream that output: an entire run fits in RAM before extracting
+the `time -v` block.
 """
 
 import argparse
@@ -76,7 +76,7 @@ def verify_index(index):
 def _check_hash(path, expected):
     actual = sha256_file(path)
     if actual != expected:
-        raise CampaignError(f"sha256 distinto en {path}")
+        raise CampaignError(f"sha256 mismatch in {path}")
 
 
 def parse_time_verbose(stderr):
@@ -100,7 +100,7 @@ def parse_time_verbose(stderr):
         if matched:
             rss = int(matched.group(1))
     if elapsed is None or rss is None:
-        raise CampaignError("la salida de time -v no trae tiempo de pared o memoria")
+        raise CampaignError("time -v output has no wall time or memory")
     return elapsed, rss
 
 
@@ -193,8 +193,8 @@ class LocalHost:
             str(WORKFLOW),
         ]
         try:
-            # stdout del motor y stderr de time quedan en memoria hasta el
-            # fin del proceso. No hay lector en flujo.
+            # Engine stdout and time stderr remain in memory until the
+            # process ends. There is no streaming reader.
             completed = subprocess.run(
                 command,
                 cwd=ROOT,
@@ -204,10 +204,10 @@ class LocalHost:
                 timeout=self.timeout_s,
             )
         except subprocess.TimeoutExpired as error:
-            raise CampaignError("la corrida superó el tiempo límite") from error
+            raise CampaignError("the run exceeded the time limit") from error
         if completed.returncode not in (0, 1):
             tail = completed.stderr.decode("utf-8", "replace")[-2000:]
-            raise CampaignError(f"el Engine terminó con código {completed.returncode}: {tail}")
+            raise CampaignError(f"the Engine exited with code {completed.returncode}: {tail}")
         elapsed, rss = parse_time_verbose(completed.stderr.decode("utf-8", "replace"))
         return elapsed, rss, completed.returncode
 
@@ -218,7 +218,7 @@ def run_block(host, spec, warmup, measures, max_attempts, pause_s):
         if not host.runners_idle():
             discarded += 1
             if discarded > max_attempts:
-                raise CampaignError("los runners no quedaron idle antes del bloque")
+                raise CampaignError("the runners did not become idle before the block")
             host.sleep(pause_s)
             continue
         started = host.loadavg()
@@ -244,7 +244,7 @@ def run_block(host, spec, warmup, measures, max_attempts, pause_s):
         if not host.runners_idle():
             discarded += 1
             if discarded > max_attempts:
-                raise CampaignError("un job apareció durante el bloque; no se publica")
+                raise CampaignError("a job appeared during the block; it is not published")
             host.sleep(pause_s)
             continue
         return {
@@ -286,9 +286,9 @@ def git_commit():
 def assert_release(path):
     parts = Path(path).resolve().parts
     if "release" not in parts or "debug" in parts:
-        raise CampaignError("se requiere el binario release de mamut-engine")
+        raise CampaignError("the mamut-engine release binary is required")
     if not os.access(path, os.X_OK):
-        raise CampaignError("el binario release no es ejecutable")
+        raise CampaignError("the release binary is not executable")
 
 
 def select_models(index, smoke):
@@ -381,10 +381,10 @@ def main(argv=None):
     parser.add_argument("--allow-nonrelease", action="store_true")
     args = parser.parse_args(argv)
     if not args.time_bin.is_file():
-        parser.error(f"no está el binario de time: {args.time_bin}")
+        parser.error(f"the time binary is missing: {args.time_bin}")
     if args.allow_nonrelease:
         if not os.access(args.binary, os.X_OK):
-            parser.error("el binario no es ejecutable")
+            parser.error("the binary is not executable")
     else:
         assert_release(args.binary)
     host = LocalHost(args.time_bin, args.binary, args.timeout_s)

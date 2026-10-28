@@ -1,4 +1,4 @@
-"""MAM-835: paridad de bytes Rust/FFI/fachada y diagnósticos de SFC-010."""
+"""Checks MAM-835 Rust/FFI/facade byte parity and SFC-010 diagnostics."""
 import json
 import os
 from pathlib import Path
@@ -14,7 +14,7 @@ FIXTURES = ROOT / "crates/engine-api/fixtures/input/valid"
 class Sfc010Test(unittest.TestCase):
     def test_every_new_fixture_matches_rust_bytes_through_both_python_surfaces(self):
         references = os.environ.get("MAMUT_RUST_REFERENCES")
-        self.assertTrue(references, "Defina MAMUT_RUST_REFERENCES con facade_reference")
+        self.assertTrue(references, "Set MAMUT_RUST_REFERENCES using facade_reference")
         paths = sorted(FIXTURES.glob("sfc010-*.json"))
         self.assertEqual(len(paths), 11)
         for path in paths:

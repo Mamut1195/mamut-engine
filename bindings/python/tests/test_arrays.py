@@ -1,4 +1,4 @@
-"""Frontera tabular sin depender de NumPy ni de pytest."""
+"""Checks the tabular boundary without depending on NumPy or pytest."""
 from copy import deepcopy
 from importlib.metadata import metadata
 import json
@@ -56,7 +56,7 @@ assert r.to_dict()["cases"]
 
     def test_lists_preserve_ids_labels_units_and_snapshot(self):
         model = json.loads(SOURCE)
-        # IDs no consecutivos y orden de identidades distinto del orden de filas.
+        # Nonconsecutive IDs and an identity order that differs from the row order.
         model["model"]["nodes"][0]["id"] = 4294967295
         model["model"]["members"][0]["nodes"][0] = 4294967295
         model["model"]["supports"][0]["node"] = 4294967295
@@ -135,7 +135,7 @@ assert r.to_dict()["cases"]
                         station[field] = bad
                     else:
                         station[field][0] = bad
-                # Probar la frontera tabular sin que el schema rechace bool antes.
+                # Tests the tabular boundary without the schema rejecting bool first.
                 with self.subTest(field=field, bad=bad), self.assertRaisesRegex(
                         engine.InvalidInputError, "se requieren valores f64 finitos"):
                     export(value, numpy=False)
@@ -195,7 +195,7 @@ assert r.to_dict()["cases"]
             engine.Results.from_json(json.dumps(value)).to_arrays()
 
     def test_mixed_element_widths_and_unknown_labels(self):
-        # Fixture de transporte importado; no representa una solución física.
+        # Imported transport fixture; does not represent a physical solution.
         document = engine.run(SOURCE).to_dict()
         for mid, kind, width in ((21, "truss2d.linear", 4), (22, "truss3d.linear", 6),
                                   (23, "frame3d.euler_elastic", 12)):

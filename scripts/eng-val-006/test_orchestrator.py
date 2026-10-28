@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pruebas del orquestador que no publican tiempos del Engine."""
+"""Tests the orchestrator without publishing Engine timings."""
 
 import json
 from pathlib import Path

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pruebas offline ejecutadas también por cargo test."""
+"""Runs offline tests, also executed by cargo test."""
 import hashlib
 import json
 import os

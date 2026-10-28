@@ -1,14 +1,14 @@
-"""Estadísticos de las medidas. Hyndman y Fan tipo 6, sin ajuste manual."""
+"""Computes measurement statistics using Hyndman and Fan type 6, without manual adjustment."""
 
 import math
 
 
 def quantile(samples, probability):
-    """Cuantil tipo 6: h = (n + 1) p, con interpolación lineal entre estadísticos de orden."""
+    """Computes a type 6 quantile: h = (n + 1) p, with linear interpolation between order statistics."""
     if not samples:
-        raise ValueError("no hay muestras")
+        raise ValueError("there are no samples")
     if not 0.0 <= probability <= 1.0:
-        raise ValueError("la probabilidad está fuera de [0, 1]")
+        raise ValueError("the probability is outside [0, 1]")
     ordered = sorted(samples)
     count = len(ordered)
     position = (count + 1) * probability
@@ -24,7 +24,7 @@ def quantile(samples, probability):
 
 
 def summarize(samples):
-    """Mediana, rango intercuartil, mínimo y máximo de una muestra no vacía."""
+    """Computes the median, interquartile range, minimum, and maximum of a nonempty sample."""
     ordered = sorted(samples)
     q1 = quantile(ordered, 0.25)
     q3 = quantile(ordered, 0.75)

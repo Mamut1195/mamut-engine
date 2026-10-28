@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Artefactos deterministas de wheel, solo biblioteca estándar (CPython >=3.11)."""
+"""Produces deterministic wheel artifacts using only the standard library (CPython >=3.11)."""
 
 import argparse
 from email.parser import BytesParser
@@ -15,10 +15,10 @@ from urllib.parse import quote
 import zipfile
 
 
-# Bytes: también se inspeccionan binarios sin decodificar ni ignorar errores UTF-8.
-# Los límites izquierdos de unidades y UNC evitan confundir URLs https://
-# con una unidad s:/ o una ruta //servidor/recurso.
-# UNC exige un nombre de servidor para no confundir instrucciones del binario.
+# Bytes: also inspects binaries without decoding or ignoring UTF-8 errors.
+# Left boundaries for drives and UNC avoid confusing https:// URLs
+# with an s:/ drive or a //servidor/recurso path.
+# UNC requires a server name to avoid confusing binary instructions.
 SYSTEM_PATH_PREFIX = (
     rb"/(?:workspace|home|tmp|root|opt|Users|var)\b"
     rb"|(?<![A-Za-z0-9+.-])[A-Za-z]:[\\/]"
@@ -26,12 +26,12 @@ SYSTEM_PATH_PREFIX = (
     rb"|file://|path\+"
 )
 SYSTEM_PATH = re.compile(SYSTEM_PATH_PREFIX + rb"|~/")
-# Solo ~/ necesita contexto adicional: son dos bytes frecuentes en código máquina.
-# Izquierda: inicio, espacio, comilla simple/doble, =, : o byte fuera de ASCII
-# imprimible (0x20..0x7e). Derecha: al menos 2 bytes de [A-Za-z0-9._/-],
-# terminados por fin de datos, NUL o un separador textual ASCII explícito.
-# Así tampoco se acepta ~/xs seguido de 0xc8 en el .so real de #119.
-# Los demás patrones conservan sus límites y el rechazo estricto existente.
+# Only ~/ needs additional context: these two bytes are common in machine code.
+# Left: start, space, single/double quote, =, :, or a byte outside printable ASCII
+# (0x20..0x7e). Right: at least 2 bytes from [A-Za-z0-9._/-],
+# terminated by end of data, NUL, or an explicit ASCII text separator.
+# This also rejects ~/xs followed by 0xc8 in the real .so from #119.
+# The other patterns retain their boundaries and existing strict rejection.
 BINARY_SYSTEM_PATH = re.compile(
     SYSTEM_PATH_PREFIX
     + rb"|(?:^|(?<=[ '\"=:\x00-\x1f\x7f-\xff]))~/"
@@ -54,10 +54,10 @@ def write_json(path, value):
 
 
 def check_portable(value, *, binary=None):
-    """Rechaza rutas; bytes con NUL o UTF-8 inválido se consideran binarios.
+    """Rejects paths; treats bytes with NUL or invalid UTF-8 as binary.
 
-    Los str y los bytes UTF-8 sin NUL mantienen el patrón estricto de texto.
-    No se descartan ni decodifican con pérdida los bytes de un binario.
+    Strings and UTF-8 bytes without NUL retain the strict text pattern.
+    Does not discard or decode binary bytes with data loss.
     """
     if isinstance(value, dict):
         for key, item in value.items():
@@ -84,7 +84,7 @@ def check_portable(value, *, binary=None):
 
 
 def check_wheel_portable(wheel):
-    """Inspecciona TODOS los miembros ZIP, incluidos dist-info/RECORD y .so."""
+    """Inspects ALL ZIP members, including dist-info/RECORD and .so."""
     with zipfile.ZipFile(wheel) as archive:
         for member in archive.infolist():
             try:
@@ -104,14 +104,14 @@ def dependency_graph(metadata):
         if item not in selected:
             selected.add(item)
             pending.extend(d["pkg"] for d in nodes[item]["deps"])
-    # No reutilizar Cargo package IDs: los crates locales contienen rutas absolutas.
+    # Does not reuse Cargo package IDs: local crates contain absolute paths.
     refs = {}
     for item in selected:
         p = packages[item]
         source = "cargo" if p["source"] is not None else "mamut-local"
         refs[item] = f"pkg:{source}/{quote(p['name'], safe='')}@{quote(p['version'], safe='')}"
     if len(set(refs.values())) != len(refs):
-        raise ValueError("Identidades SBOM ambiguas: revisar fuentes de crates duplicados")
+        raise ValueError("Ambiguous SBOM identities: review sources of duplicate crates")
     return packages, root, nodes, refs
 
 
@@ -130,9 +130,9 @@ def artifacts(args):
             if archive.read(f"{info}/licenses/{name}") != (root_dir / "bindings/python" / name).read_bytes():
                 raise ValueError(f"Archivo legal distinto: {name}")
             if name not in pkg.get_all("License-File", []):
-                raise ValueError(f"Falta License-File: {name}")
+                raise ValueError(f"Missing License-File: {name}")
         if pkg["Version"] != binding["version"] or pkg["Name"] != project["name"]:
-            raise ValueError("Versión/nombre de wheel no corresponde al manifiesto")
+            raise ValueError("Wheel version/name does not match the manifest")
     components = []
     notices = ["THIRD_PARTY_NOTICES — inventario automático; PENDIENTE de revisión legal.",
                "Licencias declaradas en cargo metadata; no valida titularidad ni CLA.",
@@ -166,7 +166,7 @@ def artifacts(args):
     (wheel.parent / "THIRD_PARTY_NOTICES").write_text("\n".join(notices) + "\n")
     tags = wheel_info.get_all("Tag", [])
     if not tags:
-        raise ValueError("Wheel sin tags")
+        raise ValueError("Wheel without tags")
     compatibility = {
         "package": project["name"], "binding_version": binding["version"], "engine_version": engine["version"],
         "contracts": ["engine-input/1", "results/1"],
@@ -198,11 +198,11 @@ def compare(first, second):
                             "extra": info.extra.hex(), "comment": info.comment.hex()}
                 left, right = details(za), details(zb)
                 if left != right:
-                    print(f"Diferencia {name}: {left} / {right}", file=sys.stderr)
+                    print(f"Difference {name}: {left} / {right}", file=sys.stderr)
         left_bytes, right_bytes = a.read_bytes(), b.read_bytes()
         offset = next((i for i, (x, y) in enumerate(zip(left_bytes, right_bytes)) if x != y), min(len(left_bytes), len(right_bytes)))
-        print(f"ZIP: tamaños {len(left_bytes)}/{len(right_bytes)}, primera diferencia byte {offset}", file=sys.stderr)
-        raise ValueError(f"Wheels diferentes: {a.name} {ha} / {b.name} {hb}")
+        print(f"ZIP: sizes {len(left_bytes)}/{len(right_bytes)}, first differing byte {offset}", file=sys.stderr)
+        raise ValueError(f"Different wheels: {a.name} {ha} / {b.name} {hb}")
     print(json.dumps({"independent_builds": 2, "wheel": a.name, "sha256": ha, "identical": True}, sort_keys=True, indent=2))
 
 
@@ -215,7 +215,7 @@ def smoke(manifest):
     for tool in ("rustc", "cargo", "rustup"):
         if shutil.which(tool) is not None:
             raise ValueError(f"Herramienta Rust visible en PATH: {tool}")
-    actual = mamut_engine.version()  # Llamada real a Rust mediante PyO3.
+    actual = mamut_engine.version()  # Real call to Rust through PyO3.
     if not (actual["engine_version"] == mamut_engine.__version__ == expected["engine_version"]
             and actual == _native.version()):
         raise ValueError("Versión del engine inesperada")

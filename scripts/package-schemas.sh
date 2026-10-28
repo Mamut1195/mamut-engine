@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Solo produce un archivo local; no publica ni accede a la red.
-# Ignora SOURCE_DATE_EPOCH: el mtime de las entradas del TAR se fija en 0.
+# Only produces a local archive; does not publish or access the network.
+# Ignores SOURCE_DATE_EPOCH: the mtime of TAR entries is set to 0.
 set -euo pipefail
 if [[ $# != 1 ]]; then
-    printf 'Uso: bash scripts/package-schemas.sh DIRECTORIO_SALIDA\n' >&2
+    printf 'Usage: bash scripts/package-schemas.sh OUTPUT_DIRECTORY\n' >&2
     exit 2
 fi
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)

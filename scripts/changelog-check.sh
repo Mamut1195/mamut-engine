@@ -9,12 +9,12 @@ root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd -- "$root"
 base=$(git rev-parse --verify --quiet --end-of-options "$1^{commit}") || fail "BASE_REF no resuelve a un commit: $1"
 if [[ ${CHANGELOG_RELEASE:-} == 1 ]]; then
-    printf 'Changelog: exento por CHANGELOG_RELEASE=1 (PR de release).\n'
+    printf 'Changelog: exempt under CHANGELOG_RELEASE=1 (release PR).\n'
     exit 0
 fi
 scratch=$(mktemp -d)
 trap 'rm -rf -- "$scratch"' EXIT
-git diff --no-ext-diff --no-renames --name-status -z "$base...HEAD" -- > "$scratch/diff" || fail "no se pudo comparar $base...HEAD."
+git diff --no-ext-diff --no-renames --name-status -z "$base...HEAD" -- > "$scratch/diff" || fail "could not compare $base...HEAD."
 code_changed=0
 changelog_changed=0
 added=()
@@ -28,7 +28,7 @@ while IFS= read -r -d '' status && IFS= read -r -d '' path; do
     esac
 done < "$scratch/diff"
 if (( ! code_changed )); then
-    printf 'Changelog: sin cambios en crates/ ni bindings/; no se exige fragmento.\n'
+    printf 'Changelog: no changes in crates/ or bindings/; no fragment required.\n'
     exit 0
 fi
 (( ! changelog_changed )) || fail 'un PR que modifica crates/ o bindings/ no debe editar CHANGELOG.md; añade un fragmento en changelog.d/.'
@@ -38,7 +38,7 @@ for path in "${added[@]}"; do
     # Check the committed blob, not the working copy or an external symlink target.
     mode=$(git ls-tree HEAD -- "$path")
     [[ $mode == '100644 '* || $mode == '100755 '* ]] || fail "el fragmento debe ser un archivo regular: $path"
-    content=$(git show "HEAD:$path") || fail "no se pudo leer el fragmento: $path"
+    content=$(git show "HEAD:$path") || fail "could not read the fragment: $path"
     [[ $content =~ [^[:space:]] ]] || fail "fragmento vacío: $path"
 done
-printf 'Changelog: OK (%s fragmentos nuevos).\n' "${#added[@]}"
+printf 'Changelog: OK (%s new fragments).\n' "${#added[@]}"

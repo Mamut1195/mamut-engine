@@ -1,4 +1,4 @@
-"""ENG-PY-005: contratos de experimento sobre la wheel; pytest y unittest offline."""
+"""Checks ENG-PY-005 experiment contracts on the wheel with offline pytest and unittest."""
 from copy import deepcopy
 import builtins
 import hashlib
@@ -236,7 +236,7 @@ class ExperimentTest(unittest.TestCase):
         descriptors = deepcopy(ex.methods())
         self.assertEqual(descriptors, before["method_descriptors"])
         methods, capabilities = ex.methods(), engine.capabilities()
-        # Tanto objetos anidados como los contenedores externos son independientes.
+        # Both nested objects and outer containers are independent.
         methods[0]["id"] = "mutado"
         methods[0].clear()
         methods.clear()
@@ -251,7 +251,7 @@ class ExperimentTest(unittest.TestCase):
         original = builtins.__import__
         def without_numpy(name, *args, **kwargs):
             if name.split(".")[0] == "numpy":
-                raise AssertionError("El experimento intentó importar NumPy")
+                raise AssertionError("The experiment attempted to import NumPy")
             return original(name, *args, **kwargs)
         with patch("builtins.__import__", side_effect=without_numpy):
             self.assertTrue(all(r.status == "ok" for r in ex.sweep(BASE, profile())))
@@ -280,14 +280,14 @@ class WorkflowTimeoutTest(unittest.TestCase):
                 return int(text)
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                self.fail(msg=f"{subcase}: no apareció un PID completo en {pid_file}; "
-                          f"contenido={text!r}, espera={time.monotonic() - waiting:.3f} s, "
+                self.fail(msg=f"{subcase}: no complete PID appeared in {pid_file}; "
+                          f"content={text!r}, wait={time.monotonic() - waiting:.3f} s, "
                           f"elapsed={time.monotonic() - started:.3f} s")
             time.sleep(min(0.01, remaining))
 
     def pid_sleeper(self, directory):
-        # El propio nieto publica tras exec, con SIGTERM por defecto; $! en el
-        # shell solo prueba fork y puede adelantarse al restablecimiento de traps.
+        # The grandchild itself publishes after exec, with default SIGTERM; $! in the
+        # shell only proves fork and may precede trap restoration.
         sleeper = Path(directory) / "pid-sleeper.py"
         sleeper.write_text(
             "import os, sys, time\nfrom pathlib import Path\n"
@@ -299,7 +299,7 @@ class WorkflowTimeoutTest(unittest.TestCase):
         try:
             return os.getpgid(pid)
         except ProcessLookupError:
-            self.fail(msg=f"{subcase}: PID={pid} desapareció antes de consultar su PGID, "
+            self.fail(msg=f"{subcase}: PID={pid} disappeared before querying its PGID, "
                       f"elapsed={time.monotonic() - started:.3f} s")
 
     def test_sleeping_cli_times_out_is_reaped_and_removes_temporary_inputs(self):
@@ -324,7 +324,7 @@ class WorkflowTimeoutTest(unittest.TestCase):
                 self.assertEqual(error.code, "PY-E-WORKFLOW-TIMEOUT")
                 self.assertIsInstance(error.__cause__, subprocess.TimeoutExpired)
                 self.assertEqual(len(processes), 1,
-                                 msg=f"{subcase}: PID registrados={[p.pid for p in processes]}, "
+                                 msg=f"{subcase}: recorded PIDs={[p.pid for p in processes]}, "
                                      f"elapsed={time.monotonic() - started:.3f} s")
                 self.assertIsNotNone(processes[0].returncode,
                                      msg=f"{subcase}: PID={processes[0].pid}, "
@@ -381,13 +381,13 @@ class WorkflowTimeoutTest(unittest.TestCase):
                                          {"message": "fallo"})
 
     @unittest.skipUnless(os.name == "posix" and hasattr(os, "killpg"),
-                         "Requiere grupos de procesos POSIX")
+                         "Requires POSIX process groups")
     def test_timeout_terminates_shell_and_grandchild(self):
         import shutil
 
         sleep = shutil.which("sleep", path=os.defpath)
         if sleep is None:
-            self.skipTest("Requiere sleep disponible en las rutas del sistema")
+            self.skipTest("Requires sleep available on the system paths")
         sleep = shlex.quote(sleep)
         with TemporaryDirectory() as directory:
             executable = Path(directory) / "wrapper-cli"
@@ -396,8 +396,8 @@ class WorkflowTimeoutTest(unittest.TestCase):
             ready_file = Path(directory) / "wrapper.pid"
             sleeper = (f"{shlex.quote(sys.executable)} -I -B "
                        f"{shlex.quote(str(self.pid_sleeper(directory)))}")
-            # El trap recoge a los nietos: no depender de la recolección de init.
-            # El segundo caso conserva el envoltorio vivo con las tuberías cerradas.
+            # The trap reaps the grandchildren: does not depend on init reaping them.
+            # The second case keeps the wrapper alive with closed pipes.
             for stubborn in (False, True):
                 handler = f"wait; exec {sleep} 60" if stubborn else "wait; exit"
                 executable.write_text(
@@ -422,10 +422,10 @@ class WorkflowTimeoutTest(unittest.TestCase):
                                 descendants.append(pid)
                             wrapper = self.wait_for_pid(ready_file, subcase=context, started=started)
                             self.assertEqual(wrapper, process.pid,
-                                             msg=f"{context}: PID publicado={wrapper}, "
+                                             msg=f"{context}: published PID={wrapper}, "
                                                  f"elapsed={time.monotonic() - started:.3f} s")
-                            # Presupuesto real de timeout + terminación, después
-                            # de preparar el escenario; communicate no se simula.
+                            # Real timeout + termination budget, after
+                            # preparing the scenario; communicate is not simulated.
                             ready_at.append(time.monotonic())
                         return original_communicate(process, *args, **kwargs)
 
@@ -438,14 +438,14 @@ class WorkflowTimeoutTest(unittest.TestCase):
                                     operation(timeout=0.2)
                             elapsed = time.monotonic() - ready_at[0]
                             self.assertLess(elapsed, 2,
-                                            msg=f"{subcase}: la terminación del grupo tardó demasiado, "
+                                            msg=f"{subcase}: group termination took too long, "
                                                 f"PID={processes[0].pid}, elapsed={elapsed:.3f} s, "
                                                 f"setup={ready_at[0] - started:.3f} s")
                             error = caught.exception
                             self.assertEqual(error.code, "PY-E-WORKFLOW-TIMEOUT")
                             self.assertIsInstance(error.__cause__, subprocess.TimeoutExpired)
                             self.assertEqual(len(processes), 1,
-                                             msg=f"{subcase}: PID registrados={[p.pid for p in processes]}, "
+                                             msg=f"{subcase}: recorded PIDs={[p.pid for p in processes]}, "
                                                  f"elapsed={time.monotonic() - started:.3f} s")
                             self.assertIsNotNone(processes[0].returncode,
                                                  msg=f"{subcase}: PID={processes[0].pid}, "
@@ -465,13 +465,13 @@ class WorkflowTimeoutTest(unittest.TestCase):
                                     except ProcessLookupError:
                                         break
                                     self.assertLess(time.monotonic(), deadline,
-                                                    msg=f"{subcase}: el nieto PID={pid} sigue existiendo "
-                                                        f"tras el timeout, "
+                                                    msg=f"{subcase}: grandchild PID={pid} still exists "
+                                                        f"after the timeout, "
                                                         f"elapsed={time.monotonic() - started:.3f} s")
                                     time.sleep(0.01)
                         finally:
-                            # No volver a esperar un archivo que nunca se publicó ni
-                            # dejar procesos vivos cuando falla una aserción anterior.
+                            # Does not wait again for a file that was never published or
+                            # leave processes alive when an earlier assertion fails.
                             for pid in descendants:
                                 try:
                                     os.kill(pid, signal.SIGKILL)
@@ -485,7 +485,7 @@ class WorkflowTimeoutTest(unittest.TestCase):
                             ready_file.unlink(missing_ok=True)
 
     @unittest.skipUnless(os.name == "posix" and hasattr(os, "killpg"),
-                         "Requiere grupos de procesos POSIX")
+                         "Requires POSIX process groups")
     def test_keyboard_interrupt_terminates_shell_and_grandchild(self):
         with TemporaryDirectory() as directory:
             executable = Path(directory) / "interrupted-cli"
@@ -512,7 +512,7 @@ class WorkflowTimeoutTest(unittest.TestCase):
                                                 started=started)
                         descendants.append(pid)
                         self.assertEqual(self.pgid(pid, subcase=subcase, started=started), process.pid,
-                                         msg=f"{subcase}: PID={pid}, PGID esperado={process.pid}, "
+                                         msg=f"{subcase}: PID={pid}, expected PGID={process.pid}, "
                                              f"elapsed={time.monotonic() - started:.3f} s")
                         self.assertIsNone(process.poll(),
                                           msg=f"{subcase}: PID={process.pid}, "
@@ -527,7 +527,7 @@ class WorkflowTimeoutTest(unittest.TestCase):
                             operation(timeout=10)
                     self.assertIs(caught.exception, interruption)
                     self.assertEqual(len(processes), 1,
-                                     msg=f"{subcase}: PID registrados={[p.pid for p in processes]}, "
+                                     msg=f"{subcase}: recorded PIDs={[p.pid for p in processes]}, "
                                          f"elapsed={time.monotonic() - started:.3f} s")
                     process = processes[0]
                     self.assertIsNotNone(process.poll(),
@@ -541,7 +541,7 @@ class WorkflowTimeoutTest(unittest.TestCase):
                             except ProcessLookupError:
                                 break
                             self.assertLess(time.monotonic(), deadline,
-                                            msg=f"{subcase}: PID={pid} sigue existiendo tras "
+                                            msg=f"{subcase}: PID={pid} still exists after "
                                                 f"KeyboardInterrupt, "
                                                 f"elapsed={time.monotonic() - started:.3f} s")
                             time.sleep(0.01)
@@ -549,7 +549,7 @@ class WorkflowTimeoutTest(unittest.TestCase):
                     self.assertFalse(root.exists())
                     self.assertFalse(set(Path(gettempdir()).glob("mamut-experiment-*")) - before)
                 finally:
-                    # Recoger también los procesos si una regresión hace fallar el test.
+                    # Also reaps processes if a regression causes the test to fail.
                     for process in processes:
                         workflows._terminate(process, process_group=True)
                     for pid in descendants:
@@ -560,7 +560,7 @@ class WorkflowTimeoutTest(unittest.TestCase):
                     pid_file.unlink(missing_ok=True)
 
     @unittest.skipUnless(os.name == "posix" and hasattr(os, "killpg"),
-                         "Requiere grupos de procesos POSIX")
+                         "Requires POSIX process groups")
     def test_timeout_preserves_error_when_group_probe_is_denied(self):
         original_killpg = os.killpg
 
@@ -591,13 +591,13 @@ class WorkflowTimeoutTest(unittest.TestCase):
                                   f"elapsed={time.monotonic() - started:.3f} s")
 
     @unittest.skipUnless(os.name == "posix" and hasattr(os, "killpg"),
-                         "Requiere grupos de procesos POSIX")
+                         "Requires POSIX process groups")
     def test_timeout_closes_pipes_held_by_descendant_outside_group(self):
         import shutil
 
         setsid = shutil.which("setsid", path=os.defpath)
         if setsid is None:
-            self.skipTest("Requiere setsid disponible en las rutas del sistema")
+            self.skipTest("Requires setsid available on the system paths")
         setsid = str(Path(setsid).resolve())
         with TemporaryDirectory() as directory:
             executable = Path(directory) / "escaped-child-cli"
@@ -622,7 +622,7 @@ class WorkflowTimeoutTest(unittest.TestCase):
                         pid = self.wait_for_pid(pid_file, subcase=context, started=started)
                         descendants.append(pid)
                         self.assertEqual(self.pgid(pid, subcase=context, started=started), pid,
-                                         msg=f"{context}: PID={pid}, setsid no se completó, "
+                                         msg=f"{context}: PID={pid}, setsid did not complete, "
                                              f"elapsed={time.monotonic() - started:.3f} s")
                         ready_at.append(time.monotonic())
                     return original_communicate(process, *args, **kwargs)
@@ -639,11 +639,11 @@ class WorkflowTimeoutTest(unittest.TestCase):
                     self.assertEqual(caught.exception.__cause__.timeout, 0.2,
                                      msg=f"{subcase}: elapsed={elapsed:.3f} s")
                     self.assertLess(elapsed, 8,
-                                    msg=f"{subcase}: la limpieza del timeout quedó bloqueada, "
+                                    msg=f"{subcase}: timeout cleanup was blocked, "
                                         f"PID={pid}, elapsed={elapsed:.3f} s, "
                                         f"setup={ready_at[0] - started:.3f} s")
                     self.assertEqual(len(processes), 1,
-                                     msg=f"{subcase}: PID registrados={[p.pid for p in processes]}, "
+                                     msg=f"{subcase}: recorded PIDs={[p.pid for p in processes]}, "
                                          f"elapsed={time.monotonic() - started:.3f} s")
                     process = processes[0]
                     self.assertIsNotNone(process.returncode,
@@ -659,7 +659,7 @@ class WorkflowTimeoutTest(unittest.TestCase):
                                      msg=f"{subcase}: PID={pid}, "
                                          f"elapsed={time.monotonic() - started:.3f} s")
                     self.assertNotEqual(self.pgid(pid, subcase=subcase, started=started), process.pid,
-                                        msg=f"{subcase}: PID={pid}, PGID del CLI={process.pid}, "
+                                        msg=f"{subcase}: PID={pid}, CLI PGID={process.pid}, "
                                             f"elapsed={time.monotonic() - started:.3f} s")
                     command = caught.exception.__cause__.cmd
                     root = Path(command[command.index("--catalog") + 1]).parent
@@ -741,7 +741,7 @@ class WorkflowFailureEnvelopeTest(unittest.TestCase):
         self.assertEqual(error.cause, "Legacy failure")
 
 
-@unittest.skipUnless(CLI, "Defina MAMUT_EXPERIMENT_CLI con el binario Rust local")
+@unittest.skipUnless(CLI, "Set MAMUT_EXPERIMENT_CLI to the local Rust binary")
 class WorkflowTest(unittest.TestCase):
     def setUp(self):
         self.catalog = json.loads((ROOT / "crates/engine-cli/catalog.json").read_text())
@@ -752,7 +752,7 @@ class WorkflowTest(unittest.TestCase):
         compiled = ex.compile_workflow(self.catalog, self.workflow, executable=CLI)
         self.workflow["steps"][0]["method_id"] = "engine.validate"
         validation = ex.compile_workflow(self.catalog, self.workflow, executable=CLI)
-        # Las mutaciones del input y de las copias del plan no cambian el snapshot.
+        # Mutations to the input and plan copies do not change the snapshot.
         compiled.plan["steps"].clear()
         a = ex.run_workflow(compiled, BASE, self.spec)
         b = ex.run_workflow(compiled, BASE, self.spec)

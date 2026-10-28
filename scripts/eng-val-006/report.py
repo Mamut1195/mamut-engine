@@ -1,4 +1,4 @@
-"""Tablas y gráficos leídos solo de los CSV crudos."""
+"""Builds tables and charts only from raw CSV files."""
 
 import csv
 from pathlib import Path
@@ -68,7 +68,7 @@ def _series(rows, field):
 def svg_chart(rows, field, title, unit):
     series = _series(rows, field)
     if not series:
-        raise ValueError("el CSV no tiene medidas")
+        raise ValueError("the CSV has no measurements")
     width = 80 + 140 * len(series)
     height = 360
     peak = max(item[1]["max"] for item in series) or 1.0

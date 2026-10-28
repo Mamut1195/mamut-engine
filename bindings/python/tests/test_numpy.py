@@ -1,4 +1,4 @@
-"""Contrato NumPy opcional, descubierto por el pipeline stdlib de la wheel."""
+"""Checks the optional NumPy contract, discovered by the wheel's stdlib pipeline."""
 import gc
 import json
 import os
@@ -20,7 +20,7 @@ PATHS = sorted(FIXTURES.glob("*.json")) + sorted(
     (ROOT / "crates/engine-api/tests/fixtures/determinism").glob("*.json"))
 
 
-@unittest.skipUnless(np is not None, "NumPy opcional no instalado")
+@unittest.skipUnless(np is not None, "Optional NumPy is not installed")
 class NumPyContractTest(unittest.TestCase):
     def test_numpy_matches_rust_lists_and_owns_memory(self):
         for path in PATHS:
@@ -108,13 +108,13 @@ class NumPyContractTest(unittest.TestCase):
         self.assertEqual(result.to_dict(), snapshot)
         self.assertEqual(result.to_json().encode(), reference.read_bytes())
         if not arrays.blocks:
-            # Los métodos geotécnicos conservan su campo completo en document;
-            # no producen tablas de nodos estructurales artificiales.
+            # Geotechnical methods retain their full field in document;
+            # they do not produce artificial structural node tables.
             self.assertIn("geotechnical", arrays.document)
             self.assertEqual(arrays.document, snapshot)
             return
         saved = arrays.blocks[0].matrices["displacements"].values
-        # La segunda exportación tampoco puede alterar una exportación posterior.
+        # The second export must not alter a later export either.
         again.blocks[0].matrices["displacements"].values[:] = -123
         self.assertEqual(result.to_numpy().blocks[0].matrices["displacements"].values.tolist(),
                          lists.blocks[0].matrices["displacements"].values)
@@ -124,7 +124,7 @@ class NumPyContractTest(unittest.TestCase):
 
     def test_numpy_empty_shapes_and_cancelled_state(self):
         document = engine.run(PATHS[0].read_text()).to_dict()
-        # El schema admite un caso importado sin filas, aun con identidades.
+        # The schema accepts an imported case without rows, even with identities.
         document["cases"] = [{"case": "empty", "factor": 1, "nodes": [], "members": []}]
         imported = engine.Results.from_json(json.dumps(document))
         result = imported.to_numpy()

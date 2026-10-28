@@ -1,7 +1,7 @@
-"""Consistencia offline de stubs instalados y DTO frente a los contratos Rust.
+"""Checks installed stubs and DTO against Rust contracts offline.
 
-Complementa get_type_hints cuando no hay mypy/pyright. Comprueba exports,
-firmas PyO3 y campos requeridos/opcionales; no sustituye un checker completo.
+Complements get_type_hints when mypy/pyright is unavailable. Checks exports,
+PyO3 signatures, and required/optional fields; does not replace a full checker.
 """
 import ast
 import inspect

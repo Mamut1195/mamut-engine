@@ -1,4 +1,4 @@
-"""Integración sobre wheel: fachada Rust, errores, GIL y cancelación."""
+"""Checks wheel integration: Rust facade, errors, GIL, and cancellation."""
 
 import hashlib
 import json
@@ -18,22 +18,22 @@ CANTILEVER = (FIXTURES / "valid/cantilever-linear-static.json").read_text()
 
 class RunTest(unittest.TestCase):
     def test_cantilever_matches_rust_bytes_and_sha256(self):
-        # La referencia se genera con cargo run, nunca mediante el binding.
-        # Conformidad CLI relacionada (MAM-868): crates/engine-cli/tests/contract.rs
-        # y crates/engine-cli/tests/golden/stdout-sha256.json; véase README.md.
+        # The reference is generated with cargo run, never through the binding.
+        # Related CLI conformance (MAM-868): crates/engine-cli/tests/contract.rs
+        # and crates/engine-cli/tests/golden/stdout-sha256.json; see README.md.
         reference_path = os.environ.get("MAMUT_RUST_REFERENCE")
-        self.assertTrue(reference_path, "Defina MAMUT_RUST_REFERENCE (véase README)")
+        self.assertTrue(reference_path, "Set MAMUT_RUST_REFERENCE (see README)")
         reference = Path(reference_path).read_bytes()
         self.assertEqual(engine.validate(CANTILEVER), {"diagnostics": []})
         for _ in range(3):
             actual = engine.run(CANTILEVER).encode()
-            self.assertEqual(actual, reference)  # tolerancia de transporte: cero
+            self.assertEqual(actual, reference)  # transport tolerance: zero
             self.assertEqual(hashlib.sha256(actual).digest(), hashlib.sha256(reference).digest())
         document = json.loads(actual)
         self.assertEqual(document["status"], "ok")
         nodes = document["cases"][0]["nodes"]
-        # EI y'' = -P(L-x) -> y(L)=-PL³/(3EI); equilibrio R=P, M=PL.
-        # 1e-12 permite redondeo f64 del solve para este pequeño sistema bien condicionado.
+        # EI y'' = -P(L-x) -> y(L)=-PL³/(3EI); equilibrium R=P, M=PL.
+        # 1e-12 allows f64 solve rounding for this small, well-conditioned system.
         for actual, expected in [
             (nodes[1]["displacements"][1], -12 * 4**3 / (3 * 200 * 3)),
             (nodes[0]["reactions"][1], 12),
@@ -64,7 +64,7 @@ class RunTest(unittest.TestCase):
         for source in bad_inputs:
             for function in (engine.run, engine.validate):
                 with self.subTest(function=function.__name__, source=source[:60]):
-                    # validate retorna diagnósticos para defectos topológicos del dominio.
+                    # validate returns diagnostics for domain topology defects.
                     if function is engine.validate:
                         try:
                             result = function(source)
@@ -79,7 +79,7 @@ class RunTest(unittest.TestCase):
                             function(source)
                         self.assertIn(json.loads(caught.exception.document)["status"],
                                       ["invalid", "unsupported"])
-        # El proceso sigue vivo y el módulo vuelve a ejecutar un caso válido.
+        # The process stays alive and the module runs a valid case again.
         self.assertEqual(json.loads(engine.run(CANTILEVER))["status"], "ok")
 
     def test_unstable_model_is_analysis_error(self):
@@ -96,7 +96,7 @@ class RunTest(unittest.TestCase):
 
         def callback(event):
             events.append(event)
-            token.cancel()  # Ya terminó el motor: no cambia el resultado.
+            token.cancel()  # The Engine has finished: does not change the result.
             self.assertEqual(engine.version()["engine_version"], __version__)
 
         actual = engine.run(CANTILEVER, progress=callback, cancel=token)
@@ -119,7 +119,7 @@ class RunTest(unittest.TestCase):
             engine.run(CANTILEVER, progress=123)
         with self.assertRaises(TypeError):
             engine.run(CANTILEVER, cancel=lambda: True)
-        # Un fallo del motor tiene prioridad sobre un fallo del callback diferido.
+        # An Engine failure takes precedence over a deferred callback failure.
         with self.assertRaises(engine.InvalidInputError):
             engine.run('{"schema":"unknown"}', progress=fail)
 
@@ -139,9 +139,9 @@ class RunTest(unittest.TestCase):
             self.assertEqual(events, [])
 
     def test_run_releases_gil_for_cancellation_from_python_thread(self):
-        # Espacio JSON válido bajo MAX_INPUT_BYTES (8 MiB): mantiene trabajo
-        # en Rust durante el parseo mientras el trabajador adquiere el GIL.
-        # No cambia el caso ni depende de un timeout de cancelación.
+        # Valid JSON whitespace below MAX_INPUT_BYTES (8 MiB): keeps work
+        # in Rust during parsing while the worker acquires the GIL.
+        # Does not change the case or depend on a cancellation timeout.
         source = " " * (4 * 1024 * 1024) + CANTILEVER
         token = engine.CancelToken()
         gate = threading.Event()
@@ -157,8 +157,8 @@ class RunTest(unittest.TestCase):
         ready.wait()
         previous = sys.getswitchinterval()
         try:
-            # Evita un cambio periódico de hilo Python entre gate.set() y run().
-            # El trabajador puede cancelar al liberarse el GIL dentro del binding.
+            # Avoids a periodic Python thread switch between gate.set() and run().
+            # The worker can cancel when the GIL is released inside the binding.
             sys.setswitchinterval(30)
             self.assertFalse(token.is_cancelled)
             gate.set()

@@ -1,4 +1,4 @@
-"""ENG-PY-003: API pública instalada, referencias Rust y contratos sin red."""
+"""Checks the ENG-PY-003 installed public API, Rust references, and offline contracts."""
 from copy import deepcopy
 from dataclasses import is_dataclass
 import hashlib
@@ -23,7 +23,7 @@ SOURCE = (FIXTURES / "cantilever-linear-static.json").read_text()
 class PublicFacadeTest(unittest.TestCase):
     def test_all_fixtures_match_independent_rust_and_roundtrip(self):
         references = os.environ.get("MAMUT_RUST_REFERENCES")
-        self.assertTrue(references, "Defina MAMUT_RUST_REFERENCES; véase README")
+        self.assertTrue(references, "Set MAMUT_RUST_REFERENCES; see README")
         paths = sorted(FIXTURES.glob("*.json")) + sorted(
             (ROOT / "crates/engine-api/tests/fixtures/determinism").glob("*.json"))
         for path in paths:
@@ -59,9 +59,9 @@ class PublicFacadeTest(unittest.TestCase):
             copy = result.to_dict()
             copy["cases"].clear()
             self.assertTrue(result.data["cases"])
-            # Solo cambia formato/orden de claves: no cambia la identidad canónica.
+            # Only changes formatting/key order: does not change canonical identity.
             data["model"]["nodes"][0]["coordinates"][0] = -0.0
-            # JCS iguala 0, -0.0 y 0.0 para la identidad del input.
+            # JCS equates 0, -0.0, and 0.0 for input identity.
             self.assertFalse(result.is_stale)
             data["cases"][0]["loads"][0]["values"][0]["value"] *= 2
             self.assertTrue(result.is_stale)
@@ -137,7 +137,7 @@ class PublicFacadeTest(unittest.TestCase):
     def test_jcs_safe_integer_boundaries_and_stale(self):
         for n in (2**53 - 1, -(2**53 - 1)):
             data = json.loads(SOURCE)
-            # Carga en apoyo: verifica la frontera sin grandes desplazamientos.
+            # Load at the support: verifies the boundary without large displacements.
             data["cases"][0]["loads"][0]["node"] = 1
             data["cases"][0]["loads"][0]["values"][0]["value"] = n
             for source in (data, json.dumps(data)):
@@ -193,7 +193,7 @@ class PublicFacadeTest(unittest.TestCase):
                             engine.validate(model)
 
     def test_optional_fields_and_results_extensions_survive(self):
-        # Campos opcionales publicados después del modelo estático inicial.
+        # Optional fields published after the initial static model.
         data = json.loads(SOURCE)
         data["model"]["prescribed"] = []
         data["model"]["diaphragms"] = []
@@ -209,7 +209,7 @@ class PublicFacadeTest(unittest.TestCase):
         self.assertEqual(engine.Model.from_json(spatial.to_json()).data, spatial.data)
         engine.run(spatial)
         document = result.to_dict()
-        # Los límites de entrada no recortan las extensiones de results/1.
+        # Input limits do not truncate results/1 extensions.
         document["future_optional"] = {"identity": ["a", 2], "large": [0] * 16385,
                                        "integer": 2**63}
         document["cases"][0]["future_optional"] = 3
@@ -217,7 +217,7 @@ class PublicFacadeTest(unittest.TestCase):
         imported = engine.Results.from_json(source)
         self.assertEqual(imported.to_json(), source)
         self.assertEqual(imported.to_dict(), document)
-        # La validación usa el schema instalado, sin whitelist duplicada.
+        # Validation uses the installed schema, without a duplicate whitelist.
         newer = deepcopy(facade._spec("engine-input/1"))
         newer["properties"]["optional_added"] = {"type": "string"}
         data["optional_added"] = "kept"
@@ -244,7 +244,7 @@ class PublicFacadeTest(unittest.TestCase):
     def test_jcs_identity_and_stable_pdelta_match_current_rust(self):
         model = engine.Model.from_json(SOURCE)
         result = engine.run(model)
-        # Regresión: SHA-256 del JSON compacto no es la huella JCS.
+        # Regression: the SHA-256 of compact JSON is not the JCS fingerprint.
         model.data["model"]["nodes"][1]["coordinates"][0] = 4.0
         self.assertFalse(result.is_stale)
         self.assertEqual(result.input_sha256, model.input_sha256)
@@ -373,8 +373,8 @@ class PublicFacadeTest(unittest.TestCase):
                     if isinstance(method, property):
                         method = method.fget
                     if inspect.isfunction(method):
-                        # dataclasses genera métodos auxiliares sin anotaciones
-                        # (incluido __replace__ en Python 3.13).
+                        # dataclasses generates helper methods without annotations
+                        # (including __replace__ in Python 3.13).
                         original = inspect.unwrap(method)
                         if (original.__module__ == "dataclasses"
                                 or original.__code__.co_filename == "<string>"):
@@ -392,7 +392,7 @@ class PublicFacadeTest(unittest.TestCase):
     def test_static_checker_when_available_offline(self):
         checker = shutil.which("mypy") or shutil.which("pyright")
         if checker is None:
-            # La alternativa offline obligatoria se ejecuta en test_typing.py.
+            # The required offline alternative runs in test_typing.py.
             return
         package = str(Path(engine.__file__).parent)
         args = [checker, package]

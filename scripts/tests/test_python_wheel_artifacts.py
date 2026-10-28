@@ -1,4 +1,4 @@
-"""Regresiones de portabilidad y selección del SBOM (issues #94 y #121)."""
+"""Checks portability and SBOM selection regressions (issues #94 and #121)."""
 import copy
 from contextlib import redirect_stdout
 import importlib.util
@@ -54,8 +54,8 @@ class SbomTest(unittest.TestCase):
         artifacts.check_portable({"bom-ref": "pkg:cargo/pyo3@0.25.1", "contracts": ["engine-input/1", "results/1"]})
 
     def assert_reject_path(self, path):
-        # La variante binaria evita que el chequeo adicional de strings oculte
-        # un hueco del patrón de bytes que inspecciona la wheel.
+        # The binary variant prevents the additional string check from hiding
+        # a gap in the byte pattern that inspects the wheel.
         for value in ("prefix=" + path, b"\xff\x00prefix=" + path.encode() + b"\x00\xfe"):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 artifacts.check_portable({"components": [{"bom-ref": value}]})
@@ -84,8 +84,8 @@ class SbomTest(unittest.TestCase):
                 artifacts.check_portable({"components": [{key: "path+file:///build/repo#engine@0.1.0"}]})
 
     def test_reject_path_plus_without_file_url(self):
-        # Ningún otro patrón debe ocultar la ausencia accidental de path+:
-        # /ruta no es un prefijo vigilado; la unidad C: va precedida de '+'.
+        # No other pattern should hide the accidental absence of path+:
+        # /ruta is not a monitored prefix; the C: drive is preceded by '+'.
         for path in ("path+/ruta/local", r"path+C:\x"):
             self.assert_reject_path(path)
             for pattern in (artifacts.SYSTEM_PATH, artifacts.BINARY_SYSTEM_PATH):
@@ -225,15 +225,15 @@ class WheelPortabilityTest(unittest.TestCase):
                     with self.subTest(member=member, path=path):
                         with zipfile.ZipFile(wheel, "w") as archive:
                             archive.writestr("pkg/__init__.py", b"# portable\n")
-                            # No texto válido: prueba búsqueda en bytes con NUL y sin UTF-8.
+                            # Invalid text: tests byte searches with NUL and without UTF-8.
                             archive.writestr(member, b"\xff\x00prefix=" + path + b"\x00\xfe")
                         with self.assertRaisesRegex(ValueError, member):
                             artifacts.check_wheel_portable(wheel)
 
     def test_accept_real_pr119_machine_code(self):
-        # #119, ffb8a67, mamut_engine/_native.abi3.so: ventanas de 32 bytes.
-        # ~/ está en 96887 y 238255 (16 en cada ventana); la segunda secuencia
-        # reaparece en 270823 y tiene >=2 caracteres de ruta pero no fin textual.
+        # #119, ffb8a67, mamut_engine/_native.abi3.so: 32-byte windows.
+        # ~/ is at 96887 and 238255 (16 in each window); the second sequence
+        # reappears at 270823 and has >=2 path characters but no text terminator.
         windows = (
             "011d3208a301003a2e00006816a301007e2f0000ad010abf0101b7010e00007f",
             "cbb2261fa707ad97d0a7a74613a400207e2f7873c824cc5e82c8280c8c6600d4",
@@ -258,7 +258,7 @@ class WheelPortabilityTest(unittest.TestCase):
                 artifacts.check_wheel_portable(wheel)
 
     def test_binary_home_relative_context(self):
-        # Separadores izquierdos admitidos, incluidos ambos extremos ASCII.
+        # Accepted left separators, including both ASCII extremes.
         for prefix in (b"", b" ", b"'", b'"', b"=", b":", b"\x00", b"\x1f", b"\x7f", b"\xff"):
             with self.subTest(prefix=prefix), self.assertRaises(ValueError):
                 artifacts.check_portable(prefix + b"~/ab\x00")
@@ -271,7 +271,7 @@ class WheelPortabilityTest(unittest.TestCase):
             with self.subTest(data=data):
                 artifacts.check_portable(data)
         with self.assertRaises(ValueError):
-            artifacts.check_portable(b"\xff~/ab")  # UTF-8 inválido sin NUL.
+            artifacts.check_portable(b"\xff~/ab")  # Invalid UTF-8 without NUL.
 
     def test_text_keeps_strict_home_relative_check(self):
         for value in ("a~/", "~/x", "\x00a~/\x00", b"a~/", b"~/x"):
