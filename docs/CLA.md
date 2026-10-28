@@ -49,12 +49,12 @@ Checked boxes correspond only to documented aspects, not to an operational imple
 - [x] **DOCUMENTED:** establish the rule requiring a signature on record before an external author's first merge.
 - [x] **DOCUMENTED:** describe the planned automated signing workflow in PRs and indicate that the tool is pending.
 - [x] **DOCUMENTED:** indicate that the contractual text will reside only in Notion and not in the repository.
-- [x] **DOCUMENTED:** state that drafting and legal review, the signature record and the copyright holder are pending.
+- [x] **DOCUMENTED:** state that drafting and legal review and the signature record are pending (the copyright holder is defined; see ADR-001).
 - [ ] **PENDING:** define how external authors are identified and how each form applies.
 - [ ] **PENDING:** define and review the establishment of authority to represent the entity and coverage of authors under the corporate form.
 - [ ] **PENDING:** draft the contractual text and complete its review by a lawyer.
 - [ ] **PENDING:** make the contractual text available in Notion and determine its link.
-- [ ] **PENDING:** determine the copyright holder.
+- [x] **DONE:** determine the copyright holder: MAMPRO SAS (confirmed 2026-10-15; see ADR-001).
 - [ ] **PENDING:** select and configure the automated signing tool in PRs.
 - [ ] **PENDING:** define and enable the signature recording location.
 - [ ] **PENDING:** implement and verify the control that prevents an external author's first merge without a signature on record.

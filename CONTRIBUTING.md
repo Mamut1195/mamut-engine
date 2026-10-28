@@ -7,9 +7,9 @@ it includes templates, review and a reproducible uniaxial pilot.
 
 External contributors must sign a **mandatory CLA** before their contribution is accepted. This requirement follows from the dual **AGPL-3.0 + commercial license**: the holder must be able to distribute contributions under both AGPL and a commercial license.
 
-The CLA will be documented in [docs/CLA.md](docs/CLA.md), to be delivered with **ENG-GOV-007**. The CLA text is **PENDING legal review**.
+The CLA is documented in [docs/CLA.md](docs/CLA.md) (**ENG-GOV-007**). The copyright holder is defined; the CLA text and the signature record remain **PENDING** (ENG-GOV-007).
 
-Foundational decisions are recorded in [ADR-001](docs/adr/ADR-001-fundacionales.md). The copyright holder remains **PENDING**. The license text and legal notice reside only in Notion, under **ENG-GOV-004**: **PENDING (see Notion)**.
+Foundational decisions are recorded in [ADR-001](docs/adr/ADR-001-fundacionales.md). The copyright holder is **MAMPRO SAS** (ADR-001, confirmed 2026-10-15). `LICENSE`, `NOTICE` and `COPYRIGHT` are in the repository; the commercial license text and the CLA text reside only in Notion (**ENG-GOV-004** / **ENG-GOV-007**): **PENDING (see Notion)**.
 
 ## Changelog
 

@@ -26,7 +26,7 @@ The [clean-room protocol](../CLEAN_ROOM.md) governs work on the engine. The AGPL
 - The repository remains private for now; the decision on when to make it public is still pending Jonathan.
 - Dual licensing requires external contributions to be covered by a CLA allowing the holder to distribute them under both arrangements.
 - The copyright holder is MAMPRO SAS (confirmed on 2026-10-15).
-- The AGPL-3.0 text is in `LICENSE` and the notice in `NOTICE`. Only the commercial license text and MAMPRO SAS contact information remain pending (ENG-GOV-004).
+- The AGPL-3.0 text is in `LICENSE` and the notice in `NOTICE`. The MAMPRO SAS commercial license contact is mampro.proyectos@gmail.com; only the commercial license text remains pending (ENG-GOV-004).
 - Contributions must comply with the clean-room protocol and the CLA requirement for external contributors.
 
 ## Outstanding items
@@ -35,5 +35,6 @@ The [clean-room protocol](../CLEAN_ROOM.md) governs work on the engine. The AGPL
 - [ ] Define the final name and brand.
 - [ ] Decide whether to make the repository public from day 1 or at release.
 - [x] Copyright holder: MAMPRO SAS (2026-10-15).
-- [ ] Commercial license text and MAMPRO SAS contact information: **PENDING**, ENG-GOV-004.
-- [ ] Complete ENG-GOV-007: legal review of the CLA text and creation of `docs/CLA.md`.
+- [x] MAMPRO SAS commercial license contact: mampro.proyectos@gmail.com.
+- [ ] Commercial license text: **PENDING**, ENG-GOV-004.
+- [ ] Complete ENG-GOV-007: legal review of the CLA text (`docs/CLA.md` already exists).

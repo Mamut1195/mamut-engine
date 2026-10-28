@@ -5,8 +5,9 @@ implementa cálculos numéricos: validación, análisis, códigos, capacidades y
 contratos proceden de la fachada Rust.
 
 Los metadatos declaran `AGPL-3.0-only`. La wheel incluye `LICENSE` y `NOTICE`.
-Titularidad, aviso definitivo, licencia comercial y CLA: **PENDIENTE de revisión**
-(ENG-GOV-004 / ENG-GOV-007). El inventario de licencias generado no resuelve
+Titular: MAMPRO SAS (ADR-001, 2026-10-15). Texto de la licencia comercial, aviso
+definitivo, texto del CLA y registro de firmas: **PENDIENTES** (ENG-GOV-004 /
+ENG-GOV-007). El inventario de licencias generado no resuelve
 estas revisiones. **Verificación local únicamente: nada se publica ni se sube.**
 
 ## API tipada

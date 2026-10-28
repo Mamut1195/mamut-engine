@@ -1,0 +1,1 @@
+- MAM-50: add COPYRIGHT naming MAMPRO SAS as holder and align holder and commercial license contact in the Python bindings NOTICE and README, CLA, CONTRIBUTING and ADR-001.
