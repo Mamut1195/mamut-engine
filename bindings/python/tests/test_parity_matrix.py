@@ -5,6 +5,7 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import sys
 import unittest
 
@@ -14,6 +15,59 @@ from mamut_engine import _native
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURES = ROOT / "crates/engine-api/tests/fixtures/parity"
 MATRIX = json.loads((FIXTURES / "matrix.json").read_text())
+MAX_TOLERANCE_FACTOR = 64
+EXPECTED_CHECKS = {
+    "cantilever-tip.json": [
+        "/cases/0/nodes/0/displacements/1",
+        "/cases/0/nodes/0/displacements/5",
+        "/cases/0/nodes/1/displacements/1",
+        "/cases/0/nodes/1/displacements/5",
+        "/cases/0/nodes/0/reactions/0",
+        "/cases/0/nodes/0/reactions/1",
+        "/cases/0/nodes/0/reactions/5",
+        "/cases/0/members/0/end_forces_local/1",
+        "/cases/0/members/0/end_forces_local/2",
+        "/cases/0/members/0/end_forces_local/4",
+        "/cases/0/members/0/end_forces_local/5",
+    ],
+    "simply-supported-center.json": [
+        "/cases/0/nodes/0/displacements/1",
+        "/cases/0/nodes/2/displacements/1",
+        "/cases/0/nodes/1/displacements/1",
+        "/cases/0/nodes/0/displacements/5",
+        "/cases/0/nodes/1/displacements/5",
+        "/cases/0/nodes/2/displacements/5",
+        "/cases/0/nodes/0/reactions/0",
+        "/cases/0/nodes/0/reactions/1",
+        "/cases/0/nodes/2/reactions/1",
+        "/cases/0/nodes/0/reactions/5",
+        "/cases/0/nodes/2/reactions/5",
+        "/cases/0/members/0/end_forces_local/2",
+        "/cases/0/members/0/end_forces_local/5",
+        "/cases/0/members/1/end_forces_local/2",
+        "/cases/0/members/1/end_forces_local/5",
+    ],
+    "unsupported-beam.json": [],
+}
+
+
+def expected_unit(path):
+    match = re.fullmatch(
+        r"/cases/[0-9]+/(nodes|members)/[0-9]+/"
+        r"(displacements|reactions|end_forces_local)/([0-5])", path
+    )
+    if match:
+        collection, quantity, component = match.groups()
+        # engine-core::Dof::index and engine-elements-frame/src/recover.rs.
+        units = {
+            ("nodes", "displacements"): ("m", "m", "m", "rad", "rad", "rad"),
+            ("nodes", "reactions"): ("N", "N", "N", "N*m", "N*m", "N*m"),
+            # D2 local order: [Fx_i, Fy_i, Mz_i, Fx_j, Fy_j, Mz_j].
+            ("members", "end_forces_local"): ("N", "N", "N*m", "N", "N", "N*m"),
+        }.get((collection, quantity))
+        if units is not None:
+            return units[int(component)]
+    raise ValueError(f"unknown check pointer: {path}")
 
 
 def pointer(document, path):
@@ -29,6 +83,20 @@ class ParityMatrixTest(unittest.TestCase):
         self.assertTrue(references, "Set MAMUT_PARITY_REFERENCES using the Rust parity_matrix test")
         self.assertEqual(MATRIX["schema"], "parity-matrix/1")
         self.assertEqual(len(MATRIX["cases"]), 3)
+        self.assertTrue(math.isfinite(MATRIX["tolerance_factor"]))
+        self.assertGreater(MATRIX["tolerance_factor"], 0)
+        self.assertLessEqual(MATRIX["tolerance_factor"], MAX_TOLERANCE_FACTOR)
+        self.assertCountEqual([case["input"] for case in MATRIX["cases"]], EXPECTED_CHECKS)
+        for case in MATRIX["cases"]:
+            expected_checks = EXPECTED_CHECKS[case["input"]]
+            pointers = [check["pointer"] for check in case["checks"]]
+            self.assertEqual(len(case["checks"]), len(expected_checks))
+            self.assertEqual(len(set(pointers)), len(pointers),
+                             f"{case['input']}: check pointers must be unique")
+            self.assertEqual(pointers, expected_checks, case["input"])
+            for check in case["checks"]:
+                self.assertEqual(check["unit"], expected_unit(check["pointer"]),
+                                 f"{case['input']} {check['pointer']}")
         for case in MATRIX["cases"]:
             source = (FIXTURES / case["input"]).read_text()
             expected = (Path(references) / case["input"]).read_bytes()

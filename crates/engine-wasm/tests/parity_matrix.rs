@@ -7,11 +7,76 @@
 use serde::Deserialize;
 use serde_json::Value;
 use std::{
+    collections::HashSet,
     fs,
     io::Write,
     path::Path,
     process::{Command, Output, Stdio},
 };
+
+const MAX_TOLERANCE_FACTOR: f64 = 64.0;
+const EXPECTED_CHECKS: [(&str, &[&str]); 3] = [
+    (
+        "cantilever-tip.json",
+        &[
+            "/cases/0/nodes/0/displacements/1",
+            "/cases/0/nodes/0/displacements/5",
+            "/cases/0/nodes/1/displacements/1",
+            "/cases/0/nodes/1/displacements/5",
+            "/cases/0/nodes/0/reactions/0",
+            "/cases/0/nodes/0/reactions/1",
+            "/cases/0/nodes/0/reactions/5",
+            "/cases/0/members/0/end_forces_local/1",
+            "/cases/0/members/0/end_forces_local/2",
+            "/cases/0/members/0/end_forces_local/4",
+            "/cases/0/members/0/end_forces_local/5",
+        ],
+    ),
+    (
+        "simply-supported-center.json",
+        &[
+            "/cases/0/nodes/0/displacements/1",
+            "/cases/0/nodes/2/displacements/1",
+            "/cases/0/nodes/1/displacements/1",
+            "/cases/0/nodes/0/displacements/5",
+            "/cases/0/nodes/1/displacements/5",
+            "/cases/0/nodes/2/displacements/5",
+            "/cases/0/nodes/0/reactions/0",
+            "/cases/0/nodes/0/reactions/1",
+            "/cases/0/nodes/2/reactions/1",
+            "/cases/0/nodes/0/reactions/5",
+            "/cases/0/nodes/2/reactions/5",
+            "/cases/0/members/0/end_forces_local/2",
+            "/cases/0/members/0/end_forces_local/5",
+            "/cases/0/members/1/end_forces_local/2",
+            "/cases/0/members/1/end_forces_local/5",
+        ],
+    ),
+    ("unsupported-beam.json", &[]),
+];
+
+fn expected_unit(pointer: &str) -> &'static str {
+    let parts: Vec<_> = pointer.split('/').collect();
+    let ["", "cases", case_index, collection, entity_index, quantity, component] = parts.as_slice()
+    else {
+        panic!("unknown check pointer: {pointer}");
+    };
+    assert!(
+        case_index.parse::<usize>().is_ok() && entity_index.parse::<usize>().is_ok(),
+        "unknown check pointer: {pointer}"
+    );
+    // engine-core::Dof::index: [Ux, Uy, Uz, Rx, Ry, Rz].
+    // engine-elements-frame/src/recover.rs: [Fx_i, Fy_i, Mz_i, Fx_j, Fy_j, Mz_j].
+    match (*collection, *quantity, *component) {
+        ("nodes", "displacements", "0" | "1" | "2") => "m",
+        ("nodes", "displacements", "3" | "4" | "5") => "rad",
+        ("nodes", "reactions", "0" | "1" | "2") => "N",
+        ("nodes", "reactions", "3" | "4" | "5") => "N*m",
+        ("members", "end_forces_local", "0" | "1" | "3" | "4") => "N",
+        ("members", "end_forces_local", "2" | "5") => "N*m",
+        _ => panic!("unknown check pointer: {pointer}"),
+    }
+}
 
 #[derive(Deserialize)]
 struct Matrix {
@@ -139,6 +204,48 @@ fn api_cli_wasm_share_analytical_results_hashes_and_typed_errors() {
         serde_json::from_str(&fs::read_to_string(root.join("matrix.json")).unwrap()).unwrap();
     assert_eq!(matrix.schema, "parity-matrix/1");
     assert_eq!(matrix.cases.len(), 3);
+    assert!(
+        matrix.tolerance_factor.is_finite()
+            && matrix.tolerance_factor > 0.0
+            && matrix.tolerance_factor <= MAX_TOLERANCE_FACTOR,
+        "tolerance_factor must be positive and at most {MAX_TOLERANCE_FACTOR}"
+    );
+    let mut inputs: Vec<_> = matrix
+        .cases
+        .iter()
+        .map(|case| case.input.as_str())
+        .collect();
+    inputs.sort_unstable();
+    assert_eq!(inputs, EXPECTED_CHECKS.map(|(input, _)| input));
+    for case in &matrix.cases {
+        let expected_checks = EXPECTED_CHECKS
+            .iter()
+            .find(|(input, _)| *input == case.input)
+            .unwrap()
+            .1;
+        let pointers: Vec<_> = case
+            .checks
+            .iter()
+            .map(|check| check.pointer.as_str())
+            .collect();
+        assert_eq!(case.checks.len(), expected_checks.len(), "{}", case.input);
+        assert_eq!(
+            pointers.iter().copied().collect::<HashSet<_>>().len(),
+            pointers.len(),
+            "{}: check pointers must be unique",
+            case.input
+        );
+        assert_eq!(pointers.as_slice(), expected_checks, "{}", case.input);
+        for check in &case.checks {
+            assert_eq!(
+                check.unit,
+                expected_unit(&check.pointer),
+                "{} {}",
+                case.input,
+                check.pointer
+            );
+        }
+    }
     let references = std::env::var_os("MAMUT_PARITY_REFERENCES");
     if let Some(directory) = &references {
         fs::create_dir_all(directory).unwrap();

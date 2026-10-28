@@ -28,6 +28,10 @@ Rust mediante `MAMUT_PARITY_REFERENCES`; Python exige esa variable y no se
 omite silenciosamente cuando falta. Las referencias son temporales y no
 constituyen el oráculo numérico: ese papel corresponde a las fracciones.
 
+Ambos tests exigen exactamente esos tres inputs, sin duplicados, y los
+conteos de checks 11 para `cantilever-tip.json`, 15 para
+`simply-supported-center.json` y 0 para `unsupported-beam.json`.
+
 Patrones reutilizados: llamada nativa WASM y comparación de bytes de
 `engine-wasm/tests/sfc010.rs`; referencias Rust independientes del binding
 de `bindings/python/tests/test_sfc010.py`; fingerprints y envoltorio real
@@ -92,6 +96,12 @@ Los vectores locales D2 de extremo siguen [Fx_i, Fy_i, Mz_i, Fx_j, Fy_j, Mz_j]
 y representan acciones sobre el elemento; sus momentos en un nodo interno
 tienen signos opuestos por equilibrio. No se confunden con los signos de
 esfuerzos de sección en `stations`, que aquí solo se comparan entre superficies.
+Ambos tests derivan la unidad SI esperada del puntero de cada check y exigen
+igualdad con `unit`: desplazamientos nodales 0–2 en `m`, 3–5 en `rad`;
+reacciones 0–2 en `N`, 3–5 en `N*m`; acciones locales D2 0, 1, 3, 4 en `N`
+y 2, 5 en `N*m`. Un puntero desconocido o cualquier otra unidad hace fallar
+la prueba. El orden se verificó en `engine-core::Dof::index` y
+`engine-elements-frame/src/recover.rs`.
 La etiqueta Z-up no demuestra la convención de elevación 2D pendiente del ADR.
 
 ## Tolerancias justificadas
@@ -99,6 +109,8 @@ La etiqueta Z-up no demuestra la convención de elevación 2D pendiente del ADR.
 Para cada cantidad se exige finitud y
 `abs(actual − esperado) <= t * max(abs(esperado), escala)`, donde
 `t = 64 * epsilon_f64 * n * condition_bound` y epsilon_f64 = 2⁻⁵².
+Ambos tests fijan `MAX_TOLERANCE_FACTOR = 64`: `tolerance_factor` debe ser
+finito, positivo y no superar ese tope, independiente de lo declarado en la matriz.
 `n` es el número de DOFs libres. La cota de condición corresponde a la
 norma infinito de la matriz reducida, con las unidades numéricas SI de estos
 modelos; no se extrapola a otros tamaños o sistemas de unidades.
@@ -202,9 +214,11 @@ El script de changelog termina con código 0 y reporta que no hay cambios de
 código entre commits; no se presenta ese resultado como validación del
 fragmento sin commit. La revisión directa del fragmento pasa.
 
-No se valida la ejecución wasm32, JavaScript, navegador ni Node: WASM aquí
+La ejecución wasm32 real sigue **DESCONOCIDO**; no se valida JavaScript,
+navegador ni Node: WASM aquí
 significa únicamente la llamada Rust a la fachada, como en SFC-010.
-CI de pytest/wheel queda pendiente porque requiere modificar `.github`,
+El job de pytest en CI sigue **DESCONOCIDO**. CI de pytest/wheel queda
+pendiente porque requiere modificar `.github`,
 que está protegido y fuera del alcance autorizado. Matriz completa de
 plataformas/CPython y portabilidad binaria: **DESCONOCIDO**.
 No se validan modal, P-Delta, geotecnia, memoria, GIL, concurrencia,
