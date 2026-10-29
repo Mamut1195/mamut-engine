@@ -387,7 +387,8 @@ A geotechnical datum always includes value and provenance:
 the paths of all assumed parameters in `assumed_parameters`.
 A missing physical datum required by the domain returns `ENG-E-0003`, without
 substitutions. Incompatible ranges use `ENG-E-0010`; nonfinite data/results
-use `ENG-E-0008` (or lexical rejection `API-E-INPUT` for nonfinite JSON numbers).
+use `ENG-E-0008`. Nonfinite JSON numbers and NaN/±Infinity tokens are rejected
+lexically with `ENG-E-0008`.
 
 `soilProfile` receives `layers` ordered from ground level, `groundwater_depth_m`,
 `water_unit_weight_kn_m3` and `depths_m`. Each layer declares `thickness_m`,

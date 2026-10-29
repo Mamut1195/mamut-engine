@@ -88,11 +88,11 @@ diagnósticos y run satisfactorio: salida 0 salvo la combinación, que conserva
 el aviso `API-W-COMBINED-PRESCRIBED` y salida 1 de #85. Los
 [fixtures inválidos](fixtures/input/invalid) tienen un `.expect` JSON adyacente
 con `code`, `exit_code` y el resultado de `validation` (`invalidInput`,
-`unsupportedSchema` o `diagnostics`). Se conservan los códigos publicados por
-#88: `ENG-E-0009` para contratos incompatibles, `ENG-E-0003` para referencias
-ausentes y `API-E-INPUT` para parseo/estructura. `1e400` representa el rechazo
-de un número no finito; NaN no es un literal JSON. Hay fronteras distintas para
-enteros léxicos fuera de ±(2^53−1) e identificadores fuera de u32.
+`nonFiniteNumber`, `unsupportedSchema` o `diagnostics`). Se conservan los códigos
+publicados por #88: `ENG-E-0009` para contratos incompatibles, `ENG-E-0003` para referencias
+ausentes y `API-E-INPUT` para parseo/estructura. `1e400` y los tokens NaN/±Infinity
+se rechazan léxicamente con `ENG-E-0008`; NaN no es un literal JSON. Hay fronteras
+distintas para enteros léxicos fuera de ±(2^53−1) e identificadores fuera de u32.
 
 La prueba de nombres lee la lista clean-room mediante `include_str!` y examina
 schemas y fixtures completos, incluidas claves escapadas y duplicadas. Compara
@@ -155,8 +155,11 @@ Los ids y referencias numéricos siguen limitados a u32; los contadores
 `max_iterations` y `mode_count` a 16 384. No hay seeds ni índices enteros
 grandes en engine-input/1; los otros identificadores son cadenas y los GDL
 son etiquetas. `bool` no es un entero. Los tokens con punto/exponente conservan binary64;
-overflow como `-1e400` produce un error explícito de rango finito f64. En run
-ambos errores dan salida 2. Los ids además deben caber en u32 según el contrato.
+overflow como `-1e400` produce `ApiError::NonFiniteNumber`, igual que los tokens
+NaN, -NaN y ±Infinity (sin signo `+` explícito). En `run` dan `ENG-E-0008`,
+status invalid, salida 2 e `input_sha256: null`, sin resultados ni callbacks de
+parseo. Las cadenas con esos textos no se clasifican como números no finitos.
+Los ids además deben caber en u32 según el contrato.
 
 Para run se requiere exactamente una entrada en `analyses`. linearStatic
 requiere al menos un caso; modal y responseSpectrum pueden usar `cases: []`.

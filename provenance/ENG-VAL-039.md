@@ -144,7 +144,43 @@ queda pendiente la claridad de ese mensaje.
 - Comando: script H1–H3 más abajo (tokens NaN, Infinity, -Infinity, 1e999).
 - Salida: `code=API-E-INPUT`, exit 2, en los cuatro casos.
 - Esperado vs recibido: `ENG-E-0008` (exit 2) vs `API-E-INPUT` (exit 2).
-- No se corrige aquí; se reporta para decisión.
+- Estado inicial (MAM-851): no se corrigió; se reportó para decisión.
+
+#### H2 · Corrección (MAM-919, 2026-10-29)
+
+Causa: el examen léxico previo (`crates/engine-api/src/limits.rs`) clasificaba
+1e999 como `InvalidInput`; `-Infinity` entraba por la rama de enteros y recibía
+el mensaje del rango JCS; NaN e Infinity llegaban a serde como error de sintaxis.
+
+Cambio: nueva variante `ApiError::NonFiniteNumber`, que `run` traduce a
+`ENG-E-0008` (invalid, exit 2, `input_sha256` nulo, sin resultados). El mismo
+examen léxico la emite para números con forma JSON que no dan un f64 finito y
+para los tokens exactos `NaN`, `Infinity`, `-Infinity` y `-NaN` fuera de
+cadenas. No se escribió un parser nuevo. `+Infinity` sigue como error de
+sintaxis (`API-E-INPUT`). Los enteros fuera del rango JCS siguen como
+`InvalidInput`. La CLI asigna la variante al mismo tipo de fallo que
+`InvalidInput`.
+
+| Token | Antes | Después |
+|---|---|---|
+| NaN | `API-E-INPUT`, exit 2, «expected value at line 1 column 720» | `ENG-E-0008`, exit 2, «Non-finite JSON token NaN: NaN and ±Infinity are not JSON numbers» |
+| Infinity | `API-E-INPUT`, exit 2, «expected value at line 1 column 720» | `ENG-E-0008`, exit 2, «Non-finite JSON token Infinity: …» |
+| -Infinity | `API-E-INPUT`, exit 2, «JSON integer is outside the JCS safe range…» | `ENG-E-0008`, exit 2, «Non-finite JSON token -Infinity: …» |
+| 1e999 | `API-E-INPUT`, exit 2, «JSON number is outside the finite f64 range» | `ENG-E-0008`, exit 2, mismo texto |
+| 1e300 (finito) | éxito, exit 0 | éxito, exit 0 |
+
+Pruebas: `h2_non_finite_load_tokens_report_eng_e_0008`,
+`h2_large_finite_load_is_not_non_finite` y
+`h2_non_finite_words_in_case_names_are_text` en
+`crates/engine-api/tests/val039_pathological.rs`; ajustes en `limits.rs`,
+`facade.rs`, `input_fixtures.rs`, `results.rs` y el fixture
+`non-finite-number.expect`, que fijaban `API-E-INPUT`/`InvalidInput`; prueba
+de stdin en `crates/engine-cli/tests/cli.rs`.
+
+- DESCONOCIDO: otras grafías no estándar (`inf`, `nan` en minúsculas,
+  `+Infinity`), que siguen como error de sintaxis; no se exploraron más tokens.
+- DESCONOCIDO: efecto de la variante nueva en consumidores externos del
+  `ApiError` serializado (wasm, Python); solo se verificó la suite del repo.
 
 ### H3 · Carga transversal del orden de MN rechazada como parámetro inválido
 
@@ -501,8 +537,8 @@ val039_pathological); assembly sigue 11 de 11. Con el cambio,
   la evidencia se limita al backend disponible y ejecuciones iguales aquí.
 - DESCONOCIDO: carga crítica discreta exacta y convergencia de malla; esta
   prueba solo exige rechazo claro por encima de la crítica continua propia.
-- DESCONOCIDO: tratamiento específico correcto de unidades desconocidas y
-  entradas no finitas; H1–H2 solo documentan la salida actual.
+- DESCONOCIDO: tratamiento específico correcto de unidades desconocidas; H1
+  solo documenta la salida actual. H2 (no finitos) quedó corregido en MAM-919.
 
 ## Verificación
 

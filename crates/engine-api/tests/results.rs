@@ -106,13 +106,13 @@ fn fingerprint_regressions_document_jcs_changes() {
 
 #[test]
 fn input_fingerprint_respects_the_engine_parser_limits() {
-    for input in [
-        "{",
-        r#"{"a":1,"a":2}"#,
-        "NaN",
-        "1e400",
-        "18446744073709551616",
-    ] {
+    for input in ["NaN", "1e400"] {
+        assert!(matches!(
+            engine_api::input_sha256(input),
+            Err(ApiError::NonFiniteNumber(_))
+        ));
+    }
+    for input in ["{", r#"{"a":1,"a":2}"#, "18446744073709551616"] {
         assert!(matches!(
             engine_api::input_sha256(input),
             Err(ApiError::InvalidInput(_))

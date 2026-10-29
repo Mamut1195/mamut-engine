@@ -122,6 +122,7 @@ impl From<ApiError> for Failure {
         let (status, code) = match &e {
             ApiError::Cancelled => (Status::Cancelled, "API-I-CANCELLED"),
             ApiError::UnsupportedSchema(_) => (Status::Invalid, "ENG-E-0009"),
+            ApiError::NonFiniteNumber(_) => (Status::Invalid, "ENG-E-0008"),
             _ => (Status::Invalid, "API-E-INPUT"),
         };
         Self(status, vec![diagnostic(code, "error", e.to_string())])

@@ -167,8 +167,16 @@ pub(crate) fn preflight(input: &str) -> Result<(), ApiError> {
                 {
                     index += 1;
                 }
+                let token = &input[start..index];
+                // Recognize exact spellings, including the negative NaN counterpart.
+                // Leave leading '+' spellings unclassified for serde.
+                if matches!(token, "NaN" | "-NaN" | "Infinity" | "-Infinity") {
+                    return Err(ApiError::NonFiniteNumber(format!(
+                        "Non-finite JSON token {token}: NaN and ±Infinity are not JSON numbers"
+                    )));
+                }
                 if byte == b'-' || byte.is_ascii_digit() {
-                    check_number(&input[start..index])?;
+                    check_number(token)?;
                 }
             }
         }
@@ -181,7 +189,7 @@ fn check_number(token: &str) -> Result<(), ApiError> {
         if token.parse::<f64>().is_ok_and(f64::is_finite) {
             return Ok(());
         }
-        return Err(ApiError::InvalidInput(
+        return Err(ApiError::NonFiniteNumber(
             "JSON number is outside the finite f64 range".into(),
         ));
     }

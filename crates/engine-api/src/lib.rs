@@ -44,6 +44,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 pub enum ApiError {
     /// Invalid JSON, fields, types, or input conventions.
     InvalidInput(String),
+    /// JSON numeric token that is not a finite binary64 value (overflow, NaN, Infinity).
+    NonFiniteNumber(String),
     /// Unknown input contract or unsupported major version.
     UnsupportedSchema(String),
     /// Schema document not published by this facade.
@@ -58,6 +60,7 @@ impl fmt::Display for ApiError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidInput(s) => write!(f, "InvalidInput: {s}"),
+            Self::NonFiniteNumber(s) => write!(f, "NonFiniteNumber: {s}"),
             Self::UnsupportedSchema(s) => write!(f, "UnsupportedSchema: {s}"),
             Self::UnknownSchema(s) => write!(f, "UnknownSchema: {s}"),
             Self::UnknownCode(s) => write!(f, "UnknownCode: {s}"),

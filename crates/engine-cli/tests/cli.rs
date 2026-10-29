@@ -526,6 +526,34 @@ fn with_input_stdin(files: &Files, args: &[&str], input: &[u8]) -> Output {
 }
 
 #[test]
+fn run_input_stdin_reports_non_finite_load_as_eng_e_0008() {
+    let files = Files::new();
+    let source = include_str!("../../engine-api/tests/fixtures/val039/cantilever.json");
+    assert!(source.contains("-12.0"));
+    let input = source.replace("-12.0", "1e999");
+    let output = with_input_stdin(&files, &["run", "--input", "-"], input.as_bytes());
+    assert_code(&output, 2);
+    let envelope = value(&output.stderr);
+    assert_eq!(envelope["code"], "ENG-E-0008");
+    assert_eq!(envelope["exitCode"], 2);
+    assert_eq!(envelope["outcome"], "invalid_input");
+    let document = &envelope["engineResults"][0];
+    assert_eq!(document["status"], "invalid");
+    assert_eq!(document["diagnostics"][0]["code"], "ENG-E-0008");
+    assert!(document["input_sha256"].is_null());
+    for field in [
+        "nodes",
+        "members",
+        "cases",
+        "combinations",
+        "modes",
+        "envelopes",
+    ] {
+        assert_eq!(document[field], json!([]), "{field}: {document}");
+    }
+}
+
+#[test]
 fn timeout_and_input_share_embedded_documents_and_stdin() {
     let files = Files::new();
     for command in ["run", "validate"] {

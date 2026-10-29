@@ -265,6 +265,43 @@ fn malformed_json_and_missing_fields_use_the_registered_input_structure_code() {
 }
 
 #[test]
+fn h2_non_finite_load_tokens_report_eng_e_0008() {
+    let source = include_str!("fixtures/val039/cantilever.json");
+    assert!(source.contains("-12.0"));
+    for token in ["NaN", "Infinity", "-Infinity", "1e999", "-1e999"] {
+        let raw = source.replace("-12.0", token);
+        let document = error(&raw, "ENG-E-0008", Status::Invalid, 2);
+        assert!(document["input_sha256"].is_null(), "{token}: {document}");
+    }
+}
+
+#[test]
+fn h2_large_finite_load_is_not_non_finite() {
+    let source = include_str!("fixtures/val039/cantilever.json");
+    assert!(source.contains("-12.0"));
+    for token in ["1e300", "-1e300"] {
+        let raw = source.replace("-12.0", token);
+        let (outcome, document) = solve(&raw);
+        for diagnostic in document["diagnostics"].as_array().unwrap() {
+            assert_ne!(diagnostic["code"], "ENG-E-0008", "{token}: {document}");
+        }
+        if outcome.exit_code() > 1 {
+            rejected_without_responses(&raw, &outcome, &document);
+        }
+    }
+}
+
+#[test]
+fn h2_non_finite_words_in_case_names_are_text() {
+    let source = include_str!("fixtures/val039/cantilever.json");
+    let mut input: Value = serde_json::from_str(source).unwrap();
+    for text in ["NaN", "Infinity", "-Infinity", "-NaN"] {
+        input["cases"][0]["name"] = json!(text);
+        success(&input);
+    }
+}
+
+#[test]
 fn near_zero_lengths_have_defined_rejection_or_finite_equilibrium() {
     let mut input = models::cantilever();
     input["model"]["nodes"][1]["coordinates"][0] = json!(1e-12);

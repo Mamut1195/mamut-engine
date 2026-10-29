@@ -339,7 +339,11 @@ impl EngineCli {
             self.control.sync();
         }) {
             Ok(diagnostics) => diagnostics,
-            Err(error @ (ApiError::InvalidInput(_) | ApiError::UnsupportedSchema(_))) => {
+            Err(
+                error @ (ApiError::InvalidInput(_)
+                | ApiError::NonFiniteNumber(_)
+                | ApiError::UnsupportedSchema(_)),
+            ) => {
                 vec![Diagnostic {
                     // JSON, DTO, and limit failures are input contract rejections.
                     code: "ENG-E-0009",
@@ -724,7 +728,9 @@ fn read_engine_input(reader: impl Read) -> Result<String, FailureKind> {
 fn api_failure(error: ApiError) -> FailureKind {
     match error {
         ApiError::Cancelled => FailureKind::Cancelled,
-        ApiError::InvalidInput(_) | ApiError::UnsupportedSchema(_) => FailureKind::Validation,
+        ApiError::InvalidInput(_)
+        | ApiError::NonFiniteNumber(_)
+        | ApiError::UnsupportedSchema(_) => FailureKind::Validation,
         ApiError::UnknownSchema(_) | ApiError::UnknownCode(_) => FailureKind::Unsupported,
     }
 }

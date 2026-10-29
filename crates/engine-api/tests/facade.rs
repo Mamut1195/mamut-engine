@@ -75,22 +75,27 @@ fn required_schema_and_unknown_contract_or_major() {
 
 #[test]
 fn strict_json_rejects_nonfinite_duplicates_and_trailing_documents() {
-    for bad in [
-        "NaN",
-        "Infinity",
-        "-Infinity",
-        "1e999",
-        "null {}",
-        r#"{"a":1,"a":2}"#,
-        r#"{"a":{"b":1,"\u0062":2}}"#,
-    ] {
+    for bad in ["NaN", "Infinity", "-Infinity", "1e999"] {
+        assert!(
+            matches!(canonical_json(bad), Err(ApiError::NonFiniteNumber(_))),
+            "{bad}"
+        );
+    }
+    for bad in ["null {}", r#"{"a":1,"a":2}"#, r#"{"a":{"b":1,"\u0062":2}}"#] {
         assert!(
             matches!(canonical_json(bad), Err(ApiError::InvalidInput(_))),
             "{bad}"
         );
     }
     let v = input().to_string();
-    for bad in ["NaN", "Infinity", "-Infinity", "1e999", "\"NaN\"", "null"] {
+    for bad in ["NaN", "Infinity", "-Infinity", "1e999"] {
+        let invalid = v.replace("2.0", bad);
+        assert!(
+            matches!(validate(&invalid), Err(ApiError::NonFiniteNumber(_))),
+            "{bad}"
+        );
+    }
+    for bad in ["\"NaN\"", "null"] {
         let invalid = v.replace("2.0", bad);
         assert!(
             matches!(validate(&invalid), Err(ApiError::InvalidInput(_))),

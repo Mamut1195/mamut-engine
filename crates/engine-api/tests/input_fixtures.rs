@@ -58,6 +58,7 @@ fn valid_fixtures_validate_and_run() {
 #[serde(rename_all = "camelCase")]
 enum Validation {
     InvalidInput,
+    NonFiniteNumber,
     UnsupportedSchema,
     Diagnostics,
 }
@@ -79,6 +80,7 @@ fn invalid_fixtures_report_expected_code_and_exit() {
                 .unwrap();
         match (validate(&input), &expected.validation) {
             (Err(ApiError::InvalidInput(_)), Validation::InvalidInput)
+            | (Err(ApiError::NonFiniteNumber(_)), Validation::NonFiniteNumber)
             | (Err(ApiError::UnsupportedSchema(_)), Validation::UnsupportedSchema) => {}
             (Ok(diagnostics), Validation::Diagnostics) => {
                 assert!(

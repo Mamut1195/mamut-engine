@@ -15,6 +15,22 @@ fn invalid_before_parse(input: &str, expected: &str) {
         assert!(matches!(error, ApiError::InvalidInput(_)));
         assert!(error.to_string().contains(expected), "{error}");
     }
+    rejected_before_parse(input, expected, "API-E-INPUT");
+}
+
+fn non_finite_before_parse(input: &str, expected: &str) {
+    for error in [
+        canonical_json(input).unwrap_err(),
+        input_sha256(input).unwrap_err(),
+        validate(input).unwrap_err(),
+    ] {
+        assert!(matches!(error, ApiError::NonFiniteNumber(_)));
+        assert!(error.to_string().contains(expected), "{error}");
+    }
+    rejected_before_parse(input, expected, "ENG-E-0008");
+}
+
+fn rejected_before_parse(input: &str, expected: &str, code: &str) {
     let mut callbacks = 0;
     let outcome = run(input, &CancelToken::new(), |_| callbacks += 1);
     assert_eq!(callbacks, 0);
@@ -23,7 +39,7 @@ fn invalid_before_parse(input: &str, expected: &str) {
     let document: Value = serde_json::from_str(&outcome.document).unwrap();
     assert!(document["input_sha256"].is_null());
     assert_eq!(document["cases"], serde_json::json!([]));
-    assert_eq!(document["diagnostics"][0]["code"], "API-E-INPUT");
+    assert_eq!(document["diagnostics"][0]["code"], code);
     assert!(document["diagnostics"][0]["cause"]
         .as_str()
         .unwrap()
@@ -200,10 +216,38 @@ fn safe_integer_boundaries_are_accepted_in_engine_input() {
 #[test]
 fn float_overflow_is_invalid_including_negative_exponents_out_of_range() {
     for token in ["-1e400", "1e400", "1.7976931348623159e308"] {
-        invalid_before_parse(token, "outside the finite f64 range");
+        non_finite_before_parse(token, "outside the finite f64 range");
     }
     assert!(canonical_json("18446744073709551616.0").is_ok());
     assert_eq!(canonical_json("-0e10").unwrap(), "0.0");
+}
+
+#[test]
+fn non_finite_words_require_exact_unquoted_tokens() {
+    for token in ["NaN", "-NaN", "Infinity", "-Infinity"] {
+        non_finite_before_parse(token, &format!("Non-finite JSON token {token}:"));
+        non_finite_before_parse(
+            &format!(r#"{{"value":{token}}}"#),
+            &format!("Non-finite JSON token {token}:"),
+        );
+        let quoted = serde_json::to_string(token).unwrap();
+        assert_eq!(canonical_json(&quoted).unwrap(), quoted);
+    }
+    for token in [
+        "+Infinity",
+        "+NaN",
+        "NaNother",
+        "InfinitySuffix",
+        "-InfinitySuffix",
+        "nan",
+        "inf",
+        "undefined",
+    ] {
+        assert!(
+            matches!(canonical_json(token), Err(ApiError::InvalidInput(_))),
+            "{token}"
+        );
+    }
 }
 
 #[test]
