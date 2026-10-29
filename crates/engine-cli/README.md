@@ -534,6 +534,8 @@ outside this ticket's describe/methods/validate/run mapping.
 
 ## Verification and platform
 
+`tests/harness_contract.rs` comprueba la [ficha CLI experimental de Harness](harness/mamut-engine.cli-program.json), stdin y determinismo; véase [ENG-SFC-004](../../docs/integration/ENG-SFC-004-harness-cli.md).
+
 Tests use local files and the binary identified by
 `env!("CARGO_BIN_EXE_mamut-engine")`. Library tests also cover cancellation between
 stages and failing writers, without signals, shells or network access. Binary

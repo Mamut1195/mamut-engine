@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0.0",
+  "program_id": "mamut-engine",
+  "display_name": "Mamut Engine",
+  "version": "0.1.0",
+  "launcher": {
+    "platform": "windows",
+    "kind": "executable",
+    "relative_path": "bin/mamut-engine.exe"
+  },
+  "operations": [
+    {
+      "capability_id": "mamut-engine.run",
+      "fixed_arguments": ["run", "--input", "-"],
+      "input": "json",
+      "output": "json",
+      "timeout_ms": 300000,
+      "max_output_bytes": 67108864,
+      "mutates_external_state": false
+    },
+    {
+      "capability_id": "mamut-engine.validate",
+      "fixed_arguments": ["validate", "--input", "-"],
+      "input": "json",
+      "output": "json",
+      "timeout_ms": 30000,
+      "max_output_bytes": 67108864,
+      "mutates_external_state": false
+    },
+    {
+      "capability_id": "mamut-engine.describe",
+      "fixed_arguments": ["describe", "--json"],
+      "input": "none",
+      "output": "json",
+      "timeout_ms": 5000,
+      "max_output_bytes": 1048576,
+      "mutates_external_state": false
+    }
+  ]
+}

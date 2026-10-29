@@ -5,7 +5,7 @@ use std::{
     fs,
     io::{self, Write},
     path::{Path, PathBuf},
-    process::{Child, Command, Output, Stdio},
+    process::{Command, Output, Stdio},
     rc::Rc,
     sync::atomic::{AtomicUsize, Ordering},
     time::{Duration, Instant},
@@ -14,6 +14,10 @@ use std::{
 use engine_cli::{Control, EngineCli, CATALOG};
 use mamut_workflow_cli::{Cancellation, ExitCodes};
 use serde_json::{json, Value};
+
+#[path = "support/stdin.rs"]
+mod stdin;
+use stdin::write_child_stdin;
 
 #[path = "support/validate_report.rs"]
 mod validate_report_schema;
@@ -85,18 +89,6 @@ impl Drop for Files {
     fn drop(&mut self) {
         let _ = fs::remove_dir_all(&self.0);
     }
-}
-fn write_child_stdin(child: &mut Child, input: &str) {
-    let mut stdin = child.stdin.take().unwrap();
-    // The child may exit without reading stdin; the assertions check its output.
-    if let Err(error) = stdin.write_all(input.as_bytes()) {
-        assert_eq!(
-            error.kind(),
-            io::ErrorKind::BrokenPipe,
-            "Error writing child stdin: {error}"
-        );
-    }
-    // On exit, stdin is closed before waiting for the child with wait_with_output.
 }
 fn value(bytes: &[u8]) -> Value {
     serde_json::from_slice(bytes).unwrap()
