@@ -5,6 +5,51 @@ contratos, validadores ni matemática propios. Compila también como `rlib`
 nativa para las comprobaciones del workspace; la ejecución JS requiere wasm.
 `#![forbid(unsafe_code)]` permanece activo, sin excepciones de la guardia.
 
+## Paquete ES (ENG-SFC-005, MAM-96, experimental)
+
+`mamut-engine-wasm` es experimental, no es producto. El manifiesto está en
+la raíz de este crate y conserva `js/package.json` para las pruebas existentes.
+Es `private: true` y no se publica; el registro npm es **DESCONOCIDO**.
+Tras generar `pkg/web/` con el build descrito abajo, puede consumirse desde
+un entorno que resuelva paquetes ES:
+
+```js
+import { EngineWorker } from 'mamut-engine-wasm';
+const client = new EngineWorker();
+try {
+  const request = client.request('run', inputJson);
+  console.log(JSON.parse(await request.promise));
+} finally {
+  client.close();
+}
+```
+
+Los subpaths `mamut-engine-wasm/worker.js` y `mamut-engine-wasm/wasm`
+exponen el worker y la API wasm con sus declaraciones TypeScript. El servidor
+debe conservar las rutas relativas de `js/` y `pkg/web/`. Para la página mínima,
+seguir las instrucciones de «Ejemplo y arnés de navegador»; carga un modelo,
+ejecuta el motor y muestra JSON. El modelo de ejemplo procede del repositorio.
+
+Licencia **AGPL-3.0-only**, © MAMPRO SAS. La página ofrece un enlace visible al
+[código fuente correspondiente](https://github.com/Mamut1195/mamut-engine)
+conforme a AGPL-3.0 §13. Al servir una versión modificada, ofrecer a los usuarios
+remotos el código fuente correspondiente de esa versión. No hay un archivo
+`LICENSE` en este crate y no se incluye en `files`; consultar la licencia del
+repositorio. MAMPRO SAS también ofrece licencia comercial:
+mampro.proyectos@gmail.com. El texto de la licencia comercial sigue
+**PENDIENTE** de redacción/revisión legal (ENG-GOV-004); esta sección no lo
+sustituye ni concede términos comerciales nuevos.
+
+Desde la raíz del repositorio, comprobar el paquete sin dependencias ni wasm
+construido (si `pkg/web/` existe, también se comprueban sus archivos):
+
+```bash
+node crates/engine-wasm/js/test-package.mjs
+```
+
+Desde este crate también se puede usar `npm run test:package`. La prueba imprime
+PASS/FAIL y termina con código 1 si detecta errores.
+
 ## Build y suite V1 offline
 
 ```bash
