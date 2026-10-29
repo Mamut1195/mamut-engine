@@ -50,7 +50,7 @@ Ambas suites comprueban la pertenencia y el exit code del registro.
 | --- | --- | --- |
 | Viga sin apoyos y barra hipostática | `ENG-E-0006`, unstable, exit 4 | `mechanisms_and_massless_mechanism_have_exact_codes_and_no_partial_results` |
 | E distintos en dos barras ortogonales del mismo sistema: extremos 1e-6 y 1e12, ambos órdenes; contraste intermedio | Éxito, finitud, equilibrio y δ=FL/EA | `extreme_moduli_in_one_model_remain_finite_and_balanced` |
-| Dos barras en serie con esos extremos | Orden E mayor junto al apoyo: éxito, equilibrio y δ analítica. Orden contrario: éxito con equilibrio, o rechazo limpio (un diagnóstico con código del registro, exit coherente, sin respuestas, repetible) **sin fijar el código** (ver H4) | `extreme_moduli_in_series_have_balanced_response_or_clean_rejection` |
+| Dos barras en serie con esos extremos | Orden E mayor junto al apoyo: éxito, equilibrio y δ analítica. Orden contrario: `ENG-E-0010` (mal condicionamiento), invalid, exit 2, sin respuestas (H4, corregido en MAM-921) | `extreme_moduli_in_series_have_balanced_response_or_clean_rejection`, `h4_soft_bar_next_to_support_reports_ill_conditioning_not_mechanism`, `h4_reclassification_threshold_is_pinned_on_both_sides` |
 | Longitud cero con dos identificadores de nudo distintos | `ENG-E-0005`, invalid, exit 2 | `topology_and_contract_errors_have_exact_codes_and_stable_diagnostics` |
 | Longitud 1e-12 | `ENG-E-0005`, invalid, exit 2 | `near_zero_lengths_have_defined_rejection_or_finite_equilibrium` |
 | Longitud 1e-9 | Éxito, finitud, equilibrio y flecha analítica relativa | `near_zero_lengths_have_defined_rejection_or_finite_equilibrium` |
@@ -69,9 +69,9 @@ Ambas suites comprueban la pertenencia y el exit code del registro.
 | Mecanismos estáticos, mecanismo modal sin masa y columna supercrítica | `ENG-E-0006` / `ENG-E-0014`, exit 4 | CLI: `mechanisms_massless_mechanism_and_supercritical_column_exit_four` |
 | JSON truncado y model ausente | `API-E-INPUT`, exit 2 | CLI: `malformed_json_and_missing_model_exit_two_with_input_structure_code` |
 
-La barra en serie es físicamente estable en ambos órdenes. La prueba no fija
-qué código devuelve el orden con E menor junto al apoyo; ese comportamiento es
-el hallazgo H4.
+La barra en serie es físicamente estable en ambos órdenes. Desde MAM-921 el
+orden con E menor junto al apoyo da `ENG-E-0010` con causa «Ill-conditioned
+stiffness» en lugar de `ENG-E-0006` (ver H4).
 La longitud 1e-12 se trata como nula en el comportamiento observado; no se
 infiere de dos muestras un umbral universal para todas las escalas.
 
@@ -395,9 +395,99 @@ E1=200000 E2=2e+11 exit=0 ux3=1.0000009998390996e-05 teorico=1.0000010000000002e
 E1=1e+12 E2=1e-06 exit=0 ux3=2000000.0 teorico=2000000.0
 ```
 
-La prueba en serie acepta cualquiera de esos rechazos limpios (no fija código).
+- Estado inicial (MAM-851): no se corrigió; se reportó para decisión.
 
-- No se corrige aquí; se reporta para decisión.
+#### H4 · Corrección (MAM-921, 2026-10-29)
+
+Causa raíz: con k₁ = E₁A/L = 5e-7 y k₂ = 5e11, la diagonal global del nudo 2
+Ux es k₁ + k₂ y en f64 `5e11 + 5e-7 == 5e11`: la rigidez de la barra blanda se
+pierde por redondeo al ensamblar. La K ensamblada es numéricamente singular,
+así que una solución finita no es alcanzable con esa matriz; el defecto era de
+clasificación (se informaba un mecanismo inexistente).
+
+Cambio: el ensamblaje guarda, por DOF global, la menor diagonal positiva de
+elemento. Cuando el backend devuelve `ENG-E-0006` en un DOF cuya contribución
+de elemento c cumple c ≤ 64 ε max(n,1) |K_gg| (la misma constante 64 ε max(n,1)
+que el pivote de referencia, pero aplicada a otra magnitud: el backend la compara
+con el pivote de la matriz equilibrada S·A·S y la reclasificación con el cociente
+bruto c/|K_gg|, así que las dos fronteras no coinciden; ε = `f64::EPSILON`,
+n = orden de K reducida), el sistema
+devuelve `ENG-E-0010` (invalid, exit 2) «Ill-conditioned stiffness …» con nudo y
+DOF global. Sin absorción el diagnóstico sigue siendo `ENG-E-0006`. No cambia
+ningún valor de K, M ni Kg ni el orden de operaciones.
+
+Barrido repetido con el mismo comando tras el cambio:
+
+```text
+E1=1e-06 E2=1e+12 exit=2 status=invalid code=ENG-E-0010 cause=… Ill-conditioned stiffness: element stiffness 5e-7 at node 2, DOF Ux (global 2) is below f64 resolution of the assembled diagonal 5e11 (contrast 9.999999999999999e-19); …
+E1=0.001 E2=1e+12 exit=2 status=invalid code=ENG-E-0010 cause=… element stiffness 5e-4 … assembled diagonal 5.000000000000005e11 (contrast 9.99999999999999e-16); …
+E1=1e-06 E2=1e+09 exit=2 status=invalid code=ENG-E-0010 cause=… element stiffness 5e-7 … assembled diagonal 5.000000000000005e8 (contrast 9.99999999999999e-16); …
+E1=1 E2=1e+12 exit=2 status=invalid code=ENG-E-0010 cause=Inconsistent recovery at node 2 / Ux: relative residual 3.338733354170781e-5 > 1e-9.
+E1=1e-06 E2=1e+06 exit=2 status=invalid code=ENG-E-0010 cause=Inconsistent recovery at node 2 / Ux: relative residual 9.955057888669192e-6 > 1e-9.
+E1=200000 E2=2e+11 exit=0 ux3=1.0000009998390996e-05 teorico=1.0000010000000002e-05
+E1=1e+12 E2=1e-06 exit=0 ux3=2000000.0 teorico=2000000.0
+```
+
+Margen (n = 2): umbral 64 ε · 2 ≈ 2.84e-14. Los contrastes 1e-15 quedan ≈ 28
+veces por debajo; el contraste 1e-12 (E₁ = 1) queda ≈ 35 veces por encima y
+sigue en `ENG-E-0010` «Inconsistent recovery» (sin cambio).
+
+Banda residual de `ENG-E-0006` (limitación conocida, revisión J4 r1, H1). Barrido
+propio con el mismo modelo, contraste = E₁/E₂ en pasos de 1e-17, binario del
+head de este PR:
+
+| E₂ | 2.700e-14 … 2.950e-14 | [1.000e-14, 2.842e-14]: casos que no dan «Ill-conditioned» |
+| --- | --- | --- |
+| 1e12 | «Ill-conditioned» hasta 2.842e-14; `ENG-E-0006` en 2.843e-14 … 2.862e-14; «Inconsistent recovery» desde 2.863e-14 | 0 de 1843 |
+| 2e11 | «Ill-conditioned» hasta 2.830e-14; «Inconsistent recovery» desde 2.831e-14; sin `ENG-E-0006` | 12 de 1843 (2.831e-14 … 2.842e-14, «Inconsistent recovery») |
+| 1e9 | `ENG-E-0006` en 2.843e-14 y en 2.856e-14 … 2.878e-14; «Inconsistent recovery» desde 2.879e-14 | 407 de 1843 en `ENG-E-0006`, el primero en 1.056e-14 |
+| 1e6 | alterna «Ill-conditioned» / `ENG-E-0006` desde 2.719e-14; «Inconsistent recovery» desde 2.858e-14 | 431 de 1843 en `ENG-E-0006`, el primero en 1.077e-14 |
+
+En la franja alrededor del umbral los números coinciden con los de J4. Por
+debajo del umbral, sin embargo, mido una banda más ancha que J4 no informó: con
+E₂ = 1e9 y 1e6, cerca de un 22 % de los contrastes entre 1e-14 y 2.84e-14 siguen
+dando `ENG-E-0006`. En esos casos la contribución de la barra blanda no se pierde
+del todo al sumar (p. ej. E₂ = 1e9, contraste 2e-14: (k₁+k₂)−k₂ = 1.0014e-5 frente
+a k₁ = 1e-5) y el backend señala el pivote del nudo 3 Ux («singular pivot at DOF 1.
+Node 3, DOF Ux (global 4)»). Ese nudo solo recibe la barra rígida, así que no hay
+absorción en el DOF señalado y no se reclasifica. Causa: el criterio solo examina
+el DOF que nombra el backend. Queda como limitación; no se cambia el criterio en
+este PR. Por encima de ≈2.88e-14 todos los casos medidos dan «Inconsistent
+recovery» (`ENG-E-0010`).
+Un modelo con un mecanismo real y además una rigidez absorbida en el mismo DOF
+singular se clasificaría como mal condicionamiento: DESCONOCIDO si ocurre en
+modelos reales.
+
+Alcance (J4 r1, H3): la reclasificación vive en el traductor común de errores
+del sistema, así que también se aplica a modos y a la factorización de la
+tangente pDelta / no lineal, siempre con la K lineal (diagonales de elemento y
+K_gg). Un pandeo real en un DOF con rigidez absorbida pasaría de `ENG-E-0006` a
+`ENG-E-0010`, en contra de `docs/METHODS_GUIDE.md` («If the tangent is singular,
+unstable/ENG-E-0006»). No se ha probado: DESCONOCIDO si ocurre en modelos reales.
+La columna supercrítica de VAL-039 sigue en `ENG-E-0006`.
+
+Mensaje (J4 r1, H4): en la CLI la causa empieza por el texto genérico del
+registro para `ENG-E-0010` («The specified dimension is not valid for the
+operation.») seguido de «Ill-conditioned stiffness …». Es cosmético: el código,
+el exit y el outcome del registro no cambian y el catálogo no se toca. «Inconsistent
+recovery» ya usaba `ENG-E-0010` con el mismo prefijo.
+
+Pruebas: `h4_soft_bar_next_to_support_reports_ill_conditioning_not_mechanism`
+(los tres contrastes absorbidos dan `ENG-E-0010` «Ill-conditioned»),
+`true_mechanism_still_reports_singular_system` (mecanismo real sigue en
+`ENG-E-0006`), `extreme_moduli_in_series_have_balanced_response_or_clean_rejection`
+(ahora exige `ENG-E-0010`) y, en `engine-assembly`,
+`absorbed_element_diagonal_reports_ill_conditioning_with_global_entities`.
+Mutación (r1): anular la reclasificación hizo fallar esas tres pruebas de
+regresión (2 de 12 en val039_pathological, 1 de 11 en assembly).
+
+Umbral fijado (J4 r1, H2): `h4_reclassification_threshold_is_pinned_on_both_sides`
+usa E₂ = 1e12 con contraste 2.0e-14 («Ill-conditioned»), 2.85e-14 (banda
+residual, sigue en `ENG-E-0006`) y 4.0e-14 («Inconsistent recovery»). Las
+mutaciones de la tolerancia ×0.5, ×2 y ×1e6 hacen fallar esa prueba (1 de 13 en
+val039_pathological); assembly sigue 11 de 11. Con el cambio,
+`cargo test --offline --workspace` pasa completo: 889 passed, 0 failed
+(guard de determinismo 37/37).
 
 ## Qué NO se probó · DESCONOCIDO
 

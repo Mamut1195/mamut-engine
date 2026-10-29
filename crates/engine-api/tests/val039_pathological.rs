@@ -222,6 +222,15 @@ fn orthogonal_bars(e1: f64, e2: f64) -> Value {
     input
 }
 
+fn series_bars(e1: f64, e2: f64) -> Value {
+    let mut input = orthogonal_bars(e1, e2);
+    input["model"]["nodes"][2]["coordinates"] = json!([8.0, 0.0, 0.0]);
+    input["model"]["members"][1]["nodes"] = json!([2, 3]);
+    input["model"]["supports"][2]["restrained"] = json!(["Uy"]);
+    input["cases"][0]["loads"] = json!([{"node":3,"values":[{"dof":"Ux","value":1.0}]}]);
+    input
+}
+
 #[test]
 fn mechanisms_and_massless_mechanism_have_exact_codes_and_no_partial_results() {
     for (name, input, code) in models::unstable_models() {
@@ -296,11 +305,7 @@ fn extreme_moduli_in_one_model_remain_finite_and_balanced() {
 #[test]
 fn extreme_moduli_in_series_have_balanced_response_or_clean_rejection() {
     for (e1, e2) in [(1e-6, 1e12), (1e12, 1e-6)] {
-        let mut input = orthogonal_bars(e1, e2);
-        input["model"]["nodes"][2]["coordinates"] = json!([8.0, 0.0, 0.0]);
-        input["model"]["members"][1]["nodes"] = json!([2, 3]);
-        input["model"]["supports"][2]["restrained"] = json!(["Uy"]);
-        input["cases"][0]["loads"] = json!([{"node":3,"values":[{"dof":"Ux","value":1.0}]}]);
+        let input = series_bars(e1, e2);
         let raw = input.to_string();
         let (outcome, document) = solve(&raw);
         if outcome.status == Status::Ok {
@@ -311,11 +316,71 @@ fn extreme_moduli_in_series_have_balanced_response_or_clean_rejection() {
             );
         } else {
             // Finding H4 (provenance/ENG-VAL-039.md): the structure is physically
-            // stable; no specific rejection code is pinned here. Only a clean,
-            // registered, repeatable rejection without partial results is required.
+            // stable; absorption of the soft element diagonal during assembly
+            // is reported as ill-conditioning, with no partial results.
             assert!(e1 < e2, "stiff-first order must solve: {document}");
+            assert_eq!(document["diagnostics"][0]["code"], "ENG-E-0010");
+            assert_eq!(outcome.status, Status::Invalid);
+            assert_eq!(outcome.exit_code(), 2);
             rejected_without_responses(&raw, &outcome, &document);
         }
+    }
+}
+
+#[test]
+fn h4_soft_bar_next_to_support_reports_ill_conditioning_not_mechanism() {
+    for (e1, e2) in [(1e-6, 1e12), (1e-3, 1e12), (1e-6, 1e9)] {
+        let input = series_bars(e1, e2);
+        let document = error(&input.to_string(), "ENG-E-0010", Status::Invalid, 2);
+        let cause = document["diagnostics"][0]["cause"].as_str().unwrap();
+        assert!(cause.contains("Ill-conditioned"), "{document}");
+        assert!(cause.contains("node 2, DOF Ux (global 2)"), "{document}");
+    }
+}
+
+#[test]
+fn h4_reclassification_threshold_is_pinned_on_both_sides() {
+    // Equal A and L give contrast = E1/E2 = k1/k2. With n=2 free DOFs,
+    // 64 * EPSILON * max(n, 1) is about 2.842e-14.
+    let e2 = 1e12;
+
+    // Below the threshold, within 0.5..1 times its value.
+    let input = series_bars(2.0e-14 * e2, e2);
+    let document = error(&input.to_string(), "ENG-E-0010", Status::Invalid, 2);
+    let cause = document["diagnostics"][0]["cause"].as_str().unwrap();
+    assert!(cause.contains("Ill-conditioned"), "{document}");
+
+    // Just above the threshold: residual H1 band, documented as an H4
+    // limitation in provenance/ENG-VAL-039.md. Pin the threshold here:
+    // doubling the tolerance would reclassify this case.
+    let input = series_bars(2.85e-14 * e2, e2);
+    let document = error(&input.to_string(), "ENG-E-0006", Status::Unstable, 4);
+    let cause = document["diagnostics"][0]["cause"].as_str().unwrap();
+    assert!(!cause.contains("Ill-conditioned"), "{document}");
+
+    // Clearly above the threshold, recovery rejects the result instead.
+    let input = series_bars(4.0e-14 * e2, e2);
+    let document = error(&input.to_string(), "ENG-E-0010", Status::Invalid, 2);
+    let cause = document["diagnostics"][0]["cause"].as_str().unwrap();
+    assert!(!cause.contains("Ill-conditioned"), "{document}");
+    assert!(cause.contains("Inconsistent recovery"), "{document}");
+}
+
+#[test]
+fn true_mechanism_still_reports_singular_system() {
+    for (e1, e2) in [(200.0, 200.0), (200.0, 2e6)] {
+        let mut input = series_bars(e1, e2);
+        // Node 3 has no transverse stiffness and its Uy remains free. The
+        // positive axial diagonals retain both contributions at these contrasts.
+        input["model"]["supports"].as_array_mut().unwrap().pop();
+        let document = error(&input.to_string(), "ENG-E-0006", Status::Unstable, 4);
+        assert!(
+            !document["diagnostics"][0]["cause"]
+                .as_str()
+                .unwrap()
+                .contains("Ill-conditioned"),
+            "{document}"
+        );
     }
 }
 

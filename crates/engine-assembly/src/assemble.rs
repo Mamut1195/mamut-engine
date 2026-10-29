@@ -188,6 +188,7 @@ pub(crate) fn multiply(matrix: &SparseMatrix, u: &[Real]) -> EResult<Vec<Real>> 
 /// Global matrices and forces before applying the free/prescribed partition.
 pub(crate) struct GlobalAssembly {
     pub k: SparseMatrix,
+    pub min_positive_element_diagonal: Vec<Real>,
     pub lumped: SparseMatrix,
     pub consistent: SparseMatrix,
     pub kg: SparseMatrix,
@@ -225,6 +226,18 @@ pub(crate) fn assemble_model<B: LinAlgBackend>(
         .map(|e| (e.location.as_slice(), &e.stiffness))
         .collect();
     let k = assemble_matrix(backend, n, &blocks)?;
+    // K assembly has validated every location and matrix dimension. Retain the
+    // smallest positive element diagonal without altering any assembled sum.
+    let mut min_positive_element_diagonal = vec![0.0; n];
+    for element in elements {
+        for (i, global) in element.location.iter().enumerate() {
+            let diagonal = element.stiffness.values()[i * element.stiffness.cols() + i];
+            let minimum = &mut min_positive_element_diagonal[global.0 as usize];
+            if diagonal > 0.0 && (*minimum == 0.0 || diagonal < *minimum) {
+                *minimum = diagonal;
+            }
+        }
+    }
     let mut lumped = assemble_matrix(
         backend,
         n,
@@ -313,6 +326,7 @@ pub(crate) fn assemble_model<B: LinAlgBackend>(
     }
     Ok(GlobalAssembly {
         k,
+        min_positive_element_diagonal,
         lumped,
         consistent,
         kg,

@@ -109,6 +109,38 @@ fn hand_derived_matrices_displacements_and_global_equilibrium() {
 }
 
 #[test]
+fn absorbed_element_diagonal_reports_ill_conditioning_with_global_entities() {
+    for (soft, stiff) in [(5e-7, 5e11), (5e-4, 5e11), (5e-7, 5e8)] {
+        let mut s = system(&model(3), &elements(&[soft, stiff]), &[]);
+        assert_eq!(s.n_free_dofs(), 2);
+        assert_eq!(
+            s.stiffness().to_dense().unwrap().values(),
+            &[
+                soft,
+                -soft,
+                0.0,
+                -soft,
+                soft + stiff,
+                -stiff,
+                0.0,
+                -stiff,
+                stiff
+            ]
+        );
+        let single = s.solve(&case(), 1.0).unwrap_err();
+        let batch = s.solve_cases(&[(case(), 1.0)]).unwrap_err();
+        for diagnostic in [single, batch] {
+            assert_eq!(diagnostic.code, "ENG-E-0010");
+            assert!(diagnostic.message.contains("Ill-conditioned"));
+            assert!(matches!(
+                diagnostic.entities.as_slice(),
+                [EntityRef::Node(NodeId(2)), EntityRef::Dof(DofIndex(1))]
+            ));
+        }
+    }
+}
+
+#[test]
 fn settlement_and_load_on_support_are_not_scaled_twice() {
     assert!(!fixtures::SETTLEMENT_SOURCE.is_empty() && !fixtures::SETTLEMENT_CITATION.is_empty());
     let mut m = model(3);

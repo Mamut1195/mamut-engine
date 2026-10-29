@@ -77,6 +77,8 @@ pub struct LinearSystem<B> {
     map: DofMap,
     constraints: Constraints,
     k: SparseMatrix,
+    /// Minimum positive element K diagonal per global DOF; zero if absent.
+    min_positive_element_diagonal: Vec<Real>,
     lumped: SparseMatrix,
     consistent: SparseMatrix,
     kg: SparseMatrix,
@@ -169,6 +171,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             Constraints::with_diaphragms(&map, &model.supports, prescribed, diaphragms)?;
         let GlobalAssembly {
             k,
+            min_positive_element_diagonal,
             lumped,
             consistent,
             kg,
@@ -205,6 +208,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             map,
             constraints,
             k,
+            min_positive_element_diagonal,
             lumped,
             consistent,
             kg,
@@ -742,6 +746,32 @@ impl<B: LinAlgBackend> LinearSystem<B> {
                 let Ok((node, dof)) = self.map.label(global) else {
                     return error("ENG-E-0012", "Solver reported a nonexistent global DOF.");
                 };
+                if e.code == "ENG-E-0006" {
+                    let g = global.0 as usize;
+                    let contribution = self.min_positive_element_diagonal[g];
+                    // Compare element contributions with the original global K
+                    // diagonal, before constraint transformations. The constant
+                    // equals the reference pivot one, but it is applied to the raw
+                    // ratio c/|K_gg|, not to the balanced pivot (see ENG-VAL-039 H4).
+                    let diagonal = (self.k.row_offsets()[g]..self.k.row_offsets()[g + 1])
+                        .find(|&p| self.k.column_indices()[p] == g)
+                        .map_or(0.0, |p| self.k.values()[p]);
+                    let tolerance = 64.0 * f64::EPSILON * self.k_free.order().max(1) as Real;
+                    if contribution > 0.0 && contribution <= tolerance * diagonal.abs() {
+                        let mut ill_conditioned = error(
+                            "ENG-E-0010",
+                            format!(
+                                "Ill-conditioned stiffness: element stiffness {contribution:e} at node {}, DOF {dof} (global {}) is below f64 resolution of the assembled diagonal {diagonal:e} (contrast {:e}); the system is not a mechanism. Reduce the stiffness contrast.",
+                                node.0,
+                                global.0,
+                                contribution / diagonal,
+                            ),
+                        );
+                        ill_conditioned.entities =
+                            vec![EntityRef::Node(node), EntityRef::Dof(global)];
+                        return ill_conditioned;
+                    }
+                }
                 e.message.push_str(&format!(
                     " Node {}, DOF {dof} (global {}).",
                     node.0, global.0
