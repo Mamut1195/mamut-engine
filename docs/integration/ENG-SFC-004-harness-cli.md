@@ -6,8 +6,9 @@ no modifica ese transporte.
 
 La [ficha del programa](../../crates/engine-cli/harness/mamut-engine.cli-program.json)
 declara `program_id: mamut-engine`, versión `0.1.0` y el ejecutable Windows
-`bin/mamut-engine.exe`, relativo a la raíz del paquete distribuido. La ficha
-es **experimental**: Harness real todavía no la ha probado en Windows.
+`bin/mamut-engine.exe`, relativo a la raíz del paquete distribuido, como
+suposición declarada. La ficha es **experimental**: Harness real todavía no
+la ha probado en Windows.
 No constituye evidencia de empaquetado, registro ni ejecución en ese sistema.
 
 Harness consume la ficha conforme a `cli-program.schema.json`, versión `1.0.0`,
@@ -69,6 +70,12 @@ de ejecución (1), validación del mismo modelo (0) y entrada inválida (2),
 comparando ambos canales. validate-report/1 y cli-describe/1 no contienen
 `input_sha256`; no se les añade ese campo.
 
+Limitaciones conocidas (H2/H3, J4 engine#248 r1): el nuevo test de contrato solo
+ejercita códigos 0/1/2; el resto tiene cobertura en `crates/engine-cli/tests/cli.rs`.
+El reorden solo invierte claves de primer nivel. El esquema cli-program 1.0.0
+acepta cualquier subcomando: la correspondencia ficha-binario solo la garantiza
+el test, con argumentos fijados a mano.
+
 El kit **SDK-WF-009 / `mamut-tool-conformance`** está excluido del vendor,
 según su [README](../../vendor/mamut-workflows/README.md). No se incorpora ni
 se reimplementa. Las familias de comprobaciones solicitadas ya tienen esta
@@ -83,6 +90,8 @@ cobertura local, que no certifica equivalencia con todas las aserciones del kit:
 **DESCONOCIDOS / PENDIENTES:** SDK-ADO-014 no está en Linear, según el contexto
 de esta tarea; no se verificó en línea. ENG-SFC-003 corresponde a MCP y queda
 fuera de V1. El kit real SDK-WF-009 **NO EJECUTADO: PENDIENTE / DESCONOCIDO**;
-su resultado completo no se infiere de los tests locales. Compilación y ejecución
-de los nuevos tests Rust quedan pendientes del agente externo; aquí no se ejecuta
-Cargo. La integración real de Harness en Windows también queda pendiente.
+su resultado completo no se infiere de los tests locales. Los tests Rust en
+`crates/engine-cli/tests/harness_contract.rs` fueron ejecutados y verificados
+por J4 en r1 de engine#248 (workspace **893 passed / 0 failed**, CI verde),
+fusionado en main como `4603d3d`. La integración real de Harness en Windows
+queda pendiente.

@@ -75,7 +75,11 @@ pandas 3.1.0. El paquete se importó desde la wheel disponible mediante
 `maturin build --offline --locked --release` y se usó desempaquetada con
 `PYTHONPATH`. Instalación limpia: J4 verificó (2026-10-28 ~17:20 ECT)
 `maturin build --offline --locked --release` y `pip install --no-index --no-deps`
-de la wheel en venv limpio, 3 notebooks 3/3 OK exit 0 (verificación de J4, no del autor). El resultado declara
+de la wheel en venv limpio. Los 3 notebooks (3/3 OK, exit 0) corrieron con
+nbclient de un entorno aparte y el paquete de la wheel del venv limpio vía
+`PYTHONPATH`, no dentro del venv limpio (N3, J4 engine#242 r1; verificación de
+J4, no del autor). Con `unshare -rn` el kernel TCP no arranca, por lo que la
+ejecución sin red queda **DESCONOCIDA**. El resultado declara
 `git_commit=null`: la identidad del commit productor es **DESCONOCIDO**.
 
 | Comprobación | Resultado y alcance |

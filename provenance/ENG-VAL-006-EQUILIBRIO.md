@@ -7,6 +7,10 @@ ENG-VAL-006. El ticket no asigna un VAL-0xx propio a EQ-ALL: **DESCONOCIDO**.
 Esta nota es independiente del documento previo `provenance/ENG-VAL-006.md`,
 que trata otra campaña. No se deduce de él cobertura para este ticket.
 
+Nota N3 (J4, engine#245 r2): el nombre de este archivo colisiona con
+`ENG-VAL-006.md` y `ENG-VAL-006-CLEAN-ROOM.md`. No se renombra en este PR porque
+rompería referencias; la decisión queda **PENDIENTE**.
+
 Inventario leído exclusivamente en este repositorio: `tests/analytical.rs`,
 `tests/support/table.rs`, `tests/support/harness.rs`, `tests/oracles.rs`,
 `ORACLES.md`, `tests/dynamic.rs` y sus tablas/arneses, `tests/winkler.rs`,
@@ -310,11 +314,15 @@ de línea); `cargo test --offline --workspace` exit 0 (886 passed, 0 failed, sob
 ## Lo que EQ-ALL no detecta por construcción
 
 Las reacciones se recuperan como K·u − F, de modo que su suma con las cargas
-se anula para cualquier K con modos de cuerpo rígido correctos. EQ-ALL no
-detecta errores que conservan la resultante: EI o EA erróneos, signo de los
+permite a EQ-ALL detectar errores en el residuo del solve y en la resultante
+del vector de cargas, pero no errores de K que preserven los modos de cuerpo
+rígido. EQ-ALL no detecta errores que conservan la resultante: EI o EA
+erróneos, signo de los
 momentos de empotramiento perfecto, o un reparto equivocado de las cargas
 entre nudos que mantenga fuerza y momento totales. Esos errores los cubren,
 en su caso, las comparaciones analíticas de ENG-VAL-001/ENG-VAL-005.
+Tampoco comprueba los esfuerzos internos de barra ni la magnitud de los
+desplazamientos (N1/N2, J4 engine#245 r2).
 
 ## Mutaciones
 

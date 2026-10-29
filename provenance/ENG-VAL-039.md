@@ -149,8 +149,8 @@ queda pendiente la claridad de ese mensaje.
 ### H3 · Carga transversal del orden de MN rechazada como parámetro inválido
 
 Un voladizo con carga transversal en la punta admite una solución lineal
-propia finita (v = FL³/(3EI)), pero desde cargas del orden de 1e6 N el Engine
-devuelve `ENG-E-0010`, exit 2, status invalid. La causa es un residuo
+propia finita (v = FL³/(3EI)), pero con algunas cargas a partir de ~1e6 N, de
+forma no monótona (ver las viñetas de abajo), el Engine devuelve `ENG-E-0010`, exit 2, status invalid. La causa es un residuo
 numérico en la recuperación, no una dimensión o parámetro inválido según la
 descripción del código. La salida descarta todas las respuestas; no se afirma
 que entregue valores basura. Se registra como límite de robustez y clasificación
@@ -164,7 +164,7 @@ I=1e-4 m⁴, ambos L=4 m):
 
 - Fixture: resuelve hasta F=−3e5 N; rechaza en F=−1e6 N (residuo
   2.79e-9 > 1e-9); vuelve a resolver en F=−3e6 N y rechaza en −1e7, −1e8 y
-  −1e9 N. El umbral no es monótono: depende del redondeo del residuo.
+  −1e9 N. El umbral no es monótono; causa no determinada.
 - Acero: resuelve hasta F=−1e6 N (uy=−1.0666666666666664 m, teórico
   −1.0666666666666667 m); rechaza desde F=−3e6 N (residuo 3.73e-9) y en
   −1e7 N (1.49e-8), −1e8 y −1e9 N.
@@ -537,7 +537,7 @@ restauró el archivo original (comprobado con `cmp`); tras restaurar, 10/10 y
 | M2 | `crates/engine-api/tests/val039_pathological.rs` | `math::sqrt(20.0)` → `math::sqrt(21.0)` (frecuencia de modos repetidos) | val039_pathological | 1 falla (`repeated_modes_in_orthogonal_directions_are_finite_and_deterministic`), 9 pasan |
 | M3 | `crates/engine-cli/tests/val039_cli.rs` | `rejected(&input.to_string(), code, 4)` → `…, 2)` | val039_cli | 1 falla (`mechanisms_massless_mechanism_and_supercritical_column_exit_four`), 2 pasan |
 | M4 | `crates/engine-cli/tests/val039_cli.rs` | `rejected("{", "API-E-INPUT", 2)` → `"CLI-E-DOCUMENT"` | val039_cli | 1 falla (`malformed_json_and_missing_model_exit_two_with_input_structure_code`), 2 pasan |
-| M5 | `crates/engine-api/tests/val039_pathological.rs` | δ en serie `4.0 / (2.0 * e2)` → `4.0 / (3.0 * e2)` | val039_pathological | 1 falla (`extreme_moduli_in_series_have_balanced_response_or_clean_rejection`), 9 pasan |
+| M5 | `crates/engine-api/tests/val039_pathological.rs` | δ en serie, línea 310: `4.0 / (2.0 * e2)` → `4.0 / (3.0 * e2)` (no la línea 291, barras ortogonales) | val039_pathological | 1 falla (`extreme_moduli_in_series_have_balanced_response_or_clean_rejection`), 9 pasan |
 | M6 | `crates/engine-api/tests/val039_pathological.rs` | `assert!(e1 < e2, …)` → `assert!(e1 > e2, …)` | val039_pathological | 1 falla (`extreme_moduli_in_series_have_balanced_response_or_clean_rejection`), 9 pasan |
 
 Variante descartada de M5: cambiar el término `e1` (`2.0 * e1` → `3.0 * e1`)

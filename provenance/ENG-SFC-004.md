@@ -1,6 +1,7 @@
 # Bitácora clean-room · ENG-SFC-004
 
-- Ticket / PR: ENG-SFC-004 · MAM-92; PR PENDING.
+- Ticket / PR: ENG-SFC-004 · MAM-92; https://github.com/Mamut1195/mamut-engine/pull/248
+  (fusionado en main, `4603d3d`).
 - Autor: Codex gpt-6.1-sol high · 2026-10-29 (America/Guayaquil).
 - Rol: implementador del contrato de integración CLI; sin lógica numérica nueva.
 - Contrato implementado: ficha cli-program/1.0.0 para `mamut-engine`;
@@ -20,13 +21,14 @@
   repositorio propio de Harness como fixture; no se modifica vendor.
 - Validación: revisión estática, formato Rust directo sin Cargo, identidad
   byte a byte del schema y comprobaciones locales de JSON/patrones;
-  compilación y tests Rust **PENDIENTES** del agente externo.
+  compilación y tests Rust verificados por J4 r1 en engine#248: workspace
+  **893 passed / 0 failed**; fmt y clippy `-D warnings` OK; CI verde.
 - Comparación con oráculo: no; el schema hermano es una especificación de
   transporte, sin ejecución de otro motor ni comparación numérica.
 - Declaración: "No consulté código fuente de OpenSees, Frame3DD, Stabileo ni
   derivados para este ticket. No consulté rutas ni provenance prohibidos.
   Trabajé sin red y sin ejecutar Cargo."
-- Revisor clean-room: **PENDING (J4)**.
+- Revisor clean-room: **J4 r1 APTO con notas FINAL (engine#248), 2026-10-29**.
 
 ## Procedencia del fixture de Harness
 
@@ -69,12 +71,21 @@ stdout. Comprueban también stderr en escenarios de error, claves reordenadas
 y SHA-256 RFC 8785 de todos los results/1 de esos escenarios. La tabla completa
 0/1/2/3/4/5/6/70 ya cuenta con cobertura en `tests/cli.rs`; no se repite su suite.
 
+Limitaciones conocidas (H2/H3, J4 engine#248 r1): el nuevo test de contrato
+`crates/engine-cli/tests/harness_contract.rs` solo ejercita códigos 0/1/2;
+el reorden solo invierte claves de primer nivel. El esquema cli-program 1.0.0
+acepta cualquier subcomando: la correspondencia ficha-binario solo la garantiza
+el test, con argumentos fijados a mano. `bin/mamut-engine.exe` es una suposición
+declarada.
+
 La nota de integración relaciona describe, códigos y cli-run/1 con pruebas
 existentes. SDK-WF-009 / `mamut-tool-conformance` no está vendorizado y no se
 reimplementa: ejecución del kit real **PENDIENTE / DESCONOCIDO**.
-SDK-ADO-014 no está en Linear según el contexto recibido, sin consulta en línea.
+SDK-ADO-014: **PENDIENTE**; no está en Linear según el contexto recibido,
+sin consulta en línea.
 ENG-SFC-003 (MCP) está fuera de V1. Ficha **experimental** hasta probarla con
 Harness real en Windows. No se afirma conformidad ejecutada por ese consumidor.
 
 No se modifican Cargo.toml/Cargo.lock, `.github`, `clean-room/**`,
-`docs/CLEAN_ROOM.md`, CODEOWNERS ni `vendor/`. Sin commits.
+`docs/CLEAN_ROOM.md`, CODEOWNERS ni `vendor/`. Fusionado en main como `4603d3d`
+(engine#248).

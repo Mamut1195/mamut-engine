@@ -208,8 +208,8 @@ byte-identical with `cmp`, running
 | M5: 3D one `6EI/L²` entry × 1.001 (asymmetric) | 6: all 3D except maxwell_betti_raw_3d; recovery stops with ENG-E-0010 |
 
 The workspace and `determinism_guard` results first recorded for revision r1
-came from the shared Cargo target directory and were not reliable: review r1
-found that the guard fails on that revision, because the test imported
+came from the shared Cargo target directory and were not reliable: review r2
+(not r1) found that the guard fails on that revision, because the test imported
 `engine_core::{math, ...}` instead of `use engine_core::math;` on its own line.
 That import is now split. All results below were measured on this revision
 with a new, empty, dedicated `CARGO_TARGET_DIR` (71 crates compiled from

@@ -15,7 +15,8 @@
   (README, js/, Cargo.toml version), `scripts/build-wasm.sh` (output names),
   `LICENSE`, `bindings/python/docs/GUIA_USUARIO.md` (wording of the PENDING
   commercial-licence note), `provenance/TEMPLATE.md` and other provenance files
-  for the format. Ticket MAM-96 in Linear (acceptance criteria).
+  for the format. Ticket MAM-96 in Linear (acceptance criteria): **DESCONOCIDO**
+  to the reviewer; Linear was not readable for J4 (H9, engine#247 r2).
 - Own derivations: none (no equations).
 - Third-party code copied: none. No dependencies are added; the package declares
   no `dependencies*` and no install/lifecycle scripts.
@@ -40,6 +41,14 @@
 - Package built from this head: DESCONOCIDO. No wasm was compiled for this
   change; `js/test-node.mjs` and the browser test were not run against it.
 - Browser behaviour of the page: DESCONOCIDO (not run).
+- H7 (Medium; **PENDIENTE**, Jonathan's decision; J4 engine#247 r2): the AGPL
+  §13 source link in the test page and README points to `Mamut1195/mamut-engine`,
+  currently **PRIVATE** (ADR-001), so remote users cannot access the source.
+  Current impact is nil (`private: true`, no deployment); this must be resolved
+  before serving the page to third parties.
+- H8 (Low; J4 engine#247 r2): the "experimental / no es producto" check searches
+  all HTML; a comment or hidden text would satisfy it. It does not check that
+  the notice is visible. Known limitation.
 - The crate has no LICENSE file of its own and `files` does not include one; to
   distribute the package under AGPL the licence text should travel with it.
   DESCONOCIDO / decision for Jonathan before any publication.
