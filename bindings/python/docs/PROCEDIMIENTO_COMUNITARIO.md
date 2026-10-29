@@ -36,7 +36,7 @@ ticket de método → implementación Rust clean-room → revisión humana**.
    `Experimental` lo que así declaran `schemas/engine-input/1.json` (línea 5) y
    `crates/engine-api/src/methods.rs` (hoy `nonlinearStatic`, `soilProfile` y
    `consolidation1d`), distinguir `Stable` de `Validated` (pDelta: Stable;
-   ENG-BENCH-002; Validated pendiente de ENG-VAL-006) y dejar
+   ENG-BENCH-002; Validated: PENDIENTE (sin ticket asignado)) y dejar
    DESCONOCIDO lo que no tenga evidencia. La revisión técnica, la aceptación del
    método y su publicación son decisiones distintas. Documentar quién revisó y
    qué casos cubrió antes de declarar una validación.

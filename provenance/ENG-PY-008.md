@@ -56,7 +56,7 @@ El resultado añade `element/1` y `system/1`. El registro informa `linearStatic`
 `Stable`, y `nonlinearStatic`, `soilProfile`, `consolidation1d` como
 `Experimental`, igual que `schemas/engine-input/1.json` (línea 5) y
 `crates/engine-api/src/methods.rs`, fuente del criterio. P-Delta: Stable;
-ENG-BENCH-002; Validated pendiente de ENG-VAL-006 (no experimental, no
+ENG-BENCH-002; Validated: PENDIENTE (sin ticket asignado) (no experimental, no
 validado). Resto de capacidades: validación independiente **DESCONOCIDO**.
 Estas clasificaciones proceden del registro, no de los notebooks.
 
@@ -73,7 +73,9 @@ Entorno disponible: Linux x64, CPython 3.13.5, wheel desempaquetada del motor
 pandas 3.1.0. El paquete se importó desde la wheel disponible mediante
 `PYTHONPATH`. Para la corrida con kernel real se construyó una wheel local con
 `maturin build --offline --locked --release` y se usó desempaquetada con
-`PYTHONPATH`; no se instaló con pip (instalación limpia: **DESCONOCIDO**). El resultado declara
+`PYTHONPATH`. Instalación limpia: J4 verificó (2026-10-28 ~17:20 ECT)
+`maturin build --offline --locked --release` y `pip install --no-index --no-deps`
+de la wheel en venv limpio, 3 notebooks 3/3 OK exit 0 (verificación de J4, no del autor). El resultado declara
 `git_commit=null`: la identidad del commit productor es **DESCONOCIDO**.
 
 | Comprobación | Resultado y alcance |

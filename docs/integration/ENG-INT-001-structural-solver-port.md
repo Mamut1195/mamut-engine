@@ -54,7 +54,7 @@ los contratos publicados del Engine.
 | `scenarioSeed` | Sin campo | DESCONOCIDO si debe influir en el modelo antes de serializar. |
 | `necDatasetVersion`, `hazardDatasetVersion` | Sin campo | Lado Structures; el Engine no los consume. |
 | `signal: AbortSignal` | Cancelación del proceso (exit 5) | — |
-| `BatchSolveRequest.timeoutMs` | `--timeout` (segundos, máx. `MAX_TIMEOUT_SECONDS` = 31 536 000) → exit 6 | Conversión ms→s a cargo del adaptador. `--timeout` exige 0 < s ≤ 31 536 000: `run --timeout 0` da `CLI-E-USAGE` con exit 2. Para «sin límite» el adaptador debe omitir `--timeout`; si `MAMUT_ENGINE_TIMEOUT` aplica en ese caso queda por confirmar. |
+| `BatchSolveRequest.timeoutMs` | `--timeout` (segundos, máx. `MAX_TIMEOUT_SECONDS` = 31 536 000) → exit 6 | Conversión ms→s a cargo del adaptador. `--timeout` exige 0 < s ≤ 31 536 000: `run --timeout 0` da `CLI-E-USAGE` con exit 2. Para «sin límite» el adaptador debe omitir `--timeout`; aun así `MAMUT_ENGINE_TIMEOUT` (mismo rango, el flag prevalece) sí aplica si está definida, así que el adaptador debe quitarla del entorno si quiere ejecutar sin límite. |
 
 Límites del schema que el adaptador debe respetar: `model.nodes` máx. 256,
 `model.members` máx. 1024, `springs` máx. 1024 (resto en `describe --json`).
@@ -94,13 +94,13 @@ Criterio: «cubre» = método `Validated` o `Stable` con evidencia en el registr
 el registro de `crates/engine-api/src/methods.rs`: solo `nonlinearStatic`,
 `soilProfile` y `consolidation1d` son `Experimental` (pendientes de ENG-VAL-006,
 requieren `options.allow_experimental = true`); `pDelta` es `Stable`
-(ENG-BENCH-002), no `Validated`. El estado de ENG-VAL-006 es DESCONOCIDO desde
-el repo.
+(ENG-BENCH-002), no `Validated` (Validated: PENDIENTE, sin ticket asignado). El
+estado de ENG-VAL-006 es DESCONOCIDO desde el repo.
 
 | Capacidad | Engine V1 | Base |
 | --- | --- | --- |
 | `linearStatic` | cubre | `linearStatic` Validated |
-| `pDelta` | cubre (Stable; ENG-BENCH-002; Validated pendiente de ENG-VAL-006) | `pDelta` Stable, no Validated |
+| `pDelta` | cubre (Stable; ENG-BENCH-002; Validated: PENDIENTE (sin ticket asignado)) | `pDelta` Stable, no Validated |
 | `modal` | cubre | `modal` Validated |
 | `responseSpectrum` | cubre | `responseSpectrum` Validated |
 | `kinematic` | no cubre | Sin método |
@@ -165,7 +165,7 @@ El adaptador debe decidir por **exit code**, luego por `code`; nunca por el text
 - MAM-89 (ENG-RES-001 · Resultados estructurales y postproceso): estado
   DESCONOCIDO desde el repo (según Linear, Done).
 - ENG-VAL-006 (MAM-604): estado DESCONOCIDO desde el repo; condiciona qué pasa
-  de `Experimental`/`Stable` a `Validated`.
+  de `Experimental` a otro estado.
 - Reemplazo de Stabileo en Structures: se cita una decisión de Jonathan
   (2026-10-20), DESCONOCIDO desde el repo; Stabileo espera a ENG-GOV-004.
 - Implementación del adaptador: **backlog de Structures**, no en este repo.

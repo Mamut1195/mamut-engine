@@ -1,0 +1,1 @@
+Documentación de Python (MAM-84) y del puerto StructuralSolverPort (MAM-60): pDelta figura como «Stable; ENG-BENCH-002; Validated: PENDIENTE (sin ticket asignado)», sin ligarlo a ENG-VAL-006, que solo cubre nonlinearStatic, soilProfile y consolidation1d; se documenta que MAMUT_ENGINE_TIMEOUT aplica aunque se omita --timeout.

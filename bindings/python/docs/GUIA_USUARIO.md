@@ -112,7 +112,7 @@ La consulta local durante esta tarea informa:
 | `combinations` | `Validated` |
 | `modal` | `Validated` |
 | `responseSpectrum` | `Validated` |
-| `pDelta` | `Stable` (Stable; ENG-BENCH-002; Validated pendiente de ENG-VAL-006) |
+| `pDelta` | `Stable` (Stable; ENG-BENCH-002; Validated: PENDIENTE (sin ticket asignado)) |
 | `nonlinearStatic` | **Experimental** |
 | `soilProfile` | **Experimental** |
 | `consolidation1d` | **Experimental** |
@@ -121,7 +121,7 @@ La consulta local durante esta tarea informa:
 y el registro de `crates/engine-api/src/methods.rs` declaran `Experimental` solo
 `nonlinearStatic`, `soilProfile` y `consolidation1d`, que exigen
 `options.allow_experimental=true`. `pDelta` no es experimental, pero tampoco está
-validado: Stable; ENG-BENCH-002; Validated pendiente de ENG-VAL-006. Elementos,
+validado: Stable; ENG-BENCH-002; Validated: PENDIENTE (sin ticket asignado). Elementos,
 leyes y otras entradas sin estado de madurez propio: validación independiente
 **DESCONOCIDO**.
 `run: true` indica disponibilidad, no madurez. Una capacidad ausente no se debe
