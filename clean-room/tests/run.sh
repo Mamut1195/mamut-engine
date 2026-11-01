@@ -351,5 +351,21 @@ expect or_all 0 bash "$src/check.sh" HEAD "$tmp/or_all/rules"
 cp -r "$tmp/or_all" "$tmp/or_all_tree"
 expect or_all_tree 1 bash "$src/check.sh" --all
 new_repo or_all_ok; expect or_all_ok 0 bash "$src/check.sh" --all
+# vendor-crates/ (cargo vendor, MAM-938): exento del escaneo de identificadores, pero con integridad
+new_vendor_crate() { # $1 = name; crate "c" con .cargo-checksum.json y un identificador prohibido
+    new_repo "$1"; mkdir -p "$tmp/$1/vendor-crates/c/src"
+    echo '{"files":{},"package":"0"}' > "$tmp/$1/vendor-crates/c/.cargo-checksum.json"
+    echo 'x = geomTransf(1)' > "$tmp/$1/vendor-crates/c/src/lib.rs"
+}
+new_vendor_crate vc_skip; git -C "$tmp/vc_skip" add vendor-crates
+expect vc_skip 0 bash "$src/check.sh" HEAD "$tmp/vc_skip/rules"
+new_vendor_crate vc_link; ln -s ../../README.md "$tmp/vc_link/vendor-crates/c/src/l.rs"; git -C "$tmp/vc_link" add vendor-crates
+expect vc_link 1 bash "$src/check.sh" HEAD "$tmp/vc_link/rules"
+new_vendor_crate vc_nosum; rm "$tmp/vc_nosum/vendor-crates/c/.cargo-checksum.json"; git -C "$tmp/vc_nosum" add vendor-crates
+expect vc_nosum 1 bash "$src/check.sh" HEAD "$tmp/vc_nosum/rules"
+new_vendor_crate vc_outside; echo 'x = geomTransf(1)' > "$tmp/vc_outside/a.rs"; git -C "$tmp/vc_outside" add vendor-crates a.rs
+expect vc_outside 1 bash "$src/check.sh" HEAD "$tmp/vc_outside/rules"
+new_repo vc_prefix; mkdir -p "$tmp/vc_prefix/vendor-cratesX"; echo 'x = geomTransf(1)' > "$tmp/vc_prefix/vendor-cratesX/a.rs"; git -C "$tmp/vc_prefix" add vendor-cratesX
+expect vc_prefix 1 bash "$src/check.sh" HEAD "$tmp/vc_prefix/rules"
 printf '%d tests, %d failures\n' "$n" "$fails"
 [[ $fails == 0 ]]

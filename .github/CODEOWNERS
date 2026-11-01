@@ -1,6 +1,13 @@
 # Archivos que definen o ejecutan las reglas clean-room: requieren revisión del dueño.
 /clean-room/**          @Mamut1195
-/vendor/mamut-workflows/ @Mamut1195
-/.github/workflows/**   @Mamut1195
-/.github/CODEOWNERS     @Mamut1195
+/vendor/                @Mamut1195
+/vendor-crates/         @Mamut1195
+/.cargo/                @Mamut1195
+/Cargo.toml             @Mamut1195
+/Cargo.lock             @Mamut1195
+/crates/*/Cargo.toml    @Mamut1195
+/bindings/*/Cargo.toml  @Mamut1195
+/deny.toml              @Mamut1195
+/rust-toolchain.toml    @Mamut1195
+/.github/**             @Mamut1195
 /docs/CLEAN_ROOM.md     @Mamut1195

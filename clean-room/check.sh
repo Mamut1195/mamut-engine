@@ -243,6 +243,7 @@ touches_crates=false
 has_provenance=false
 failed=false
 touches_vendor=false
+touches_vendor_crates=false
 
 # Únicas parejas ruta:identificador permitidas; sin prefijos ni globs.
 vendor_identifier_allowlist=(
@@ -272,6 +273,27 @@ is_workflows_path() {
     [[ "$1" == vendor/mamut-workflows/* ]] || return 1
     case "/$1/" in *//*|*/./*|*/../*) return 1 ;; esac
 }
+
+# vendor-crates/ es la copia de cargo vendor (terceros, crates.io). No se escanea
+# por identificadores: su integridad la comprueba cargo con .cargo-checksum.json
+# contra Cargo.lock (--frozen en rust.yml) y su cambio exige revisión del dueño.
+is_vendor_crates_path() {
+    [[ "$1" == vendor-crates/* ]] || return 1
+    case "/$1/" in *//*|*/./*|*/../*) return 1 ;; esac
+}
+
+# Sin enlaces simbólicos y con .cargo-checksum.json en cada crate.
+verify_vendor_crates() (
+    [[ -d vendor-crates && ! -L vendor-crates ]] || exit 1
+    shopt -s dotglob nullglob globstar
+    for file in vendor-crates/**/*; do
+        [[ ! -L "$file" ]] || exit 1
+    done
+    for dir in vendor-crates/*/; do
+        [[ -f "${dir}.cargo-checksum.json" ]] || exit 1
+    done
+    exit 0
+)
 
 # Código confiable de la base en CI: nunca ejecutar el verificador del árbol del PR.
 verify_workflows() (
@@ -328,7 +350,13 @@ while IFS= read -r -d '' path; do
     if [[ "$path" == vendor/mamut-workflows || "$path" == vendor/examples || "$path" == vendor/examples/* ]] || is_workflows_path "$path"; then
         touches_vendor=true
     fi
+    [[ "$path" == vendor-crates || "$path" == vendor-crates/* ]] && touches_vendor_crates=true
 done < <(git diff --no-ext-diff --no-renames --name-only -z "$base" --)
+
+if [[ "$touches_vendor_crates" == true ]] && ! verify_vendor_crates; then
+    printf 'Integridad vendor-crates: enlace simbólico o falta .cargo-checksum.json.\n' >&2
+    failed=true
+fi
 
 if [[ "$touches_vendor" == true ]]; then
     if verify_workflows; then
@@ -370,6 +398,7 @@ while IFS= read -r -d '' path; do
     esac
     # El vendor ya se ha revisado íntegro arriba, sin limitarse al diff.
     is_workflows_path "$path" && continue
+    is_vendor_crates_path "$path" && continue
     patch=$(git diff --no-ext-diff --no-textconv --no-renames --unified=0 "$base" -- ":(literal)$path")
     in_hunk=false
     while IFS= read -r line; do

@@ -74,7 +74,8 @@ jobs:
 
 
   protected-review:
-    # Fail if the PR touches clean-room/**, workflows, CODEOWNERS or docs/CLEAN_ROOM.md
+    # Fail if the PR touches clean-room/**, .github/**, docs/CLEAN_ROOM.md, vendor/**,
+    # vendor-crates/**, .cargo/**, Cargo.*, deny.toml or rust-toolchain.toml
     # without current owner approval (on the latest commit).
     # GitHub rejects self-approval: a PR authored by Mamut1195 cannot satisfy this gate.
     # A distinct authorized contributor's PR needs a real latest-head owner review.
@@ -109,7 +110,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           OWNER: Mamut1195
         run: |
-          changed=$(git diff --no-ext-diff --no-renames --name-only -z "$PR_BASE" HEAD -- | tr '\0' '\n' | grep -E '^(clean-room/|\.github/workflows/|\.github/CODEOWNERS$|docs/CLEAN_ROOM\.md$)' || true)
+          changed=$(git diff --no-ext-diff --no-renames --name-only -z "$PR_BASE" HEAD -- | tr '\0' '\n' | grep -E '^(clean-room/|\.github/|docs/CLEAN_ROOM\.md$|vendor/|vendor-crates/|\.cargo/|Cargo\.toml$|Cargo\.lock$|.*/Cargo\.toml$|deny\.toml$|rust-toolchain\.toml$)' || true)
           if [ -z "$changed" ]; then echo "No protected files changed."; exit 0; fi
           printf 'Changed protected files:\n%s\n' "$changed"
           ok=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/reviews" --paginate \
