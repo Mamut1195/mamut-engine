@@ -86,6 +86,7 @@ mod python {
     fn api_error(py: Python<'_>, err: ApiError) -> PyResult<PyErr> {
         let code = match &err {
             ApiError::UnsupportedSchema(_) => "ENG-E-0009",
+            ApiError::UnknownUnit(_) => "ENG-E-0001",
             ApiError::Cancelled => "API-I-CANCELLED",
             _ => "API-E-INPUT",
         };

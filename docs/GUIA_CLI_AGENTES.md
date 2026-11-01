@@ -529,6 +529,14 @@ limit errors are normalized to that code) and `API-E-INPUT` in the `run`
 envelope. Both mention `MAX_NODES` in `cause` and both exit 2. Decide by exit
 code, then by `cause` if you need the detail.
 
+A text label in `units` other than `"SI"` yields `ENG-E-0001` in both
+`validate` and `run`, with exit 2 and no results. Missing or non-text `units`
+values remain structure errors (`ENG-E-0009` in `validate`, `API-E-INPUT` in `run`).
+The cause is `UnknownUnit: Unknown unit system; only "SI" is accepted` and
+omits the received label for security. After JSON parsing and the `schema`
+check, the unit check precedes structural validation, so an unknown text label
+also takes precedence when model fields are missing or malformed.
+
 Use `--timeout` to bound the run time. Experimental analyses
 (`nonlinearStatic`, `soilProfile`, `consolidation1d`) are rejected with exit 2
 unless the job sets `"options": {"allow_experimental": true}`.

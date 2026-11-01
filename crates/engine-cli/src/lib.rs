@@ -342,11 +342,16 @@ impl EngineCli {
             Err(
                 error @ (ApiError::InvalidInput(_)
                 | ApiError::NonFiniteNumber(_)
-                | ApiError::UnsupportedSchema(_)),
+                | ApiError::UnsupportedSchema(_)
+                | ApiError::UnknownUnit(_)),
             ) => {
-                vec![Diagnostic {
+                let code = match &error {
+                    ApiError::UnknownUnit(_) => "ENG-E-0001",
                     // JSON, DTO, and limit failures are input contract rejections.
-                    code: "ENG-E-0009",
+                    _ => "ENG-E-0009",
+                };
+                vec![Diagnostic {
+                    code,
                     severity: "error",
                     entities: Vec::new(),
                     cause: error.to_string(),
@@ -730,7 +735,8 @@ fn api_failure(error: ApiError) -> FailureKind {
         ApiError::Cancelled => FailureKind::Cancelled,
         ApiError::InvalidInput(_)
         | ApiError::NonFiniteNumber(_)
-        | ApiError::UnsupportedSchema(_) => FailureKind::Validation,
+        | ApiError::UnsupportedSchema(_)
+        | ApiError::UnknownUnit(_) => FailureKind::Validation,
         ApiError::UnknownSchema(_) | ApiError::UnknownCode(_) => FailureKind::Unsupported,
     }
 }

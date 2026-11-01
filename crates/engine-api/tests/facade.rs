@@ -152,7 +152,6 @@ fn strict_fields_types_units_and_axes() {
         );
     }
     for (pointer, value) in [
-        ("/units", json!("kN-mm")),
         ("/model/axes", json!("Y-up")),
         ("/model/nodes/0/dim", json!("D4")),
         ("/model/nodes/0/coordinates/2", json!(1.0)),
@@ -167,6 +166,14 @@ fn strict_fields_types_units_and_axes() {
             "{pointer}"
         );
     }
+    let mut v = baseline;
+    v["units"] = json!("kN-mm");
+    assert_eq!(
+        validate(&v.to_string()),
+        Err(ApiError::UnknownUnit(
+            "Unknown unit system; only \"SI\" is accepted".into()
+        ))
+    );
 }
 
 #[test]
@@ -176,6 +183,7 @@ fn object_dtos_and_enum_labels_reject_positional_or_external_forms() {
         ("/analyses/0", json!(["linearStatic"])),
         ("/model/sections/0/properties/0", json!(["A", 0.01])),
         ("/units", json!({"SI": null})),
+        ("/units", json!(42)),
         ("/model/axes", json!({"Z-up": null})),
         ("/model/nodes/0/dim", json!({"D2": null})),
         ("/model/nodes/0/dofs/0", json!({"Ux": null})),

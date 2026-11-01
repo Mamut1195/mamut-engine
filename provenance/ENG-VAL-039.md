@@ -118,16 +118,41 @@ revisión; no se añade una prueba que apruebe o falle esos comportamientos.
 Los comandos se ejecutan desde la raíz, sin red, con `cargo` directo y el target
 heredado. Los extractos muestran únicamente campos de las salidas reales.
 
-### H1 · Unidad desconocida clasificada con código general de entrada
+### H1 · Unidad desconocida clasificada con código general de entrada (MAM-918)
 
-Esperado por el ticket y registro: `ENG-E-0001`. Observado en API y CLI:
+Estado: corregido por MAM-918 (2026-10-29). Antes, `units: "kN-mm"` daba
 `API-E-INPUT`, exit 2, status invalid, causa `InvalidInput: Invalid tag: Units`.
-Se descartan resultados, pero no se entrega el código específico de unidad.
+Ahora toda etiqueta de texto distinta de `"SI"` da `ENG-E-0001` (registro:
+«Unknown unit.», exit 2, outcome invalid_input) en `run` y en `validate`, sin
+resultados. Un `units` ausente o no textual conserva el código de estructura.
 
-- Comando: script H1–H3 más abajo (entrada `units: "kN-mm"`).
-- Salida: `H1 unidades exit=2 status=invalid code=API-E-INPUT`.
-- Esperado vs recibido: `ENG-E-0001` (exit 2) vs `API-E-INPUT` (exit 2).
-- No se corrige aquí; se reporta para decisión.
+| Entrada `units` | Superficie | Antes | Después |
+| --- | --- | --- | --- |
+| `"kN-mm"` | `run` | `API-E-INPUT`, exit 2 | `ENG-E-0001`, exit 2 |
+| `"kN-mm"` | `validate` (CLI) | `ENG-E-0009`, exit 2 | `ENG-E-0001`, exit 2 |
+| `""`, `"si"`, `"kN"`, `"SI "` | `run` | `API-E-INPUT`, exit 2 | `ENG-E-0001`, exit 2 |
+| `"SI"` | `run` | éxito | éxito (sin cambio) |
+| `{"SI": null}` | `run` / `validate` | `API-E-INPUT` / `ENG-E-0009` | sin cambio |
+
+Causa nueva: `UnknownUnit: Unknown unit system; only "SI" is accepted`.
+Por seguridad, la causa no repite la etiqueta recibida, aunque mida 1 MiB;
+el texto completo del error queda por debajo de 128 bytes.
+Tras el parseo JSON y la comprobación de `schema`, la comprobación de `units`
+se ejecuta ANTES de la validación estructural: una entrada con
+`schema: "engine-input/1"`, `units` distinto de `"SI"` y además mal formada
+estructuralmente devuelve `ENG-E-0001`/`UnknownUnit`, no el error estructural.
+Por ejemplo, `{"schema":"engine-input/1","units":"kN-mm"}` devuelve
+`ENG-E-0001` aunque falte el modelo; con `"SI"` devuelve el error estructural.
+Se añade la variante pública `ApiError::UnknownUnit`; los `match` exhaustivos
+externos sobre `ApiError` dejan de compilar. Python mapea a `ENG-E-0001`.
+Pruebas: `h1_unknown_units_report_eng_e_0001`,
+`h1_mebibyte_unit_label_is_omitted_from_bounded_error_text` y
+`h1_unknown_units_precede_structural_validation` (val039_pathological),
+el caso CLI de `val039_cli` y la causa sin etiqueta en `cli`.
+
+- DESCONOCIDO: el registro no distingue «unidad conocida pero no soportada» de
+  «cadena sin sentido»; ambas reciben `ENG-E-0001`.
+- DESCONOCIDO: tests de paquete Python (maturin/pytest) y wasm JS no ejecutados.
 
 ### H2 · No finitos clasificados con código general de entrada
 
@@ -186,7 +211,8 @@ de stdin en `crates/engine-cli/tests/cli.rs`.
 
 Un voladizo con carga transversal en la punta admite una solución lineal
 propia finita (v = FL³/(3EI)), pero con algunas cargas a partir de ~1e6 N, de
-forma no monótona (ver las viñetas de abajo), el Engine devuelve `ENG-E-0010`, exit 2, status invalid. La causa es un residuo
+forma no monótona (ver las viñetas de abajo), el Engine devuelve `ENG-E-0010`,
+exit 2, status invalid. La causa es un residuo
 numérico en la recuperación, no una dimensión o parámetro inválido según la
 descripción del código. La salida descarta todas las respuestas; no se afirma
 que entregue valores basura. Se registra como límite de robustez y clasificación
@@ -301,7 +327,7 @@ for name, raw in inputs:
 PY
 ```
 
-Salida observada:
+Salida observada (antes de MAM-918; tras MAM-918 la línea H1 da `code=ENG-E-0001`):
 
 ```text
 H1 unidades exit=2 status=invalid code=API-E-INPUT
@@ -537,8 +563,8 @@ val039_pathological); assembly sigue 11 de 11. Con el cambio,
   la evidencia se limita al backend disponible y ejecuciones iguales aquí.
 - DESCONOCIDO: carga crítica discreta exacta y convergencia de malla; esta
   prueba solo exige rechazo claro por encima de la crítica continua propia.
-- DESCONOCIDO: tratamiento específico correcto de unidades desconocidas; H1
-  solo documenta la salida actual. H2 (no finitos) quedó corregido en MAM-919.
+- H1 (unidades desconocidas) quedó corregido por MAM-918 y H2 (no finitos) por
+  MAM-919; la evidencia se limita a los casos de las pruebas.
 
 ## Verificación
 
@@ -573,7 +599,7 @@ restauró el archivo original (comprobado con `cmp`); tras restaurar, 10/10 y
 | M2 | `crates/engine-api/tests/val039_pathological.rs` | `math::sqrt(20.0)` → `math::sqrt(21.0)` (frecuencia de modos repetidos) | val039_pathological | 1 falla (`repeated_modes_in_orthogonal_directions_are_finite_and_deterministic`), 9 pasan |
 | M3 | `crates/engine-cli/tests/val039_cli.rs` | `rejected(&input.to_string(), code, 4)` → `…, 2)` | val039_cli | 1 falla (`mechanisms_massless_mechanism_and_supercritical_column_exit_four`), 2 pasan |
 | M4 | `crates/engine-cli/tests/val039_cli.rs` | `rejected("{", "API-E-INPUT", 2)` → `"CLI-E-DOCUMENT"` | val039_cli | 1 falla (`malformed_json_and_missing_model_exit_two_with_input_structure_code`), 2 pasan |
-| M5 | `crates/engine-api/tests/val039_pathological.rs` | δ en serie, línea 310: `4.0 / (2.0 * e2)` → `4.0 / (3.0 * e2)` (no la línea 291, barras ortogonales) | val039_pathological | 1 falla (`extreme_moduli_in_series_have_balanced_response_or_clean_rejection`), 9 pasan |
+| M5 | `crates/engine-api/tests/val039_pathological.rs` | δ en serie, línea 386: `4.0 / (2.0 * e2)` → `4.0 / (3.0 * e2)` (no la línea 371, barras ortogonales; números tras MAM-918) | val039_pathological | 1 falla (`extreme_moduli_in_series_have_balanced_response_or_clean_rejection`), 9 pasan |
 | M6 | `crates/engine-api/tests/val039_pathological.rs` | `assert!(e1 < e2, …)` → `assert!(e1 > e2, …)` | val039_pathological | 1 falla (`extreme_moduli_in_series_have_balanced_response_or_clean_rejection`), 9 pasan |
 
 Variante descartada de M5: cambiar el término `e1` (`2.0 * e1` → `3.0 * e1`)

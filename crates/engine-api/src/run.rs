@@ -121,6 +121,7 @@ impl From<ApiError> for Failure {
     fn from(e: ApiError) -> Self {
         let (status, code) = match &e {
             ApiError::Cancelled => (Status::Cancelled, "API-I-CANCELLED"),
+            ApiError::UnknownUnit(_) => (Status::Invalid, "ENG-E-0001"),
             ApiError::UnsupportedSchema(_) => (Status::Invalid, "ENG-E-0009"),
             ApiError::NonFiniteNumber(_) => (Status::Invalid, "ENG-E-0008"),
             _ => (Status::Invalid, "API-E-INPUT"),

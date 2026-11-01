@@ -302,6 +302,82 @@ fn h2_non_finite_words_in_case_names_are_text() {
 }
 
 #[test]
+fn h1_unknown_units_report_eng_e_0001() {
+    for label in ["kN-mm", "", "si", "kN", "SI "] {
+        let mut input = models::cantilever();
+        input["units"] = json!(label);
+        let raw = input.to_string();
+        let (outcome, document) = solve(&raw);
+        assert_eq!(outcome.status, Status::Invalid, "{document}");
+        assert_eq!(outcome.exit_code(), 2, "{document}");
+        assert_eq!(document["status"], "invalid");
+        assert_eq!(document["diagnostics"][0]["code"], "ENG-E-0001");
+        assert_eq!(
+            document["diagnostics"][0]["cause"],
+            "UnknownUnit: Unknown unit system; only \"SI\" is accepted"
+        );
+        assert_eq!(document["diagnostics"][0]["hint"], Value::Null);
+        rejected_without_responses(&raw, &outcome, &document);
+    }
+    let mut input = models::cantilever();
+    input["units"] = json!("SI");
+    let document = success(&input);
+    assert!(document["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|diagnostic| diagnostic["code"] != "ENG-E-0001"));
+    assert!(!document["cases"].as_array().unwrap().is_empty());
+    for lang in engine_api::Lang::ALL {
+        assert!(!engine_api::explain_in("ENG-E-0001", lang)
+            .unwrap()
+            .is_empty());
+    }
+}
+
+#[test]
+fn h1_mebibyte_unit_label_is_omitted_from_bounded_error_text() {
+    let label = "k".repeat(1 << 20);
+    let mut input = models::cantilever();
+    input["units"] = json!(label);
+    let raw = input.to_string();
+    let err = engine_api::validate(&raw).unwrap_err();
+    assert!(matches!(err, engine_api::ApiError::UnknownUnit(_)));
+    let text = err.to_string();
+    assert_eq!(
+        text,
+        "UnknownUnit: Unknown unit system; only \"SI\" is accepted"
+    );
+    assert!(text.len() < 128);
+    assert!(!text.contains(&label));
+
+    let document = error(&raw, "ENG-E-0001", Status::Invalid, 2);
+    let cause = document["diagnostics"][0]["cause"].as_str().unwrap();
+    assert_eq!(cause, text);
+    assert!(cause.len() < 128);
+    assert!(!cause.contains(&label));
+}
+
+#[test]
+fn h1_unknown_units_precede_structural_validation() {
+    let mut input = json!({"schema": "engine-input/1", "units": "kN-mm"});
+    let raw = input.to_string();
+    assert!(matches!(
+        engine_api::validate(&raw),
+        Err(engine_api::ApiError::UnknownUnit(_))
+    ));
+    error(&raw, "ENG-E-0001", Status::Invalid, 2);
+
+    input["units"] = json!("SI");
+    let raw = input.to_string();
+    assert!(matches!(
+        engine_api::validate(&raw),
+        Err(engine_api::ApiError::InvalidInput(_))
+    ));
+    error(&raw, "API-E-INPUT", Status::Invalid, 2);
+}
+
+#[test]
 fn near_zero_lengths_have_defined_rejection_or_finite_equilibrium() {
     let mut input = models::cantilever();
     input["model"]["nodes"][1]["coordinates"][0] = json!(1e-12);

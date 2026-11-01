@@ -753,7 +753,9 @@ fn validate_model_errors_have_deterministic_reports_and_eng_diagnostics() {
     let mut wrong_schema = value(INPUT.as_bytes());
     wrong_schema["schema"] = json!("engine-input/2");
     let mut wrong_field = value(INPUT.as_bytes());
-    wrong_field["units"] = json!("kN-mm");
+    wrong_field["model"]["axes"] = json!("Y-up");
+    let mut wrong_units = value(INPUT.as_bytes());
+    wrong_units["units"] = json!("kN-mm");
     let mut too_many_nodes = value(INPUT.as_bytes());
     too_many_nodes["model"]["nodes"] = json!(vec![
         too_many_nodes["model"]["nodes"][0].clone();
@@ -766,6 +768,7 @@ fn validate_model_errors_have_deterministic_reports_and_eng_diagnostics() {
         ("{".into(), "ENG-E-0009", ""),
         (wrong_schema.to_string(), "ENG-E-0009", "engine-input/2"),
         (wrong_field.to_string(), "ENG-E-0009", ""),
+        (wrong_units.to_string(), "ENG-E-0001", "Unknown unit system"),
         (too_many_nodes.to_string(), "ENG-E-0009", "MAX_NODES"),
         (bad_topology.to_string(), "ENG-E-0003", ""),
     ] {
@@ -782,6 +785,11 @@ fn validate_model_errors_have_deterministic_reports_and_eng_diagnostics() {
         assert!(diagnostics
             .iter()
             .any(|d| d["code"] == expected && d["cause"].as_str().unwrap().contains(cause)));
+        if expected == "ENG-E-0001" {
+            assert!(diagnostics
+                .iter()
+                .all(|d| !d["cause"].as_str().unwrap().contains("kN-mm")));
+        }
         files.write("invalid.json", &input);
         let path = files
             .command()

@@ -59,6 +59,7 @@ fn valid_fixtures_validate_and_run() {
 enum Validation {
     InvalidInput,
     NonFiniteNumber,
+    UnknownUnit,
     UnsupportedSchema,
     Diagnostics,
 }
@@ -81,6 +82,7 @@ fn invalid_fixtures_report_expected_code_and_exit() {
         match (validate(&input), &expected.validation) {
             (Err(ApiError::InvalidInput(_)), Validation::InvalidInput)
             | (Err(ApiError::NonFiniteNumber(_)), Validation::NonFiniteNumber)
+            | (Err(ApiError::UnknownUnit(_)), Validation::UnknownUnit)
             | (Err(ApiError::UnsupportedSchema(_)), Validation::UnsupportedSchema) => {}
             (Ok(diagnostics), Validation::Diagnostics) => {
                 assert!(

@@ -66,6 +66,16 @@ Los estados no cierran los seguimientos #78/#84/#85/#86 ni certifican modelos ar
 X-Y horizontal, Z arriba. D2 exige Z=0 y usa Ux, Uy, Rz; D3 admite los seis GDL.
 Coordenadas en m, masa en kg, tiempo en s, fuerzas en N, momentos en N·m,
 tensiones en Pa y giros en rad. No se convierten unidades.
+Una etiqueta de texto en `units` distinta de `"SI"` produce
+`ApiError::UnknownUnit` en `validate`; `run` devuelve `ENG-E-0001`, status
+`invalid` y salida 2, sin resultados. Si falta `units` o su valor no es texto,
+se conserva `ApiError::InvalidInput` (`API-E-INPUT` en `run`).
+La causa es `UnknownUnit: Unknown unit system; only "SI" is accepted`;
+por seguridad no repite la etiqueta recibida. Tras el parseo JSON y la
+comprobación de `schema`, el chequeo de `units` se ejecuta antes de la validación
+estructural: una entrada con `schema: "engine-input/1"`, `units` distinto de
+`"SI"` y además mal formada estructuralmente devuelve
+`ENG-E-0001`/`ApiError::UnknownUnit`, en lugar del error estructural.
 Véase [convención aprobada](../../docs/AXES_CONVENTION.md).
 
 ## engine-input/1 = model/1 + job/1
@@ -88,7 +98,8 @@ diagnósticos y run satisfactorio: salida 0 salvo la combinación, que conserva
 el aviso `API-W-COMBINED-PRESCRIBED` y salida 1 de #85. Los
 [fixtures inválidos](fixtures/input/invalid) tienen un `.expect` JSON adyacente
 con `code`, `exit_code` y el resultado de `validation` (`invalidInput`,
-`nonFiniteNumber`, `unsupportedSchema` o `diagnostics`). Se conservan los códigos
+`nonFiniteNumber`, `unknownUnit`, `unsupportedSchema` o `diagnostics`). Las
+etiquetas de unidades desconocidas usan `ENG-E-0001`. Se conservan los códigos
 publicados por #88: `ENG-E-0009` para contratos incompatibles, `ENG-E-0003` para referencias
 ausentes y `API-E-INPUT` para parseo/estructura. `1e400` y los tokens NaN/±Infinity
 se rechazan léxicamente con `ENG-E-0008`; NaN no es un literal JSON. Hay fronteras

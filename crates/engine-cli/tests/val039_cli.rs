@@ -71,6 +71,13 @@ fn mechanisms_massless_mechanism_and_supercritical_column_exit_four() {
 }
 
 #[test]
+fn h1_unknown_units_report_eng_e_0001() {
+    let mut input = models::cantilever();
+    input["units"] = json!("kN-mm");
+    rejected(&input.to_string(), "ENG-E-0001", 2);
+}
+
+#[test]
 fn malformed_json_and_missing_model_exit_two_with_input_structure_code() {
     rejected("{", "API-E-INPUT", 2);
     let mut input = models::cantilever();

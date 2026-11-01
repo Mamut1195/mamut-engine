@@ -46,6 +46,8 @@ pub enum ApiError {
     InvalidInput(String),
     /// JSON numeric token that is not a finite binary64 value (overflow, NaN, Infinity).
     NonFiniteNumber(String),
+    /// Unit system label not recognized by this contract (only "SI" is accepted).
+    UnknownUnit(String),
     /// Unknown input contract or unsupported major version.
     UnsupportedSchema(String),
     /// Schema document not published by this facade.
@@ -61,6 +63,7 @@ impl fmt::Display for ApiError {
         match self {
             Self::InvalidInput(s) => write!(f, "InvalidInput: {s}"),
             Self::NonFiniteNumber(s) => write!(f, "NonFiniteNumber: {s}"),
+            Self::UnknownUnit(s) => write!(f, "UnknownUnit: {s}"),
             Self::UnsupportedSchema(s) => write!(f, "UnsupportedSchema: {s}"),
             Self::UnknownSchema(s) => write!(f, "UnknownSchema: {s}"),
             Self::UnknownCode(s) => write!(f, "UnknownCode: {s}"),

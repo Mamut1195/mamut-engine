@@ -262,6 +262,13 @@ pub(crate) struct Execution {
 }
 
 pub(crate) fn decode(value: Value) -> Result<Execution, ApiError> {
+    if let Some(label) = value.get("units").and_then(Value::as_str) {
+        if label != "SI" {
+            return Err(ApiError::UnknownUnit(
+                "Unknown unit system; only \"SI\" is accepted".into(),
+            ));
+        }
+    }
     let Object(input): Object<Input> =
         serde_json::from_value(value).map_err(|e| ApiError::InvalidInput(e.to_string()))?;
     let Object(source) = input.model;

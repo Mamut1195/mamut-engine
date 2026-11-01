@@ -1,5 +1,5 @@
 {
-  "code": "API-E-INPUT",
+  "code": "ENG-E-0001",
   "exit_code": 2,
-  "validation": "invalidInput"
+  "validation": "unknownUnit"
 }
