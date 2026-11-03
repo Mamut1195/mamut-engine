@@ -75,6 +75,7 @@
 
 pub use engine_core::{ContractId, Diagnostic, Real};
 
+pub mod pile;
 pub mod winkler;
 
 pub mod py;
