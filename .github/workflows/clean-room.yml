@@ -13,17 +13,20 @@ concurrency:
 
 jobs:
   clean-room:
-    runs-on: [self-hosted, contabo, engine]
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Entorno aislado del job (HOME, CARGO_HOME)
         run: |
-          mkdir -p "$RUNNER_TEMP/home" "$RUNNER_TEMP/cargo-home"
+          set -euo pipefail
+          runner_temp="$(realpath -e -- "$RUNNER_TEMP")"
+          job_temp="$(mktemp -d "$runner_temp/public-ci-clean-room.XXXXXX")"
+          echo "CI_JOB_TEMP=$job_temp" >> "$GITHUB_ENV"
+          mkdir -p "$job_temp/home" "$job_temp/cargo-home" "$job_temp/tmp"
           {
-            echo "HOME=$RUNNER_TEMP/home"
-            echo "CARGO_HOME=$RUNNER_TEMP/cargo-home"
-            echo "PATH=/opt/rust/bin:/usr/local/bin:/usr/bin:/bin"
-            echo "RUSTUP_TOOLCHAIN="
+            echo "HOME=$job_temp/home"
+            echo "CARGO_HOME=$job_temp/cargo-home"
+            echo "TMPDIR=$job_temp/tmp"
           } >> "$GITHUB_ENV"
       # Trusted source: validator and lists from the BASE branch, in a separate directory.
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -55,25 +58,27 @@ jobs:
         env:
           PR_BASE: ${{ github.event.pull_request.base.sha }}
         run: bash "$TRUSTED/check.sh" "$PR_BASE" "$TRUSTED"
-      - name: Limpieza final (procesos sobrantes y RUNNER_TEMP)
+      - name: Limpieza final del directorio temporal del job
         if: always()
         run: |
-          # Kill processes owned by the runner user, except the runner itself and this shell.
-          keep=" $$ $PPID "
-          p=$PPID; while [ "$p" -gt 1 ]; do p=$(ps -o ppid= -p "$p" | tr -d ' '); keep="$keep$p "; done
-          for pid in $(pgrep -u "$(id -u)"); do
-            case "$keep" in *" $pid "*) continue ;; esac
-            comm=$(ps -o comm= -p "$pid" 2>/dev/null) || continue
-            case "$comm" in Runner.Listener|Runner.Worker|runsvc.sh|run.sh|run-helper.sh) continue ;; esac
-            kill -9 "$pid" 2>/dev/null || true
-          done
-          find "$RUNNER_TEMP" -mindepth 1 -delete 2>/dev/null || true
+          set -euo pipefail
+          if [[ -z "${CI_JOB_TEMP:-}" ]]; then exit 0; fi
+          runner_temp="$(realpath -e -- "$RUNNER_TEMP")"
+          job_temp="$(realpath -m -- "$CI_JOB_TEMP")"
+          if [[ "$(dirname -- "$job_temp")" != "$runner_temp" ||
+                "$(basename -- "$job_temp")" != public-ci-clean-room.* ]]; then
+            echo "::error::Refusing cleanup outside this job's temporary directory."
+            exit 1
+          fi
+          rm -rf -- "$job_temp"
 
 
   protected-review:
     # Fail if the PR touches clean-room/**, workflows, CODEOWNERS or docs/CLEAN_ROOM.md
     # without current owner approval (on the latest commit).
-    runs-on: [self-hosted, contabo, engine]
+    # GitHub rejects self-approval: a PR authored by Mamut1195 cannot satisfy this gate.
+    # A distinct authorized contributor's PR needs a real latest-head owner review.
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -81,12 +86,15 @@ jobs:
     steps:
       - name: Entorno aislado del job (HOME, CARGO_HOME)
         run: |
-          mkdir -p "$RUNNER_TEMP/home" "$RUNNER_TEMP/cargo-home"
+          set -euo pipefail
+          runner_temp="$(realpath -e -- "$RUNNER_TEMP")"
+          job_temp="$(mktemp -d "$runner_temp/public-ci-protected-review.XXXXXX")"
+          echo "CI_JOB_TEMP=$job_temp" >> "$GITHUB_ENV"
+          mkdir -p "$job_temp/home" "$job_temp/cargo-home" "$job_temp/tmp"
           {
-            echo "HOME=$RUNNER_TEMP/home"
-            echo "CARGO_HOME=$RUNNER_TEMP/cargo-home"
-            echo "PATH=/opt/rust/bin:/usr/local/bin:/usr/bin:/bin"
-            echo "RUSTUP_TOOLCHAIN="
+            echo "HOME=$job_temp/home"
+            echo "CARGO_HOME=$job_temp/cargo-home"
+            echo "TMPDIR=$job_temp/tmp"
           } >> "$GITHUB_ENV"
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -109,16 +117,16 @@ jobs:
           if [ "$(printf '%s\n' "$ok" | awk '{t+=$1} END{print t+0}')" -ge 1 ]; then echo "Approved by $OWNER."; exit 0; fi
           echo "::error::Changes to protected files without current approval from @$OWNER."
           exit 1
-      - name: Limpieza final (procesos sobrantes y RUNNER_TEMP)
+      - name: Limpieza final del directorio temporal del job
         if: always()
         run: |
-          # Kill processes owned by the runner user, except the runner itself and this shell.
-          keep=" $$ $PPID "
-          p=$PPID; while [ "$p" -gt 1 ]; do p=$(ps -o ppid= -p "$p" | tr -d ' '); keep="$keep$p "; done
-          for pid in $(pgrep -u "$(id -u)"); do
-            case "$keep" in *" $pid "*) continue ;; esac
-            comm=$(ps -o comm= -p "$pid" 2>/dev/null) || continue
-            case "$comm" in Runner.Listener|Runner.Worker|runsvc.sh|run.sh|run-helper.sh) continue ;; esac
-            kill -9 "$pid" 2>/dev/null || true
-          done
-          find "$RUNNER_TEMP" -mindepth 1 -delete 2>/dev/null || true
+          set -euo pipefail
+          if [[ -z "${CI_JOB_TEMP:-}" ]]; then exit 0; fi
+          runner_temp="$(realpath -e -- "$RUNNER_TEMP")"
+          job_temp="$(realpath -m -- "$CI_JOB_TEMP")"
+          if [[ "$(dirname -- "$job_temp")" != "$runner_temp" ||
+                "$(basename -- "$job_temp")" != public-ci-protected-review.* ]]; then
+            echo "::error::Refusing cleanup outside this job's temporary directory."
+            exit 1
+          fi
+          rm -rf -- "$job_temp"

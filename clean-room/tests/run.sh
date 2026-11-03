@@ -284,27 +284,14 @@ echo x > "$tmp/or_engine_results/crates/engine-api/fixtures/results/fingerprints
 git -C "$tmp/or_engine_results" add crates provenance
 expect or_engine_results 0 bash "$src/check.sh" HEAD "$tmp/or_engine_results/rules"
 oracle_file or_txt_ok docs/notas.txt 'x\n' 0
-# Incident file (43b5f45): the actual file if history is available, and a synthetic replica.
-if git -C "$src" cat-file -e 43b5f45:provenance/ENG-BENCH-001-SMOKE-VPS.md 2>/dev/null; then
-    new_repo or_incident_real; mkdir -p "$tmp/or_incident_real/provenance"
-    git -C "$src" show 43b5f45:provenance/ENG-BENCH-001-SMOKE-VPS.md > "$tmp/or_incident_real/provenance/ENG-BENCH-001-SMOKE-VPS.md"
-    git -C "$tmp/or_incident_real" add provenance
-    expect or_incident_real 1 bash "$src/check.sh" HEAD "$tmp/or_incident_real/rules"
-    # L26 isolated from the actual file, without the expected value, with and without a trailing period.
-    l26=$(git -C "$src" show 43b5f45:provenance/ENG-BENCH-001-SMOKE-VPS.md | sed -n 26p)
-    real_out=${l26##*obtenido }
-    oracle_file or_incident_l26 provenance/ENG-I.md "## (b) Humo de OpenSees\n- obtenido ${real_out}\n" 1
-    oracle_file or_incident_l26_nodot provenance/ENG-I.md "## (b) Humo de OpenSees\n- obtenido ${real_out%.}\n" 1
-    unset l26 real_out
-else
-    if [[ "${CI:-}" == true ]]; then
-        # Full history is required in CI (fetch-depth: 0): missing 43b5f45 is a hard failure.
-        n=$((n+1)); fails=$((fails+1))
-        printf 'FAIL or_incident_real: CI lacks history for 43b5f45 (shallow clone?)\n'
-    else
-        printf 'warning: history lacks 43b5f45; only the synthetic replica is tested\n'
-    fi
-fi
+# Self-contained regression: all report text and figures below are invented.
+# Reject a full report and isolated obtained output, with and without a period.
+# No historical report or commit is read; metadata allowances remain unchanged.
+synthetic_report='## (b) Humo sintetico de OpenSees\n\n- sha256:\n  - `bin/synthetic-oracle`: `cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc`\n- Entrada sintetica: E = 80e9, A = 5e-4, L = 4, P = 1200 (SI).\n- Salida esperada u = PL/(EA) = 1.2e-04; obtenido 8.765432109876543e-04.\n'
+oracle_file or_incident_report_synth provenance/ENG-I.md "$synthetic_report" 1
+oracle_file or_incident_obtained_dot_synth provenance/ENG-I.md '## (b) Humo sintetico de OpenSees\n- obtenido 8.765432109876543e-04.\n' 1
+oracle_file or_incident_obtained_nodot_synth provenance/ENG-I.md '## (b) Humo sintetico de OpenSees\n- obtenido 8.765432109876543e-04\n' 1
+unset synthetic_report
 inc='## (b) Corrida manual de humo de OpenSees en el VPS\n\n- sha256:\n  - `bin/opensees-py`: `1111111111111111111111111111111111111111111111111111111111111111`\n- Entrada: barra elástica E = 100e9, A = 2e-4, L = 2, P = 500 (SI).\n- Salida esperada u = PL/(EA) = 5e-05; obtenido 1.2345678901234567e-05.\n'
 oracle_file or_incident_synth provenance/ENG-S.md "$inc" 1
 oracle_file or_l26_dot provenance/ENG-S.md '## (b) Humo de OpenSees\n- obtenido 1.2345678901234567e-05.\n' 1

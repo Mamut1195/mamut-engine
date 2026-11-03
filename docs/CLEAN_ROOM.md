@@ -143,7 +143,7 @@ The template is in `.github/PULL_REQUEST_TEMPLATE.md`. Summary:
 
 ## 12. Pending items and open questions
 
-- Final name and repository visibility (ENG-GOV-001).
+- Final name (ENG-GOV-001).
 - Similarity tool and threshold.
 - Legal memo (ENG-GOV-004) and subsequent update of this protocol.
 - CLA (ENG-GOV-007) and CI (ENG-GOV-005).

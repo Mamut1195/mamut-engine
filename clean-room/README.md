@@ -68,8 +68,8 @@ quedar "humo ok" más un puntero a mamut-engine-oracles; nada de entradas ni sal
   (≤ 1e-2 o ≤ 5 %); cualquier otro valor de la celda se sigue revisando.
 - **Asignación:** `=`, `:=`, `:`, `≤`, `≥`, `<`, `>`, `≈` y `~` entre un identificador y un número.
 - **Palabras de salida** con límite de inicio de palabra; `_` cuenta como límite ("u_obtenido" sí, "concentrada" no).
-- **CI:** con `CI=true`, la falta de `43b5f45` en el historial (clon superficial) es fallo duro.
+- **CI:** las regresiones son autocontenidas; no necesitan historial ni commits anteriores.
 - **Mensajes:** solo ruta y línea; nunca el contenido, para no copiar cifras en logs de CI.
-- **Tests:** usan cifras sintéticas. El caso del incidente lee el archivo de `43b5f45` desde el
-  historial de git en tiempo de prueba, sin copiarlo al repo; si el historial no está, se avisa y
-  queda la réplica sintética.
+- **Tests:** usan cifras sintéticas. La regresión del incidente usa un informe completo inventado
+  y salida obtenida aislada, con y sin punto final; los tres casos deben rechazarse y no leen
+  datos reales ni archivos históricos.

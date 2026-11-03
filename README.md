@@ -2,7 +2,7 @@
 
 Final name and brand: **PENDING**.
 
-Status: foundational decisions proposed, pending Jonathan's approval. The `Mamut1195/mamut-engine` repository is **PRIVATE for now**; keeping it private is the recommended decision. Publication from day 1 or at release remains **PENDING** Jonathan's decision.
+Status: foundational decisions proposed, pending Jonathan's approval of the remaining items. Jonathan authorized **PUBLIC publication** of `Mamut1195/mamut-engine` on **2026-11-03** under the existing **AGPL-3.0-only** license. The confirmed plan preserves the entire old repository privately, including PRs, issues and logs, and publishes filtered history at the original repository URL. This records authorization and the sanitization plan; completed publication, current remote visibility, integration and release have not been verified here.
 
 License: **AGPL-3.0-only** (text in [LICENSE](LICENSE)), with a **commercial license available from MAMPRO SAS** for those unable to comply with the AGPL. Recommended on 2026-10-08 and confirmed by Jonathan on 2026-10-15 (the Engine is not proprietary). Notice in [NOTICE](NOTICE). Copyright © MAMPRO SAS. Commercial license text: **PENDING** (ENG-GOV-004). Commercial licensing contact: MAMPRO SAS, <mampro.proyectos@gmail.com>.
 
