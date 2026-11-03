@@ -62,6 +62,7 @@ dependencies = [
  "engine-elements-frame",
  "engine-elements-spring",
  "engine-elements-truss",
+ "engine-geo",
  "engine-laws",
  "engine-linalg",
  "engine-loads",

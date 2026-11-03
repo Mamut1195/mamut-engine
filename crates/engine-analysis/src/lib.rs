@@ -21,6 +21,7 @@
 pub mod combination;
 pub mod modal;
 pub mod pdelta;
+pub mod pile;
 pub mod results;
 pub mod spectrum;
 

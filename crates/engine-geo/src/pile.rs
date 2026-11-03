@@ -6,6 +6,9 @@ use engine_core::{EResult, EngineError, Real};
 /// Analytical lateral response on a semi-infinite linear foundation.
 pub mod lateral;
 
+/// Dimensional conversion of soil curves to nodal spring tables.
+pub mod spring;
+
 /// Ordered pile-axis nodes and their trapezoidal tributary lengths, in m.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PileDiscretization {
@@ -14,6 +17,33 @@ pub struct PileDiscretization {
 }
 
 impl PileDiscretization {
+    /// Constructs a uniform mesh from ground level to `length_m`.
+    ///
+    /// `elements` is explicit and must be in `1..=4096`. The last depth is
+    /// exactly `length_m`; intermediate depths are computed from their indices,
+    /// without accumulating increments. Rounding that makes two nodes coincide
+    /// is rejected by [`Self::new`]. This mesh does not itself assemble a pile.
+    pub fn uniform(length_m: Real, elements: usize) -> EResult<Self> {
+        if !length_m.is_finite() {
+            return Err(nonfinite());
+        }
+        if length_m <= 0.0 || !(1..=4096).contains(&elements) {
+            return Err(invalid(
+                "positive length and 1 to 4096 elements are required",
+            ));
+        }
+        let mut depths = Vec::with_capacity(elements + 1);
+        for i in 0..elements {
+            let depth = length_m * (i as Real / elements as Real);
+            if !depth.is_finite() {
+                return Err(nonfinite());
+            }
+            depths.push(depth);
+        }
+        depths.push(length_m);
+        Self::new(depths)
+    }
+
     /// Requires at least two finite, nonnegative, strictly increasing depths.
     /// Returns ENG-E-0008 for nonfinite values, ENG-E-0010 for invalid geometry.
     pub fn new(depths_m: Vec<Real>) -> EResult<Self> {
