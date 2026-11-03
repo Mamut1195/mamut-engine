@@ -9,9 +9,21 @@ This offline documentation followup did not query GitHub or check external links
   issues, logs and 84 branches.
 - **New repository:** `Mamut1195/mamut-engine`, GitHub repository ID
   `1444444923`. It reuses the original address but is a different repository.
-  The parent reports sanitized candidate history pushed to its `main`;
-  it currently remains **PRIVATE**, with Actions disabled and 0 runners.
-  **PUBLIC publication remains pending independent review.**
+  The parent verified completed publication of sanitized history:
+  it is now **PUBLIC**, with `private=false`.
+
+At verification on 2026-11-03, the parent confirmed anonymous HTTPS HEAD
+returned HTTP 200 and `main` was
+`8d3c66fdee13d5660391aaac8fa6223b60e89a61` (a snapshot at verification,
+not a claim about the current HEAD). The parent cloned from GitHub,
+confirmed `fsck` passed and all 14 excluded historical blobs had reachable
+count 0, and verified the LICENSE blob was identical to the original.
+The repository license remains **AGPL-3.0-only**.
+
+GitHub Actions remains disabled pending integration/review, with 0 persistent
+runners. The workflow token is read-only, `canapprove=false`, and approval
+policy is `all_external_contributors`. These parent-verified checks do not
+establish hosted CI success or independent review approval.
 
 The migration strategy preserves the full original repository privately
 and sanitizes copied history for publication. Archive access remains
