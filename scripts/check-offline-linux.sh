@@ -79,50 +79,7 @@ run_gate() {
 }
 
 verify_namespace() {
-    python3 -I - "$outer_ns" <<'PY'
-import errno
-import fcntl
-import os
-from pathlib import Path
-import socket
-import struct
-import sys
-
-def require(condition, message):
-    if not condition:
-        raise SystemExit(message)
-
-require(sys.version_info >= (3, 11), "Python 3.11+ required")
-require(os.getuid() != 0 and os.geteuid() != 0, "root inside namespace rejected")
-inside = os.readlink("/proc/self/ns/net")
-require(inside != sys.argv[1], "network namespace is unchanged")
-status = dict(line.split(":", 1) for line in Path("/proc/self/status").read_text().splitlines() if ":" in line)
-for key in ("CapInh", "CapPrm", "CapEff", "CapBnd", "CapAmb"):
-    require(int(status[key].strip(), 16) == 0, "capabilities were not fully dropped")
-require(status["NoNewPrivs"].strip() == "1", "no-new-privs missing")
-require(sorted(name for _, name in socket.if_nameindex()) == ["lo"], "non-loopback interface present")
-with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as control:
-    result = fcntl.ioctl(control.fileno(), 0x8913, struct.pack("256s", b"lo"))
-    require(not (struct.unpack_from("H", result, 16)[0] & 1), "loopback is UP")
-for line in Path("/proc/net/route").read_text().splitlines()[1:]:
-    fields = line.split()
-    require(len(fields) >= 3 and fields[1] != "00000000", "IPv4 default route present")
-for line in Path("/proc/net/ipv6_route").read_text().splitlines():
-    fields = line.split()
-    require(len(fields) >= 2 and not (fields[0] == "0" * 32 and fields[1] == "00"),
-            "IPv6 default route present")
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as connection:
-    connection.settimeout(3)
-    try:
-        connection.connect(("1.1.1.1", 443))
-    except OSError as error:
-        require(error.errno == errno.ENETUNREACH,
-                "numeric TCP probe failed without the required ENETUNREACH")
-    else:
-        raise SystemExit("numeric TCP connection unexpectedly succeeded")
-print(f"PASS kernel network namespace: outer={sys.argv[1]} inside={inside} uid={os.getuid()}")
-print("PASS capabilities dropped; only loopback, DOWN; no default routes; TCP errno=ENETUNREACH")
-PY
+    python3 -I scripts/check-offline-namespace.py "$outer_ns"
 }
 
 toolchain_check() {
