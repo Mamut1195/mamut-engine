@@ -3,7 +3,7 @@
     "package_count": 83,
     "path": "Cargo.lock",
     "registry_package_count": 60,
-    "sha256": "58282b80c53a035aac359a6d5e1aacc5ec0c911f508cba6713113088991310a1"
+    "sha256": "bc4eb03e44c6334c541248e73f0358584f40f1475c21e3aea1765a5c9b81fae4"
   },
   "directories": [
     "vendor-crates",
