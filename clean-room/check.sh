@@ -286,7 +286,7 @@ is_vendor_crates_path() {
 verify_vendor_crates() (
     # Requires Python 3 (stdlib only). Verify complete local inventory integrity;
     # this does not establish archive/registry identity or a Cargo.lock relationship.
-    python3 - <<'PY'
+    python3 -I - <<'PY'
 import hashlib
 import json
 import os

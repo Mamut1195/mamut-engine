@@ -361,7 +361,7 @@ version = "0.0.0"
 edition = "2021"
 TOML
     echo 'x = geomTransf(1)' > "$tmp/$1/vendor-crates/c/src/lib.rs"
-    python3 - "$tmp/$1/vendor-crates/c" <<'PY'
+    python3 -I - "$tmp/$1/vendor-crates/c" <<'PY'
 import hashlib
 import json
 from pathlib import Path
@@ -382,6 +382,32 @@ PY
 }
 new_vendor_crate vc_skip; git -C "$tmp/vc_skip" add vendor-crates
 expect vc_skip 0 bash "$src/check.sh" HEAD "$tmp/vc_skip/rules"
+
+# The trusted external checker runs from the PR checkout. Its Python imports
+# must ignore a root module that exits successfully before inventory validation.
+for kind in valid invalid; do
+    name="vc_cwd_json_$kind"
+    # Complete the synthetic crate and checksum before creating the shadow.
+    new_vendor_crate "$name"
+    printf 'raise SystemExit(0)\n' > "$tmp/$name/json.py"
+    want=0
+    if [[ "$kind" == invalid ]]; then
+        printf 'benign synthetic root entry\n' > "$tmp/$name/vendor-crates/unowned.rs"
+        want=1
+    fi
+    git -C "$tmp/$name" add vendor-crates json.py
+    expect "$name" "$want" bash "$src/check.sh" HEAD "$tmp/$name/rules"
+    if [[ "$kind" == invalid ]]; then
+        output=$(< "$tmp/$name/check.log")
+        if [[ "$output" != *'ERROR: invalid vendor-crates inventory (including symlinks or missing checksums)'* ||
+              "$output" != *'Integridad vendor-crates: inventario invalido o incompleto, hashes incorrectos, entradas raiz invalidas, enlaces simbolicos o falta .cargo-checksum.json.'* ||
+              "$output" == *'Clean-room: OK'* ]]; then
+            printf 'FAIL %s: missing inventory guard diagnostics or unexpected success marker\n' "$name"
+            fails=$((fails+1))
+        fi
+    fi
+done
+
 new_vendor_crate vc_hidden_crate; mv "$tmp/vc_hidden_crate/vendor-crates/c" "$tmp/vc_hidden_crate/vendor-crates/.c"; git -C "$tmp/vc_hidden_crate" add vendor-crates
 expect vc_hidden_crate 0 bash "$src/check.sh" HEAD "$tmp/vc_hidden_crate/rules"
 
@@ -389,7 +415,7 @@ expect vc_hidden_crate 0 bash "$src/check.sh" HEAD "$tmp/vc_hidden_crate/rules"
 for kind in comment_string comment_array comment_object unknown_key missing_package; do
     name="vc_metadata_$kind"
     new_vendor_crate "$name"
-    python3 - "$tmp/$name/vendor-crates/c/.cargo-checksum.json" "$kind" <<'PY'
+    python3 -I - "$tmp/$name/vendor-crates/c/.cargo-checksum.json" "$kind" <<'PY'
 import json
 from pathlib import Path
 import sys
@@ -469,7 +495,7 @@ expect vc_missing 1 bash "$src/check.sh" HEAD "$tmp/vc_missing/rules"
 for kind in hash nonhex package malformed duplicate_top duplicate_file traversal absolute alias double_slash backslash drive self files_type; do
     name="vc_json_$kind"
     new_vendor_crate "$name"
-    python3 - "$tmp/$name/vendor-crates/c/.cargo-checksum.json" "$kind" <<'PY'
+    python3 -I - "$tmp/$name/vendor-crates/c/.cargo-checksum.json" "$kind" <<'PY'
 import json
 from pathlib import Path
 import sys
