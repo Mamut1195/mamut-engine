@@ -80,3 +80,50 @@ Parent will append actual final CI receipts later. Pending evidence includes the
 At author handoff, this is a final-response patch only; coordinator validation and the local commit are **planned**, not completed. The planned checks are literal one-additive-path scope, unchanged previously tracked files, supplied identifiers/statuses/limits, Markdown local links and `git diff --check`, followed by exactly one local commit. Evidence pointers are plain paths.
 
 No Cargo, namespace or hosted tests, remote checks, or local diff checks were run by this author for this documentation-only task. Parent-reported tests remain supplied evidence. Actual author/patch/check receipts are recorded outside the checkout; no second deliverable file or changelog fragment is required. No push, PR, merge, rebase, amend or remote operation is authorized by this handoff.
+
+## Operator addendum: corrected composition, 2026-11-03
+
+This later entry is written by the root integration operator from executed
+commands and retained receipts. It does not change the earlier author's account.
+
+- Corrected source candidate: `a1f459b59ce9f481731c2150bde584765c5b5b6e`.
+  The pile import correction is `1e50b22f9d6638e739d52a1f5b229191751266a9`;
+  it changes no arithmetic, tests or tolerances. The global determinism guard
+  now passes. Its original failure remains in the retained combined log.
+- The Python import-shadowing P2 found in independent R2 is corrected by
+  `a1f459b`. The applied patch digest is
+  `eeff311554c9d86bca948f2143b5fe44198b1be48d5699ac087715571f71a167`.
+  The checker uses Python isolated mode. Independent R3 executed 184 synthetic
+  regressions with zero failures, reproduced the original attack, and verified
+  rejection after correction. Removing only the production isolation flag
+  makes that suite fail as expected. No foreign source was inspected.
+- R3's isolated Sol 6.1 review returned `PASS_FOR_INTEGRATION` for the requested
+  infrastructure scope at that exact candidate, with no open P1/P2. The outer
+  reviewer also verified the effective TOML features, all 60 unchanged registry
+  tuples, and fresh-checkout vendor bytes even with CRLF checkout settings.
+  Terra 6.1 independently reviewed the pile import correction without P1/P2.
+  These agent reviews do not constitute Jonathan's personal approval.
+- The root operator executed all ten listed inner-worker gates successfully
+  on the exact corrected candidate: namespace, toolchain, vendor, tamper,
+  features, fmt, clippy, test, doc and wasm. Workspace tests including doctests:
+  **918 passed, zero failed or ignored**. Rust/Cargo: 1.99.0. Empty directories,
+  fresh target, dropped identity/capabilities, and actual kernel network
+  isolation were asserted before Cargo. Log: `combined-namespace-validation-final.log`,
+  SHA-256 `cb3cdf7fd3f3eb1b82bf36825fbe4dafa5c0c77125a7966b0fe1189634087819`.
+- The corrected pile implementation also passed all 12 WASI tests with Node
+  22.19.0. WASI is distinct from browser or JSON/CLI acceptance.
+- The additional private bundle of all four author branches and the original
+  main was verified as complete. `post-work-private.bundle` SHA-256:
+  `7cc67a5e2f52f49a3783e686ea8106e7ea23dafed3ae34772bb34df64721342f`.
+
+At this addendum, the normal-user sudo outer launcher and hosted CI remain
+**NOT RUN**. Actions activation and the final public push follow this local
+validation. Their actual outcome will be recorded in the execution handoff and
+[MAM-938](https://linear.app/mamutsystems/issue/MAM-938), bound to the resulting
+public main SHA. This documentation-only addendum changes no reviewed code.
+
+MAM-49 remains open for the published reference case and interface acceptance;
+MAM-107 remains provisional for budget, hardware and maximum-support acceptance.
+MAM-938 remains open pending hosted evidence and the owner's required review.
+Python offline packaging, cargo-deny, a product release and owner approval are
+not established by these checks.
