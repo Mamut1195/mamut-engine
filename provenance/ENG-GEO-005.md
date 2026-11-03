@@ -270,3 +270,34 @@ No public API, CLI, or JSON interface has been added.
 The finite pile candidate uses a linear frame and independent nonlinear
 monotonic soil springs. It rejects softening, and absolute load factors scale
 the head loads together. These results do not establish completion of MAM-49.
+
+## Parent-reported WASI validation and review, 2026-11-03
+
+The parent reports that validation ran on a clean checkout at exact SHA
+`bb3e010e021db99bbee271de7b3375d9a68c02cb`, using Rust 1.99 and real
+`wasm32-wasip1` execution with Node v22.19.0 `node:wasi` preview1. The
+runner was `execution/run-wasi-tests.cjs`, configured through
+`CARGO_TARGET_WASM32_WASIP1_RUNNER`. The parent reports:
+
+- Selectors `-p engine-geo --test pile --test pile_uniform_mesh`: exit
+  code 0; 4 and 2 tests passed.
+- Selectors `-p engine-analysis --test pile`: exit code 0; 6 tests passed.
+
+The reported total was 12 passing tests. Node emitted an ExperimentalWarning.
+The parent identified `execution/mam49-wasi-geo.log` and
+`execution/mam49-wasi-analysis.log` as evidence paths. These paths are
+relative to the parent's execution context; the coordinator did not locate
+or inspect them. This is fixture execution under WASI, not validation of a
+web or browser API.
+
+The parent also reports an independent Terra offline review that found no
+specific P1 or P2 issue in the examined scope, with report path
+`execution/review-mam49` relative to the parent's execution context. The
+first CLI attempt was blocked by read and limit constraints; the second
+used a diff supplied through stdin and passed with limited context. The
+coordinator did not locate or inspect the report. There is no human reviewer
+signature.
+
+The published Reese/Matlock example and user-supplied data remain pending.
+The model and numerical limitations recorded above still apply. These
+parent-reported results do not establish that MAM-49 is complete.
