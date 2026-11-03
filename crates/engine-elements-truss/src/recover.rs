@@ -41,3 +41,34 @@ pub(crate) fn output(
         stations,
     })
 }
+
+/// Fixed-end uniform temperature: constant N, no distributed q, no gradient.
+///
+/// End actions use the same local slots as mechanical recovery:
+/// index 0 is -N and index `axes` is +N.
+pub(crate) fn fixed_end_uniform_temperature(
+    g: &Geometry,
+    axial: Real,
+    stations: &[Real],
+) -> EResult<ElementOutput> {
+    let mut end_forces_local = vec![0.0; 2 * g.axes];
+    end_forces_local[0] = finite(-axial, "Action i (N)")?;
+    end_forces_local[g.axes] = finite(axial, "Action j (N)")?;
+    let mut out = Vec::new();
+    out.try_reserve_exact(stations.len())
+        .map_err(|_| invalid("Could not allocate memory for result stations."))?;
+    for &position in stations {
+        finite(position, "Station x/L")?;
+        if !(0.0..=1.0).contains(&position) {
+            return Err(invalid("Station is outside [0,1]."));
+        }
+        out.push(StationResult {
+            position,
+            forces_local: [axial, 0.0, 0.0, 0.0, 0.0, 0.0],
+        });
+    }
+    Ok(ElementOutput {
+        end_forces_local,
+        stations: out,
+    })
+}

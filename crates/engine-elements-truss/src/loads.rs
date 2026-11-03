@@ -1,4 +1,8 @@
 //! Global uniform axial forces; explicit rejection of moments/transverse loads.
+//!
+//! Uniform temperature on a bar fixed at both ends is a separate axial resultant.
+//! It is not a `MemberLoad`: a force per length cannot keep N constant and
+//! independent of L. A thermal gradient is not represented.
 use crate::{finite, geometry::Geometry, invalid, vector as check_vector};
 use engine_contracts::MemberLoad;
 use engine_core::{EResult, Real};
@@ -38,5 +42,35 @@ pub(crate) fn vector(g: &Geometry, load: &MemberLoad) -> EResult<Vec<Real>> {
     let half = finite(axial(g, load)? * (g.length / 2.0), "Equivalent load (N)")?;
     (0..2 * g.axes)
         .map(|i| finite(half * g.d[i % g.axes], "Equivalent F (N)"))
+        .collect()
+}
+
+/// Tension-positive axial force when both ends are fixed and ΔT is uniform.
+///
+/// N = -(E A α ΔT). The product E A α ΔT is the magnitude of the prevented
+/// expansion. Length and direction do not enter. No gradient term is accepted.
+pub(crate) fn fixed_end_uniform_temperature(
+    ea: Real,
+    alpha_per_kelvin: Real,
+    delta_t_kelvin: Real,
+) -> EResult<Real> {
+    finite(alpha_per_kelvin, "α (1/K)")?;
+    finite(delta_t_kelvin, "ΔT (K)")?;
+    let expansion = finite(alpha_per_kelvin * delta_t_kelvin, "αΔT")?;
+    let prevented = finite(ea * expansion, "EA αΔT (N)")?;
+    // Tension positive: prevented expansion is compression.
+    finite(-prevented, "N (N)")
+}
+
+/// Global joint forces of that restrained state, in `load_vector` order.
+///
+/// f = -N b with b = [-d, d]. Heating (N < 0) pushes the joints outward.
+pub(crate) fn fixed_end_uniform_temperature_forces(
+    g: &Geometry,
+    axial_force: Real,
+) -> EResult<Vec<Real>> {
+    g.b()
+        .into_iter()
+        .map(|component| finite(-axial_force * component, "Equivalent F (N)"))
         .collect()
 }
