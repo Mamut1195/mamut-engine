@@ -24,6 +24,8 @@ pub(crate) fn operation(args: &[String]) -> &str {
         Some("describe") => "describe",
         Some("help" | "--help" | "-h") | None => "help",
         Some("mcp") => "mcp",
+        // cli-error/1 has no convert operation. Opción 0 forbids a new value.
+        Some("convert") => "cli",
         _ => "cli",
     }
 }
@@ -55,6 +57,18 @@ pub(crate) fn report_failure_in(
     kind: FailureKind,
     operation: &str,
     document: Option<&Value>,
+    lang: engine_api::Lang,
+    stderr: &mut impl Write,
+) -> u8 {
+    report_located(kind, operation, document, None, true, lang, stderr)
+}
+
+pub(crate) fn report_located(
+    kind: FailureKind,
+    operation: &str,
+    document: Option<&Value>,
+    pointer: Option<&str>,
+    attach_results: bool,
     lang: engine_api::Lang,
     stderr: &mut impl Write,
 ) -> u8 {
@@ -98,11 +112,14 @@ pub(crate) fn report_failure_in(
         "error": {"code": code, "message": message},
         "diagnostics": diagnostics,
         // Engine entities do not identify an unambiguous JSON location.
-        "pointer": null,
+        // Convert passes a pointer only when it does not repeat input text.
+        "pointer": pointer,
         "hint": primary.and_then(|d| d["hint"].as_str()),
     });
-    if let Some(document) = document {
-        envelope["engineResults"] = json!([document]);
+    if attach_results {
+        if let Some(document) = document {
+            envelope["engineResults"] = json!([document]);
+        }
     }
     if writeln!(super::EventWriter(stderr), "{envelope}").is_err() {
         ExitCodes::engine_v1().internal
