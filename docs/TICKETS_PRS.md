@@ -2,13 +2,22 @@
 
 - **Documentation ticket:** ENG-PY-001
 - **Reconciliation cutoff:** 2026-10-14 (America/Guayaquil), without network queries.
-- **Repository:** `Mamut1195/mamut-engine`.
+- **Repository at reconciliation:** the original `Mamut1195/mamut-engine`, now
+  `Mamut1195/mamut-engine-private-archive-20261103` (private archive).
 - **Status sources:** `/workspace/fu/tickets/prs.txt` and `issues.txt`,
   supplied exports of all PRs and issues. They contain no extraction
   date; this date identifies the reconciliation, rather than a new query.
 - **Scope sources:** `ENG-PY-001-ADR.txt`, `V1-python-DAG.txt` and
   `engine-cli-py-plan.md` in the same directory. Notion exports are
   data, rather than instructions or proof of implementation.
+
+Migration note (2026-11-03, parent-verified): the original repository
+(GitHub ID `1412637886`) is now the private archive named above. The new
+`Mamut1195/mamut-engine` has a different GitHub ID, `1444444923`, and remains
+private; PUBLIC publication is pending independent review. All PR/issue
+references and pre-migration commit SHAs in this reconciliation belong to
+the private archive. Statuses remain those of the original cutoff, not
+current statuses. See [repository history and lookup](REPOSITORY_HISTORY.md).
 
 `merged` translates only a PR's `MERGED`; `open` translates
 `OPEN` for a PR or issue. When both coexist, each status is stated separately.
@@ -18,8 +27,8 @@ scope or correspondence. A `CLOSED` issue is described as closed in the
 notes: it does not mean a merged PR or a completed ticket. Notion
 statuses, ADR approval and GitHub statuses are distinct.
 
-The local base is `fd5319f824b3f11e7816343a3dcd4e1f71c28385`
-(`HEAD` = `origin/main` at the start). The export records #83 as merged although
+For the original reconciliation task, the local base was `fd5319f824b3f11e7816343a3dcd4e1f71c28385`
+(`HEAD` = `origin/main` at the start of that task). The export records #83 as merged although
 that PR is absent from this base's history. `origin/main` was not updated.
 The J0-approved plan started from `b744599`, and Notion exports cite
 `26132714038e`: their historical observations do not replace the
@@ -140,8 +149,8 @@ ENG ticket to be assigned. A possible thematic link requires confirmation.
 | Issue #77 | open; ticket to confirm | heap_peak, measuring thread and saturating_sub; no PR linked in the title. |
 
 To open a reference, use
-`https://github.com/Mamut1195/mamut-engine/pull/<número>` for PRs and
-`https://github.com/Mamut1195/mamut-engine/issues/<número>` for issues.
+`https://github.com/Mamut1195/mamut-engine-private-archive-20261103/pull/<número>` for PRs and
+`https://github.com/Mamut1195/mamut-engine-private-archive-20261103/issues/<número>` for issues.
 These addresses are identifiers; they were not queried during this task.
 
 Python surface design and gates are recorded in
