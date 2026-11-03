@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Solo requiere Bash, Git y coreutils. Incluye cambios locales de archivos conocidos por Git.
+# Requiere Bash, Git y coreutils; solo verificar vendor-crates requiere Python 3 con biblioteca estandar, sin dependencias externas. Incluye cambios locales de archivos conocidos por Git.
 set -euo pipefail
 export LC_ALL=C
 # J4 r31: ancla confiable de la base; no aceptar un manifiesto regenerado por el PR.
@@ -284,15 +284,104 @@ is_vendor_crates_path() {
 
 # Sin enlaces simbólicos y con .cargo-checksum.json en cada crate.
 verify_vendor_crates() (
-    [[ -d vendor-crates && ! -L vendor-crates ]] || exit 1
-    shopt -s dotglob nullglob globstar
-    for file in vendor-crates/**/*; do
-        [[ ! -L "$file" ]] || exit 1
-    done
-    for dir in vendor-crates/*/; do
-        [[ -f "${dir}.cargo-checksum.json" ]] || exit 1
-    done
-    exit 0
+    # Requires Python 3 (stdlib only). Verify complete local inventory integrity;
+    # this does not establish archive/registry identity or a Cargo.lock relationship.
+    python3 - <<'PY'
+import hashlib
+import json
+import os
+import re
+import stat
+import sys
+
+
+def require(condition):
+    if not condition:
+        raise ValueError("invalid inventory")
+
+
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        require(key not in result)
+        result[key] = value
+    return result
+
+
+def reject_constant(value):
+    raise ValueError("invalid JSON constant")
+
+
+def open_regular(path):
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    stream = os.fdopen(fd, "rb")
+    if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+        stream.close()
+        raise ValueError("not a regular file")
+    return stream
+
+
+def inventory(directory, prefix=""):
+    result = {}
+    with os.scandir(directory) as entries:
+        for entry in entries:
+            relative = prefix + entry.name
+            mode = entry.stat(follow_symlinks=False).st_mode
+            if stat.S_ISDIR(mode):
+                result.update(inventory(entry.path, relative + "/"))
+            else:
+                require(stat.S_ISREG(mode))
+                if relative != ".cargo-checksum.json":
+                    result[relative] = entry.path
+    return result
+
+
+def verify_crate(directory):
+    checksum = os.path.join(directory, ".cargo-checksum.json")
+    require(stat.S_ISREG(os.lstat(checksum).st_mode))
+    with open_regular(checksum) as stream:
+        document = json.load(
+            stream,
+            object_pairs_hook=unique_object,
+            parse_constant=reject_constant,
+        )
+    require(type(document) is dict)
+    require({"files", "package"} <= set(document) <= {"files", "package", "$comment"})
+    require("$comment" not in document or type(document["$comment"]) is str)
+    require(type(document["package"]) is str)
+    require(re.fullmatch(r"[0-9a-f]{64}", document["package"]) is not None)
+    files = document["files"]
+    require(type(files) is dict)
+    for relative, digest in files.items():
+        require(type(relative) is str and bool(relative))
+        require("\\" not in relative and ":" not in relative and "\x00" not in relative)
+        require(all(part not in ("", ".", "..") for part in relative.split("/")))
+        require(type(digest) is str)
+        require(re.fullmatch(r"[0-9a-fA-F]{64}", digest) is not None)
+    actual = inventory(directory)
+    require("Cargo.toml" in actual)
+    require(set(actual) == set(files))
+    for relative, path in actual.items():
+        digest = hashlib.sha256()
+        with open_regular(path) as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+        require(digest.hexdigest() == files[relative].lower())
+
+
+try:
+    root = "vendor-crates"
+    require(stat.S_ISDIR(os.lstat(root).st_mode))
+    with os.scandir(root) as entries:
+        crates = list(entries)
+    require(bool(crates))
+    for crate in crates:
+        require(stat.S_ISDIR(crate.stat(follow_symlinks=False).st_mode))
+        verify_crate(crate.path)
+except Exception:
+    print("ERROR: invalid vendor-crates inventory (including symlinks or missing checksums)", file=sys.stderr)
+    sys.exit(1)
+PY
 )
 
 # Código confiable de la base en CI: nunca ejecutar el verificador del árbol del PR.
@@ -354,7 +443,7 @@ while IFS= read -r -d '' path; do
 done < <(git diff --no-ext-diff --no-renames --name-only -z "$base" --)
 
 if [[ "$touches_vendor_crates" == true ]] && ! verify_vendor_crates; then
-    printf 'Integridad vendor-crates: enlace simbólico o falta .cargo-checksum.json.\n' >&2
+    printf 'Integridad vendor-crates: inventario invalido o incompleto, hashes incorrectos, entradas raiz invalidas, enlaces simbolicos o falta .cargo-checksum.json.\n' >&2
     failed=true
 fi
 

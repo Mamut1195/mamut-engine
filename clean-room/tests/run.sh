@@ -352,17 +352,165 @@ cp -r "$tmp/or_all" "$tmp/or_all_tree"
 expect or_all_tree 1 bash "$src/check.sh" --all
 new_repo or_all_ok; expect or_all_ok 0 bash "$src/check.sh" --all
 # vendor-crates/ (cargo vendor, MAM-938): exento del escaneo de identificadores, pero con integridad
-new_vendor_crate() { # $1 = name; crate "c" con .cargo-checksum.json y un identificador prohibido
+new_vendor_crate() { # $1 = name; crate sintético con inventario completo e identificador prohibido
     new_repo "$1"; mkdir -p "$tmp/$1/vendor-crates/c/src"
-    echo '{"files":{},"package":"0"}' > "$tmp/$1/vendor-crates/c/.cargo-checksum.json"
+    cat > "$tmp/$1/vendor-crates/c/Cargo.toml" <<'TOML'
+[package]
+name = "c"
+version = "0.0.0"
+edition = "2021"
+TOML
     echo 'x = geomTransf(1)' > "$tmp/$1/vendor-crates/c/src/lib.rs"
+    python3 - "$tmp/$1/vendor-crates/c" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+crate = Path(sys.argv[1])
+checksum = crate / ".cargo-checksum.json"
+files = {
+    path.relative_to(crate).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+    for path in sorted(crate.rglob("*"))
+    if path.is_file() and path != checksum
+}
+checksum.write_text(
+    json.dumps({"files": files, "package": "0" * 64}, sort_keys=True) + "\n",
+    encoding="utf-8",
+)
+PY
 }
 new_vendor_crate vc_skip; git -C "$tmp/vc_skip" add vendor-crates
 expect vc_skip 0 bash "$src/check.sh" HEAD "$tmp/vc_skip/rules"
+new_vendor_crate vc_hidden_crate; mv "$tmp/vc_hidden_crate/vendor-crates/c" "$tmp/vc_hidden_crate/vendor-crates/.c"; git -C "$tmp/vc_hidden_crate" add vendor-crates
+expect vc_hidden_crate 0 bash "$src/check.sh" HEAD "$tmp/vc_hidden_crate/rules"
+
+# Optional Cargo metadata accepts only a string; required keys remain mandatory.
+for kind in comment_string comment_array comment_object unknown_key missing_package; do
+    name="vc_metadata_$kind"
+    new_vendor_crate "$name"
+    python3 - "$tmp/$name/vendor-crates/c/.cargo-checksum.json" "$kind" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+kind = sys.argv[2]
+document = json.loads(path.read_text(encoding="utf-8"))
+if kind == "comment_string":
+    document["$comment"] = "Synthetic Cargo metadata"
+elif kind == "comment_array":
+    document["$comment"] = []
+elif kind == "comment_object":
+    document["$comment"] = {}
+elif kind == "unknown_key":
+    document["unknown"] = "Synthetic metadata"
+elif kind == "missing_package":
+    del document["package"]
+path.write_text(json.dumps(document) + "\n", encoding="utf-8")
+PY
+    git -C "$tmp/$name" add vendor-crates
+    want=1
+    if [[ $kind == comment_string ]]; then want=0; fi
+    expect "$name" "$want" bash "$src/check.sh" HEAD "$tmp/$name/rules"
+done
+
+# Every root entry, including hidden entries, must be a crate directory.
+for kind in identifier benign hidden; do
+    name="vc_root_$kind"
+    new_vendor_crate "$name"
+    case "$kind" in
+        identifier) echo 'geomTransf' > "$tmp/$name/vendor-crates/loose.rs" ;;
+        benign) echo 'benign' > "$tmp/$name/vendor-crates/loose.txt" ;;
+        hidden) echo 'benign' > "$tmp/$name/vendor-crates/.loose" ;;
+    esac
+    git -C "$tmp/$name" add vendor-crates
+    expect "$name" 1 bash "$src/check.sh" HEAD "$tmp/$name/rules"
+done
+new_vendor_crate vc_root_link; ln -s c "$tmp/vc_root_link/vendor-crates/alias"; git -C "$tmp/vc_root_link" add vendor-crates
+expect vc_root_link 1 bash "$src/check.sh" HEAD "$tmp/vc_root_link/rules"
 new_vendor_crate vc_link; ln -s ../../README.md "$tmp/vc_link/vendor-crates/c/src/l.rs"; git -C "$tmp/vc_link" add vendor-crates
 expect vc_link 1 bash "$src/check.sh" HEAD "$tmp/vc_link/rules"
+new_vendor_crate vc_dir_link; ln -s src "$tmp/vc_dir_link/vendor-crates/c/alias"; git -C "$tmp/vc_dir_link" add vendor-crates
+expect vc_dir_link 1 bash "$src/check.sh" HEAD "$tmp/vc_dir_link/rules"
 new_vendor_crate vc_nosum; rm "$tmp/vc_nosum/vendor-crates/c/.cargo-checksum.json"; git -C "$tmp/vc_nosum" add vendor-crates
 expect vc_nosum 1 bash "$src/check.sh" HEAD "$tmp/vc_nosum/rules"
+new_vendor_crate vc_sum_link; git -C "$tmp/vc_sum_link" add vendor-crates
+mv "$tmp/vc_sum_link/vendor-crates/c/.cargo-checksum.json" "$tmp/vc_sum_link/checksum.json"
+ln -s ../../checksum.json "$tmp/vc_sum_link/vendor-crates/c/.cargo-checksum.json"
+expect vc_sum_link 1 bash "$src/check.sh" HEAD "$tmp/vc_sum_link/rules"
+new_vendor_crate vc_sum_dir; git -C "$tmp/vc_sum_dir" add vendor-crates
+rm "$tmp/vc_sum_dir/vendor-crates/c/.cargo-checksum.json"; mkdir "$tmp/vc_sum_dir/vendor-crates/c/.cargo-checksum.json"
+expect vc_sum_dir 1 bash "$src/check.sh" HEAD "$tmp/vc_sum_dir/rules"
+new_vendor_crate vc_fifo; git -C "$tmp/vc_fifo" add vendor-crates
+mkfifo "$tmp/vc_fifo/vendor-crates/c/pipe"
+expect vc_fifo 1 bash "$src/check.sh" HEAD "$tmp/vc_fifo/rules"
+new_vendor_crate vc_empty; git -C "$tmp/vc_empty" add vendor-crates
+git -C "$tmp/vc_empty" commit -qm 'synthetic vendor fixture'
+rm -rf "$tmp/vc_empty/vendor-crates/c"
+expect vc_empty 1 bash "$src/check.sh" HEAD "$tmp/vc_empty/rules"
+
+# Integrity includes physical files that Git does not track or explicitly ignores.
+for kind in untracked ignored; do
+    name="vc_extra_$kind"
+    new_vendor_crate "$name"; git -C "$tmp/$name" add vendor-crates
+    if [[ $kind == ignored ]]; then
+        printf 'vendor-crates/c/extra.txt\n' > "$tmp/$name/.git/info/exclude"
+    fi
+    echo 'benign' > "$tmp/$name/vendor-crates/c/extra.txt"
+    expect "$name" 1 bash "$src/check.sh" HEAD "$tmp/$name/rules"
+done
+new_vendor_crate vc_altered; echo 'benign' >> "$tmp/vc_altered/vendor-crates/c/src/lib.rs"; git -C "$tmp/vc_altered" add vendor-crates
+expect vc_altered 1 bash "$src/check.sh" HEAD "$tmp/vc_altered/rules"
+new_vendor_crate vc_missing; rm "$tmp/vc_missing/vendor-crates/c/src/lib.rs"; git -C "$tmp/vc_missing" add vendor-crates
+expect vc_missing 1 bash "$src/check.sh" HEAD "$tmp/vc_missing/rules"
+
+# Mutate only synthetic checksum documents; no fixture contents enter diagnostics.
+for kind in hash nonhex package malformed duplicate_top duplicate_file traversal absolute alias double_slash backslash drive self files_type; do
+    name="vc_json_$kind"
+    new_vendor_crate "$name"
+    python3 - "$tmp/$name/vendor-crates/c/.cargo-checksum.json" "$kind" <<'PY'
+import json
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+kind = sys.argv[2]
+document = json.loads(path.read_text(encoding="utf-8"))
+if kind == "hash":
+    digest = document["files"]["src/lib.rs"]
+    document["files"]["src/lib.rs"] = ("1" if digest[0] == "0" else "0") + digest[1:]
+elif kind == "nonhex":
+    document["files"]["src/lib.rs"] = "g" * 64
+elif kind == "package":
+    document["package"] = "A" * 64
+elif kind == "files_type":
+    document["files"] = []
+elif kind in ("traversal", "absolute", "alias", "double_slash", "backslash", "drive", "self"):
+    unsafe = {
+        "traversal": "../outside.rs",
+        "absolute": "/outside.rs",
+        "alias": "src/./lib.rs",
+        "double_slash": "src//lib.rs",
+        "backslash": "src\\lib.rs",
+        "drive": "C:/outside.rs",
+        "self": ".cargo-checksum.json",
+    }[kind]
+    document["files"][unsafe] = "0" * 64
+text = json.dumps(document)
+if kind == "malformed":
+    text = "{"
+elif kind == "duplicate_top":
+    text = '{"package":' + json.dumps(document["package"]) + ',' + text[1:]
+elif kind == "duplicate_file":
+    pairs = [json.dumps(key) + ":" + json.dumps(value) for key, value in document["files"].items()]
+    pairs.append(json.dumps("src/lib.rs") + ":" + json.dumps(document["files"]["src/lib.rs"]))
+    text = '{"files":{' + ",".join(pairs) + '},"package":' + json.dumps(document["package"]) + '}'
+path.write_text(text + "\n", encoding="utf-8")
+PY
+    git -C "$tmp/$name" add vendor-crates
+    expect "$name" 1 bash "$src/check.sh" HEAD "$tmp/$name/rules"
+done
 new_vendor_crate vc_outside; echo 'x = geomTransf(1)' > "$tmp/vc_outside/a.rs"; git -C "$tmp/vc_outside" add vendor-crates a.rs
 expect vc_outside 1 bash "$src/check.sh" HEAD "$tmp/vc_outside/rules"
 new_repo vc_prefix; mkdir -p "$tmp/vc_prefix/vendor-cratesX"; echo 'x = geomTransf(1)' > "$tmp/vc_prefix/vendor-cratesX/a.rs"; git -C "$tmp/vc_prefix" add vendor-cratesX
