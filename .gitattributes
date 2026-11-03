@@ -3,3 +3,4 @@
 
 crates/engine-bench/fixtures/** text eol=lf linguist-language=JSON
 crates/engine-bench/schemas/** text eol=lf linguist-language=JSON
+/vendor-crates/** -text
