@@ -376,7 +376,7 @@ class ResultsDocumentRequired(TypedDict):
     schema: Literal['results/1']
     engine_version: str
     contracts: list[str]
-    methods: list[Literal['linearStatic', 'pDelta', 'modal', 'responseSpectrum']]
+    methods: list[Literal['linearStatic', 'pDelta', 'modal', 'responseSpectrum', 'nonlinearStatic', 'soilProfile', 'consolidation1d']]
     input_sha256: str | None
     status: Literal['ok', 'invalid', 'unsupported', 'cancelled', 'notConverged', 'unstable', 'warning', 'timeout', 'internalError']
     nodes: list[ResultNodeIdentity]
@@ -484,7 +484,18 @@ class ValidationReport(TypedDict):
     """Diagnósticos topológicos, sin comprobar estabilidad."""
     diagnostics: list[ResultDiagnostic]
 
-InputWinkler: TypeAlias = "JSONDocument | JSONDocument"
+class InputWinklerK(TypedDict):
+    """Campos requeridos de la rama winkler con k."""
+    k: float
+
+
+class InputWinklerKyKz(TypedDict):
+    """Campos requeridos de la rama winkler con ky y kz."""
+    ky: float
+    kz: float
+
+
+InputWinkler: TypeAlias = InputWinklerK | InputWinklerKyKz
 
 class InputSpringRequired(TypedDict):
     """Campos del contrato SFC-010; unidades según el esquema publicado."""

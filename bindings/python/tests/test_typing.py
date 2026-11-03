@@ -80,10 +80,24 @@ class TypingContractTest(unittest.TestCase):
                                            definition)
         input_spec = engine.schema("engine-input/1")
         self.assert_fields(types.InputOptions, input_spec["properties"]["options"])
-        for branch, dto in zip(input_spec["$defs"]["analysis"]["oneOf"],
-                               (types.LinearStaticAnalysis, types.PDeltaAnalysis,
-                                types.ModalAnalysis, types.SpectrumAnalysis)):
+        analysis_branches = input_spec["$defs"]["analysis"]["oneOf"]
+        analysis_dtos = (types.LinearStaticAnalysis, types.PDeltaAnalysis,
+                         types.ModalAnalysis, types.SpectrumAnalysis,
+                         types.NonlinearStaticAnalysis, types.SoilProfileAnalysis,
+                         types.Consolidation1dAnalysis)
+        self.assertEqual(len(analysis_branches), len(analysis_dtos))
+        for branch, dto in zip(analysis_branches, analysis_dtos):
             self.assert_fields(dto, branch)
+        winkler_branches = input_spec["$defs"]["winkler"]["oneOf"]
+        winkler_dtos = (types.InputWinklerK, types.InputWinklerKyKz)
+        self.assertEqual(len(winkler_branches), len(winkler_dtos))
+        for branch, dto in zip(winkler_branches, winkler_dtos):
+            self.assert_fields(dto, branch)
+        self.assertEqual(typing.get_args(types.InputWinkler), winkler_dtos)
+        result_methods = typing.get_args(typing.get_args(
+            typing.get_type_hints(types.ResultsDocument)["methods"])[0])
+        self.assertEqual(list(result_methods),
+                         engine.schema("results/1")["properties"]["methods"]["items"]["enum"])
         methods = engine.schema("method-descriptor/1")
         self.assert_fields(types.MethodDescriptor, methods)
         for key, dto in (("workflow", types.WorkflowMethod),
