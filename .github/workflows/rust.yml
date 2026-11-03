@@ -58,16 +58,8 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
           CHANGELOG_RELEASE: ${{ contains(github.event.pull_request.labels.*.name, 'release') && '1' || '' }}
         run: bash scripts/changelog-check.sh "$BASE"
-      - name: Formato
-        run: cargo fmt --all -- --check
-      - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
-      - name: Pruebas
-        run: cargo test --workspace
-      - name: Documentación
-        run: RUSTDOCFLAGS='-D warnings' cargo doc --no-deps --workspace
-      - name: Compilación WebAssembly
-        run: cargo check --workspace --target wasm32-unknown-unknown
+      - name: Verificaciones offline de Linux
+        run: bash scripts/check-offline-linux.sh "$CI_JOB_TEMP/offline-evidence"
       - name: Limpieza final del directorio temporal del job
         if: always()
         run: |
