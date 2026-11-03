@@ -4,7 +4,8 @@
 //! lateral direction. The signed actions are defined by `M = -EI*y''`,
 //! `V = EI*y'''` and `p = -k*y`; they are not frame-element conventions.
 //! See provenance/ENG-GEO-005.md for the derivation and limitations.
-use engine_core::{math, EResult, EngineError, Real};
+use engine_core::math;
+use engine_core::{EResult, EngineError, Real};
 
 /// Rotational condition at the head.
 #[derive(Clone, Copy, Debug)]

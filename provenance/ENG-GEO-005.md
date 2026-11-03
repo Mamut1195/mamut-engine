@@ -301,3 +301,21 @@ signature.
 The published Reese/Matlock example and user-supplied data remain pending.
 The model and numerical limitations recorded above still apply. These
 parent-reported results do not establish that MAM-49 is complete.
+
+## Provenance — 2026-11-03
+
+The author CLI invoked `gpt-6.1-terra` at high effort with `--ignore-user-config`, `web_search=disabled`, `sandbox_workspace_write.network_access=false`, `--disable apps`, and workspace-write. Source was supplied through stdin after an initial author attempt could not read it due to blocked policy. The author reported that no web tool was listed and that apps were not checked or used.
+
+The change splits the grouped `engine_core` math import into standalone `use engine_core::math;`; the guard rejects the grouped import. No calculations changed.
+
+On a local branch based on `fa35ddc`, using Windows rustc 1.99.0, cargo offline, and an isolated target:
+
+- `determinism_guard`: 37 passed, rc0, after an initial 36 passed and 1 failed.
+- `engine-geo` pile and `pile_uniform_mesh`: 4 and 2 passed, respectively, rc0; `engine-analysis` pile: 6 passed, rc0.
+- Format check for all: rc0.
+- Workspace clippy for all targets with `-D warnings`: rc101 at unrelated `engine-cli/src/lib.rs:526` (`unused_mut`).
+- Clippy for `engine-linalg`, `engine-geo`, and `engine-analysis`, all targets with `-D warnings`: rc0.
+
+The original parent combined log is retained at `C:/Users/Jonnathan/Projects/mamut-engine-execution-20261103-091746/combined-namespace-validation.log`.
+No combined candidate rerun, browser run, or WASI run was performed for this patch.
+The published example remains pending; the ticket is not done.
