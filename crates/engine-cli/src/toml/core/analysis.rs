@@ -13,11 +13,7 @@ use toml::Value as Toml;
 
 use super::Failure;
 
-const MASS_METHODS: [&str; 3] = [
-    "masses_from_case",
-    "system_case",
-    "masses_from_system_case",
-];
+const MASS_METHODS: [&str; 3] = ["masses_from_case", "system_case", "masses_from_system_case"];
 const MASS_KINDS: [&str; 2] = ["lumped", "consistent"];
 const MODAL_RULES: [&str; 2] = ["srss", "cqc"];
 const DIRECTIONAL_RULES: [&str; 2] = ["srss", "weightedSum"];
@@ -109,18 +105,8 @@ pub(super) fn from_toml(
     let table = super::as_table(value, "/analysis")?;
     let method = match table.get("method") {
         Some(Toml::String(value)) => value.as_str(),
-        Some(_) => {
-            return Err(invalid(
-                "/analysis",
-                "A value has the wrong type.",
-            ))
-        }
-        None => {
-            return Err(invalid(
-                "/analysis",
-                "A required field is missing.",
-            ))
-        }
+        Some(_) => return Err(invalid("/analysis", "A value has the wrong type.")),
+        None => return Err(invalid("/analysis", "A required field is missing.")),
     };
     let body = match method {
         "linearStatic" => linear_toml(table)?,
@@ -161,18 +147,8 @@ pub(super) fn from_json(
     let analysis = super::as_object(&items[0], "/analyses/0")?;
     let method = match analysis.get("method") {
         Some(Json::String(value)) => value.as_str(),
-        Some(_) => {
-            return Err(invalid(
-                "/analyses/0",
-                "A value has the wrong type.",
-            ))
-        }
-        None => {
-            return Err(invalid(
-                "/analyses/0",
-                "A required field is missing.",
-            ))
-        }
+        Some(_) => return Err(invalid("/analyses/0", "A value has the wrong type.")),
+        None => return Err(invalid("/analyses/0", "A required field is missing.")),
     };
     match method {
         "linearStatic" => linear_json(analysis)?,
@@ -197,12 +173,7 @@ pub(super) fn write(out: &mut super::Out, mapped: &MappedAnalysis) -> Result<(),
     let analysis = super::as_object(&mapped.body, "/analyses/0")?;
     let method = match analysis.get("method").and_then(Json::as_str) {
         Some(method) => method,
-        None => {
-            return Err(invalid(
-                "/analyses/0",
-                "A required field is missing.",
-            ))
-        }
+        None => return Err(invalid("/analyses/0", "A required field is missing.")),
     };
     out.header("[analysis]");
     out.entry("method", &super::quoted(method));
@@ -262,8 +233,16 @@ fn linear_toml(table: &toml::Table) -> Result<Json, Failure> {
 
 fn p_delta_toml(table: &toml::Table, cases: &BTreeSet<String>) -> Result<Json, Failure> {
     super::reject_toml_keys(table, &with_method(&P_DELTA), "/analysis")?;
-    let gravity = term_toml(nested(table, "gravity", "/analysis", "/analysis/gravity")?, cases, "/analysis/gravity")?;
-    let lateral = term_toml(nested(table, "lateral", "/analysis", "/analysis/lateral")?, cases, "/analysis/lateral")?;
+    let gravity = term_toml(
+        nested(table, "gravity", "/analysis", "/analysis/gravity")?,
+        cases,
+        "/analysis/gravity",
+    )?;
+    let lateral = term_toml(
+        nested(table, "lateral", "/analysis", "/analysis/lateral")?,
+        cases,
+        "/analysis/lateral",
+    )?;
     Ok(json!({
         "method": "pDelta",
         "options": {
@@ -316,7 +295,12 @@ fn spectrum_toml(table: &toml::Table, cases: &BTreeSet<String>) -> Result<Json, 
     );
     options.insert(
         "modal_combination".to_string(),
-        json!(choice_toml(table, "modal_combination", &MODAL_RULES, "/analysis")?),
+        json!(choice_toml(
+            table,
+            "modal_combination",
+            &MODAL_RULES,
+            "/analysis"
+        )?),
     );
     options.insert(
         "directional_combination".to_string(),
@@ -407,7 +391,10 @@ fn soil_toml(table: &toml::Table) -> Result<Json, Failure> {
 
 fn consolidation_toml(table: &toml::Table) -> Result<Json, Failure> {
     super::reject_toml_keys(table, &with_method(&CONSOLIDATION), "/analysis")?;
-    let end = history_end_toml(array_of(table, "history", "/analysis")?, "/analysis/history")?;
+    let end = history_end_toml(
+        array_of(table, "history", "/analysis")?,
+        "/analysis/history",
+    )?;
     let mut options = Map::new();
     options.insert(
         "layers".to_string(),
@@ -419,7 +406,10 @@ fn consolidation_toml(table: &toml::Table) -> Result<Json, Failure> {
     );
     options.insert(
         "history".to_string(),
-        history_toml(array_of(table, "history", "/analysis")?, "/analysis/history")?,
+        history_toml(
+            array_of(table, "history", "/analysis")?,
+            "/analysis/history",
+        )?,
     );
     options.insert(
         "output_times_s".to_string(),
@@ -447,20 +437,51 @@ fn linear_json(analysis: &Map<String, Json>) -> Result<(), Failure> {
 
 fn p_delta_json(analysis: &Map<String, Json>, cases: &BTreeSet<String>) -> Result<(), Failure> {
     let options = options_json(analysis, &P_DELTA)?;
-    json_term(require_json(options, "gravity", "/analyses/0/options")?, cases, "/analyses/0/options/gravity")?;
-    json_term(require_json(options, "lateral", "/analyses/0/options")?, cases, "/analyses/0/options/lateral")?;
-    json_open_unit(require_json(options, "tolerance", "/analyses/0/options")?, "/analyses/0/options")?;
-    json_int(require_json(options, "max_iterations", "/analyses/0/options")?, 1, 16_384, "/analyses/0/options")?;
-    json_positive(require_json(options, "displacement_scale", "/analyses/0/options")?, "/analyses/0/options")?;
-    json_positive(require_json(options, "rotation_scale", "/analyses/0/options")?, "/analyses/0/options")?;
+    json_term(
+        require_json(options, "gravity", "/analyses/0/options")?,
+        cases,
+        "/analyses/0/options/gravity",
+    )?;
+    json_term(
+        require_json(options, "lateral", "/analyses/0/options")?,
+        cases,
+        "/analyses/0/options/lateral",
+    )?;
+    json_open_unit(
+        require_json(options, "tolerance", "/analyses/0/options")?,
+        "/analyses/0/options",
+    )?;
+    json_int(
+        require_json(options, "max_iterations", "/analyses/0/options")?,
+        1,
+        16_384,
+        "/analyses/0/options",
+    )?;
+    json_positive(
+        require_json(options, "displacement_scale", "/analyses/0/options")?,
+        "/analyses/0/options",
+    )?;
+    json_positive(
+        require_json(options, "rotation_scale", "/analyses/0/options")?,
+        "/analyses/0/options",
+    )?;
     Ok(())
 }
 
 fn modal_json(analysis: &Map<String, Json>, cases: &BTreeSet<String>) -> Result<(), Failure> {
     let options = options_json(analysis, &MODAL)?;
     let pointer = "/analyses/0/options";
-    json_int(require_json(options, "mode_count", pointer)?, 1, 16_384, pointer)?;
-    json_choice(require_json(options, "mass_kind", pointer)?, &MASS_KINDS, pointer)?;
+    json_int(
+        require_json(options, "mode_count", pointer)?,
+        1,
+        16_384,
+        pointer,
+    )?;
+    json_choice(
+        require_json(options, "mass_kind", pointer)?,
+        &MASS_KINDS,
+        pointer,
+    )?;
     json_vector_list(require_json(options, "directions", pointer)?, pointer)?;
     optional_mass_source_json(options, cases, pointer)?;
     Ok(())
@@ -469,10 +490,26 @@ fn modal_json(analysis: &Map<String, Json>, cases: &BTreeSet<String>) -> Result<
 fn spectrum_json(analysis: &Map<String, Json>, cases: &BTreeSet<String>) -> Result<(), Failure> {
     let options = options_json(analysis, &SPECTRUM)?;
     let pointer = "/analyses/0/options";
-    json_int(require_json(options, "mode_count", pointer)?, 1, 16_384, pointer)?;
-    json_choice(require_json(options, "mass_kind", pointer)?, &MASS_KINDS, pointer)?;
-    json_spectrum_directions(require_json(options, "directions", pointer)?, &format!("{pointer}/directions"))?;
-    json_choice(require_json(options, "modal_combination", pointer)?, &MODAL_RULES, pointer)?;
+    json_int(
+        require_json(options, "mode_count", pointer)?,
+        1,
+        16_384,
+        pointer,
+    )?;
+    json_choice(
+        require_json(options, "mass_kind", pointer)?,
+        &MASS_KINDS,
+        pointer,
+    )?;
+    json_spectrum_directions(
+        require_json(options, "directions", pointer)?,
+        &format!("{pointer}/directions"),
+    )?;
+    json_choice(
+        require_json(options, "modal_combination", pointer)?,
+        &MODAL_RULES,
+        pointer,
+    )?;
     json_choice(
         require_json(options, "directional_combination", pointer)?,
         &DIRECTIONAL_RULES,
@@ -504,9 +541,19 @@ fn newton_json(analysis: &Map<String, Json>, cases: &BTreeSet<String>) -> Result
         pointer,
     )?;
     json_positive(require_json(options, "tolerance", pointer)?, pointer)?;
-    json_int(require_json(options, "max_iterations", pointer)?, 1, 16_384, pointer)?;
+    json_int(
+        require_json(options, "max_iterations", pointer)?,
+        1,
+        16_384,
+        pointer,
+    )?;
     json_positive(require_json(options, "force_scale", pointer)?, pointer)?;
-    json_criterion(options, "displacement_tolerance", "displacement_scale", pointer)?;
+    json_criterion(
+        options,
+        "displacement_tolerance",
+        "displacement_scale",
+        pointer,
+    )?;
     json_criterion(options, "energy_tolerance", "energy_scale", pointer)?;
     Ok(())
 }
@@ -514,7 +561,10 @@ fn newton_json(analysis: &Map<String, Json>, cases: &BTreeSet<String>) -> Result
 fn soil_json(analysis: &Map<String, Json>) -> Result<(), Failure> {
     let options = options_json(analysis, &SOIL)?;
     let pointer = "/analyses/0/options";
-    json_soil_layers(require_json(options, "layers", pointer)?, &format!("{pointer}/layers"))?;
+    json_soil_layers(
+        require_json(options, "layers", pointer)?,
+        &format!("{pointer}/layers"),
+    )?;
     json_number_list(
         require_json(options, "depths_m", pointer)?,
         1,
@@ -530,10 +580,24 @@ fn soil_json(analysis: &Map<String, Json>) -> Result<(), Failure> {
 fn consolidation_json(analysis: &Map<String, Json>) -> Result<(), Failure> {
     let options = options_json(analysis, &CONSOLIDATION)?;
     let pointer = "/analyses/0/options";
-    json_consolidation_layers(require_json(options, "layers", pointer)?, &format!("{pointer}/layers"))?;
-    json_choice(require_json(options, "drainage", pointer)?, &DRAINAGE, pointer)?;
-    let end = json_history(require_json(options, "history", pointer)?, &format!("{pointer}/history"))?;
-    json_output_times(require_json(options, "output_times_s", pointer)?, end, pointer)?;
+    json_consolidation_layers(
+        require_json(options, "layers", pointer)?,
+        &format!("{pointer}/layers"),
+    )?;
+    json_choice(
+        require_json(options, "drainage", pointer)?,
+        &DRAINAGE,
+        pointer,
+    )?;
+    let end = json_history(
+        require_json(options, "history", pointer)?,
+        &format!("{pointer}/history"),
+    )?;
+    json_output_times(
+        require_json(options, "output_times_s", pointer)?,
+        end,
+        pointer,
+    )?;
     json_closed_unit(require_json(options, "theta", pointer)?, pointer)?;
     json_positive(require_json(options, "max_step_s", pointer)?, pointer)?;
     optional_geo_json(options, "water_unit_weight_kn_m3", pointer)?;
@@ -541,23 +605,66 @@ fn consolidation_json(analysis: &Map<String, Json>) -> Result<(), Failure> {
 }
 
 fn write_p_delta(out: &mut super::Out, analysis: &Map<String, Json>) -> Result<(), Failure> {
-    let options = super::as_object(require_json(analysis, "options", "/analyses/0")?, "/analyses/0/options")?;
-    emit_f64(out, "tolerance", require_json(options, "tolerance", "/analyses/0/options")?)?;
-    emit_int(out, "max_iterations", require_json(options, "max_iterations", "/analyses/0/options")?)?;
-    emit_f64(out, "displacement_scale", require_json(options, "displacement_scale", "/analyses/0/options")?)?;
-    emit_f64(out, "rotation_scale", require_json(options, "rotation_scale", "/analyses/0/options")?)?;
-    write_term(out, "[analysis.gravity]", require_json(options, "gravity", "/analyses/0/options")?, "/analyses/0/options/gravity")?;
-    write_term(out, "[analysis.lateral]", require_json(options, "lateral", "/analyses/0/options")?, "/analyses/0/options/lateral")?;
+    let options = super::as_object(
+        require_json(analysis, "options", "/analyses/0")?,
+        "/analyses/0/options",
+    )?;
+    emit_f64(
+        out,
+        "tolerance",
+        require_json(options, "tolerance", "/analyses/0/options")?,
+    )?;
+    emit_int(
+        out,
+        "max_iterations",
+        require_json(options, "max_iterations", "/analyses/0/options")?,
+    )?;
+    emit_f64(
+        out,
+        "displacement_scale",
+        require_json(options, "displacement_scale", "/analyses/0/options")?,
+    )?;
+    emit_f64(
+        out,
+        "rotation_scale",
+        require_json(options, "rotation_scale", "/analyses/0/options")?,
+    )?;
+    write_term(
+        out,
+        "[analysis.gravity]",
+        require_json(options, "gravity", "/analyses/0/options")?,
+        "/analyses/0/options/gravity",
+    )?;
+    write_term(
+        out,
+        "[analysis.lateral]",
+        require_json(options, "lateral", "/analyses/0/options")?,
+        "/analyses/0/options/lateral",
+    )?;
     Ok(())
 }
 
 fn write_modal(out: &mut super::Out, analysis: &Map<String, Json>) -> Result<(), Failure> {
-    let options = super::as_object(require_json(analysis, "options", "/analyses/0")?, "/analyses/0/options")?;
-    emit_int(out, "mode_count", require_json(options, "mode_count", "/analyses/0/options")?)?;
-    emit_text(out, "mass_kind", require_json(options, "mass_kind", "/analyses/0/options")?)?;
+    let options = super::as_object(
+        require_json(analysis, "options", "/analyses/0")?,
+        "/analyses/0/options",
+    )?;
+    emit_int(
+        out,
+        "mode_count",
+        require_json(options, "mode_count", "/analyses/0/options")?,
+    )?;
+    emit_text(
+        out,
+        "mass_kind",
+        require_json(options, "mass_kind", "/analyses/0/options")?,
+    )?;
     out.entry(
         "directions",
-        &format_vector_list(require_json(options, "directions", "/analyses/0/options")?, "/analyses/0/options")?,
+        &format_vector_list(
+            require_json(options, "directions", "/analyses/0/options")?,
+            "/analyses/0/options",
+        )?,
     );
     if let Some(source) = options.get("mass_source") {
         write_mass_source(out, source)?;
@@ -566,11 +673,26 @@ fn write_modal(out: &mut super::Out, analysis: &Map<String, Json>) -> Result<(),
 }
 
 fn write_spectrum(out: &mut super::Out, analysis: &Map<String, Json>) -> Result<(), Failure> {
-    let options = super::as_object(require_json(analysis, "options", "/analyses/0")?, "/analyses/0/options")?;
+    let options = super::as_object(
+        require_json(analysis, "options", "/analyses/0")?,
+        "/analyses/0/options",
+    )?;
     let pointer = "/analyses/0/options";
-    emit_int(out, "mode_count", require_json(options, "mode_count", pointer)?)?;
-    emit_text(out, "mass_kind", require_json(options, "mass_kind", pointer)?)?;
-    emit_text(out, "modal_combination", require_json(options, "modal_combination", pointer)?)?;
+    emit_int(
+        out,
+        "mode_count",
+        require_json(options, "mode_count", pointer)?,
+    )?;
+    emit_text(
+        out,
+        "mass_kind",
+        require_json(options, "mass_kind", pointer)?,
+    )?;
+    emit_text(
+        out,
+        "modal_combination",
+        require_json(options, "modal_combination", pointer)?,
+    )?;
     emit_text(
         out,
         "directional_combination",
@@ -588,16 +710,31 @@ fn write_spectrum(out: &mut super::Out, analysis: &Map<String, Json>) -> Result<
 }
 
 fn write_newton(out: &mut super::Out, analysis: &Map<String, Json>) -> Result<(), Failure> {
-    let options = super::as_object(require_json(analysis, "options", "/analyses/0")?, "/analyses/0/options")?;
+    let options = super::as_object(
+        require_json(analysis, "options", "/analyses/0")?,
+        "/analyses/0/options",
+    )?;
     let pointer = "/analyses/0/options";
     emit_text(out, "case", require_json(options, "case", pointer)?)?;
     out.entry(
         "load_factors",
         &format_number_list(require_json(options, "load_factors", pointer)?)?,
     );
-    emit_f64(out, "tolerance", require_json(options, "tolerance", pointer)?)?;
-    emit_int(out, "max_iterations", require_json(options, "max_iterations", pointer)?)?;
-    emit_f64(out, "force_scale", require_json(options, "force_scale", pointer)?)?;
+    emit_f64(
+        out,
+        "tolerance",
+        require_json(options, "tolerance", pointer)?,
+    )?;
+    emit_int(
+        out,
+        "max_iterations",
+        require_json(options, "max_iterations", pointer)?,
+    )?;
+    emit_f64(
+        out,
+        "force_scale",
+        require_json(options, "force_scale", pointer)?,
+    )?;
     for key in [
         "displacement_scale",
         "displacement_tolerance",
@@ -612,7 +749,10 @@ fn write_newton(out: &mut super::Out, analysis: &Map<String, Json>) -> Result<()
 }
 
 fn write_soil(out: &mut super::Out, analysis: &Map<String, Json>) -> Result<(), Failure> {
-    let options = super::as_object(require_json(analysis, "options", "/analyses/0")?, "/analyses/0/options")?;
+    let options = super::as_object(
+        require_json(analysis, "options", "/analyses/0")?,
+        "/analyses/0/options",
+    )?;
     let pointer = "/analyses/0/options";
     out.entry(
         "depths_m",
@@ -624,13 +764,17 @@ fn write_soil(out: &mut super::Out, analysis: &Map<String, Json>) -> Result<(), 
     if let Some(value) = options.get("water_unit_weight_kn_m3") {
         out.entry("water_unit_weight_kn_m3", &format_geo(value, pointer)?);
     }
-    let layers = require_json(options, "layers", pointer)?.as_array().ok_or_else(|| {
-        invalid(pointer, "A collection has the wrong shape.")
-    })?;
+    let layers = require_json(options, "layers", pointer)?
+        .as_array()
+        .ok_or_else(|| invalid(pointer, "A collection has the wrong shape."))?;
     for layer in layers {
         let record = super::as_object(layer, pointer)?;
         out.header("[[analysis.layers]]");
-        emit_f64(out, "thickness_m", require_json(record, "thickness_m", pointer)?)?;
+        emit_f64(
+            out,
+            "thickness_m",
+            require_json(record, "thickness_m", pointer)?,
+        )?;
         if let Some(value) = record.get("gamma_kn_m3") {
             out.entry("gamma_kn_m3", &format_geo(value, pointer)?);
         }
@@ -642,7 +786,10 @@ fn write_soil(out: &mut super::Out, analysis: &Map<String, Json>) -> Result<(), 
 }
 
 fn write_consolidation(out: &mut super::Out, analysis: &Map<String, Json>) -> Result<(), Failure> {
-    let options = super::as_object(require_json(analysis, "options", "/analyses/0")?, "/analyses/0/options")?;
+    let options = super::as_object(
+        require_json(analysis, "options", "/analyses/0")?,
+        "/analyses/0/options",
+    )?;
     let pointer = "/analyses/0/options";
     emit_text(out, "drainage", require_json(options, "drainage", pointer)?)?;
     out.entry(
@@ -650,13 +797,17 @@ fn write_consolidation(out: &mut super::Out, analysis: &Map<String, Json>) -> Re
         &format_number_list(require_json(options, "output_times_s", pointer)?)?,
     );
     emit_f64(out, "theta", require_json(options, "theta", pointer)?)?;
-    emit_f64(out, "max_step_s", require_json(options, "max_step_s", pointer)?)?;
+    emit_f64(
+        out,
+        "max_step_s",
+        require_json(options, "max_step_s", pointer)?,
+    )?;
     if let Some(value) = options.get("water_unit_weight_kn_m3") {
         out.entry("water_unit_weight_kn_m3", &format_geo(value, pointer)?);
     }
-    let layers = require_json(options, "layers", pointer)?.as_array().ok_or_else(|| {
-        invalid(pointer, "A collection has the wrong shape.")
-    })?;
+    let layers = require_json(options, "layers", pointer)?
+        .as_array()
+        .ok_or_else(|| invalid(pointer, "A collection has the wrong shape."))?;
     for layer in layers {
         let record = super::as_object(layer, pointer)?;
         out.header("[[analysis.layers]]");
@@ -671,9 +822,9 @@ fn write_consolidation(out: &mut super::Out, analysis: &Map<String, Json>) -> Re
         }
         emit_int(out, "elements", require_json(record, "elements", pointer)?)?;
     }
-    let history = require_json(options, "history", pointer)?.as_array().ok_or_else(|| {
-        invalid(pointer, "A collection has the wrong shape.")
-    })?;
+    let history = require_json(options, "history", pointer)?
+        .as_array()
+        .ok_or_else(|| invalid(pointer, "A collection has the wrong shape."))?;
     for item in history {
         let record = super::as_object(item, pointer)?;
         out.header("[[analysis.history]]");
@@ -775,7 +926,11 @@ fn closed_unit_toml(table: &toml::Table, key: &str, pointer: &str) -> Result<Jso
     Ok(json)
 }
 
-fn optional_positive(table: &toml::Table, key: &str, pointer: &str) -> Result<Option<Json>, Failure> {
+fn optional_positive(
+    table: &toml::Table,
+    key: &str,
+    pointer: &str,
+) -> Result<Option<Json>, Failure> {
     let Some(value) = table.get(key) else {
         return Ok(None);
     };
@@ -816,7 +971,11 @@ fn at_least(len: usize, min: usize, pointer: &str) -> Result<(), Failure> {
     }
 }
 
-fn term_toml(table: &toml::Table, cases: &BTreeSet<String>, pointer: &str) -> Result<Json, Failure> {
+fn term_toml(
+    table: &toml::Table,
+    cases: &BTreeSet<String>,
+    pointer: &str,
+) -> Result<Json, Failure> {
     super::reject_toml_keys(table, &["case", "factor"], pointer)?;
     let case_name = text_toml(table, "case", pointer)?;
     if !cases.contains(&case_name) {
@@ -942,7 +1101,13 @@ fn spectra_toml(items: &[Toml], pointer: &str) -> Result<Json, Failure> {
 fn spectrum_table_toml(table: &toml::Table, pointer: &str) -> Result<Json, Failure> {
     super::reject_toml_keys(
         table,
-        &["pairs", "units", "damping", "interpolation", "extrapolation"],
+        &[
+            "pairs",
+            "units",
+            "damping",
+            "interpolation",
+            "extrapolation",
+        ],
         pointer,
     )?;
     let pairs = pairs_toml(required(table, "pairs", pointer)?, pointer)?;
@@ -1278,7 +1443,11 @@ fn optional_mass_source_json(
         &["method", "case", "factor", "direction", "gravity"],
         &child,
     )?;
-    json_choice(require_json(source, "method", &child)?, &MASS_METHODS, &child)?;
+    json_choice(
+        require_json(source, "method", &child)?,
+        &MASS_METHODS,
+        &child,
+    )?;
     let case_name = super::json_text_field(source, "case", &child)?;
     if !cases.contains(&case_name) {
         return Err(invalid(&child, "A reference does not exist."));
@@ -1319,17 +1488,35 @@ fn json_spectra(items: &[Json], pointer: &str) -> Result<(), Failure> {
         let table = super::as_object(item, &child)?;
         super::reject_json_keys(
             table,
-            &["pairs", "units", "damping", "interpolation", "extrapolation"],
+            &[
+                "pairs",
+                "units",
+                "damping",
+                "interpolation",
+                "extrapolation",
+            ],
             &child,
         )?;
         json_pairs(require_json(table, "pairs", &child)?, &child)?;
-        json_choice(require_json(table, "units", &child)?, &SPECTRUM_UNITS, &child)?;
+        json_choice(
+            require_json(table, "units", &child)?,
+            &SPECTRUM_UNITS,
+            &child,
+        )?;
         let damping = super::json_f64(require_json(table, "damping", &child)?)?;
         if !(0.0..1.0).contains(&damping) {
             return Err(invalid(&child, "A value is outside the allowed range."));
         }
-        json_choice(require_json(table, "interpolation", &child)?, &INTERPOLATION, &child)?;
-        json_choice(require_json(table, "extrapolation", &child)?, &EXTRAPOLATION, &child)?;
+        json_choice(
+            require_json(table, "interpolation", &child)?,
+            &INTERPOLATION,
+            &child,
+        )?;
+        json_choice(
+            require_json(table, "extrapolation", &child)?,
+            &EXTRAPOLATION,
+            &child,
+        )?;
     }
     Ok(())
 }
@@ -1367,7 +1554,11 @@ fn json_geo(value: &Json, pointer: &str) -> Result<(), Failure> {
     let table = super::as_object(value, pointer)?;
     super::reject_json_keys(table, &["value", "provenance"], pointer)?;
     super::json_f64(require_json(table, "value", pointer)?)?;
-    json_choice(require_json(table, "provenance", pointer)?, &PROVENANCE, pointer)?;
+    json_choice(
+        require_json(table, "provenance", pointer)?,
+        &PROVENANCE,
+        pointer,
+    )?;
     Ok(())
 }
 
@@ -1528,9 +1719,21 @@ fn write_term(
 fn write_mass_source(out: &mut super::Out, value: &Json) -> Result<(), Failure> {
     let source = super::as_object(value, "/analyses/0/options/mass_source")?;
     out.header("[analysis.mass_source]");
-    emit_text(out, "method", require_json(source, "method", "/analyses/0/options/mass_source")?)?;
-    emit_text(out, "case", require_json(source, "case", "/analyses/0/options/mass_source")?)?;
-    emit_f64(out, "factor", require_json(source, "factor", "/analyses/0/options/mass_source")?)?;
+    emit_text(
+        out,
+        "method",
+        require_json(source, "method", "/analyses/0/options/mass_source")?,
+    )?;
+    emit_text(
+        out,
+        "case",
+        require_json(source, "case", "/analyses/0/options/mass_source")?,
+    )?;
+    emit_f64(
+        out,
+        "factor",
+        require_json(source, "factor", "/analyses/0/options/mass_source")?,
+    )?;
     out.entry(
         "direction",
         &super::format_vec3_text(super::json_vec3(
@@ -1538,13 +1741,20 @@ fn write_mass_source(out: &mut super::Out, value: &Json) -> Result<(), Failure> 
             "/analyses/0/options/mass_source",
         )?)?,
     );
-    emit_f64(out, "gravity", require_json(source, "gravity", "/analyses/0/options/mass_source")?)?;
+    emit_f64(
+        out,
+        "gravity",
+        require_json(source, "gravity", "/analyses/0/options/mass_source")?,
+    )?;
     Ok(())
 }
 
 fn write_spectrum_directions(out: &mut super::Out, value: &Json) -> Result<(), Failure> {
     let Some(directions) = value.as_array() else {
-        return Err(invalid("/analyses/0/options", "A collection has the wrong shape."));
+        return Err(invalid(
+            "/analyses/0/options",
+            "A collection has the wrong shape.",
+        ));
     };
     for direction in directions {
         let table = super::as_object(direction, "/analyses/0/options")?;
@@ -1557,7 +1767,10 @@ fn write_spectrum_directions(out: &mut super::Out, value: &Json) -> Result<(), F
             )?)?,
         );
         let Some(spectra) = table.get("spectra").and_then(Json::as_array) else {
-            return Err(invalid("/analyses/0/options", "A collection has the wrong shape."));
+            return Err(invalid(
+                "/analyses/0/options",
+                "A collection has the wrong shape.",
+            ));
         };
         for spectrum in spectra {
             let record = super::as_object(spectrum, "/analyses/0/options")?;
@@ -1566,8 +1779,16 @@ fn write_spectrum_directions(out: &mut super::Out, value: &Json) -> Result<(), F
                 "pairs",
                 &format_pairs(require_json(record, "pairs", "/analyses/0/options")?)?,
             );
-            emit_text(out, "units", require_json(record, "units", "/analyses/0/options")?)?;
-            emit_f64(out, "damping", require_json(record, "damping", "/analyses/0/options")?)?;
+            emit_text(
+                out,
+                "units",
+                require_json(record, "units", "/analyses/0/options")?,
+            )?;
+            emit_f64(
+                out,
+                "damping",
+                require_json(record, "damping", "/analyses/0/options")?,
+            )?;
             emit_text(
                 out,
                 "interpolation",
@@ -1585,7 +1806,10 @@ fn write_spectrum_directions(out: &mut super::Out, value: &Json) -> Result<(), F
 
 fn format_pairs(value: &Json) -> Result<String, Failure> {
     let Some(items) = value.as_array() else {
-        return Err(invalid("/analyses/0/options", "A collection has the wrong shape."));
+        return Err(invalid(
+            "/analyses/0/options",
+            "A collection has the wrong shape.",
+        ));
     };
     let mut parts = Vec::with_capacity(items.len());
     for item in items {

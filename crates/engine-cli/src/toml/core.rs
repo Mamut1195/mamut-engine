@@ -4171,7 +4171,9 @@ mod tests {
             directions = [[1, 0, 0]]
             "#,
         );
-        assert!(bare_modal["analyses"][0]["options"].get("mass_source").is_none());
+        assert!(bare_modal["analyses"][0]["options"]
+            .get("mass_source")
+            .is_none());
         assert!(!bare_modal_toml.contains("mass_source"));
 
         let (spectrum, spectrum_toml) = round_trip(
@@ -4257,7 +4259,9 @@ mod tests {
             newton["analyses"][0]["options"]["load_factors"],
             json!([1, -0.5, 1])
         );
-        assert!(newton["analyses"][0]["options"].get("energy_scale").is_none());
+        assert!(newton["analyses"][0]["options"]
+            .get("energy_scale")
+            .is_none());
         assert!(newton_toml.contains("law = \"L\""));
         assert!(!newton_toml.contains("\nk = "));
 
@@ -4274,8 +4278,12 @@ mod tests {
             thickness_m = 2
             "#,
         );
-        assert!(soil["analyses"][0]["options"]["layers"][0].get("gamma_kn_m3").is_none());
-        assert!(soil["analyses"][0]["options"].get("groundwater_depth_m").is_none());
+        assert!(soil["analyses"][0]["options"]["layers"][0]
+            .get("gamma_kn_m3")
+            .is_none());
+        assert!(soil["analyses"][0]["options"]
+            .get("groundwater_depth_m")
+            .is_none());
         assert!(!soil_toml.contains("gamma_"));
         let (soil_full, _) = round_trip(
             r#"
@@ -4297,7 +4305,10 @@ mod tests {
             gamma_kn_m3 = { value = 19, provenance = "assumed" }
             "#,
         );
-        assert_eq!(soil_full["analyses"][0]["options"]["layers"][1]["thickness_m"], 3);
+        assert_eq!(
+            soil_full["analyses"][0]["options"]["layers"][1]["thickness_m"],
+            3
+        );
         assert_eq!(
             soil_full["analyses"][0]["options"]["layers"][1]["gamma_kn_m3"]["provenance"],
             "assumed"
@@ -4327,9 +4338,16 @@ mod tests {
         );
         let layer = &consolidation["analyses"][0]["options"]["layers"][0];
         assert!(layer.get("cv_m2_s").is_none());
-        assert!(consolidation["analyses"][0]["options"].get("water_unit_weight_kn_m3").is_none());
-        assert!(consolidation["analyses"][0]["options"]["history"][0].get("delta_stress_kpa").is_none());
-        assert_eq!(consolidation["analyses"][0]["options"]["history"][1]["time_s"], 10);
+        assert!(consolidation["analyses"][0]["options"]
+            .get("water_unit_weight_kn_m3")
+            .is_none());
+        assert!(consolidation["analyses"][0]["options"]["history"][0]
+            .get("delta_stress_kpa")
+            .is_none());
+        assert_eq!(
+            consolidation["analyses"][0]["options"]["history"][1]["time_s"],
+            10
+        );
     }
 
     #[test]
@@ -4420,9 +4438,12 @@ mod tests {
                 "{}/../engine-api/fixtures/input/valid/{name}",
                 env!("CARGO_MANIFEST_DIR")
             );
-            let original = std::fs::read_to_string(&path).unwrap_or_else(|error| panic!("{name}: {error}"));
-            let toml = json_to_toml(&original).unwrap_or_else(|error| panic!("{name}: {}", error.cause));
-            let json = toml_to_json(&toml).unwrap_or_else(|error| panic!("{name} back: {}", error.cause));
+            let original =
+                std::fs::read_to_string(&path).unwrap_or_else(|error| panic!("{name}: {error}"));
+            let toml =
+                json_to_toml(&original).unwrap_or_else(|error| panic!("{name}: {}", error.cause));
+            let json =
+                toml_to_json(&toml).unwrap_or_else(|error| panic!("{name} back: {}", error.cause));
             assert_eq!(json_to_toml(&json).unwrap(), toml, "{name}");
             let source: Json = serde_json::from_str(&original).unwrap();
             let back: Json = serde_json::from_str(json.trim()).unwrap();
