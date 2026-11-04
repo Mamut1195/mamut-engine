@@ -78,7 +78,7 @@ pub(crate) fn json_to_toml(text: &str) -> Result<String, Failure> {
     ensure_len(text.len())?;
     let value = parse_json(text)?;
     reject_null(&value)?;
-    Ok(export_root(&value)?)
+    export_root(&value)
 }
 
 fn ensure_len(len: usize) -> Result<(), Failure> {
@@ -230,7 +230,7 @@ fn root_from_toml(table: &toml::Table) -> Result<Json, Failure> {
         analysis.nonlinear,
         &law_names,
     )?;
-    Ok(assemble(
+    Ok(assemble(ModelParts {
         nodes,
         members,
         sections,
@@ -240,11 +240,11 @@ fn root_from_toml(table: &toml::Table) -> Result<Json, Failure> {
         springs,
         prescribed,
         diaphragms,
-        cases.bodies,
+        cases: cases.bodies,
         combinations,
         experimental,
-        analysis.body,
-    ))
+        analysis: analysis.body,
+    }))
 }
 
 fn screen_root(table: &toml::Table) -> Result<(), Failure> {
@@ -1135,7 +1135,7 @@ fn parse_combinations(
     Ok(combinations)
 }
 
-fn assemble(
+struct ModelParts {
     nodes: Vec<NodeRec>,
     members: Vec<MemberRec>,
     sections: Vec<Named>,
@@ -1149,7 +1149,24 @@ fn assemble(
     combinations: Vec<CombinationRec>,
     experimental: bool,
     analysis: Json,
-) -> Json {
+}
+
+fn assemble(parts: ModelParts) -> Json {
+    let ModelParts {
+        nodes,
+        members,
+        sections,
+        laws,
+        supports,
+        masses,
+        springs,
+        prescribed,
+        diaphragms,
+        cases,
+        combinations,
+        experimental,
+        analysis,
+    } = parts;
     let options = if experimental {
         json!({"allow_experimental": true})
     } else {
@@ -2513,7 +2530,10 @@ fn write_combinations(
     Ok(())
 }
 
-fn section_records(items: &[Json]) -> Result<Vec<(String, Vec<(String, f64)>)>, Failure> {
+type SectionProperty = (String, f64);
+type SectionRecord = (String, Vec<SectionProperty>);
+
+fn section_records(items: &[Json]) -> Result<Vec<SectionRecord>, Failure> {
     let mut records = Vec::new();
     let mut seen = BTreeSet::new();
     for (index, item) in items.iter().enumerate() {
