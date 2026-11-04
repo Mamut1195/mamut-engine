@@ -1,5 +1,6 @@
-//! `uniaxial/1` laws: elastic (`elastic`, `elastic.cubic`, `multilinear_elastic`) and
-//! plasticity with history (`steel.bilinear_kinematic`).
+//! `uniaxial/1` laws: elastic (`elastic`, `elastic.cubic`, `multilinear_elastic`),
+//! plasticity with history (`steel.bilinear_kinematic`), and the monotonic
+//! concrete envelope `concrete.kent_park`.
 
 mod cubic_elastic;
 pub use cubic_elastic::{CubicElastic, CubicElasticFactory, CubicElasticParams, CUBIC_ELASTIC};
@@ -8,6 +9,8 @@ pub use multilinear::{
     MultilinearElastic, MultilinearElasticFactory, MultilinearElasticParams, MultilinearMode,
     MULTILINEAR_ELASTIC,
 };
+mod kent_park;
+pub use kent_park::{KentPark, KentParkFactory, KentParkParams, KENT_PARK};
 mod steel_bilinear;
 pub use steel_bilinear::{
     SteelBilinearKinematic, SteelBilinearKinematicFactory, SteelBilinearKinematicParams,

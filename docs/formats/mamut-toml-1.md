@@ -93,7 +93,18 @@ Todas las referencias son por id o nombre; nunca por posición de array.
 En engine-input/1, los ids de nudos, miembros y springs son enteros entre
 0 y 4294967295, ambos incluidos. Los ids de apoyos, masas, secciones y
 combinaciones, los nombres de leyes y los nombres de casos son strings.
-Para alias de texto de nudos/barras/springs: definido en MAM-993, [ADR-005](../adr/ADR-005-alias-name-idmap.md).
+Para alias de texto de nudos, barras y resortes, U5 está cerrado en
+[V1.md](../V1.md), sección 13. `name` es un string opcional de hasta 256
+bytes UTF-8 en `[[nodes]]`, `[[members]]` y `[[springs]]`. El `id` entero
+sigue siendo obligatorio y el convertidor no asigna uno. El mismo `name`
+puede repetirse entre esas tres colecciones. Dentro de una colección, un
+`name` o un `id` repetido es CLI-E-VALIDATION. El nombre no se copia al
+JSON del motor. Al exportar, el convertidor escribe `name` solo para los
+ids presentes en un documento `idmap/1` que acompaña al modelo. Ese
+documento es JSON y exige `format`, `nodes`, `members` y `springs`; cada
+entrada tiene `name` e `id`. No se publica un esquema de `idmap/1` y no
+se acepta `input_sha256`: esos puntos siguen abiertos en
+[ADR-005](../adr/ADR-005-alias-name-idmap.md) y este texto no los cierra.
 
 Los identificadores textuales admiten "" y tienen un máximo de 256 bytes
 UTF-8, también al exportar. La longitud se mide antes de cualquier
@@ -122,8 +133,8 @@ La tabla contiene exactamente las 36 definiciones del esquema:
 | dof | string de GDL | D | Solo Ux, Uy, Uz, Rx, Ry, Rz. |
 | method | analysis.method | D | Siete valores literales del esquema; no se traducen. |
 | model | Hijos en la raíz | R | Se reconstruye model; axes se deriva como Z-up. Sin tabla model ni axes escrito. Colecciones omitidas: vacías. |
-| node | [[nodes]] | R | id, x, y; coordinates = [x,y,z], z = 0 si falta. dim y dofs locales prevalecen sobre [defaults]; ambos deben quedar definidos. D2 exige z = 0. |
-| member | [[members]] | R | from y to forman nodes = [from,to]; section y law son referencias textuales. element, orientation, release_i, release_j y winkler se conservan. element ausente deja al motor sus valores frame2d.euler_elastic o frame3d.euler_elastic según dimensión. |
+| node | [[nodes]] | R | id, x, y; name opcional y fuera del JSON. coordinates = [x,y,z], z = 0 si falta. dim y dofs locales prevalecen sobre [defaults]; ambos deben quedar definidos. D2 exige z = 0. |
+| member | [[members]] | R | id obligatorio; name opcional y fuera del JSON. from y to forman nodes = [from,to]; section y law son referencias textuales. element, orientation, release_i, release_j y winkler se conservan. element ausente deja al motor sus valores frame2d.euler_elastic o frame3d.euler_elastic según dimensión. |
 | parameter | Clave numérica en sección o ley | R | Cada par clave = valor forma {name,value}; no hay lista TOML de parámetros ni sobrescritura de duplicados. Reservas P1 en leyes. |
 | section | `[sections.<nombre>]` | R | El nombre de tabla forma id; sus entradas numéricas forman properties, incluso si la tabla está vacía. |
 | law | `[laws.<nombre>]` | R | El nombre forma name; las entradas numéricas forman parameters. kind, points y mode son metadatos conservados y están prohibidos como nombres de parámetro (P1). Sin kind se conserva la semántica histórica del motor. |
@@ -138,7 +149,7 @@ La tabla contiene exactamente las 36 definiciones del esquema:
 | term | Clave de caso = factor; tablas gravity/lateral | R | En combinación, forma corta → {case,factor}. En pDelta se conserva explícitamente {case,factor}. No se inventa factor. |
 | prescribed | [[prescribed]] | D | node, dof, value obligatorios; sin valor por defecto. |
 | diaphragm | [[diaphragms]] | D | master, slaves obligatorios; identidades de nudos, sin renumeración por posición. |
-| spring | [[springs]] | D | Mismas claves del esquema. id, nodes, kind, dof obligatorios; condiciones de k/law y direction/rotation en sección 4. |
+| spring | [[springs]] | D | Mismas claves del esquema, más name opcional y fuera del JSON. id, nodes, kind, dof obligatorios; condiciones de k/law y direction/rotation en sección 4. |
 | winkler | winkler en [[members]] | D | Exactamente {k} para D2 o {ky,kz} para D3, valores ≥ 0. Sin mezclar ramas; conserva restricciones del motor sobre liberaciones. |
 | analysis | [analysis] | R | analyses, de longitud uno, se representa por una tabla. method selecciona rama; options se aplana. Opciones de otra rama: error. |
 | massSource | [analysis.mass_source] | D | method, case, factor, direction, gravity obligatorios; opcional solo en modal y responseSpectrum. Sin suma implícita con masas nodales. |
@@ -180,16 +191,16 @@ rotación tiene tres filas de tres números.
 | --- | --- | --- |
 | Raíz | format, units, defaults, nodes, sections, laws, members, supports, masses, springs, prescribed, diaphragms, cases, combinations, analysis, options | format, units, analysis. Las demás colecciones admiten omisión según sección 2. |
 | [defaults] | dim, dofs | Ninguna; solo aporta valores a nudos que los omiten. dim: D2 o D3. |
-| [[nodes]] | id, x, y, z, dim, dofs | id, x, y; dim y dofs deben resultar de la tabla o de defaults. z ausente: 0. |
+| [[nodes]] | id, name, x, y, z, dim, dofs | id, x, y; name opcional. dim y dofs deben resultar de la tabla o de defaults. z ausente: 0. |
 | [sections] | Nombres de sección dinámicos | Cada valor es tabla de sección. "" permitido. |
 | `[sections.<nombre>]` | Nombres de propiedades dinámicos | Valores numéricos; forman properties. No existe clave envolvente properties. |
 | [laws] | Nombres de ley dinámicos | Cada valor es tabla de ley. "" permitido. |
 | `[laws.<nombre>]` | kind, points, mode y nombres dinámicos de parámetros numéricos | kind, points y mode nunca son parámetros. No existe subtabla params ni parameters. |
-| [[members]] | id, from, to, section, law, element, orientation, release_i, release_j, winkler | id, from, to, section, law. orientation: tres números. release_i/j: booleano o tres booleanos, según esquema y dimensión. |
+| [[members]] | id, name, from, to, section, law, element, orientation, release_i, release_j, winkler | id, from, to, section, law; name opcional. orientation: tres números. release_i/j: booleano o tres booleanos, según esquema y dimensión. |
 | members.winkler | k; o ky, kz | Exactamente una rama: k para D2; ky y kz para D3. Todos ≥ 0. |
 | [[supports]] | id, node, restrained, type | node y exactamente una forma de restricción. id autoasignado si falta. |
 | [[masses]] | id, node, Ux, Uy, Uz, Rx, Ry, Rz | id, node; values se construye incluso si queda vacío. |
-| [[springs]] | id, nodes, kind, dof, k, law, direction, rotation | id, nodes, kind, dof. Condiciones debajo de la tabla. |
+| [[springs]] | id, name, nodes, kind, dof, k, law, direction, rotation | id, nodes, kind, dof; name opcional. Condiciones debajo de la tabla. |
 | [[prescribed]] | node, dof, value | Todas. |
 | [[diaphragms]] | master, slaves | Todas. |
 | [[cases]] | name, loads, member_loads, temperature_loads | name; loads omitido: []. |
@@ -339,9 +350,8 @@ CLI-E-VALIDATION sin eco. Los ids duplicados son exclusivamente los
 idénticos byte a byte; ENG-E-0002 conserva ese significado cuando
 procede del motor. Las reglas del conversor usan las salidas de la sección 9.
 
-La convención exacta de conteo de profundidad se registra en U11: el
-límite y el momento del control están decididos, su contabilidad no se
-inventa aquí.
+U11, en `docs/V1.md` sección 13: la raíz cuenta como nivel 1. El límite
+sigue siendo 64 y el control sigue siendo justo después de parsear.
 
 ## 6. Orden canónico del export
 
@@ -370,6 +380,16 @@ Las claves con punto o que no admitan escritura simple DEBEN escribirse
 entre comillas para conservar la clave literal. Se conservan los bytes
 Unicode, sin NFC/NFD. El export repetido de la misma entrada DEBE
 producir los mismos bytes.
+
+U9, decidido en [docs/V1.md](../V1.md) sección 13, fija esa escritura:
+UTF-8, saltos LF y un solo salto al final. `format` y `units` se escriben
+en la columna 0. Cada encabezado de tabla queda en la columna 0 y sus
+claves llevan sangría de dos espacios, también en una tabla anidada.
+No se extrae `[defaults]` quitando un valor que la persona escribió en
+el nudo, la barra o una opción. Un booleano escrito se emite, incluido
+`allow_experimental = false` y una liberación `false`. Siguen omitiéndose
+las colecciones vacías y los vectores de carga de barra completamente
+nulos, porque el lector los reconstruye.
 
 Un float de valor entero solo PUEDE escribirse como Integer cuando
 |v| ≤ 2^53−1. Por encima de ese límite DEBE conservar representación
@@ -503,7 +523,9 @@ Los punteros se forman por segmentos, escapando ~ como ~0 y / como
 64 bytes sin romper UTF-8; si se añade …, cabe dentro de esos 64 bytes.
 Una clave desconocida se señala por el padre y su ubicación, sin
 reproducir la clave. La línea y la columna no requieren campos nuevos.
-La convención de base de estas coordenadas queda en U11.
+U11, en `docs/V1.md` sección 13: si el error tiene posición, la línea y
+la columna empiezan en 1. Si no tiene posición, no se inventa una línea.
+El código del diagnóstico no cambia.
 
 La colisión de propiedades de sección y parámetros de ley lleva
 error propio sin eco y puntero a la ubicación del parámetro en la ley.
@@ -554,16 +576,16 @@ y fallo interno. No se alteran 0/1 de
 
 ## 10. Registro de puntos abiertos
 
-Cada fila tiene el estado **DESCONOCIDO — pendiente de decisión de Jonathan**.
+U5, U9 y U11 quedaron decididos en [docs/V1.md](../V1.md), sección 13.
+U7 y U10 siguen en **DESCONOCIDO — pendiente de decisión de Jonathan**.
 No se elige una alternativa por silencio, ni se presenta como verificada.
 
 | Punto | Estado | Contradicción o precisión pendiente |
 | --- | --- | --- |
-| U5 | DESCONOCIDO — pendiente de decisión de Jonathan | definido en MAM-993, [ADR-005](../adr/ADR-005-alias-name-idmap.md). |
 | U7 | DESCONOCIDO — pendiente de decisión de Jonathan | Caso 32 de v4.2, con 4096 dígitos, frente al máximo público de 256 bytes por id. La comparación matemática y el rechazo público están descritos; queda pendiente el alcance de la prueba que exigía aceptación del caso largo. |
-| U9 | DESCONOCIDO — pendiente de decisión de Jonathan | El plan exige export de dos entradas idénticas con los mismos bytes, pero no define una escritura única completa: sangría, saltos finales, elección de escapes ni extracción de defaults. No se inventa una forma textual común entre emisores. |
+| U9 | Decidido en docs/V1.md, sección 13 | Dos exports del mismo modelo son los mismos bytes: UTF-8, LF, un salto final, sangría de dos espacios y las claves en el orden de la sección 6. No se borra un valor que la persona escribió. |
 | U10 | DESCONOCIDO — pendiente de decisión de Jonathan | El plan v4 exige expandir los cuatro type de apoyo según dimensión, pero no enumera las listas de GDL para todas las dimensiones y conjuntos activos. El esquema solo define restrained. No se deducen listas nuevas para cerrar ese vacío. |
-| U11 | DESCONOCIDO — pendiente de decisión de Jonathan | Profundidad 64 y posiciones UTF-8 están decididas; las fuentes permitidas no precisan si la raíz cuenta como nivel ni la base de línea/columna. Deben concretarse antes de establecer expectativas de frontera. |
+| U11 | Decidido en `docs/V1.md`, sección 13 | La raíz cuenta como nivel 1. Línea y columna, cuando existan, empiezan en 1. |
 
 El rendimiento y el umbral de la prueba de 8 MiB con muchos tramos por id
 son **DESCONOCIDO — pendiente de decisión de Jonathan** después de medir
@@ -589,8 +611,8 @@ clases de hash de U3: {4, 4.0, 4e0} y {0, 0.0, -0.0}, con igualdad dentro
 de cada clase y diferencia entre clases. Para TOML, archivo de entrada
 que falta, error de lectura, UTF-8 inválido o tamaño excedido deben
 producir CLI-E-DOCUMENT/2; un fallo al escribir la salida, CLI-E-INTERNAL/70.
-Las expectativas de U7 y U11 requieren decisión antes de
-cerrar sus pruebas.
+Las expectativas de U7 requieren decisión antes de cerrar sus pruebas.
+U11 ya está decidido en `docs/V1.md`, sección 13.
 
 La sintaxis TOML 1.1 incluye tablas en línea multilínea, coma final
 permitida por esa gramática y escapes \e y \xHH. Un diferencial con
