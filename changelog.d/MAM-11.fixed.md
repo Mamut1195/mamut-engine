@@ -1,0 +1,1 @@
+- MAM-11: walk the buckling residual by component so the test loop satisfies clippy.
