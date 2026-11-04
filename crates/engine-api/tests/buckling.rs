@@ -5,6 +5,7 @@
 mod support;
 
 use engine_api::{capabilities, CancelToken, Status};
+use engine_core::math;
 use serde_json::{json, Value};
 use support::checked_run as run;
 
@@ -24,7 +25,7 @@ fn fixed_pinned_factor() -> f64 {
     let mut hi = 1.5 * std::f64::consts::PI;
     for _ in 0..80 {
         let mid = 0.5 * (lo + hi);
-        let value = mid.sin() - mid * mid.cos();
+        let value = math::sin(mid) - mid * math::cos(mid);
         if value > 0.0 {
             lo = mid;
         } else {
@@ -32,7 +33,8 @@ fn fixed_pinned_factor() -> f64 {
         }
     }
     let theta = 0.5 * (lo + hi);
-    (theta / std::f64::consts::PI).powi(2)
+    let ratio = theta / std::f64::consts::PI;
+    ratio * ratio
 }
 
 fn restraints(end: &str, at_start: bool) -> Vec<&'static str> {
