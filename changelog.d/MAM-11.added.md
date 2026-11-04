@@ -1,0 +1,1 @@
+- MAM-11: add library-level linear buckling of K + λ Kg and name -Kg in its diagnostics.

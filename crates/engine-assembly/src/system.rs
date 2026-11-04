@@ -334,6 +334,127 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             }
         })
     }
+
+    /// Lowest finite factors of `K_ff φ + λ Kg_ff φ = 0` at the geometric reference.
+    ///
+    /// Kg is the assembled reference matrix, or the producer evaluation at
+    /// [`Self::set_geometric_reference`], without changing accepted or trial
+    /// state. The dense solver requires a positive definite metric, so the
+    /// problem is rewritten `K φ = λ (−Kg) φ`. Identically zero rows of −Kg
+    /// (axial DOFs, members without geometric stiffness) are condensed with
+    /// the same Guyan path as zero-mass rows. Diagnostics stay
+    /// ENG-E-0006 and ENG-E-0014. The shared solver text says "mass" for the
+    /// modal problem and is left unchanged; this call replaces that wording
+    /// and names the metric −Kg. The same replacement applies to the Cholesky
+    /// sentence ENG-E-0010 that says the mass is not positive definite.
+    /// A negative diagonal of −Kg, or a zero Kg when `count > 0`, is
+    /// ENG-E-0010: the reference load is not a compression metric.
+    /// An indefinite −Kg with no negative diagonal still fails in the
+    /// Cholesky of that metric (ENG-E-0010 or ENG-E-0006). No shift and no
+    /// second eigensolver are introduced. `count = 0` returns an empty
+    /// spectrum and does not require a definite metric.
+    /// Returned λ are ascending. A numerically zero factor is a mechanism or
+    /// rigid mode of K, counted in [`engine_linalg::LowestModes::rigid_mode_count`].
+    /// Shapes are orthonormal in −Kg and live in the free reduced coordinates.
+    pub fn buckling_modes(&mut self, count: usize) -> EResult<engine_linalg::LowestModes> {
+        self.buckling_modes_with_check(count, &mut || Ok(()))
+    }
+
+    /// Cooperative form of [`Self::buckling_modes`].
+    pub fn buckling_modes_with_check(
+        &mut self,
+        count: usize,
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<engine_linalg::LowestModes> {
+        check()?;
+        let k = self.k_free.clone();
+        let metric = compression_metric(&self.reduced_geometric_reference()?)?;
+        if k.order() != metric.order() {
+            return Err(error(
+                "ENG-E-0012",
+                "Buckling: reduced K and Kg have different orders.",
+            ));
+        }
+        if count == 0 {
+            return self
+                .backend
+                .lowest_modes_with_check(&k, &metric, 0, check)
+                .map_err(|e| self.translate_solver_error(e));
+        }
+        let n = metric.order();
+        if metric.dense().values().iter().all(|&value| value == 0.0) {
+            return Err(error(
+                "ENG-E-0010",
+                "Buckling: reference Kg is zero, so K + λ Kg has no finite load factor.",
+            ));
+        }
+        for i in 0..n {
+            if metric.dense().values()[i * n + i] < 0.0 {
+                let mut rejected = error(
+                    "ENG-E-0010",
+                    "Buckling: -Kg has a negative diagonal. The reference geometric stiffness is not a compression metric (tension-positive N).",
+                );
+                if let Ok((node, dof)) = self.try_dof_label(DofIndex(i as u32)) {
+                    rejected
+                        .message
+                        .push_str(&format!(" Node {}, DOF {dof}.", node.0));
+                    rejected.entities.push(EntityRef::Node(node));
+                    if let Some(&global) = self.constraints.free_dofs().get(i) {
+                        rejected.entities.push(EntityRef::Dof(global));
+                    }
+                }
+                return Err(rejected);
+            }
+        }
+        let mut solve = || -> EResult<engine_linalg::LowestModes> {
+            if let Some(reduction) =
+                engine_linalg::guyan_condense_with_check(&mut self.backend, &k, &metric, check)?
+            {
+                let mut spectrum = self
+                    .backend
+                    .lowest_modes_with_check(&reduction.stiffness, &reduction.mass, count, check)
+                    .map_err(|mut e| {
+                        for entity in &mut e.entities {
+                            if let EntityRef::Dof(d) = entity {
+                                if let Some(&original) = reduction.massive().get(d.0 as usize) {
+                                    *d = DofIndex(original as u32);
+                                }
+                            }
+                        }
+                        e
+                    })?;
+                spectrum.vectors = reduction.recover_with_check(&spectrum.vectors, check)?;
+                Ok(spectrum)
+            } else {
+                self.backend
+                    .lowest_modes_with_check(&k, &metric, count, check)
+            }
+        };
+        solve().map_err(|e| {
+            let e = buckling_metric_wording(e);
+            if e.code == "ENG-E-0006" && !e.entities.iter().any(|v| matches!(v, EntityRef::Dof(_)))
+            {
+                e
+            } else {
+                self.translate_solver_error(e)
+            }
+        })
+    }
+
+    /// Reduced Kg at the geometric reference, without changing accepted or trial state.
+    ///
+    /// With no producers this is the assembled `Kg_ff`. With producers it is
+    /// their evaluation at the reference displacement, reduced by `T_fᵀ Kg T_f`.
+    pub fn reduced_geometric_reference(&mut self) -> EResult<SymMatrix> {
+        let reference = self.kg_reference.clone();
+        let geometric = self.geometric_at(&reference)?;
+        if self.geometric_producers.is_empty() {
+            Ok(self.kg_free.clone())
+        } else {
+            reduced(&mut self.backend, &geometric, &self.constraints)
+        }
+    }
+
     /// Static global CSR snapshot received in from_model.
     /// Does not include replacements or evaluations of registered producers;
     /// consult [`SystemView::geometric`] for the current reduced Kg(u).
@@ -788,6 +909,120 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         e.entities = entities;
         e
     }
+}
+
+/// Replaces modal mass wording on the buckling path.
+///
+/// The shared Guyan and Cholesky sentences stay as they are for modal
+/// analysis. Buckling uses the same routines with metric −Kg, so only this
+/// call rewrites the text. Codes, entities, and the eigenvalue path are
+/// unchanged. A stiffness singularity that does not name mass is left as the
+/// solver wrote it.
+fn buckling_metric_wording(mut error: EngineError) -> EngineError {
+    if error.code != "ENG-E-0006" && error.code != "ENG-E-0010" && error.code != "ENG-E-0014" {
+        return error;
+    }
+    let message = error.message.clone();
+    let rewritten = if let Some(rest) = message.strip_prefix("Guyan: negative mass") {
+        format!("Buckling: negative diagonal of -Kg{rest}")
+    } else if let Some(rest) = message.strip_prefix("Guyan: no free DOFs with mass remain") {
+        format!("Buckling: no free DOF remains with a nonzero row of -Kg{rest}")
+    } else if let Some(rest) =
+        message.strip_prefix("Guyan: massless mechanism; Kss is singular or not positive definite")
+    {
+        format!(
+            "Buckling: DOFs with a zero row of -Kg have singular or non-positive-definite Kss{rest}"
+        )
+    } else if let Some(rest) = message.strip_prefix("Mass Cholesky: numerically insufficient pivot")
+    {
+        format!("Buckling: -Kg has a numerically insufficient pivot{rest}")
+    } else if let Some(rest) = message.strip_prefix("Mass Cholesky: mass is not positive definite")
+    {
+        format!("Buckling: -Kg is not positive definite{rest}")
+    } else {
+        return error;
+    };
+    error.message = rewritten;
+    error
+}
+
+#[cfg(test)]
+mod buckling_wording_tests {
+    use super::buckling_metric_wording;
+    use engine_core::{DofIndex, EngineError, EntityRef};
+
+    fn wording(code: &'static str, message: &str) -> EngineError {
+        let mut error = EngineError::new(code, message);
+        error.entities.push(EntityRef::Dof(DofIndex(3)));
+        buckling_metric_wording(error)
+    }
+
+    #[test]
+    fn shared_mass_sentences_name_geometric_metric() {
+        let negative = wording(
+            "ENG-E-0006",
+            "Guyan: negative mass: singular pivot at DOF 3.",
+        );
+        assert_eq!(negative.code, "ENG-E-0006");
+        assert_eq!(
+            negative.message,
+            "Buckling: negative diagonal of -Kg: singular pivot at DOF 3."
+        );
+        let absent = wording(
+            "ENG-E-0006",
+            "Guyan: no free DOFs with mass remain: singular pivot at DOF 3.",
+        );
+        assert_eq!(
+            absent.message,
+            "Buckling: no free DOF remains with a nonzero row of -Kg: singular pivot at DOF 3."
+        );
+        let pivot = wording(
+            "ENG-E-0006",
+            "Mass Cholesky: numerically insufficient pivot: singular pivot at DOF 3.",
+        );
+        assert_eq!(
+            pivot.message,
+            "Buckling: -Kg has a numerically insufficient pivot: singular pivot at DOF 3."
+        );
+        let condensed = wording(
+            "ENG-E-0014",
+            "Guyan: massless mechanism; Kss is singular or not positive definite, DOF block 3.",
+        );
+        assert_eq!(condensed.code, "ENG-E-0014");
+        assert_eq!(
+            condensed.message,
+            "Buckling: DOFs with a zero row of -Kg have singular or non-positive-definite Kss, DOF block 3."
+        );
+        let indefinite = wording(
+            "ENG-E-0010",
+            "Mass Cholesky: mass is not positive definite, DOF 3.",
+        );
+        assert_eq!(indefinite.code, "ENG-E-0010");
+        assert_eq!(
+            indefinite.message,
+            "Buckling: -Kg is not positive definite, DOF 3."
+        );
+        for error in [&negative, &absent, &pivot, &condensed, &indefinite] {
+            assert!(!error.message.to_ascii_lowercase().contains("mass"));
+            assert!(matches!(
+                error.entities.as_slice(),
+                [EntityRef::Dof(DofIndex(index))] if *index == 3
+            ));
+        }
+    }
+
+    #[test]
+    fn stiffness_singularity_stays_unchanged() {
+        let singular = wording("ENG-E-0006", "Reference LDLᵀ: singular pivot at DOF 0.");
+        assert_eq!(singular.code, "ENG-E-0006");
+        assert_eq!(singular.message, "Reference LDLᵀ: singular pivot at DOF 0.");
+    }
+}
+
+fn compression_metric(kg: &SymMatrix) -> EResult<SymMatrix> {
+    let n = kg.order();
+    let values = kg.dense().values().iter().map(|value| -value).collect();
+    SymMatrix::new(DMat::new(n, n, values)?)
 }
 
 impl<B: LinAlgBackend> SystemView for LinearSystem<B> {

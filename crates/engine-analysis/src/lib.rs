@@ -1,5 +1,5 @@
 #![forbid(unsafe_code)]
-//! `static.linear`, [`newton`] (`static.newton`), [`pdelta`], [`modal`], and [`spectrum`] analysis, in SI units.
+//! `static.linear`, [`newton`] (`static.newton`), [`pdelta`], [`modal`], [`spectrum`], and [`buckling`] analysis, in SI units.
 //!
 //! `static.linear` solves independent cases with a single factorization
 //! of K_red = T_fᵀ K T_f over the free independent DOFs. Recovers dependent
@@ -8,6 +8,11 @@
 //! declarative model combinations; `StaticLinear` solves only cases.
 //! With zero prescribed displacements, u(A+B)=u(A)+u(B); with settlements, subtract
 //! the unloaded solution u(0) once. Does not incorporate Kg, iterations, or regularization.
+//!
+//! [`buckling`] (`buckling.linear`) solves the finite eigenvalues of
+//! `K_ff + λ Kg_ff = 0` at the reference geometric stiffness. It does not
+//! accept state. The module states the sign of Kg and the rejection of a
+//! singular or indefinite reference metric.
 //!
 //! Right-handed global axes; D2 uses XY and Rz, D3 XYZ and Rx/Ry/Rz. Original
 //! coordinates in m (D2 requires Z=0), translations in m, rotations in rad, forces
@@ -18,6 +23,7 @@
 //! right-hand sign, and nodal couples. Does not use the reduced RHS for this sum.
 #![deny(missing_docs)]
 
+pub mod buckling;
 pub mod combination;
 pub mod modal;
 pub mod pdelta;
