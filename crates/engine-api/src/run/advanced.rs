@@ -1,6 +1,7 @@
 //! Adapters for domain methods, without P-Delta member recovery.
 use super::*;
 use crate::analysis_input::{Analysis, MassSource, Table};
+use engine_analysis::buckling::BucklingLinear;
 use engine_analysis::{modal::Modal, pdelta, spectrum};
 use engine_contracts::MassKind;
 use engine_core::DofIndex;
@@ -109,6 +110,16 @@ pub(crate) fn pdelta_budget(execution: &input::Execution) -> usize {
         o.max_iterations.min(crate::MAX_JSON_ARRAY_ITEMS) + 5
     } else {
         5
+    }
+}
+pub(crate) fn buckling_budget(execution: &input::Execution) -> usize {
+    if let Analysis::Buckling {
+        options: input::Object(o),
+    } = &execution.analyses[0]
+    {
+        o.mode_count.min(crate::MAX_JSON_ARRAY_ITEMS) + 6
+    } else {
+        6
     }
 }
 pub(crate) fn modal_budget(execution: &input::Execution) -> usize {
@@ -253,6 +264,102 @@ pub(crate) fn pdelta(context: MethodContext<'_>) -> Result<(), Failure> {
         .ok_or_else(|| EngineError::new("ENG-E-0012", "P-Delta has no displacements"))?;
     document["cases"] = json!([{"case":o.lateral.0.case,"factor":o.lateral.0.factor,
         "nodes":nodes(system, global, &result.reactions, false)?,"members":[]}]);
+    Ok(())
+}
+
+pub(crate) fn buckling(context: MethodContext<'_>) -> Result<(), Failure> {
+    let MethodContext {
+        execution,
+        members,
+        contributions,
+        system,
+        cancel,
+        progress,
+        document,
+        total,
+        ..
+    } = context;
+    reject_combinations(execution)?;
+    let Analysis::Buckling {
+        options: input::Object(o),
+    } = &execution.analyses[0]
+    else {
+        return Err(invalid("Inconsistent analysis adapter"));
+    };
+    if o.mode_count > crate::MAX_JSON_ARRAY_ITEMS {
+        return Err(invalid(format!(
+            "Steps/modes require 0..={}",
+            crate::MAX_JSON_ARRAY_ITEMS
+        )));
+    }
+    // geometric_producer recovers N from the reference displacement. A member
+    // load would change the end actions without appearing in that displacement.
+    if execution
+        .model
+        .cases
+        .iter()
+        .zip(&execution.loads)
+        .any(|(c, loads)| c.name == o.reference.0.case && !loads.is_empty())
+    {
+        return Err(EngineError::new(
+            "ENG-E-0013",
+            "Buckling: the reference case requires nodal loads; Kg does not include member-load correction",
+        )
+        .into());
+    }
+    let mut producers = Vec::new();
+    for (m, contribution) in members.iter().zip(contributions) {
+        cancel.check()?;
+        let coords = m
+            .nodes
+            .iter()
+            .map(|n| system.dof_map().coordinates(*n))
+            .collect::<Result<Vec<_>, _>>()?;
+        producers.push(pdelta::geometric_producer(
+            m.element.clone(),
+            &ElementCtx {
+                dim: m.dim,
+                coords: &coords,
+                params: &m.params,
+            },
+            contribution.location.clone(),
+            vec![0.0; m.element.state_len()],
+        )?);
+    }
+    system.set_geometric_producers(producers)?;
+    let solved = StaticLinear::run_about_with_check(
+        system,
+        &[(CaseRef(o.reference.0.case.clone()), o.reference.0.factor)],
+        [0.0; 3],
+        &mut || check_cancel(cancel),
+    )?;
+    let reference = solved.cases.into_iter().next().ok_or_else(|| {
+        EngineError::new("ENG-E-0012", "Buckling: the reference solution is missing.")
+    })?;
+    system.set_geometric_reference(&reference.free_displacements)?;
+    let mut reported = 0usize;
+    let result = BucklingLinear::run_with_check(system, o.mode_count, || {
+        reported += 1;
+        let completed = (3 + reported).min(total.saturating_sub(1));
+        checkpoint(cancel, progress, "buckling", completed, total)
+    })?;
+    let modes = result
+        .modes
+        .iter()
+        .enumerate()
+        .map(|(index, mode)| {
+            Ok(json!({
+                "mode": index + 1,
+                "eigenvalue": mode.eigenvalue,
+                "normalization": "negative_kg",
+                "shape": nodes(system, &mode.global_shape, &[], true)?,
+            }))
+        })
+        .collect::<Result<Vec<_>, Failure>>()?;
+    document["buckling"] = json!({
+        "rigid_mode_count": result.rigid_mode_count,
+        "modes": modes,
+    });
     Ok(())
 }
 

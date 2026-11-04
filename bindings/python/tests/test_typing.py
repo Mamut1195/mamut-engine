@@ -84,7 +84,7 @@ class TypingContractTest(unittest.TestCase):
         analysis_dtos = (types.LinearStaticAnalysis, types.PDeltaAnalysis,
                          types.ModalAnalysis, types.SpectrumAnalysis,
                          types.NonlinearStaticAnalysis, types.SoilProfileAnalysis,
-                         types.Consolidation1dAnalysis)
+                         types.Consolidation1dAnalysis, types.BucklingLinearAnalysis)
         self.assertEqual(len(analysis_branches), len(analysis_dtos))
         for branch, dto in zip(analysis_branches, analysis_dtos):
             self.assert_fields(dto, branch)

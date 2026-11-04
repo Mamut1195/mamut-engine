@@ -31,7 +31,7 @@ InputId: TypeAlias = int
 
 InputDof: TypeAlias = Literal['Ux', 'Uy', 'Uz', 'Rx', 'Ry', 'Rz']
 
-InputMethod: TypeAlias = Literal['linearStatic', 'pDelta', 'modal', 'responseSpectrum', 'nonlinearStatic', 'soilProfile', 'consolidation1d']
+InputMethod: TypeAlias = Literal['linearStatic', 'pDelta', 'modal', 'responseSpectrum', 'nonlinearStatic', 'soilProfile', 'consolidation1d', 'buckling.linear']
 
 class InputNode(TypedDict):
     """Campos requeridos del contrato InputNode."""
@@ -117,7 +117,12 @@ class InputTerm(TypedDict):
     case: str
     factor: float
 
-InputAnalysis: TypeAlias = "LinearStaticAnalysis | PDeltaAnalysis | ModalAnalysis | SpectrumAnalysis | NonlinearStaticAnalysis | SoilProfileAnalysis | Consolidation1dAnalysis"
+class InputBuckling_options(TypedDict):
+    """Campos requeridos del contrato InputBuckling_options."""
+    mode_count: int
+    reference: InputTerm
+
+InputAnalysis: TypeAlias = "LinearStaticAnalysis | PDeltaAnalysis | ModalAnalysis | SpectrumAnalysis | NonlinearStaticAnalysis | SoilProfileAnalysis | Consolidation1dAnalysis | BucklingLinearAnalysis"
 
 class InputModelRequired(TypedDict):
     """Campos requeridos del contrato InputModel."""
@@ -376,7 +381,7 @@ class ResultsDocumentRequired(TypedDict):
     schema: Literal['results/1']
     engine_version: str
     contracts: list[str]
-    methods: list[Literal['linearStatic', 'pDelta', 'modal', 'responseSpectrum', 'nonlinearStatic', 'soilProfile', 'consolidation1d']]
+    methods: list[Literal['linearStatic', 'pDelta', 'modal', 'responseSpectrum', 'nonlinearStatic', 'soilProfile', 'consolidation1d', 'buckling.linear']]
     input_sha256: str | None
     status: Literal['ok', 'invalid', 'unsupported', 'cancelled', 'notConverged', 'unstable', 'warning', 'timeout', 'internalError']
     nodes: list[ResultNodeIdentity]
@@ -393,6 +398,7 @@ class ResultsDocument(ResultsDocumentRequired, total=False):
     git_commit: str | None
     target: str
     geotechnical: ResultSoil_result | ResultConsolidation_result
+    buckling: ResultBuckling_result
 
 class VersionInfo(TypedDict):
     """Versión del motor y contratos publicados."""
@@ -681,3 +687,20 @@ class Consolidation1dAnalysis(TypedDict):
     """Selección del análisis SFC-010."""
     method: Literal["consolidation1d"]
     options: InputConsolidation_options
+
+class ResultBuckling_mode(TypedDict):
+    """Un factor de K + lambda Kg = 0 y su forma global."""
+    mode: int
+    eigenvalue: float
+    normalization: Literal["negative_kg"]
+    shape: list[ResultNode]
+
+class ResultBuckling_result(TypedDict):
+    """Factores finitos más bajos. La página de Timoshenko-Gere sigue desconocida."""
+    rigid_mode_count: int
+    modes: list[ResultBuckling_mode]
+
+class BucklingLinearAnalysis(TypedDict):
+    """Selección explícita del análisis buckling.linear."""
+    method: Literal["buckling.linear"]
+    options: InputBuckling_options

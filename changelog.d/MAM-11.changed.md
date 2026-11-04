@@ -1,0 +1,1 @@
+- MAM-11: publish buckling.linear in run, capabilities, the Python facade, and the mamut-toml/1 converter. The factor remains the lowest finite eigenvalue of K + λ Kg = 0. The Timoshenko–Gere page stays unknown.

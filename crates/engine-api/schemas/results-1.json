@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:mamut:results:1",
-  "title": "results/1 — static, P-Delta, modal and spectrum",
-  "description": "Canonical SI results. Mass-normalized modes φᵀMφ=1. P-Delta only includes lateral displacements/reactions independent of gravity; empty members (#84(c)). Spectrum: signed modal responses and component envelopes, without simultaneous equilibrium. null direction/factor marks the final directional envelope. Errors have no partial responses; convergence retains P-Delta diagnostics for notConverged/unstable. SFC-010: geotechnical appears only in geotechnical analyses. Newton convergence retains results and histories of accepted steps, even after a subsequent failure; cases contains only the last step if the entire run completes. Newton extrema are sampled at five stations.",
+  "title": "results/1 — static, P-Delta, modal, spectrum and linear buckling",
+  "description": "Canonical SI results. Mass-normalized modes φᵀMφ=1. buckling holds the factors of K + lambda Kg = 0; modes stays the mass-normalized list and is empty for that method. normalization negative_kg means phi^T (-Kg) phi = 1. The Timoshenko-Gere page is unknown. P-Delta only includes lateral displacements/reactions independent of gravity; empty members (#84(c)). Spectrum: signed modal responses and component envelopes, without simultaneous equilibrium. null direction/factor marks the final directional envelope. Errors have no partial responses; convergence retains P-Delta diagnostics for notConverged/unstable. SFC-010: geotechnical appears only in geotechnical analyses. Newton convergence retains results and histories of accepted steps, even after a subsequent failure; cases contains only the last step if the entire run completes. Newton extrema are sampled at five stations.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "engine_version", "contracts", "methods", "input_sha256", "status", "nodes", "members", "modes", "cases", "envelopes", "convergence", "diagnostics", "combinations"],
@@ -12,7 +12,7 @@
     "git_commit": {"type": ["string", "null"], "pattern": "^[0-9a-fA-F]{40}([0-9a-fA-F]{24})?$", "description": "Revision supplied through MAMUT_ENGINE_GIT_COMMIT at build time; null if absent or not a 40/64-character hexadecimal revision. Optional for older documents."},
     "target": {"type": "string", "description": "Cargo TARGET triple captured at build time. Optional for older documents."},
     "contracts": {"type": "array", "items": {"type": "string"}},
-    "methods": {"type": "array", "items": {"enum": ["linearStatic", "pDelta", "modal", "responseSpectrum", "nonlinearStatic", "soilProfile", "consolidation1d"]}},
+    "methods": {"type": "array", "items": {"enum": ["linearStatic", "pDelta", "modal", "responseSpectrum", "nonlinearStatic", "soilProfile", "consolidation1d", "buckling.linear"]}},
     "input_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$", "description": "SHA-256 of the input's RFC 8785 (JCS) UTF-8 bytes via mamut-canon v0.1.0; null if parsing/fingerprinting did not complete. Replaces the custom canonicalization from #88."},
     "status": {"enum": ["ok", "invalid", "unsupported", "cancelled", "notConverged", "unstable", "warning", "timeout", "internalError"]},
     "nodes": {"type": "array", "items": {"$ref": "#/$defs/nodeIdentity"}},
@@ -23,7 +23,8 @@
     "combinations": {"type": "array", "items": {"$ref": "#/$defs/combination"}},
     "convergence": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/pDeltaConvergence"}, {"$ref": "#/$defs/newton_convergence"}]},
     "diagnostics": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
-    "geotechnical": {"oneOf": [{"$ref": "#/$defs/soil_result"}, {"$ref": "#/$defs/consolidation_result"}]}
+    "geotechnical": {"oneOf": [{"$ref": "#/$defs/soil_result"}, {"$ref": "#/$defs/consolidation_result"}]},
+    "buckling": {"$ref": "#/$defs/buckling_result"}
   },
   "$defs": {
     "nodeIdentity": {"type": "object", "additionalProperties": false, "required": ["id", "dim", "coordinates", "dofs"], "allOf": [{"if": {"properties": {"dim": {"const": "D2"}}}, "then": {"properties": {"coordinates": {"prefixItems": [{}, {}, {"const": 0}]}}}}], "properties": {"id": {"$ref": "#/$defs/id"}, "dim": {"enum": ["D2", "D3"]}, "coordinates": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}, "dofs": {"type": "array", "items": {"$ref": "#/$defs/dof"}}}},
@@ -185,5 +186,7 @@
     "soil_result": {"type": "object", "additionalProperties": false, "required": ["method", "states"], "properties": {"method": {"const": "soilProfile"}, "states": {"type": "array", "items": {"$ref": "#/$defs/soil_state"}}}},
     "consolidation_state": {"type": "object", "additionalProperties": false, "required": ["time_s", "delta_stress_kpa", "excess_pore_pressure_kpa", "settlement_m", "mean_degree"], "properties": {"time_s": {"type": "number"}, "delta_stress_kpa": {"type": "number"}, "excess_pore_pressure_kpa": {"type": "array", "items": {"type": "number"}}, "settlement_m": {"type": "number"}, "mean_degree": {"type": ["number", "null"]}}},
     "consolidation_result": {"type": "object", "additionalProperties": false, "required": ["method", "depths_m", "assumed_parameters", "states"], "properties": {"method": {"const": "consolidation1d"}, "depths_m": {"type": "array", "items": {"type": "number"}}, "assumed_parameters": {"type": "array", "items": {"type": "string"}}, "states": {"type": "array", "items": {"$ref": "#/$defs/consolidation_state"}}}}
+    ,"buckling_mode": {"type": "object", "additionalProperties": false, "required": ["mode", "eigenvalue", "normalization", "shape"], "properties": {"mode": {"type": "integer", "minimum": 1}, "eigenvalue": {"type": "number"}, "normalization": {"const": "negative_kg"}, "shape": {"type": "array", "items": {"$ref": "#/$defs/node"}}}, "description": "lambda of K + lambda Kg = 0. negative_kg means the free shape satisfies phi^T (-Kg) phi = 1. The global shape is a displacement in m and rad."}
+    ,"buckling_result": {"type": "object", "additionalProperties": false, "required": ["rigid_mode_count", "modes"], "properties": {"rigid_mode_count": {"type": "integer", "minimum": 0}, "modes": {"type": "array", "items": {"$ref": "#/$defs/buckling_mode"}}}, "description": "Lowest finite buckling factors. A numerically zero factor is a mechanism or rigid mode of K."}
   }
 }

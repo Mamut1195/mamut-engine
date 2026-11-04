@@ -62,7 +62,10 @@ AISC 360-16 Comm. C2, casos 1 y 2, con error ≤0.27% frente a tolerancias de
 para el ticket. Véase la [nota de provenance](../../provenance/ENG-CORE-006.md#mam-582--pdelta-estable--2026-10-15).
 `nonlinearStatic`, `soilProfile` y `consolidation1d` son `Experimental` hasta
 que ENG-VAL-006 cubra su validación (decisión de Jonathan vía J0 2026-10-20).
-Los restantes métodos son `Validated` dentro de los fixtures publicados.
+`buckling.linear` es `Experimental` mientras `provenance/ENG-ANL-006.md` siga
+sin firma de J4 y la página de Timoshenko–Gere siga desconocida. pDelta sigue
+`Stable`. `linearStatic`, `modal`, `responseSpectrum` y `combinations` siguen
+`Validated` dentro de los fixtures publicados.
 La opción booleana `options.allow_experimental` (por defecto `false`) exige
 consentimiento `true` en la raíz del job para ejecutar métodos `Experimental`:
 sin él, `run` devuelve `invalid`, código `API-E-INPUT`, salida 2 y causa con el

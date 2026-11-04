@@ -132,3 +132,35 @@ Each mode also satisfies `φᵀ(−Kg)φ = 1` within `1e-8` and `‖(K + λ Kg) 
 ## Open acceptance box
 
 The Linear criterion "Euler en sus 4 condiciones de borde (Timoshenko–Gere)" stays open. The four cases are in the code from this derivation. The book was not consulted, and its citation stays UNKNOWN. The ticket is not Done.
+
+## Publication in run, Python, and TOML (2026-11-04)
+
+This section records the publication asked by `docs/tickets/04-pandeo-en-run.md`. It does not rewrite the library session above. That session did not change the public schema. This publication does.
+
+- Ticket: `docs/tickets/04-pandeo-en-run.md`, MAM-11. The ticket stays open. MAM-11 and MAM-107 are not closed. No time or memory budget is approved.
+- Author: implementation sub-agent, Grok 4.7, 2026-11-04 (America/Guayaquil).
+- Role: implementer. No signature.
+- Contract published: method id `buckling.linear` on the existing `BucklingLinear`. The equation and the solver are unchanged. No second eigensolver. No new dependency. Third-party code copied: none.
+- Permitted sources used: the task text; `docs/CLEAN_ROOM.md`; `docs/tickets/04-pandeo-en-run.md`; this note; the in-repo APIs already named above. No network source. No book was opened.
+- Public surface. `run` accepts `buckling.linear` with `mode_count` and `reference` (`case`, `factor`). Status is Experimental, so the job requires `options.allow_experimental = true`. `capabilities().methods` reports `engine: true` and `run: true`. The reference path reuses `pdelta::geometric_producer`, `StaticLinear::run_about_with_check` (it does not accept state), `LinearSystem::set_geometric_reference`, then `BucklingLinear::run_with_check`. `λ` multiplies that reference `Kg`. A member load on the reference case returns the existing code ENG-E-0013. No new error code. Results use a new optional object `buckling`. `modes` stays the mass-normalized list and is empty for this method. Each factor carries `normalization` `negative_kg`, meaning `φᵀ(−Kg)φ = 1`. On failure the key is removed. The Python facade and `mamut-toml/1` publish the same method. `method = "buckling"` stays rejected.
+- Citation: Timoshenko–Gere citation, page, and table: **UNKNOWN**. The Spanish tests keep **DESCONOCIDO**. No page was invented. `source.kind = analytical`.
+- Schema. `engine-input/1` and `results/1` gain the method literal and the definitions `buckling_options`, `buckling_mode`, and `buckling_result`. The published `schemas/` bytes were regenerated from `engine-api` and match. `docs/V1.md` is the inventory of branch `v1-primera`. It still says `buckling.linear` is unpublished. That sentence describes that inventory and was not edited here.
+- Declaration: "No consulté código fuente de OpenSees, Frame3DD, Stabileo ni derivados para este ticket."
+- Clean-room reviewer: PENDING (J4).
+
+### Evidence for the publication
+
+- claim: a small in-repo column, passed through `run`, the Python facade, and `mamut-toml/1`, returns the library factors. One cubic pinned–pinned element with `E = 200 Pa`, `I = 3 m⁴`, `L = 4 m`, and a nodal load `Ux = −1 N` returns `450 N` within `1e-8`. The same bar with reference factor 2 returns `225 N`. Eight equal elements stay within relative `1e-3` of `C · π² · EI / L²` for `C = 1`, `C = 1/4`, the fixed–pinned root of `tan θ = θ`, and `C = 4`.
+- state: VERIFIED for that numerical claim on this worktree. This is not code compliance and not a comparison with Timoshenko–Gere.
+- gap: book citation UNKNOWN. Clean-room reviewer PENDING. The commit SHA is the head of branch `ticket/04-buckling-run` after this note is committed; it is not written here.
+- execution, host `x86_64-pc-windows-msvc`, Cargo `--offline --locked`:
+  - `cargo test -p engine-api --test buckling`: 6 passed.
+  - The rest of the `engine-api` test binaries passed, including `published_schemas_match_the_complete_api`. `schema_tools_and_release_archive_are_reproducible` failed because Git bash on Windows rewrote the path of `scripts/package-schemas.sh` and exited 127. That failure is environmental.
+  - `cargo clippy -p engine-api --all-targets -- -D warnings`: no errors.
+  - `cargo test -p engine-cli --lib buckling_linear_round_trip_matches_the_one_element_factor`: passed. Round-trip and eigenvalue `450` within `1e-8`.
+  - `cargo clippy -p engine-cli --all-targets -- -D warnings` still stops on a pre-existing `unused_mut` in `crates/engine-cli/src/lib.rs`, which is outside this diff. Allowing that one lint, the same clippy finished clean.
+  - maturin is not installed, so no wheel was built and none was committed. `cargo build -p mamut-engine-py --features pyo3/extension-module` produced the cdylib. Loaded from a temporary copy of the package, `python -m unittest` on `bindings/python/tests/test_buckling.py` and `bindings/python/tests/test_typing.py` ran 5 tests, all passed, including `450` within `1e-8` and the unknown-page citation. A full discovery of `bindings/python/tests` is not that wheel install: it failed on missing package metadata, missing `MAMUT_RUST_REFERENCES`, and Windows rejection of a non-Win32 helper (`WinError 193`). Those failures are environmental.
+- units and tolerances: the same SI scales and tolerances as the library session.
+- sources: this note and `crates/engine-analysis/tests/buckling.rs`. Timoshenko–Gere was not used.
+
+The acceptance box above stays open. The ticket is not Done. Clean-room reviewer: PENDING (J4).
