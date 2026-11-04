@@ -8,6 +8,8 @@
 //! history and kind `steel.bilinear_kinematic`.
 //! [`uniaxial::CubicElastic`] implements `uniaxial/1`, kind `elastic.cubic`,
 //! with a smooth elastic curve derived from an original quartic energy.
+//! [`uniaxial::KentPark`] implements `uniaxial/1`, kind `concrete.kent_park`,
+//! the monotonic Kent–Park compression envelope (A.9)–(A.15).
 //! Parameters and results use SI; there is no unit conversion, geometric
 //! calculation, or global registry. Typed factories construct
 //! `engine-contracts` trait objects without coupling the consumer to an
