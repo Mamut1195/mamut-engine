@@ -169,13 +169,14 @@ diagnósticos con centinelas, según la especificación.
 
 ## Puntos abiertos
 
-Salvo U11, siguen en **DESCONOCIDO — pendiente de decisión de Jonathan**.
+U5, U9 y U11 quedaron decididos en [docs/V1.md](../V1.md), sección 13.
+U7 y U10 conservan el estado **DESCONOCIDO — pendiente de decisión de Jonathan**.
 El registro detallado y la evidencia documental están en la sección 10
 de la especificación:
 
 - U5: definido en MAM-993, [ADR-005](ADR-005-alias-name-idmap.md).
 - U7: prueba de 4096 dígitos frente al límite de 256 bytes por id.
-- U9: detalles completos de escritura textual y extracción de defaults.
+- U9: decidido. Bytes idénticos, UTF-8, LF, un salto final, sangría de dos espacios, orden de la especificación, sin borrar un valor escrito.
 - U10: listas exactas de GDL para expansión de type según dimensión.
 - U11: cerrado en `docs/V1.md`, sección 13. La raíz es el nivel 1. Línea y columna, si hay posición, empiezan en 1.
 - Rendimiento y umbral de aceptación para documentos de 8 MiB.
