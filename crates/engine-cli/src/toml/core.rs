@@ -13,8 +13,9 @@
 //! the order of mamut-toml/1 section 6. A value the author wrote is kept.
 //! `[defaults]` is not extracted by deleting that value. U10 stays open:
 //! `type` is rejected instead of expanded into a DOF list.
-//! U11 stays open: nesting uses a provisional fence, and errors omit line
-//! and column. `spring.nonlinear` is accepted only with `nonlinearStatic`.
+//! U11: the root table is nesting level 1. A document error keeps its code
+//! and reports a 1-based line and column when the parser span exists.
+//! `spring.nonlinear` is accepted only with `nonlinearStatic`.
 
 mod analysis;
 
@@ -108,12 +109,34 @@ fn parse_table(text: &str) -> Result<toml::Table, Failure> {
     match toml::from_str::<toml::Table>(text) {
         Ok(table) => Ok(table),
         Err(error) => {
-            // Parser text can quote source tokens. Keep only the fact of failure.
+            // Parser text can quote source tokens. The code stays. The span,
+            // when it exists, becomes the 1-based position and nothing else.
             let _message = error.message();
-            let _span = error.span();
-            Err(Failure::document("The TOML document is invalid."))
+            Err(Failure::document("The TOML document is invalid.")
+                .with_position(position_hint(text, error.span())))
         }
     }
+}
+
+/// U11. `span` is a byte range. Line and column count Unicode scalar values
+/// and start at 1. A missing span, an index past the text, or an index that
+/// would split a character does not invent a line.
+fn document_position(text: &str, span: Option<std::ops::Range<usize>>) -> Option<(usize, usize)> {
+    let start = span?.start;
+    if start > text.len() || !text.is_char_boundary(start) {
+        return None;
+    }
+    let prefix = &text[..start];
+    let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
+    let after_newline = match prefix.rsplit_once('\n') {
+        Some((_, rest)) => rest,
+        None => prefix,
+    };
+    Some((line, after_newline.chars().count() + 1))
+}
+
+fn position_hint(text: &str, span: Option<std::ops::Range<usize>>) -> Option<String> {
+    document_position(text, span).map(|(line, column)| format!("line {line}, column {column}"))
 }
 
 fn parse_json(text: &str) -> Result<Json, Failure> {
@@ -159,9 +182,8 @@ fn reject_null(value: &Json) -> Result<(), Failure> {
     }
 }
 
-/// Provisional fence. U11 does not decide whether the root counts as a level.
-/// This count treats the root table as one level and each nested table or
-/// array as one more level. It is not the closed convention.
+/// U11: the root table is level 1. Each nested table or array adds one
+/// level, and a scalar counts as one level. Depth 64 remains the limit.
 fn nesting_table(table: &toml::Table) -> usize {
     1 + table.values().map(nesting_value).max().unwrap_or(0)
 }
@@ -3606,6 +3628,7 @@ mod tests {
     fn hidden(failure: &Failure, sentinel: &str) {
         assert!(!failure.cause.contains(sentinel));
         assert!(!failure.pointer.as_deref().unwrap_or("").contains(sentinel));
+        assert!(!failure.hint.as_deref().unwrap_or("").contains(sentinel));
     }
 
     #[test]
@@ -3869,7 +3892,88 @@ mod tests {
         let duplicate = "SENTINEL_DUPKEY_9f3a = 1\nSENTINEL_DUPKEY_9f3a = 2\n";
         let failure = toml_to_json(duplicate).unwrap_err();
         assert_eq!(failure.code, "CLI-E-DOCUMENT");
+        assert_eq!(failure.cause, "The TOML document is invalid.");
+        // The second key starts at the first column of line 2.
+        assert_eq!(failure.hint.as_deref(), Some("line 2, column 1"));
         hidden(&failure, "SENTINEL_DUPKEY_9f3a");
+    }
+
+    #[test]
+    fn document_error_position_starts_at_one_and_counts_scalars() {
+        let first = toml_to_json("=\n").unwrap_err();
+        assert_eq!(first.code, "CLI-E-DOCUMENT");
+        assert_eq!(first.cause, "The TOML document is invalid.");
+        assert_eq!(first.hint.as_deref(), Some("line 1, column 1"));
+        assert!(first.pointer.is_none());
+
+        let second = toml_to_json("\n=\n").unwrap_err();
+        assert_eq!(second.code, "CLI-E-DOCUMENT");
+        assert_eq!(second.hint.as_deref(), Some("line 2, column 1"));
+
+        // U+00F1 is two UTF-8 bytes and one scalar. A byte index inside it is not a column.
+        assert_eq!("ñ".len(), 2);
+        assert_eq!(document_position("ñ=\n", Some(2..3)), Some((1, 2)));
+        assert_eq!(document_position("ñ=\n", Some(1..1)), None);
+        assert_eq!(document_position("ñ=\n", None), None);
+        assert_eq!(document_position("\r\n=", Some(2..2)), Some((2, 1)));
+        assert_eq!(document_position("ab", Some(4..4)), None);
+
+        // The second '=' follows a string whose value is one scalar and two bytes.
+        // Eight scalars precede it, so the column is 9. Its byte index is 9,
+        // so a 1-based byte column would be 10.
+        let multibyte = "a = \"ñ\" =\n";
+        let equals = multibyte.rfind('=').unwrap();
+        assert_eq!(equals, 9);
+        assert_eq!(multibyte[..equals].chars().count() + 1, 9);
+        assert_eq!(equals + 1, 10);
+        let Err(parsed) = toml::from_str::<toml::Table>(multibyte) else {
+            panic!("the multibyte document is invalid");
+        };
+        let _message = parsed.message();
+        let span = parsed.span();
+        assert_eq!(span.as_ref().map(|span| span.start), Some(equals));
+        let reported = toml_to_json(multibyte).unwrap_err();
+        assert_eq!(reported.code, "CLI-E-DOCUMENT");
+        assert_eq!(reported.cause, "The TOML document is invalid.");
+        assert_eq!(reported.hint.as_deref(), Some("line 1, column 9"));
+        assert_eq!(
+            reported.hint.as_deref(),
+            position_hint(multibyte, span).as_deref()
+        );
+    }
+
+    #[test]
+    fn document_error_without_a_span_does_not_invent_a_line() {
+        // The parser's own key limit reports "recursion limit" with no span.
+        // 81 segments make the dotted path reach that limit before our depth check.
+        let key = (0..81).map(|_| "a").collect::<Vec<_>>().join(".");
+        let source = format!("{key} = 1\n");
+        let failure = toml_to_json(&source).unwrap_err();
+        assert_eq!(failure.code, "CLI-E-DOCUMENT");
+        assert_eq!(failure.cause, "The TOML document is invalid.");
+        assert!(failure.hint.is_none());
+        assert!(failure.pointer.is_none());
+    }
+
+    #[test]
+    fn nesting_limit_still_counts_the_root_as_level_one() {
+        // Header of N names, then one integer: depth = 1 (root) + N + 1 (scalar).
+        let inside = format!(
+            "[{}]\nx = 1\n",
+            (0..62).map(|_| "a").collect::<Vec<_>>().join(".")
+        );
+        assert_ne!(
+            toml_to_json(&inside).unwrap_err().cause,
+            "The nesting exceeds the depth limit."
+        );
+        let outside = format!(
+            "[{}]\nx = 1\n",
+            (0..63).map(|_| "a").collect::<Vec<_>>().join(".")
+        );
+        let failure = toml_to_json(&outside).unwrap_err();
+        assert_eq!(failure.code, "CLI-E-VALIDATION");
+        assert_eq!(failure.cause, "The nesting exceeds the depth limit.");
+        assert!(failure.hint.is_none());
     }
 
     #[test]

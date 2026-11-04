@@ -345,9 +345,8 @@ CLI-E-VALIDATION sin eco. Los ids duplicados son exclusivamente los
 idénticos byte a byte; ENG-E-0002 conserva ese significado cuando
 procede del motor. Las reglas del conversor usan las salidas de la sección 9.
 
-La convención exacta de conteo de profundidad se registra en U11: el
-límite y el momento del control están decididos, su contabilidad no se
-inventa aquí.
+U11, en `docs/V1.md` sección 13: la raíz cuenta como nivel 1. El límite
+sigue siendo 64 y el control sigue siendo justo después de parsear.
 
 ## 6. Orden canónico del export
 
@@ -518,7 +517,9 @@ Los punteros se forman por segmentos, escapando ~ como ~0 y / como
 64 bytes sin romper UTF-8; si se añade …, cabe dentro de esos 64 bytes.
 Una clave desconocida se señala por el padre y su ubicación, sin
 reproducir la clave. La línea y la columna no requieren campos nuevos.
-La convención de base de estas coordenadas queda en U11.
+U11, en `docs/V1.md` sección 13: si el error tiene posición, la línea y
+la columna empiezan en 1. Si no tiene posición, no se inventa una línea.
+El código del diagnóstico no cambia.
 
 La colisión de propiedades de sección y parámetros de ley lleva
 error propio sin eco y puntero a la ubicación del parámetro en la ley.
@@ -569,17 +570,16 @@ y fallo interno. No se alteran 0/1 de
 
 ## 10. Registro de puntos abiertos
 
-U9 quedó decidido en [docs/V1.md](../V1.md), sección 13. Las demás filas
-siguen en **DESCONOCIDO — pendiente de decisión de Jonathan**.
+U5, U9 y U11 quedaron decididos en [docs/V1.md](../V1.md), sección 13.
+U7 y U10 siguen en **DESCONOCIDO — pendiente de decisión de Jonathan**.
 No se elige una alternativa por silencio, ni se presenta como verificada.
-U5 salió de esta tabla: la decisión está en [V1.md](../V1.md), sección 13.
 
 | Punto | Estado | Contradicción o precisión pendiente |
 | --- | --- | --- |
 | U7 | DESCONOCIDO — pendiente de decisión de Jonathan | Caso 32 de v4.2, con 4096 dígitos, frente al máximo público de 256 bytes por id. La comparación matemática y el rechazo público están descritos; queda pendiente el alcance de la prueba que exigía aceptación del caso largo. |
 | U9 | Decidido en docs/V1.md, sección 13 | Dos exports del mismo modelo son los mismos bytes: UTF-8, LF, un salto final, sangría de dos espacios y las claves en el orden de la sección 6. No se borra un valor que la persona escribió. |
 | U10 | DESCONOCIDO — pendiente de decisión de Jonathan | El plan v4 exige expandir los cuatro type de apoyo según dimensión, pero no enumera las listas de GDL para todas las dimensiones y conjuntos activos. El esquema solo define restrained. No se deducen listas nuevas para cerrar ese vacío. |
-| U11 | DESCONOCIDO — pendiente de decisión de Jonathan | Profundidad 64 y posiciones UTF-8 están decididas; las fuentes permitidas no precisan si la raíz cuenta como nivel ni la base de línea/columna. Deben concretarse antes de establecer expectativas de frontera. |
+| U11 | Decidido en `docs/V1.md`, sección 13 | La raíz cuenta como nivel 1. Línea y columna, cuando existan, empiezan en 1. |
 
 El rendimiento y el umbral de la prueba de 8 MiB con muchos tramos por id
 son **DESCONOCIDO — pendiente de decisión de Jonathan** después de medir
@@ -605,8 +605,8 @@ clases de hash de U3: {4, 4.0, 4e0} y {0, 0.0, -0.0}, con igualdad dentro
 de cada clase y diferencia entre clases. Para TOML, archivo de entrada
 que falta, error de lectura, UTF-8 inválido o tamaño excedido deben
 producir CLI-E-DOCUMENT/2; un fallo al escribir la salida, CLI-E-INTERNAL/70.
-Las expectativas de U7 y U11 requieren decisión antes de
-cerrar sus pruebas.
+Las expectativas de U7 requieren decisión antes de cerrar sus pruebas.
+U11 ya está decidido en `docs/V1.md`, sección 13.
 
 La sintaxis TOML 1.1 incluye tablas en línea multilínea, coma final
 permitida por esa gramática y escapes \e y \xHH. Un diferencial con

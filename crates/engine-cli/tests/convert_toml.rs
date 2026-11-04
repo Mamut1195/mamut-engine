@@ -166,6 +166,27 @@ fn usage_document_and_unsupported_keep_the_registered_contract() {
     );
     assert!(!text.contains("\\xff") && !text.contains("0xff"));
 
+    let (code, envelope, text, _) = error_of(&["convert", "--input", "-"], b"=\n");
+    assert_eq!(code, 2);
+    assert_eq!(envelope["code"], "CLI-E-DOCUMENT");
+    assert_eq!(envelope["diagnostics"][0]["code"], "CLI-E-DOCUMENT");
+    assert_eq!(
+        envelope["diagnostics"][0]["cause"],
+        "The TOML document is invalid."
+    );
+    assert_eq!(envelope["hint"], "line 1, column 1");
+    assert_eq!(envelope["diagnostics"][0]["hint"], "line 1, column 1");
+    assert!(envelope["pointer"].is_null());
+    assert!(!text.contains('='));
+
+    let deep_key = format!("{} = 1\n", ["a"; 81].join("."));
+    let (code, envelope, text, _) = error_of(&["convert", "--input", "-"], deep_key.as_bytes());
+    assert_eq!(code, 2);
+    assert_eq!(envelope["code"], "CLI-E-DOCUMENT");
+    assert!(envelope["hint"].is_null());
+    assert!(envelope["diagnostics"][0]["hint"].is_null());
+    assert!(!text.contains("line "));
+
     let bad = "format = \"mamut-toml/2\"\nunits = \"SI\"\n[analysis]\nmethod = \"linearStatic\"\n";
     let (code, envelope, _, _) = error_of(&["convert", "--input", "-"], bad.as_bytes());
     assert_eq!(code, 3);
