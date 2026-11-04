@@ -155,15 +155,15 @@ fn diagonal_and_spatial_directions_match_the_hand_projection() {
         .fixed_end_uniform_temperature(&ctx(Dim::D3, &spatial, &params), 0.5, 3.0, &[0.5])
         .unwrap();
     assert_eq!(body.axial_force, -magnitude);
-    for axis in 0..3 {
-        let component = (magnitude * along[axis]) / 7.0;
+    for (axis, direction) in along.iter().enumerate() {
+        let component = (magnitude * direction) / 7.0;
         close(body.joint_forces[axis], -component);
         close(body.joint_forces[3 + axis], component);
     }
     let mut sum = [0.0; 3];
-    for axis in 0..3 {
-        sum[axis] = body.joint_forces[axis] + body.joint_forces[3 + axis];
-        close(sum[axis], 0.0);
+    for (axis, total) in sum.iter_mut().enumerate() {
+        *total = body.joint_forces[axis] + body.joint_forces[3 + axis];
+        close(*total, 0.0);
     }
 }
 
@@ -369,8 +369,7 @@ fn nonfinite_overflow_and_geometry_use_existing_codes() {
                 delta_t,
                 stations,
             )
-            .err()
-            .expect("must fail")
+            .expect_err("must fail")
             .code
     };
     assert_eq!(code(f64::NAN, 3.0, &[]), "ENG-E-0008");
@@ -381,13 +380,11 @@ fn nonfinite_overflow_and_geometry_use_existing_codes() {
     let collapsed = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]];
     let short = element
         .fixed_end_uniform_temperature(&ctx(Dim::D2, &collapsed, &params), 0.5, 3.0, &[])
-        .err()
-        .expect("must fail");
+        .expect_err("must fail");
     assert_eq!(short.code, "ENG-E-0005");
     let lifted = [[0.0, 0.0, 0.0], [2.0, 0.0, 1.0]];
     let spatial = element
         .fixed_end_uniform_temperature(&ctx(Dim::D2, &lifted, &params), 0.5, 3.0, &[])
-        .err()
-        .expect("must fail");
+        .expect_err("must fail");
     assert_eq!(spatial.code, "ENG-E-0010");
 }

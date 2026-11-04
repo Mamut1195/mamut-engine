@@ -14,11 +14,13 @@ use std::{
 const GUIDE: &str = include_str!("../../../docs/GUIA_CLI_AGENTES.md");
 const ERROR_CODES: &str = include_str!("../../../docs/contracts/error-codes-1.json");
 
+#[cfg(unix)]
 struct Fence<'a> {
     info: &'a str,
     body: String,
 }
 
+#[cfg(unix)]
 fn fences(source: &str) -> Vec<Fence<'_>> {
     let mut blocks = Vec::new();
     let mut lines = source.lines();
