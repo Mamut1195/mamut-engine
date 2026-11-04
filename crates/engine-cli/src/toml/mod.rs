@@ -2,10 +2,9 @@
 
 //! `mamut-engine convert` for mamut-toml/1.
 //!
-//! The mapped subset is the structural core plus masses, loads, member
-//! loads, cases, combinations, prescribed displacements, diaphragms, and
-//! springs. U5, U7, U9, U10, and U11 stay open. A method other than
-//! `linearStatic` stays rejected.
+//! The mapped subset is the structural core, the load collections, and the
+//! analysis branches written in mamut-toml/1. U5, U7, U9, U10, and U11 stay
+//! open. `spring.nonlinear` is accepted only with `nonlinearStatic`.
 
 mod core;
 mod order;

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! Map mamut-toml/1 to engine-input/1 and back for the structural core and
-//! the load, mass, combination, prescribed, diaphragm, and spring collections.
+//! Map mamut-toml/1 to engine-input/1 and back for the structural core,
+//! the load collections, and the analysis branches.
 //!
 //! U5 stays open: textual aliases of node, member, and spring ids are rejected.
 //! U7 stays open: an identifier longer than 256 bytes is rejected.
@@ -9,7 +9,9 @@
 //! and it does not extract `[defaults]`.
 //! U10 stays open: `type` is rejected instead of expanded into a DOF list.
 //! U11 stays open: nesting uses a provisional fence, and errors omit line
-//! and column. Methods other than `linearStatic` stay rejected.
+//! and column. `spring.nonlinear` is accepted only with `nonlinearStatic`.
+
+mod analysis;
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -185,7 +187,6 @@ fn root_from_toml(table: &toml::Table) -> Result<Json, Failure> {
     require_format(table)?;
     require_units(table)?;
     let experimental = allow_experimental(table)?;
-    require_linear_static(table)?;
     let defaults = parse_defaults(table)?;
     let nodes = parse_nodes(optional_array(table, "nodes")?, &defaults)?;
     let sections = parse_sections(optional_table(table, "sections")?)?;
@@ -193,11 +194,42 @@ fn root_from_toml(table: &toml::Table) -> Result<Json, Failure> {
     let members = parse_members(optional_array(table, "members")?, &nodes, &sections, &laws)?;
     let supports = parse_supports(optional_array(table, "supports")?, &nodes)?;
     let masses = parse_masses(optional_array(table, "masses")?, &nodes)?;
-    let springs = parse_springs(optional_array(table, "springs")?, &nodes, &members)?;
+    let springs_empty = match optional_array(table, "springs")? {
+        Some(items) => items.is_empty(),
+        None => true,
+    };
     let prescribed = parse_prescribed(optional_array(table, "prescribed")?, &nodes)?;
     let diaphragms = parse_diaphragms(optional_array(table, "diaphragms")?, &nodes)?;
     let cases = parse_cases(optional_array(table, "cases")?, &nodes, &members)?;
     let combinations = parse_combinations(optional_table(table, "combinations")?, &cases.names)?;
+    let analysis = analysis::from_toml(
+        table,
+        &cases.names,
+        &analysis::BranchContext {
+            experimental,
+            structural_empty: nodes.is_empty()
+                && members.is_empty()
+                && sections.is_empty()
+                && laws.is_empty()
+                && supports.is_empty()
+                && masses.is_empty()
+                && springs_empty
+                && prescribed.is_empty()
+                && diaphragms.is_empty()
+                && cases.bodies.is_empty()
+                && combinations.is_empty(),
+            combinations_empty: combinations.is_empty(),
+            diaphragms_empty: diaphragms.is_empty(),
+        },
+    )?;
+    let law_names = laws.iter().map(|law| law.name.clone()).collect();
+    let springs = parse_springs(
+        optional_array(table, "springs")?,
+        &nodes,
+        &members,
+        analysis.nonlinear,
+        &law_names,
+    )?;
     Ok(assemble(
         nodes,
         members,
@@ -211,6 +243,7 @@ fn root_from_toml(table: &toml::Table) -> Result<Json, Failure> {
         cases.bodies,
         combinations,
         experimental,
+        analysis.body,
     ))
 }
 
@@ -275,32 +308,6 @@ fn allow_experimental(table: &toml::Table) -> Result<bool, Failure> {
         Some(_) => Err(Failure::validation(
             Some("/options".to_string()),
             "A value has the wrong type.",
-        )),
-    }
-}
-
-fn require_linear_static(table: &toml::Table) -> Result<(), Failure> {
-    let Some(value) = table.get("analysis") else {
-        return Err(Failure::validation(
-            Some(String::new()),
-            "The analysis field is missing.",
-        ));
-    };
-    let analysis = as_table(value, "/analysis")?;
-    reject_toml_keys(analysis, &["method"], "/analysis")?;
-    match analysis.get("method") {
-        Some(Toml::String(value)) if value == "linearStatic" => Ok(()),
-        Some(Toml::String(_)) => Err(Failure::validation(
-            Some("/analysis".to_string()),
-            "This analysis method is outside the implemented subset.",
-        )),
-        Some(_) => Err(Failure::validation(
-            Some("/analysis".to_string()),
-            "A value has the wrong type.",
-        )),
-        None => Err(Failure::validation(
-            Some("/analysis".to_string()),
-            "A required field is missing.",
         )),
     }
 }
@@ -793,6 +800,8 @@ fn parse_springs(
     items: Option<&Vec<Toml>>,
     nodes: &[NodeRec],
     members: &[MemberRec],
+    nonlinear: bool,
+    laws: &BTreeSet<String>,
 ) -> Result<Vec<SpringRec>, Failure> {
     let Some(items) = items else {
         return Ok(Vec::new());
@@ -857,11 +866,33 @@ fn parse_springs(
                 }
             };
             body["k"] = k;
-        } else {
+        } else if !nonlinear {
             return Err(Failure::validation(
                 Some(pointer),
                 "A nonlinear spring requires nonlinearStatic.",
             ));
+        } else if table.contains_key("k") {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A nonlinear spring forbids a stiffness.",
+            ));
+        } else {
+            let law = match table.get("law") {
+                Some(value) => expect_text(value, &pointer)?,
+                None => {
+                    return Err(Failure::validation(
+                        Some(pointer),
+                        "A required field is missing.",
+                    ))
+                }
+            };
+            if !laws.contains(&law) {
+                return Err(Failure::validation(
+                    Some(pointer),
+                    "A reference does not exist.",
+                ));
+            }
+            body["law"] = json!(law);
         }
         if let Some(direction) = direction {
             body["direction"] = direction;
@@ -1117,6 +1148,7 @@ fn assemble(
     cases: Vec<Json>,
     combinations: Vec<CombinationRec>,
     experimental: bool,
+    analysis: Json,
 ) -> Json {
     let options = if experimental {
         json!({"allow_experimental": true})
@@ -1147,7 +1179,7 @@ fn assemble(
         "model": model,
         "cases": cases,
         "combinations": combinations.into_iter().map(|combination| combination.body).collect::<Vec<_>>(),
-        "analyses": [{"method": "linearStatic"}],
+        "analyses": [analysis],
         "options": options,
     })
 }
@@ -1698,7 +1730,6 @@ fn export_root(value: &Json) -> Result<String, Failure> {
             ))
         }
     }
-    require_json_linear_static(root)?;
     let experimental = json_experimental(root)?;
     let model = match root.get("model") {
         Some(model) => as_object(model, "/model")?,
@@ -1742,100 +1773,56 @@ fn export_root(value: &Json) -> Result<String, Failure> {
     }
     let nodes = required_array(model, "nodes", "/model/nodes")?;
     let members = required_array(model, "members", "/model/members")?;
+    let sections = required_array(model, "sections", "/model/sections")?;
+    let laws = required_array(model, "laws", "/model/laws")?;
+    let supports = required_array(model, "supports", "/model/supports")?;
+    let masses = json_items(model, "masses", "/model/masses")?;
+    let springs = json_items(model, "springs", "/model/springs")?;
+    let prescribed = json_items(model, "prescribed", "/model/prescribed")?;
+    let diaphragms = json_items(model, "diaphragms", "/model/diaphragms")?;
+    let cases = json_items(root, "cases", "/cases")?;
+    let combinations = json_items(root, "combinations", "/combinations")?;
+    let case_names = case_name_set(cases)?;
+    let analysis = analysis::from_json(
+        root,
+        &case_names,
+        &analysis::BranchContext {
+            experimental,
+            structural_empty: nodes.is_empty()
+                && members.is_empty()
+                && sections.is_empty()
+                && laws.is_empty()
+                && supports.is_empty()
+                && masses.is_empty()
+                && springs.is_empty()
+                && prescribed.is_empty()
+                && diaphragms.is_empty()
+                && cases.is_empty()
+                && combinations.is_empty(),
+            combinations_empty: combinations.is_empty(),
+            diaphragms_empty: diaphragms.is_empty(),
+        },
+    )?;
     let mut out = Out::default();
     out.entry("format", "\"mamut-toml/1\"");
     out.entry("units", "\"SI\"");
     write_nodes(&mut out, nodes)?;
-    write_sections(
-        &mut out,
-        required_array(model, "sections", "/model/sections")?,
-    )?;
-    write_laws(&mut out, required_array(model, "laws", "/model/laws")?)?;
-    write_members(
-        &mut out,
-        members,
-        nodes,
-        required_array(model, "sections", "/model/sections")?,
-        required_array(model, "laws", "/model/laws")?,
-    )?;
-    write_supports(
-        &mut out,
-        required_array(model, "supports", "/model/supports")?,
-        nodes,
-    )?;
-    write_masses(
-        &mut out,
-        json_items(model, "masses", "/model/masses")?,
-        nodes,
-    )?;
-    write_springs(
-        &mut out,
-        json_items(model, "springs", "/model/springs")?,
-        nodes,
-        members,
-    )?;
-    write_prescribed(
-        &mut out,
-        json_items(model, "prescribed", "/model/prescribed")?,
-        nodes,
-    )?;
-    write_diaphragms(
-        &mut out,
-        json_items(model, "diaphragms", "/model/diaphragms")?,
-        nodes,
-    )?;
-    let case_names = write_cases(
-        &mut out,
-        json_items(root, "cases", "/cases")?,
-        nodes,
-        members,
-    )?;
-    write_combinations(
-        &mut out,
-        json_items(root, "combinations", "/combinations")?,
-        &case_names,
-    )?;
-    out.header("[analysis]");
-    out.entry("method", "\"linearStatic\"");
+    write_sections(&mut out, sections)?;
+    write_laws(&mut out, laws)?;
+    write_members(&mut out, members, nodes, sections, laws)?;
+    write_supports(&mut out, supports, nodes)?;
+    write_masses(&mut out, masses, nodes)?;
+    write_springs(&mut out, springs, nodes, members, analysis.nonlinear, laws)?;
+    write_prescribed(&mut out, prescribed, nodes)?;
+    write_diaphragms(&mut out, diaphragms, nodes)?;
+    let case_names = write_cases(&mut out, cases, nodes, members)?;
+    write_combinations(&mut out, combinations, &case_names)?;
+    analysis::write(&mut out, &analysis)?;
     if experimental {
         out.header("[options]");
         out.entry("allow_experimental", "true");
     }
     Ok(out.finish())
-}
-
-fn require_json_linear_static(root: &serde_json::Map<String, Json>) -> Result<(), Failure> {
-    let Some(value) = root.get("analyses") else {
-        return Err(Failure::validation(
-            Some(String::new()),
-            "The analysis field is missing.",
-        ));
-    };
-    let Some(items) = value.as_array() else {
-        return Err(Failure::validation(
-            Some("/analyses".to_string()),
-            "A collection has the wrong shape.",
-        ));
-    };
-    if items.len() != 1 {
-        return Err(Failure::validation(
-            Some("/analyses".to_string()),
-            "A required field is missing.",
-        ));
-    }
-    let analysis = as_object(&items[0], "/analyses/0")?;
-    reject_json_keys(analysis, &["method"], "/analyses/0")?;
-    match analysis.get("method").and_then(Json::as_str) {
-        Some("linearStatic") => Ok(()),
-        Some(_) => Err(Failure::validation(
-            Some("/analyses/0".to_string()),
-            "This analysis method is outside the implemented subset.",
-        )),
-        None => Err(Failure::validation(
-            Some("/analyses/0".to_string()),
-            "A required field is missing.",
-        )),
-    }
 }
 
 fn json_experimental(root: &serde_json::Map<String, Json>) -> Result<bool, Failure> {
@@ -2157,6 +2144,8 @@ fn write_springs(
     items: &[Json],
     nodes: &[Json],
     members: &[Json],
+    nonlinear: bool,
+    laws: &[Json],
 ) -> Result<(), Failure> {
     if members.len() + items.len() > MAX_MEMBERS {
         return Err(Failure::validation(
@@ -2166,6 +2155,14 @@ fn write_springs(
     }
     let node_ids = node_dims(nodes)?;
     let mut seen = member_id_set(members)?;
+    let law_names = if nonlinear {
+        law_records(laws)?
+            .into_iter()
+            .map(|law| law.name)
+            .collect::<BTreeSet<_>>()
+    } else {
+        BTreeSet::new()
+    };
     let springs = sorted_objects(items, "/model/springs", |object, pointer| {
         Ok(order::natural_key(json_u32_id(object, pointer)?.as_bytes()))
     })?;
@@ -2208,33 +2205,60 @@ fn write_springs(
                 "Direction and rotation are mutually exclusive.",
             ));
         }
-        if kind == "spring.nonlinear" {
-            return Err(Failure::validation(
-                Some(pointer),
-                "A nonlinear spring requires nonlinearStatic.",
-            ));
-        }
-        if spring.contains_key("law") {
-            return Err(Failure::validation(
-                Some(pointer),
-                "A linear spring forbids a law.",
-            ));
-        }
-        let k = match spring.get("k") {
-            Some(value) => json_nonnegative(value, &pointer)?,
-            None => {
+        let nonlinear_law = if kind == "spring.nonlinear" {
+            if !nonlinear {
                 return Err(Failure::validation(
-                    Some(pointer),
-                    "A required field is missing.",
-                ))
+                    Some(pointer.clone()),
+                    "A nonlinear spring requires nonlinearStatic.",
+                ));
             }
+            if spring.contains_key("k") {
+                return Err(Failure::validation(
+                    Some(pointer.clone()),
+                    "A nonlinear spring forbids a stiffness.",
+                ));
+            }
+            let law = json_text_field(spring, "law", &pointer)?;
+            if !law_names.contains(&law) {
+                return Err(Failure::validation(
+                    Some(pointer.clone()),
+                    "A reference does not exist.",
+                ));
+            }
+            Some(law)
+        } else {
+            if spring.contains_key("law") {
+                return Err(Failure::validation(
+                    Some(pointer.clone()),
+                    "A linear spring forbids a law.",
+                ));
+            }
+            None
+        };
+        let k = if nonlinear_law.is_none() {
+            Some(match spring.get("k") {
+                Some(value) => json_nonnegative(value, &pointer)?,
+                None => {
+                    return Err(Failure::validation(
+                        Some(pointer),
+                        "A required field is missing.",
+                    ))
+                }
+            })
+        } else {
+            None
         };
         out.header("[[springs]]");
         out.entry("id", &id.to_string());
         out.entry("nodes", &format_id_list(&endpoints));
         out.entry("kind", &quoted(&kind));
         out.entry("dof", &quoted(&dof));
-        out.entry("k", &format_f64(k)?);
+        if let Some(k) = k {
+            out.entry("k", &format_f64(k)?);
+        }
+        if let Some(law) = nonlinear_law {
+            out.entry("law", &quoted(&law));
+        }
         if let Some(direction) = direction {
             out.entry("direction", &format_vec3_text(direction)?);
         }
@@ -2300,6 +2324,28 @@ fn write_diaphragms(out: &mut Out, items: &[Json], nodes: &[Json]) -> Result<(),
         out.entry("slaves", &format_id_list(&slaves));
     }
     Ok(())
+}
+
+fn case_name_set(items: &[Json]) -> Result<BTreeSet<String>, Failure> {
+    if items.len() > MAX_CASES {
+        return Err(Failure::validation(
+            Some("/cases".to_string()),
+            "A schema limit was exceeded.",
+        ));
+    }
+    let mut names = BTreeSet::new();
+    for (index, item) in items.iter().enumerate() {
+        let pointer = format!("/cases/{index}");
+        let case = as_object(item, &pointer)?;
+        let name = json_text_field(case, "name", &pointer)?;
+        if !names.insert(name) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "An identifier is duplicated.",
+            ));
+        }
+    }
+    Ok(names)
 }
 
 fn write_cases(
@@ -3588,11 +3634,19 @@ mod tests {
         assert_eq!(accepted["cases"][0]["loads"], json!([]));
         assert_eq!(
             toml_to_json(
-                "format = \"mamut-toml/1\"\nunits = \"SI\"\n[analysis]\nmethod = \"pDelta\"\n"
+                "format = \"mamut-toml/1\"\nunits = \"SI\"\n[analysis]\nmethod = \"buckling\"\n"
             )
             .unwrap_err()
             .cause,
             "This analysis method is outside the implemented subset."
+        );
+        assert_eq!(
+            toml_to_json(
+                "format = \"mamut-toml/1\"\nunits = \"SI\"\n[analysis]\nmethod = \"pDelta\"\n"
+            )
+            .unwrap_err()
+            .cause,
+            "A required field is missing."
         );
         assert!(toml_to_json(&minimal("cases = []\n")).is_ok());
         let deep = format!(
@@ -4030,5 +4084,350 @@ mod tests {
         let exported = json_to_toml(&serde_json::to_string(&rotation).unwrap()).unwrap();
         assert!(exported.contains("rotation = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]"));
         assert!(!exported.contains("direction"));
+    }
+
+    fn round_trip(source: &str) -> (Json, String) {
+        let json = toml_to_json(source).unwrap_or_else(|error| panic!("{}", error.cause));
+        let toml = json_to_toml(&json).unwrap_or_else(|error| panic!("{}", error.cause));
+        assert_eq!(json_to_toml(&json).unwrap(), toml);
+        let again = toml_to_json(&toml).unwrap();
+        assert_eq!(
+            engine_api::input_sha256(json.trim()).unwrap(),
+            engine_api::input_sha256(again.trim()).unwrap()
+        );
+        (serde_json::from_str(json.trim()).unwrap(), toml)
+    }
+
+    #[test]
+    fn analysis_branches_round_trip_without_invented_values() {
+        let (p_delta, p_delta_toml) = round_trip(
+            r#"
+            format = "mamut-toml/1"
+            units = "SI"
+            [[nodes]]
+            id = 1
+            x = 0
+            y = 0
+            z = 0
+            dim = "D2"
+            dofs = ["Ux"]
+            [[cases]]
+            name = "G"
+            [[cases]]
+            name = "H"
+            [analysis]
+            method = "pDelta"
+            tolerance = 1e-10
+            max_iterations = 100
+            displacement_scale = 1
+            rotation_scale = 2
+            [analysis.gravity]
+            case = "G"
+            factor = 1
+            [analysis.lateral]
+            case = "H"
+            factor = -0.5
+            "#,
+        );
+        assert_eq!(p_delta["analyses"][0]["method"], "pDelta");
+        assert_eq!(p_delta["analyses"][0]["options"]["tolerance"], 1e-10);
+        assert_eq!(p_delta["analyses"][0]["options"]["lateral"]["factor"], -0.5);
+        assert!(p_delta_toml.contains("[analysis.gravity]"));
+        assert!(!p_delta_toml.contains("mass_source"));
+
+        let (modal, modal_toml) = round_trip(
+            r#"
+            format = "mamut-toml/1"
+            units = "SI"
+            [[cases]]
+            name = "D"
+            [analysis]
+            method = "modal"
+            mode_count = 2
+            mass_kind = "consistent"
+            directions = [[1, 0, 0], [0, 1, 0]]
+            [analysis.mass_source]
+            method = "masses_from_case"
+            case = "D"
+            factor = 1
+            direction = [0, 0, -1]
+            gravity = 9.80665
+            "#,
+        );
+        assert_eq!(modal["analyses"][0]["options"]["directions"][1][1], 1);
+        assert_eq!(
+            modal["analyses"][0]["options"]["mass_source"]["gravity"],
+            9.80665
+        );
+        assert!(modal_toml.find("directions").unwrap() < modal_toml.find("mass_source").unwrap());
+        let (bare_modal, bare_modal_toml) = round_trip(
+            r#"
+            format = "mamut-toml/1"
+            units = "SI"
+            [analysis]
+            method = "modal"
+            mode_count = 1
+            mass_kind = "lumped"
+            directions = [[1, 0, 0]]
+            "#,
+        );
+        assert!(bare_modal["analyses"][0]["options"].get("mass_source").is_none());
+        assert!(!bare_modal_toml.contains("mass_source"));
+
+        let (spectrum, spectrum_toml) = round_trip(
+            r#"
+            format = "mamut-toml/1"
+            units = "SI"
+            [analysis]
+            method = "responseSpectrum"
+            mode_count = 1
+            mass_kind = "lumped"
+            modal_combination = "cqc"
+            directional_combination = "weightedSum"
+            directional_factors = [1, 0]
+            [[analysis.directions]]
+            direction = [0, 1, 0]
+            [[analysis.directions.spectra]]
+            pairs = [[0, 3], [10, 3]]
+            units = "periodSecondsAccelerationMetersPerSecondSquared"
+            damping = 0.05
+            interpolation = "logLog"
+            extrapolation = "plateau"
+            [[analysis.directions]]
+            direction = [1, 0, 0]
+            [[analysis.directions.spectra]]
+            pairs = [[1, 2], [2, 1]]
+            units = "frequencyHertzAccelerationMetersPerSecondSquared"
+            damping = 0
+            interpolation = "linear"
+            extrapolation = "error"
+            "#,
+        );
+        assert_eq!(
+            spectrum["analyses"][0]["options"]["directions"][0]["direction"][1],
+            1
+        );
+        assert_eq!(
+            spectrum["analyses"][0]["options"]["directions"][1]["spectra"][0]["units"],
+            "frequencyHertzAccelerationMetersPerSecondSquared"
+        );
+        let first = spectrum_toml.find("direction = [0, 1, 0]").unwrap();
+        let second = spectrum_toml.find("direction = [1, 0, 0]").unwrap();
+        assert!(first < second);
+
+        let (newton, newton_toml) = round_trip(
+            r#"
+            format = "mamut-toml/1"
+            units = "SI"
+            [options]
+            allow_experimental = true
+            [[nodes]]
+            id = 1
+            x = 0
+            y = 0
+            z = 0
+            dim = "D2"
+            dofs = ["Ux"]
+            [laws.L]
+            kind = "elastic"
+            E = 1
+            [[cases]]
+            name = "P"
+            [[springs]]
+            id = 3
+            nodes = [1]
+            kind = "spring.nonlinear"
+            dof = "Ux"
+            law = "L"
+            [analysis]
+            method = "nonlinearStatic"
+            case = "P"
+            load_factors = [1, -0.5, 1]
+            tolerance = 1e-8
+            max_iterations = 30
+            force_scale = 16
+            displacement_scale = 2
+            displacement_tolerance = 1e-6
+            "#,
+        );
+        assert_eq!(newton["model"]["springs"][0]["kind"], "spring.nonlinear");
+        assert_eq!(newton["model"]["springs"][0]["law"], "L");
+        assert!(newton["model"]["springs"][0].get("k").is_none());
+        assert_eq!(
+            newton["analyses"][0]["options"]["load_factors"],
+            json!([1, -0.5, 1])
+        );
+        assert!(newton["analyses"][0]["options"].get("energy_scale").is_none());
+        assert!(newton_toml.contains("law = \"L\""));
+        assert!(!newton_toml.contains("\nk = "));
+
+        let (soil, soil_toml) = round_trip(
+            r#"
+            format = "mamut-toml/1"
+            units = "SI"
+            [options]
+            allow_experimental = true
+            [analysis]
+            method = "soilProfile"
+            depths_m = [0, 1]
+            [[analysis.layers]]
+            thickness_m = 2
+            "#,
+        );
+        assert!(soil["analyses"][0]["options"]["layers"][0].get("gamma_kn_m3").is_none());
+        assert!(soil["analyses"][0]["options"].get("groundwater_depth_m").is_none());
+        assert!(!soil_toml.contains("gamma_"));
+        let (soil_full, _) = round_trip(
+            r#"
+            format = "mamut-toml/1"
+            units = "SI"
+            [options]
+            allow_experimental = true
+            [analysis]
+            method = "soilProfile"
+            depths_m = [0, 5]
+            groundwater_depth_m = { value = 1, provenance = "measured" }
+            water_unit_weight_kn_m3 = { value = 10, provenance = "assumed" }
+            [[analysis.layers]]
+            thickness_m = 2
+            gamma_kn_m3 = { value = 18, provenance = "measured" }
+            gamma_sat_kn_m3 = { value = 20, provenance = "measured" }
+            [[analysis.layers]]
+            thickness_m = 3
+            gamma_kn_m3 = { value = 19, provenance = "assumed" }
+            "#,
+        );
+        assert_eq!(soil_full["analyses"][0]["options"]["layers"][1]["thickness_m"], 3);
+        assert_eq!(
+            soil_full["analyses"][0]["options"]["layers"][1]["gamma_kn_m3"]["provenance"],
+            "assumed"
+        );
+
+        let (consolidation, _) = round_trip(
+            r#"
+            format = "mamut-toml/1"
+            units = "SI"
+            [options]
+            allow_experimental = true
+            [analysis]
+            method = "consolidation1d"
+            drainage = "double"
+            output_times_s = [0, 10]
+            theta = 1
+            max_step_s = 0.05
+            [[analysis.layers]]
+            thickness_m = { value = 0.5, provenance = "measured" }
+            elements = 4
+            [[analysis.history]]
+            time_s = 0
+            [[analysis.history]]
+            time_s = 10
+            delta_stress_kpa = { value = 20, provenance = "assumed" }
+            "#,
+        );
+        let layer = &consolidation["analyses"][0]["options"]["layers"][0];
+        assert!(layer.get("cv_m2_s").is_none());
+        assert!(consolidation["analyses"][0]["options"].get("water_unit_weight_kn_m3").is_none());
+        assert!(consolidation["analyses"][0]["options"]["history"][0].get("delta_stress_kpa").is_none());
+        assert_eq!(consolidation["analyses"][0]["options"]["history"][1]["time_s"], 10);
+    }
+
+    #[test]
+    fn analysis_branch_rules_stay_closed() {
+        let base = "format = \"mamut-toml/1\"\nunits = \"SI\"\n";
+        let cause = |body: &str| toml_to_json(&format!("{base}{body}")).unwrap_err().cause;
+        assert_eq!(
+            cause("[analysis]\nmethod = \"SENTINEL_METHOD_9f3a\"\n"),
+            "This analysis method is outside the implemented subset."
+        );
+        let sentinel = toml_to_json(&format!(
+            "{base}[analysis]\nmethod = \"SENTINEL_METHOD_9f3a\"\n"
+        ))
+        .unwrap_err();
+        hidden(&sentinel, "SENTINEL_METHOD_9f3a");
+        assert_eq!(
+            cause("[analysis]\nmethod = \"linearStatic\"\ntolerance = 1e-6\n"),
+            "The document contains an unknown key."
+        );
+        assert_eq!(
+            cause("[analysis]\nmethod = \"pDelta\"\noptions = { tolerance = 1e-6 }\n"),
+            "The document contains an unknown key."
+        );
+        assert_eq!(
+            cause("[analysis]\nmethod = \"modal\"\nmode_count = 1\nmass_kind = \"lumped\"\ndirections = [[1, 0, 0]]\nmodal_combination = \"srss\"\n"),
+            "The document contains an unknown key."
+        );
+        assert_eq!(
+            cause("[options]\nallow_experimental = false\n[analysis]\nmethod = \"soilProfile\"\ndepths_m = [0]\n[[analysis.layers]]\nthickness_m = 1\n"),
+            "An experimental method requires allow_experimental."
+        );
+        assert_eq!(
+            cause("[options]\nallow_experimental = true\n[[nodes]]\nid = 1\nx = 0\ny = 0\nz = 0\ndim = \"D2\"\ndofs = [\"Ux\"]\n[analysis]\nmethod = \"soilProfile\"\ndepths_m = [0]\n[[analysis.layers]]\nthickness_m = 1\n"),
+            "A geotechnical analysis requires an empty structural model."
+        );
+        assert_eq!(
+            cause("[options]\nallow_experimental = true\n[[cases]]\nname = \"P\"\n[combinations.C]\nP = 1\n[analysis]\nmethod = \"nonlinearStatic\"\ncase = \"P\"\nload_factors = [1]\ntolerance = 1e-8\nmax_iterations = 2\nforce_scale = 1\n"),
+            "Nonlinear static does not allow combinations or diaphragms."
+        );
+        assert_eq!(
+            cause("[[nodes]]\nid = 1\nx = 0\ny = 0\nz = 0\ndim = \"D2\"\ndofs = [\"Ux\"]\n[[diaphragms]]\nmaster = 1\nslaves = [1]\n[options]\nallow_experimental = true\n[[cases]]\nname = \"P\"\n[analysis]\nmethod = \"nonlinearStatic\"\ncase = \"P\"\nload_factors = [1]\ntolerance = 1e-8\nmax_iterations = 2\nforce_scale = 1\n"),
+            "Nonlinear static does not allow combinations or diaphragms."
+        );
+        assert_eq!(
+            cause("[options]\nallow_experimental = true\n[[nodes]]\nid = 1\nx = 0\ny = 0\nz = 0\ndim = \"D2\"\ndofs = [\"Ux\"]\n[[cases]]\nname = \"P\"\n[[springs]]\nid = 3\nnodes = [1]\nkind = \"spring.nonlinear\"\ndof = \"Ux\"\nk = 1\nlaw = \"L\"\n[analysis]\nmethod = \"nonlinearStatic\"\ncase = \"P\"\nload_factors = [1]\ntolerance = 1e-8\nmax_iterations = 2\nforce_scale = 1\n"),
+            "A nonlinear spring forbids a stiffness."
+        );
+        assert_eq!(
+            cause("[analysis]\nmethod = \"pDelta\"\ngravity = { case = \"G\", factor = 1 }\nlateral = { case = \"G\", factor = 1 }\ntolerance = 1e-6\nmax_iterations = 1\ndisplacement_scale = 1\nrotation_scale = 1\n"),
+            "A reference does not exist."
+        );
+        assert_eq!(
+            cause("[[cases]]\nname = \"G\"\n[analysis]\nmethod = \"pDelta\"\ngravity = { case = \"G\" }\nlateral = { case = \"G\", factor = 1 }\ntolerance = 1e-6\nmax_iterations = 1\ndisplacement_scale = 1\nrotation_scale = 1\n"),
+            "A required field is missing."
+        );
+        assert_eq!(
+            cause("[options]\nallow_experimental = true\n[analysis]\nmethod = \"consolidation1d\"\ndrainage = \"top\"\noutput_times_s = [0]\ntheta = 1\nmax_step_s = 1\n[[analysis.layers]]\nthickness_m = { value = 1, provenance = \"measured\" }\nelements = 1\n[[analysis.history]]\ntime_s = 1\n[[analysis.history]]\ntime_s = 2\n"),
+            "A value is outside the allowed range."
+        );
+        assert_eq!(
+            cause("[options]\nallow_experimental = true\n[analysis]\nmethod = \"soilProfile\"\ndepths_m = [0]\n[[analysis.layers]]\nthickness_m = 1\ngamma_kn_m3 = 18\n"),
+            "A value must be a table."
+        );
+        let two = r#"{"schema":"engine-input/1","units":"SI","options":{},"model":{"axes":"Z-up","nodes":[],"members":[],"sections":[],"laws":[],"supports":[],"masses":[]},"cases":[],"combinations":[],"analyses":[{"method":"linearStatic"},{"method":"linearStatic"}]}"#;
+        assert_eq!(
+            json_to_toml(two).unwrap_err().cause,
+            "A required field is missing."
+        );
+        let other = r#"{"schema":"engine-input/1","units":"SI","options":{},"model":{"axes":"Z-up","nodes":[],"members":[],"sections":[],"laws":[],"supports":[],"masses":[]},"cases":[{"name":"G","loads":[]}],"combinations":[],"analyses":[{"method":"pDelta","options":{"gravity":{"case":"G","factor":1},"lateral":{"case":"G","factor":1},"tolerance":1e-6,"max_iterations":1,"displacement_scale":1,"rotation_scale":1,"mode_count":1}}]}"#;
+        assert_eq!(
+            json_to_toml(other).unwrap_err().cause,
+            "The document contains an unknown key."
+        );
+    }
+
+    #[test]
+    fn published_analysis_fixtures_keep_their_branch() {
+        for name in [
+            "p-delta.json",
+            "modal-single-dof.json",
+            "response-spectrum.json",
+            "sfc010-soil.json",
+            "sfc010-consolidation.json",
+            "sfc010-cubic.json",
+            "sfc010-spring3d.json",
+        ] {
+            let path = format!(
+                "{}/../engine-api/fixtures/input/valid/{name}",
+                env!("CARGO_MANIFEST_DIR")
+            );
+            let original = std::fs::read_to_string(&path).unwrap_or_else(|error| panic!("{name}: {error}"));
+            let toml = json_to_toml(&original).unwrap_or_else(|error| panic!("{name}: {}", error.cause));
+            let json = toml_to_json(&toml).unwrap_or_else(|error| panic!("{name} back: {}", error.cause));
+            assert_eq!(json_to_toml(&json).unwrap(), toml, "{name}");
+            let source: Json = serde_json::from_str(&original).unwrap();
+            let back: Json = serde_json::from_str(json.trim()).unwrap();
+            assert_eq!(back["analyses"], source["analyses"], "{name}");
+            assert_eq!(back["options"], source["options"], "{name}");
+        }
     }
 }
