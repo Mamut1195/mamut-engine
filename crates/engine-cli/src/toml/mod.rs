@@ -3,8 +3,9 @@
 //! `mamut-engine convert` for mamut-toml/1.
 //!
 //! The mapped subset is the structural core, the load collections, and the
-//! analysis branches written in mamut-toml/1. U9 is the canonical export in
-//! `docs/V1.md` section 13. U5, U7, U10, and U11 stay open.
+//! analysis branches written in mamut-toml/1. Optional names follow U5 and
+//! return on export only with idmap/1. U9 is the canonical export in
+//! `docs/V1.md` section 13. U7, U10, and U11 stay open.
 //! `spring.nonlinear` is accepted only with `nonlinearStatic`.
 
 mod core;
@@ -132,10 +133,29 @@ fn convert<R: Read, O: Write, E: Write>(
         Ok(text) => text,
         Err(failure) => return report(failure, operation, lang, stderr),
     };
-    let body = match (parsed.to.as_deref(), detect_json(&text)) {
-        (Some("json"), _) | (None, false) => core::toml_to_json(&text),
-        (Some("toml"), _) | (None, true) => core::json_to_toml(&text),
+    let to_toml = match parsed.to.as_deref() {
+        Some("toml") => true,
+        Some("json") => false,
+        None => detect_json(&text),
         _ => unreachable!("parse_convert_args only accepts json or toml"),
+    };
+    if parsed.idmap.is_some() && !to_toml {
+        return error::report_failure_in(FailureKind::Usage, operation, None, lang, stderr);
+    }
+    let idmap = match &parsed.idmap {
+        Some(path) => match read_idmap(path) {
+            Ok(document) => Some(document),
+            Err(failure) => return report(failure, operation, lang, stderr),
+        },
+        None => None,
+    };
+    let body = if to_toml {
+        match idmap.as_deref() {
+            None => core::json_to_toml(&text),
+            Some(document) => core::json_to_toml_with_idmap(&text, Some(document)),
+        }
+    } else {
+        core::toml_to_json(&text)
     };
     let body = match body {
         Ok(body) => body,
@@ -155,14 +175,20 @@ fn convert<R: Read, O: Write, E: Write>(
 struct ConvertArgs {
     input: String,
     to: Option<String>,
+    idmap: Option<String>,
 }
 
 fn parse_convert_args(args: &[String]) -> Result<ConvertArgs, FailureKind> {
     let mut input = None;
     let mut to = None;
+    let mut idmap = None;
     let mut rest = args[1..].iter();
     while let Some(arg) = rest.next() {
-        if arg == "--" || arg.starts_with("--input=") || arg.starts_with("--to=") {
+        if arg == "--"
+            || arg.starts_with("--input=")
+            || arg.starts_with("--to=")
+            || arg.starts_with("--idmap=")
+        {
             return Err(FailureKind::Usage);
         }
         if arg == "--input" {
@@ -183,6 +209,16 @@ fn parse_convert_args(args: &[String]) -> Result<ConvertArgs, FailureKind> {
                 Some(value) if value == "json" || value == "toml" => to = Some(value.clone()),
                 _ => return Err(FailureKind::Usage),
             }
+        } else if arg == "--idmap" {
+            if idmap.is_some() {
+                return Err(FailureKind::Usage);
+            }
+            match rest.next() {
+                Some(value) if !value.is_empty() && !value.starts_with('-') => {
+                    idmap = Some(value.clone());
+                }
+                _ => return Err(FailureKind::Usage),
+            }
         } else {
             return Err(FailureKind::Usage);
         }
@@ -190,7 +226,23 @@ fn parse_convert_args(args: &[String]) -> Result<ConvertArgs, FailureKind> {
     Ok(ConvertArgs {
         input: input.ok_or(FailureKind::Usage)?,
         to,
+        idmap,
     })
+}
+
+fn read_idmap(path: &str) -> Result<String, Failure> {
+    let mut file = File::open(Path::new(path))
+        .map_err(|_| Failure::document("The identity map could not be read."))?;
+    let mut bytes = Vec::new();
+    Read::take(&mut file, (MAX_INPUT_BYTES as u64) + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| Failure::document("The identity map could not be read."))?;
+    if bytes.len() > MAX_INPUT_BYTES {
+        return Err(Failure::document(
+            "The identity map exceeds the size limit.",
+        ));
+    }
+    String::from_utf8(bytes).map_err(|_| Failure::document("The identity map is not valid UTF-8."))
 }
 
 fn read_source(input: &str, stdin: &mut impl Read) -> Result<String, Failure> {

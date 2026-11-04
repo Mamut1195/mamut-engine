@@ -3,7 +3,10 @@
 //! Map mamut-toml/1 to engine-input/1 and back for the structural core,
 //! the load collections, and the analysis branches.
 //!
-//! U5 stays open: textual aliases of node, member, and spring ids are rejected.
+//! U5: `name` is optional on nodes, members and springs. The integer id is
+//! required and is never invented. The same name may be reused across those
+//! three collections. It does not enter engine JSON. Export writes it back
+//! only when an idmap/1 document accompanies the model.
 //! U7 stays open: an identifier longer than 256 bytes is rejected.
 //! U9 is closed: two exports of one model are the same UTF-8 bytes, with LF,
 //! one trailing newline, two-space indentation under each header, and keys in
@@ -76,11 +79,21 @@ pub(crate) fn toml_to_json(text: &str) -> Result<String, Failure> {
 }
 
 /// Export an engine-input/1 JSON subset to mamut-toml/1, including a trailing newline.
+/// Names are omitted. Pass idmap/1 to [`json_to_toml_with_idmap`] to restore them.
 pub(crate) fn json_to_toml(text: &str) -> Result<String, Failure> {
+    json_to_toml_with_idmap(text, None)
+}
+
+/// Export engine JSON to mamut-toml/1. `idmap` restores names when it is idmap/1.
+pub(crate) fn json_to_toml_with_idmap(text: &str, idmap: Option<&str>) -> Result<String, Failure> {
     ensure_len(text.len())?;
     let value = parse_json(text)?;
     reject_null(&value)?;
-    export_root(&value)
+    let aliases = match idmap {
+        Some(document) => parse_idmap(document)?,
+        None => AliasMap::default(),
+    };
+    export_root(&value, aliases)
 }
 
 fn ensure_len(len: usize) -> Result<(), Failure> {
@@ -360,10 +373,15 @@ fn parse_nodes(items: Option<&Vec<Toml>>, defaults: &Defaults) -> Result<Vec<Nod
     }
     let mut nodes = Vec::with_capacity(items.len());
     let mut seen = BTreeMap::new();
+    let mut names = BTreeSet::new();
     for (index, item) in items.iter().enumerate() {
         let pointer = format!("/nodes/{index}");
         let table = as_table(item, &pointer)?;
-        reject_toml_keys(table, &["id", "x", "y", "z", "dim", "dofs"], &pointer)?;
+        reject_toml_keys(
+            table,
+            &["id", "name", "x", "y", "z", "dim", "dofs"],
+            &pointer,
+        )?;
         let id = required_u32(table, "id", &pointer)?;
         if seen.insert(id, index).is_some() {
             return Err(Failure::validation(
@@ -371,6 +389,7 @@ fn parse_nodes(items: Option<&Vec<Toml>>, defaults: &Defaults) -> Result<Vec<Nod
                 "An identifier is duplicated.",
             ));
         }
+        take_alias(table, &pointer, &mut names)?;
         let x = json_scalar(required_scalar(table, "x", &pointer)?)?;
         let y = json_scalar(required_scalar(table, "y", &pointer)?)?;
         let z_scalar = match table.get("z") {
@@ -566,6 +585,7 @@ fn parse_members(
         .collect();
     let mut members = Vec::with_capacity(items.len());
     let mut seen = BTreeSet::new();
+    let mut names = BTreeSet::new();
     for (index, item) in items.iter().enumerate() {
         let pointer = format!("/members/{index}");
         let table = as_table(item, &pointer)?;
@@ -573,6 +593,7 @@ fn parse_members(
             table,
             &[
                 "id",
+                "name",
                 "from",
                 "to",
                 "section",
@@ -592,6 +613,7 @@ fn parse_members(
                 "An identifier is duplicated.",
             ));
         }
+        take_alias(table, &pointer, &mut names)?;
         let from = required_u32(table, "from", &pointer)?;
         let to = required_u32(table, "to", &pointer)?;
         let section = required_text(table, "section", &pointer)?;
@@ -819,6 +841,7 @@ fn parse_springs(
     }
     let node_ids = node_id_set(nodes);
     let mut seen: BTreeSet<u64> = members.iter().map(|member| member.id).collect();
+    let mut names = BTreeSet::new();
     let mut springs = Vec::with_capacity(items.len());
     for (index, item) in items.iter().enumerate() {
         let pointer = format!("/springs/{index}");
@@ -827,6 +850,7 @@ fn parse_springs(
             table,
             &[
                 "id",
+                "name",
                 "nodes",
                 "kind",
                 "dof",
@@ -844,6 +868,7 @@ fn parse_springs(
                 "An identifier is duplicated.",
             ));
         }
+        take_alias(table, &pointer, &mut names)?;
         let endpoints = spring_nodes(table, &pointer, &node_ids)?;
         let kind = spring_kind(table, &pointer)?;
         let dof = required_dof(table, "dof", &pointer)?;
@@ -1475,6 +1500,25 @@ fn id_list(
     Ok(ids)
 }
 
+fn take_alias(
+    table: &toml::Table,
+    pointer: &str,
+    seen: &mut BTreeSet<String>,
+) -> Result<(), Failure> {
+    let Some(value) = table.get("name") else {
+        return Ok(());
+    };
+    let name = expect_text(value, pointer)?;
+    if seen.insert(name) {
+        Ok(())
+    } else {
+        Err(Failure::validation(
+            Some(pointer.to_string()),
+            "An identifier is duplicated.",
+        ))
+    }
+}
+
 fn required_text(table: &toml::Table, key: &str, pointer: &str) -> Result<String, Failure> {
     match table.get(key) {
         Some(value) => expect_text(value, pointer),
@@ -1712,7 +1756,118 @@ fn reject_toml_keys(table: &toml::Table, allowed: &[&str], pointer: &str) -> Res
     }
 }
 
-fn export_root(value: &Json) -> Result<String, Failure> {
+#[derive(Clone, Copy)]
+enum AliasKind {
+    Node,
+    Member,
+    Spring,
+}
+
+#[derive(Default)]
+struct AliasMap {
+    nodes: BTreeMap<u64, String>,
+    members: BTreeMap<u64, String>,
+    springs: BTreeMap<u64, String>,
+}
+
+impl AliasMap {
+    fn of(&self, kind: AliasKind) -> &BTreeMap<u64, String> {
+        match kind {
+            AliasKind::Node => &self.nodes,
+            AliasKind::Member => &self.members,
+            AliasKind::Spring => &self.springs,
+        }
+    }
+
+    fn get(&self, kind: AliasKind, id: u64) -> Option<&str> {
+        self.of(kind).get(&id).map(String::as_str)
+    }
+
+    fn covers(&self, kind: AliasKind, ids: &BTreeSet<u64>) -> Result<(), Failure> {
+        let pointer = match kind {
+            AliasKind::Node => "/model/nodes",
+            AliasKind::Member => "/model/members",
+            AliasKind::Spring => "/model/springs",
+        };
+        if self.of(kind).keys().any(|id| !ids.contains(id)) {
+            Err(Failure::validation(
+                Some(pointer.to_string()),
+                "A reference does not exist.",
+            ))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+fn parse_idmap(text: &str) -> Result<AliasMap, Failure> {
+    ensure_len(text.len())?;
+    let value = match parse_json(text) {
+        Ok(value) => value,
+        Err(failure) if failure.code == "CLI-E-DOCUMENT" => {
+            return Err(Failure::document("The identity map is invalid."));
+        }
+        Err(failure) => return Err(failure),
+    };
+    reject_null(&value)?;
+    let root = as_object(&value, "")?;
+    reject_json_keys(root, &["format", "nodes", "members", "springs"], "")?;
+    match root.get("format").and_then(Json::as_str) {
+        Some("idmap/1") => {}
+        Some(_) => return Err(Failure::unsupported("The format version is not supported.")),
+        None => {
+            return Err(Failure::validation(
+                Some(String::new()),
+                "The format field is missing.",
+            ))
+        }
+    }
+    Ok(AliasMap {
+        nodes: idmap_entries(root, "nodes")?,
+        members: idmap_entries(root, "members")?,
+        springs: idmap_entries(root, "springs")?,
+    })
+}
+
+fn idmap_entries(
+    root: &serde_json::Map<String, Json>,
+    key: &str,
+) -> Result<BTreeMap<u64, String>, Failure> {
+    let pointer = format!("/{key}");
+    let items = match root.get(key) {
+        Some(Json::Array(items)) => items,
+        Some(_) => {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A collection has the wrong shape.",
+            ))
+        }
+        None => {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A required field is missing.",
+            ))
+        }
+    };
+    let mut by_id = BTreeMap::new();
+    let mut names = BTreeSet::new();
+    for (index, item) in items.iter().enumerate() {
+        let pointer = format!("/{key}/{index}");
+        let object = as_object(item, &pointer)?;
+        reject_json_keys(object, &["name", "id"], &pointer)?;
+        let name = json_text_field(object, "name", &pointer)?;
+        let id = json_u32_field(object, "id", &pointer)?;
+        if !names.insert(name.clone()) || by_id.insert(id, name).is_some() {
+            return Err(Failure::validation(
+                Some(pointer),
+                "An identifier is duplicated.",
+            ));
+        }
+    }
+    Ok(by_id)
+}
+
+fn export_root(value: &Json, aliases: AliasMap) -> Result<String, Failure> {
     let root = as_object(value, "")?;
     reject_json_keys(
         root,
@@ -1825,7 +1980,7 @@ fn export_root(value: &Json) -> Result<String, Failure> {
             diaphragms_empty: diaphragms.is_empty(),
         },
     )?;
-    let mut out = Out::default();
+    let mut out = Out::new(aliases);
     out.entry("format", "\"mamut-toml/1\"");
     out.entry("units", "\"SI\"");
     write_nodes(&mut out, nodes)?;
@@ -1920,13 +2075,14 @@ fn write_nodes(out: &mut Out, items: &[Json]) -> Result<(), Failure> {
             &pointer,
         )?;
         out.header("[[nodes]]");
-        out.entry("id", &id.to_string());
+        out.named_id(AliasKind::Node, id);
         out.entry("x", &format_f64(coordinates[0])?);
         out.entry("y", &format_f64(coordinates[1])?);
         out.entry("z", &format_f64(coordinates[2])?);
         out.entry("dim", &quoted(&dim));
         out.entry("dofs", &quoted_array(&dofs));
     }
+    out.aliases.covers(AliasKind::Node, &seen)?;
     Ok(())
 }
 
@@ -2035,7 +2191,7 @@ fn write_members(
             ));
         }
         out.header("[[members]]");
-        out.entry("id", &id.to_string());
+        out.named_id(AliasKind::Member, id);
         out.entry("from", &endpoints[0].to_string());
         out.entry("to", &endpoints[1].to_string());
         out.entry("section", &quoted(&section));
@@ -2079,6 +2235,7 @@ fn write_members(
             out.entry("winkler", &json_winkler(winkler, from_dim, &pointer)?);
         }
     }
+    out.aliases.covers(AliasKind::Member, &seen)?;
     Ok(())
 }
 
@@ -2178,6 +2335,7 @@ fn write_springs(
     }
     let node_ids = node_dims(nodes)?;
     let mut seen = member_id_set(members)?;
+    let mut spring_ids = BTreeSet::new();
     let law_names = if nonlinear {
         law_records(laws)?
             .into_iter()
@@ -2212,6 +2370,7 @@ fn write_springs(
                 "An identifier is duplicated.",
             ));
         }
+        spring_ids.insert(id);
         let endpoints = json_spring_nodes(spring, &pointer, &node_ids)?;
         let kind = json_spring_kind(spring, &pointer)?;
         let dof = json_one_dof(
@@ -2272,7 +2431,7 @@ fn write_springs(
             None
         };
         out.header("[[springs]]");
-        out.entry("id", &id.to_string());
+        out.named_id(AliasKind::Spring, id);
         out.entry("nodes", &format_id_list(&endpoints));
         out.entry("kind", &quoted(&kind));
         out.entry("dof", &quoted(&dof));
@@ -2289,6 +2448,7 @@ fn write_springs(
             out.entry("rotation", &format_rotation(rotation)?);
         }
     }
+    out.aliases.covers(AliasKind::Spring, &spring_ids)?;
     Ok(())
 }
 
@@ -3359,14 +3519,22 @@ fn reject_json_keys(
     }
 }
 
-#[derive(Default)]
 struct Out {
     body: String,
     /// Keys under a header are indented by two spaces. Root keys stay flush.
     in_table: bool,
+    aliases: AliasMap,
 }
 
 impl Out {
+    fn new(aliases: AliasMap) -> Self {
+        Self {
+            body: String::new(),
+            in_table: false,
+            aliases,
+        }
+    }
+
     fn line(&mut self, text: &str) {
         self.body.push_str(text);
         self.body.push('\n');
@@ -3381,6 +3549,13 @@ impl Out {
         line.push_str(" = ");
         line.push_str(value);
         self.line(&line);
+    }
+
+    fn named_id(&mut self, kind: AliasKind, id: u64) {
+        self.entry("id", &id.to_string());
+        if let Some(name) = self.aliases.get(kind, id) {
+            self.entry("name", &quoted(name));
+        }
     }
 
     fn header(&mut self, text: &str) {
@@ -4484,6 +4659,91 @@ mod tests {
             assert_eq!(back["analyses"], source["analyses"], "{name}");
             assert_eq!(back["options"], source["options"], "{name}");
         }
+    }
+
+    fn alias_body(name_lines: bool) -> String {
+        let name = if name_lines { "name = \"A\"\n" } else { "" };
+        minimal(&format!(
+            "[[nodes]]\nid = 1\n{name}x = 0\ny = 0\nz = 0\ndim = \"D2\"\ndofs = [\"Ux\"]\n\
+             [sections.S]\nA = 1\n[laws.L]\nE = 1\n\
+             [[members]]\nid = 7\n{name}from = 1\nto = 1\nsection = \"S\"\nlaw = \"L\"\n\
+             [[springs]]\nid = 8\n{name}nodes = [1]\nkind = \"spring.linear\"\ndof = \"Ux\"\nk = 1\n"
+        ))
+    }
+
+    #[test]
+    fn ids_without_names_convert_as_before() {
+        let json = toml_to_json(&alias_body(false)).unwrap();
+        let value: Json = serde_json::from_str(json.trim()).unwrap();
+        assert_eq!(value["model"]["nodes"][0]["id"], 1);
+        assert!(value["model"]["nodes"][0].get("name").is_none());
+        assert!(value["model"]["members"][0].get("name").is_none());
+        assert!(value["model"]["springs"][0].get("name").is_none());
+        let exported = json_to_toml(&json).unwrap();
+        assert!(!exported.contains("name ="));
+        assert_eq!(toml_to_json(&exported).unwrap(), json);
+    }
+
+    #[test]
+    fn repeated_names_across_kinds_stay_out_of_engine_json() {
+        let named = toml_to_json(&alias_body(true)).unwrap();
+        let plain = toml_to_json(&alias_body(false)).unwrap();
+        assert_eq!(named, plain);
+        let value: Json = serde_json::from_str(named.trim()).unwrap();
+        assert!(value["model"]["nodes"][0].get("name").is_none());
+        assert!(value["model"]["members"][0].get("name").is_none());
+        assert!(value["model"]["springs"][0].get("name").is_none());
+        assert!(!json_to_toml(&named).unwrap().contains("name ="));
+    }
+
+    #[test]
+    fn export_restores_written_names_only_with_idmap() {
+        let json = toml_to_json(&alias_body(true)).unwrap();
+        let idmap = r#"{"format":"idmap/1","nodes":[{"name":"A","id":1}],"members":[{"name":"A","id":7}],"springs":[{"name":"A","id":8}]}"#;
+        let restored = json_to_toml_with_idmap(&json, Some(idmap)).unwrap();
+        assert!(restored.contains("  id = 1\n  name = \"A\"\n"));
+        assert!(restored.contains("  id = 7\n  name = \"A\"\n"));
+        assert!(restored.contains("  id = 8\n  name = \"A\"\n"));
+        assert_eq!(toml_to_json(&restored).unwrap(), json);
+        let empty = r#"{"format":"idmap/1","nodes":[],"members":[],"springs":[]}"#;
+        assert_eq!(
+            json_to_toml_with_idmap(&json, Some(empty)).unwrap(),
+            json_to_toml(&json).unwrap()
+        );
+    }
+
+    #[test]
+    fn missing_integer_id_is_not_invented() {
+        for body in [
+            "[[nodes]]\nname = \"SENTINEL_MISSING_9f3a\"\nx = 0\ny = 0\nz = 0\ndim = \"D2\"\ndofs = [\"Ux\"]\n",
+            "[[nodes]]\nid = 1\nx = 0\ny = 0\nz = 0\ndim = \"D2\"\ndofs = [\"Ux\"]\n[sections.S]\nA = 1\n[laws.L]\nE = 1\n[[members]]\nname = \"SENTINEL_MISSING_9f3a\"\nfrom = 1\nto = 1\nsection = \"S\"\nlaw = \"L\"\n",
+            "[[nodes]]\nid = 1\nx = 0\ny = 0\nz = 0\ndim = \"D2\"\ndofs = [\"Ux\"]\n[[springs]]\nname = \"SENTINEL_MISSING_9f3a\"\nnodes = [1]\nkind = \"spring.linear\"\ndof = \"Ux\"\nk = 1\n",
+        ] {
+            let failure = failure_of(body);
+            assert_eq!(failure.code, "CLI-E-VALIDATION");
+            assert_eq!(failure.cause, "A required field is missing.");
+            hidden(&failure, "SENTINEL_MISSING_9f3a");
+        }
+    }
+
+    #[test]
+    fn the_same_name_cannot_repeat_inside_one_collection() {
+        let failure = failure_of(
+            "[[nodes]]\nid = 1\nname = \"SENTINEL_ALIAS_9f3a\"\nx = 0\ny = 0\nz = 0\ndim = \"D2\"\ndofs = [\"Ux\"]\n[[nodes]]\nid = 2\nname = \"SENTINEL_ALIAS_9f3a\"\nx = 1\ny = 0\nz = 0\ndim = \"D2\"\ndofs = [\"Ux\"]\n",
+        );
+        assert_eq!(failure.code, "CLI-E-VALIDATION");
+        assert_eq!(failure.cause, "An identifier is duplicated.");
+        hidden(&failure, "SENTINEL_ALIAS_9f3a");
+    }
+
+    #[test]
+    fn idmap_does_not_restore_an_unknown_id_or_echo_the_name() {
+        let json = toml_to_json(&alias_body(false)).unwrap();
+        let idmap = r#"{"format":"idmap/1","nodes":[{"name":"SENTINEL_ALIAS_9f3a","id":99}],"members":[],"springs":[]}"#;
+        let failure = json_to_toml_with_idmap(&json, Some(idmap)).unwrap_err();
+        assert_eq!(failure.code, "CLI-E-VALIDATION");
+        assert_eq!(failure.cause, "A reference does not exist.");
+        hidden(&failure, "SENTINEL_ALIAS_9f3a");
     }
 
     fn canonical_layout(text: &str) {

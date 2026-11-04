@@ -128,6 +128,12 @@ fn usage_document_and_unsupported_keep_the_registered_contract() {
         ["convert", "--", "--input", "-"].as_slice(),
         ["convert", "--input", "-file"].as_slice(),
         ["convert", "--input", "-", "--input", "-"].as_slice(),
+        ["convert", "--idmap=map.json", "--input", "-"].as_slice(),
+        [
+            "convert", "--to", "json", "--idmap", "map.json", "--input", "-",
+        ]
+        .as_slice(),
+        ["convert", "--idmap", "-", "--to", "toml", "--input", "-"].as_slice(),
     ] {
         let (code, envelope, _, _) = error_of(args, b"");
         assert_eq!(code, 2);
@@ -238,4 +244,105 @@ fn write_failure_is_internal_and_other_commands_stay_put() {
     let (code, stdout, _) = invoke(&["validate", "--input", "-"], TOML.as_bytes());
     assert_ne!(code, 0);
     assert!(!String::from_utf8_lossy(&stdout).contains("\"schema\":\"engine-input/1\""));
+}
+
+#[test]
+fn optional_names_round_trip_only_with_idmap() {
+    let source = "\
+format = \"mamut-toml/1\"
+units = \"SI\"
+
+[[nodes]]
+id = 1
+name = \"A\"
+x = 0
+y = 0
+z = 0
+dim = \"D2\"
+dofs = [\"Ux\"]
+
+[sections.S]
+A = 1
+
+[laws.L]
+E = 1
+
+[[members]]
+id = 7
+name = \"A\"
+from = 1
+to = 1
+section = \"S\"
+law = \"L\"
+
+[[springs]]
+id = 8
+name = \"A\"
+nodes = [1]
+kind = \"spring.linear\"
+dof = \"Ux\"
+k = 1
+
+[analysis]
+method = \"linearStatic\"
+";
+    let (code, json, stderr) = invoke(
+        &["convert", "--to", "json", "--input", "-"],
+        source.as_bytes(),
+    );
+    assert_eq!(code, 0, "{}", String::from_utf8_lossy(&stderr));
+    let value: Value = serde_json::from_slice(&json[..json.len() - 1]).unwrap();
+    assert!(value["model"]["nodes"][0].get("name").is_none());
+    assert!(value["model"]["members"][0].get("name").is_none());
+    assert!(value["model"]["springs"][0].get("name").is_none());
+    assert_eq!(value["model"]["nodes"][0]["id"], 1);
+    assert_eq!(value["model"]["members"][0]["id"], 7);
+    assert_eq!(value["model"]["springs"][0]["id"], 8);
+
+    let (plain_code, plain, plain_err) =
+        invoke(&["convert", "--to", "toml", "--input", "-"], &json);
+    assert_eq!(plain_code, 0, "{}", String::from_utf8_lossy(&plain_err));
+    let plain_text = String::from_utf8(plain).unwrap();
+    assert!(!plain_text.contains("name ="));
+
+    let idmap = "{\"format\":\"idmap/1\",\"nodes\":[{\"name\":\"A\",\"id\":1}],\"members\":[{\"name\":\"A\",\"id\":7}],\"springs\":[{\"name\":\"A\",\"id\":8}]}\n";
+    let path = std::env::temp_dir().join(format!("mamut-idmap-06-{}.json", std::process::id()));
+    std::fs::write(&path, idmap).unwrap();
+    let (named_code, named, named_err) = invoke(
+        &[
+            "convert",
+            "--to",
+            "toml",
+            "--idmap",
+            path.to_str().expect("temp path is unicode"),
+            "--input",
+            "-",
+        ],
+        &json,
+    );
+    let _ = std::fs::remove_file(&path);
+    assert_eq!(named_code, 0, "{}", String::from_utf8_lossy(&named_err));
+    let named_text = String::from_utf8(named).unwrap();
+    assert!(named_text.contains("  id = 1\n  name = \"A\"\n"));
+    assert!(named_text.contains("  id = 7\n  name = \"A\"\n"));
+    assert!(named_text.contains("  id = 8\n  name = \"A\"\n"));
+
+    let missing =
+        std::env::temp_dir().join(format!("SENTINEL_IDMAP_9f3a-{}.json", std::process::id()));
+    let _ = std::fs::remove_file(&missing);
+    let (missing_code, envelope, text, _) = error_of(
+        &[
+            "convert",
+            "--to",
+            "toml",
+            "--idmap",
+            missing.to_str().expect("temp path is unicode"),
+            "--input",
+            "-",
+        ],
+        &json,
+    );
+    assert_eq!(missing_code, 2);
+    assert_eq!(envelope["code"], "CLI-E-DOCUMENT");
+    assert!(!text.contains("SENTINEL_IDMAP_9f3a"));
 }
