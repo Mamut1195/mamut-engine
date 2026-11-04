@@ -1,0 +1,13 @@
+# Clean-room log · ENG-MAT-004
+
+- Ticket / PR: GitHub issue 4, branch `ticket/01-kent-park`. Pull request against `main`. This log does not close MAM-107 and does not approve a time or memory budget.
+- Author(s): implementation sub-agent, Grok 4.7; date 2026-11-04 (America/Guayaquil).
+- Role: specifier and implementer.
+- Contract implemented: `uniaxial/1`, kind `concrete.kent_park`, contract 1.0 and method 0.1.0.
+- Permitted sources used: Sharma, Akanshu; Reddy, G. R.; Vaze, K. K.; Ghosh, A. K.; Kushwaha, H. S.; Eligehausen, Rolf. *Joint model to simulate inelastic shear behavior of poorly detailed exterior and interior beam-column connections reinforced with deformed bars under seismic excitations.* Bhabha Atomic Research Centre, Mumbai, report BARC/2009/E/026, 2009. Appendix A, section A.1.1.3 “Kent and Park Model”, printed pages 135–138, equations (A.9), (A.10), (A.11), (A.12), (A.13) and (A.15). Read from the INIS copy, record c1s4b-7v057, report number 41076014. The PDF is not in the repository. The report’s reference 54 names Kent, D. C., and Park, R., “Flexural Mechanics with Confined Concrete”, *Journal of the Structural Division*, ASCE, Vol. 97, ST7, July 1971, pp. 1969–1990. That journal article was not opened. Equation numbers are the report’s.
+- Own derivations: [docs/fichas/concrete.kent_park.md](../docs/fichas/concrete.kent_park.md). Sign map ε = −ε_c, σ = −f_c, K = df_c/dε_c. Branch closures at 0.002 and at ε_20c. Algebraic rearrangement of (A.11) and (A.12) so that ε_50u − 0.002 = 5 / (f'_c,psi − 1000) is not lost to cancellation. Tensile strain, which the cited curve does not define, returns zero stress and zero tangent. Two hand points only: ε_c = 0.001 gives (3/4) f'_c and ε_c = 0.004 gives (3/5) f'_c, with f'_c = 3000 psi and ρ_s = 0.
+- Third-party code copied: none. No listing was transcribed. Dependencies remain `engine-core` and `engine-contracts`.
+- Validation: analytical. `cargo test --offline --locked -p engine-laws --test kent_park` — 5 passed, 0 failed. `cargo test --offline --locked -p engine-laws --doc -- kent_park` — 1 passed. `cargo test --offline --locked -p engine-api --test methods capabilities_are_deterministic` — 1 passed. `cargo clippy --offline --locked -p engine-laws --all-targets -- -D warnings` — exit 0. `cargo clippy --offline --locked -p engine-api --lib --tests -- -D warnings` — exit 0. `cargo doc --offline --locked -p engine-laws --no-deps` with warnings denied — exit 0. Workspace tests, wasm and the 16 determinism hashes were not run. `docs/DETERMINISM.md` was not modified.
+- Comparison with oracle (sibling repo, informative): no.
+- Declaration: "No consulté código fuente de OpenSees, Frame3DD, Stabileo ni derivados para este ticket."
+- Clean-room reviewer: PENDING (J4).
