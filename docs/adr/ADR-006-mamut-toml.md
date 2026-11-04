@@ -169,7 +169,7 @@ diagnósticos con centinelas, según la especificación.
 
 ## Puntos abiertos
 
-Todos conservan el estado **DESCONOCIDO — pendiente de decisión de Jonathan**.
+Salvo U11, siguen en **DESCONOCIDO — pendiente de decisión de Jonathan**.
 El registro detallado y la evidencia documental están en la sección 10
 de la especificación:
 
@@ -177,5 +177,5 @@ de la especificación:
 - U7: prueba de 4096 dígitos frente al límite de 256 bytes por id.
 - U9: detalles completos de escritura textual y extracción de defaults.
 - U10: listas exactas de GDL para expansión de type según dimensión.
-- U11: conteo de profundidad y base de línea/columna.
+- U11: cerrado en `docs/V1.md`, sección 13. La raíz es el nivel 1. Línea y columna, si hay posición, empiezan en 1.
 - Rendimiento y umbral de aceptación para documentos de 8 MiB.

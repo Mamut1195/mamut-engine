@@ -3,8 +3,10 @@
 //! `mamut-engine convert` for mamut-toml/1.
 //!
 //! The mapped subset is the structural core, the load collections, and the
-//! analysis branches written in mamut-toml/1. U5, U7, U9, U10, and U11 stay
-//! open. `spring.nonlinear` is accepted only with `nonlinearStatic`.
+//! analysis branches written in mamut-toml/1. U5, U7, U9, and U10 stay open.
+//! U11 counts the root table as nesting level 1. A document error keeps its
+//! code and, when the parser span exists, reports a 1-based line and column.
+//! `spring.nonlinear` is accepted only with `nonlinearStatic`.
 
 mod core;
 mod order;
@@ -32,6 +34,9 @@ pub(crate) struct Failure {
     pub pointer: Option<String>,
     /// Fixed diagnostic cause.
     pub cause: &'static str,
+    /// 1-based line and column for a document error that has a parser span.
+    /// `None` does not invent a line.
+    pub hint: Option<String>,
 }
 
 impl Failure {
@@ -42,6 +47,7 @@ impl Failure {
             code: "CLI-E-VALIDATION",
             pointer,
             cause,
+            hint: None,
         }
     }
 
@@ -52,7 +58,15 @@ impl Failure {
             code: "CLI-E-DOCUMENT",
             pointer: None,
             cause,
+            hint: None,
         }
+    }
+
+    /// Attach a 1-based position. The diagnostic code stays unchanged.
+    /// `None` leaves the hint empty instead of inventing a line.
+    pub(crate) fn with_position(mut self, hint: Option<String>) -> Self {
+        self.hint = hint;
+        self
     }
 
     /// Unsupported format version. Exit 3, `CLI-E-UNSUPPORTED`.
@@ -62,6 +76,7 @@ impl Failure {
             code: "CLI-E-UNSUPPORTED",
             pointer: Some(String::new()),
             cause,
+            hint: None,
         }
     }
 
@@ -72,6 +87,7 @@ impl Failure {
             code: "ENG-E-0008",
             pointer: None,
             cause: "A number is not finite.",
+            hint: None,
         }
     }
 
@@ -82,6 +98,7 @@ impl Failure {
             code: "CLI-E-INTERNAL",
             pointer: None,
             cause,
+            hint: None,
         }
     }
 }
@@ -213,13 +230,17 @@ fn report(
     lang: engine_api::Lang,
     stderr: &mut impl Write,
 ) -> u8 {
+    let hint = failure
+        .hint
+        .as_deref()
+        .map_or(Value::Null, |text| Value::String(text.to_owned()));
     let document = json!({
         "diagnostics": [{
             "code": failure.code,
             "severity": "error",
             "entities": [],
             "cause": failure.cause,
-            "hint": Value::Null,
+            "hint": hint,
         }]
     });
     error::report_located(
