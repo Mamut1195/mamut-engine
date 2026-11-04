@@ -2,6 +2,7 @@
 pub(crate) mod advanced;
 pub(crate) mod geo;
 pub(crate) mod nonlinear;
+mod prepared;
 pub(crate) mod static_linear;
 use crate::{input, ApiError, CancelToken, Diagnostic, Progress};
 use engine_analysis::{results::CaseResults, results::MemberRecovery, StaticLinear};
@@ -11,6 +12,7 @@ use engine_contracts::{
 };
 use engine_core::{Dim, EngineError, EntityRef, Severity};
 use engine_linalg::ReferenceBackend;
+pub use prepared::{AnalysisFault, CaseDisplacements, NodeDisplacement, PreparedLinear};
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -310,8 +312,6 @@ fn execute(
         total,
         cases: &[],
     })?;
-    crate::json::canonical_value(document.clone())
-        .map_err(|_| EngineError::new("ENG-E-0012", "Error al serializar results/1"))?;
     step(cancel, progress, "serialization", total, total)
 }
 

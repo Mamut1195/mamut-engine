@@ -14,8 +14,8 @@ from .errors import (
     NotConverged, StaleResultsError, Unstable, Unsupported,
 )
 from .types import (
-    Capabilities, JSONDocument, JSONValue, ModelDocument, Progress, ResultDiagnostic,
-    ResultsDocument, ValidationReport, VersionInfo,
+    Capabilities, CaseDisplacements, JSONDocument, JSONValue, ModelDocument, Progress,
+    ResultDiagnostic, ResultsDocument, ValidationReport, VersionInfo,
 )
 
 _P = ParamSpec("_P")
@@ -329,11 +329,37 @@ def run(model: ModelLike, *, lang: str = "en", cancel: CancelToken | None = None
     return Results(document, result._data, model, fingerprint)
 
 
+class PreparedLinear:
+    """Modelo linearStatic factorizado una vez.
+
+    displacements() vuelve a resolver y devuelve los nodos de cada caso en el
+    mismo orden que results/1, sin reconstruir ese documento. run() no cambia.
+    Otro análisis, una combinación o un resorte no lineal se rechazan.
+    """
+
+    def __init__(self, native: _native.PreparedLinear) -> None:
+        self._native = native
+
+    def displacements(self) -> list[CaseDisplacements]:
+        """Desplazamientos nodales [Ux, Uy, Uz, Rx, Ry, Rz] de cada caso."""
+        return cast(list[CaseDisplacements], _call(self._native.displacements))
+
+
+def prepare(model: ModelLike) -> PreparedLinear:
+    """Prepara un linearStatic sin combinaciones.
+
+    La preparación y cada displacements() mantienen el GIL: el trabajo que se
+    repite es solo la resolución, no el documento.
+    """
+    return PreparedLinear(_call(_native.prepare, _input(model)))
+
+
 class Engine:
     """Fachada sin estado; los métodos tienen el mismo contrato que las funciones."""
 
     validate = staticmethod(validate)
     run = staticmethod(run)
+    prepare = staticmethod(prepare)
     capabilities = staticmethod(capabilities)
     schema = staticmethod(schema)
     explain = staticmethod(explain)

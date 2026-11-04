@@ -510,6 +510,18 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             .factorize_with_check(matrix, check)
             .map_err(|e| self.translate_solver_error(e))
     }
+
+    /// Factorizes the stored reduced stiffness `K_ff` once.
+    ///
+    /// Later solves reuse the factor. Maps mechanisms as [`Self::solve`].
+    /// Does not regularize or commit state.
+    pub fn factorize_free(&mut self) -> EResult<Box<dyn SymFactorization>> {
+        let factorized = self
+            .backend
+            .factorize_with_check(&self.k_free, &mut || Ok(()));
+        factorized.map_err(|e| self.translate_solver_error(e))
+    }
+
     /// Declares the reduced state u (m/rad) at which static Kg was evaluated.
     ///
     /// Default is u = 0. If any Kg contribution remains without a producer,

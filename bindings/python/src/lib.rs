@@ -278,6 +278,75 @@ mod python {
         })
     }
 
+    fn fault_error(py: Python<'_>, fault: engine_api::AnalysisFault) -> PyErr {
+        let diagnostic = fault
+            .diagnostics
+            .iter()
+            .find(|item| item.severity == "error")
+            .or_else(|| fault.diagnostics.first());
+        let code = diagnostic.map(|item| item.code).unwrap_or("ENG-E-0012");
+        let cause = diagnostic
+            .map(|item| item.cause.clone())
+            .unwrap_or_else(|| "Fallo del motor".to_owned());
+        let entities = diagnostic
+            .map(|item| Value::Array(item.entities.clone()))
+            .unwrap_or_else(|| json!([]));
+        let err = match fault.status {
+            Status::Cancelled => CancelledError::new_err(cause.clone()),
+            Status::Invalid => InvalidInputError::new_err(cause.clone()),
+            Status::InternalError => InternalEngineError::new_err(cause.clone()),
+            _ => AnalysisError::new_err(cause.clone()),
+        };
+        engine_error(py, err, code, &entities, &cause).unwrap_or_else(|err| err)
+    }
+
+    /// Owns one factored linearStatic model. Not sendable: the factor stays on this thread.
+    #[pyclass(unsendable, name = "PreparedLinear", module = "mamut_engine._native")]
+    struct NativePrepared {
+        inner: engine_api::PreparedLinear,
+    }
+
+    #[pymethods]
+    impl NativePrepared {
+        /// Solves again and returns `[{case, nodes: [{id, displacements}]}]`.
+        fn displacements(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+            let cases = match self.inner.displacements() {
+                Ok(cases) => cases,
+                Err(fault) => return Err(fault_error(py, fault)),
+            };
+            let out = PyList::empty(py);
+            for case in cases {
+                let nodes = PyList::empty(py);
+                for node in case.nodes {
+                    let displacements = PyList::empty(py);
+                    for value in node.displacements {
+                        displacements.append(value)?;
+                    }
+                    let item = PyDict::new(py);
+                    item.set_item("id", node.id)?;
+                    item.set_item("displacements", displacements)?;
+                    nodes.append(item)?;
+                }
+                let item = PyDict::new(py);
+                item.set_item("case", &case.case)?;
+                item.set_item("nodes", nodes)?;
+                out.append(item)?;
+            }
+            Ok(out.into_any().unbind())
+        }
+    }
+
+    /// Prepares one linearStatic model. Holds the GIL; the repeated solve is the hot path.
+    #[pyfunction]
+    fn prepare(py: Python<'_>, input_json: &str) -> PyResult<NativePrepared> {
+        guarded(py, || {
+            match engine_api::PreparedLinear::prepare(input_json, &engine_api::CancelToken::new()) {
+                Ok(inner) => Ok(NativePrepared { inner }),
+                Err(fault) => Err(fault_error(py, fault)),
+            }
+        })
+    }
+
     #[pymodule]
     fn _native(module: &Bound<'_, PyModule>) -> PyResult<()> {
         let py = module.py();
@@ -295,6 +364,8 @@ mod python {
         module.add_function(wrap_pyfunction!(input_sha256, module)?)?;
         module.add_function(wrap_pyfunction!(validate, module)?)?;
         module.add_function(wrap_pyfunction!(run, module)?)?;
+        module.add_function(wrap_pyfunction!(prepare, module)?)?;
+        module.add_class::<NativePrepared>()?;
         Ok(())
     }
 }

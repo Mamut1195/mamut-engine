@@ -473,6 +473,16 @@ class Capabilities(CapabilitiesRequired, total=False):
     laws: list[str]
     end_releases: list[str]
 
+class NodeDisplacement(TypedDict):
+    """Desplazamiento nodal en el orden de results/1."""
+    id: int
+    displacements: list[float]
+
+class CaseDisplacements(TypedDict):
+    """Desplazamientos de un caso de carga."""
+    case: str
+    nodes: list[NodeDisplacement]
+
 class Progress(TypedDict):
     """Evento diferido; completed y total cuentan etapas del motor."""
     operation: str

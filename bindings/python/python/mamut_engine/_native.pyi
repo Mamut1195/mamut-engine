@@ -40,6 +40,17 @@ def run(
     """JSON canónico results/1. Callback diferido, ejecutado con GIL al terminar."""
     ...
 
+class PreparedLinear:
+    """Modelo linearStatic ya factorizado. No se envía a otro hilo."""
+
+    def displacements(self) -> list[dict[str, Any]]:
+        """Resuelve de nuevo y devuelve desplazamientos nodales, sin results/1."""
+        ...
+
+def prepare(input_json: str) -> PreparedLinear:
+    """Prepara un solo linearStatic sin combinaciones. Mantiene el GIL."""
+    ...
+
 def canonical_json(input_json: str) -> str:
     """Transporte privado de la canonización engine-api, sin física en Python."""
     ...
