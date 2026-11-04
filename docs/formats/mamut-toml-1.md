@@ -90,7 +90,18 @@ Todas las referencias son por id o nombre; nunca por posición de array.
 En engine-input/1, los ids de nudos, miembros y springs son enteros entre
 0 y 4294967295, ambos incluidos. Los ids de apoyos, masas, secciones y
 combinaciones, los nombres de leyes y los nombres de casos son strings.
-Para alias de texto de nudos/barras/springs: definido en MAM-993, [ADR-005](../adr/ADR-005-alias-name-idmap.md).
+Para alias de texto de nudos, barras y resortes, U5 está cerrado en
+[V1.md](../V1.md), sección 13. `name` es un string opcional de hasta 256
+bytes UTF-8 en `[[nodes]]`, `[[members]]` y `[[springs]]`. El `id` entero
+sigue siendo obligatorio y el convertidor no asigna uno. El mismo `name`
+puede repetirse entre esas tres colecciones. Dentro de una colección, un
+`name` o un `id` repetido es CLI-E-VALIDATION. El nombre no se copia al
+JSON del motor. Al exportar, el convertidor escribe `name` solo para los
+ids presentes en un documento `idmap/1` que acompaña al modelo. Ese
+documento es JSON y exige `format`, `nodes`, `members` y `springs`; cada
+entrada tiene `name` e `id`. No se publica un esquema de `idmap/1` y no
+se acepta `input_sha256`: esos puntos siguen abiertos en
+[ADR-005](../adr/ADR-005-alias-name-idmap.md) y este texto no los cierra.
 
 Los identificadores textuales admiten "" y tienen un máximo de 256 bytes
 UTF-8, también al exportar. La longitud se mide antes de cualquier
@@ -119,8 +130,8 @@ La tabla contiene exactamente las 35 definiciones del esquema:
 | dof | string de GDL | D | Solo Ux, Uy, Uz, Rx, Ry, Rz. |
 | method | analysis.method | D | Siete valores literales del esquema; no se traducen. |
 | model | Hijos en la raíz | R | Se reconstruye model; axes se deriva como Z-up. Sin tabla model ni axes escrito. Colecciones omitidas: vacías. |
-| node | [[nodes]] | R | id, x, y; coordinates = [x,y,z], z = 0 si falta. dim y dofs locales prevalecen sobre [defaults]; ambos deben quedar definidos. D2 exige z = 0. |
-| member | [[members]] | R | from y to forman nodes = [from,to]; section y law son referencias textuales. element, orientation, release_i, release_j y winkler se conservan. element ausente deja al motor sus valores frame2d.euler_elastic o frame3d.euler_elastic según dimensión. |
+| node | [[nodes]] | R | id, x, y; name opcional y fuera del JSON. coordinates = [x,y,z], z = 0 si falta. dim y dofs locales prevalecen sobre [defaults]; ambos deben quedar definidos. D2 exige z = 0. |
+| member | [[members]] | R | id obligatorio; name opcional y fuera del JSON. from y to forman nodes = [from,to]; section y law son referencias textuales. element, orientation, release_i, release_j y winkler se conservan. element ausente deja al motor sus valores frame2d.euler_elastic o frame3d.euler_elastic según dimensión. |
 | parameter | Clave numérica en sección o ley | R | Cada par clave = valor forma {name,value}; no hay lista TOML de parámetros ni sobrescritura de duplicados. Reservas P1 en leyes. |
 | section | `[sections.<nombre>]` | R | El nombre de tabla forma id; sus entradas numéricas forman properties, incluso si la tabla está vacía. |
 | law | `[laws.<nombre>]` | R | El nombre forma name; las entradas numéricas forman parameters. kind, points y mode son metadatos conservados y están prohibidos como nombres de parámetro (P1). Sin kind se conserva la semántica histórica del motor. |
@@ -134,7 +145,7 @@ La tabla contiene exactamente las 35 definiciones del esquema:
 | term | Clave de caso = factor; tablas gravity/lateral | R | En combinación, forma corta → {case,factor}. En pDelta se conserva explícitamente {case,factor}. No se inventa factor. |
 | prescribed | [[prescribed]] | D | node, dof, value obligatorios; sin valor por defecto. |
 | diaphragm | [[diaphragms]] | D | master, slaves obligatorios; identidades de nudos, sin renumeración por posición. |
-| spring | [[springs]] | D | Mismas claves del esquema. id, nodes, kind, dof obligatorios; condiciones de k/law y direction/rotation en sección 4. |
+| spring | [[springs]] | D | Mismas claves del esquema, más name opcional y fuera del JSON. id, nodes, kind, dof obligatorios; condiciones de k/law y direction/rotation en sección 4. |
 | winkler | winkler en [[members]] | D | Exactamente {k} para D2 o {ky,kz} para D3, valores ≥ 0. Sin mezclar ramas; conserva restricciones del motor sobre liberaciones. |
 | analysis | [analysis] | R | analyses, de longitud uno, se representa por una tabla. method selecciona rama; options se aplana. Opciones de otra rama: error. |
 | massSource | [analysis.mass_source] | D | method, case, factor, direction, gravity obligatorios; opcional solo en modal y responseSpectrum. Sin suma implícita con masas nodales. |
@@ -176,16 +187,16 @@ rotación tiene tres filas de tres números.
 | --- | --- | --- |
 | Raíz | format, units, defaults, nodes, sections, laws, members, supports, masses, springs, prescribed, diaphragms, cases, combinations, analysis, options | format, units, analysis. Las demás colecciones admiten omisión según sección 2. |
 | [defaults] | dim, dofs | Ninguna; solo aporta valores a nudos que los omiten. dim: D2 o D3. |
-| [[nodes]] | id, x, y, z, dim, dofs | id, x, y; dim y dofs deben resultar de la tabla o de defaults. z ausente: 0. |
+| [[nodes]] | id, name, x, y, z, dim, dofs | id, x, y; name opcional. dim y dofs deben resultar de la tabla o de defaults. z ausente: 0. |
 | [sections] | Nombres de sección dinámicos | Cada valor es tabla de sección. "" permitido. |
 | `[sections.<nombre>]` | Nombres de propiedades dinámicos | Valores numéricos; forman properties. No existe clave envolvente properties. |
 | [laws] | Nombres de ley dinámicos | Cada valor es tabla de ley. "" permitido. |
 | `[laws.<nombre>]` | kind, points, mode y nombres dinámicos de parámetros numéricos | kind, points y mode nunca son parámetros. No existe subtabla params ni parameters. |
-| [[members]] | id, from, to, section, law, element, orientation, release_i, release_j, winkler | id, from, to, section, law. orientation: tres números. release_i/j: booleano o tres booleanos, según esquema y dimensión. |
+| [[members]] | id, name, from, to, section, law, element, orientation, release_i, release_j, winkler | id, from, to, section, law; name opcional. orientation: tres números. release_i/j: booleano o tres booleanos, según esquema y dimensión. |
 | members.winkler | k; o ky, kz | Exactamente una rama: k para D2; ky y kz para D3. Todos ≥ 0. |
 | [[supports]] | id, node, restrained, type | node y exactamente una forma de restricción. id autoasignado si falta. |
 | [[masses]] | id, node, Ux, Uy, Uz, Rx, Ry, Rz | id, node; values se construye incluso si queda vacío. |
-| [[springs]] | id, nodes, kind, dof, k, law, direction, rotation | id, nodes, kind, dof. Condiciones debajo de la tabla. |
+| [[springs]] | id, name, nodes, kind, dof, k, law, direction, rotation | id, nodes, kind, dof; name opcional. Condiciones debajo de la tabla. |
 | [[prescribed]] | node, dof, value | Todas. |
 | [[diaphragms]] | master, slaves | Todas. |
 | [[cases]] | name, loads, member_loads | name; loads omitido: []. |
@@ -550,10 +561,10 @@ y fallo interno. No se alteran 0/1 de
 
 Cada fila tiene el estado **DESCONOCIDO — pendiente de decisión de Jonathan**.
 No se elige una alternativa por silencio, ni se presenta como verificada.
+U5 salió de esta tabla: la decisión está en [V1.md](../V1.md), sección 13.
 
 | Punto | Estado | Contradicción o precisión pendiente |
 | --- | --- | --- |
-| U5 | DESCONOCIDO — pendiente de decisión de Jonathan | definido en MAM-993, [ADR-005](../adr/ADR-005-alias-name-idmap.md). |
 | U7 | DESCONOCIDO — pendiente de decisión de Jonathan | Caso 32 de v4.2, con 4096 dígitos, frente al máximo público de 256 bytes por id. La comparación matemática y el rechazo público están descritos; queda pendiente el alcance de la prueba que exigía aceptación del caso largo. |
 | U9 | DESCONOCIDO — pendiente de decisión de Jonathan | El plan exige export de dos entradas idénticas con los mismos bytes, pero no define una escritura única completa: sangría, saltos finales, elección de escapes ni extracción de defaults. No se inventa una forma textual común entre emisores. |
 | U10 | DESCONOCIDO — pendiente de decisión de Jonathan | El plan v4 exige expandir los cuatro type de apoyo según dimensión, pero no enumera las listas de GDL para todas las dimensiones y conjuntos activos. El esquema solo define restrained. No se deducen listas nuevas para cerrar ese vacío. |
