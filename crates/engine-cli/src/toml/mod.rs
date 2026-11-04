@@ -3,8 +3,9 @@
 //! `mamut-engine convert` for mamut-toml/1.
 //!
 //! The mapped subset is the structural core, the load collections, and the
-//! analysis branches written in mamut-toml/1. U5, U7, U9, U10, and U11 stay
-//! open. `spring.nonlinear` is accepted only with `nonlinearStatic`.
+//! analysis branches written in mamut-toml/1. U9 is the canonical export in
+//! `docs/V1.md` section 13. U5, U7, U10, and U11 stay open.
+//! `spring.nonlinear` is accepted only with `nonlinearStatic`.
 
 mod core;
 mod order;

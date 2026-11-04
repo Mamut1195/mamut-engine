@@ -5,9 +5,11 @@
 //!
 //! U5 stays open: textual aliases of node, member, and spring ids are rejected.
 //! U7 stays open: an identifier longer than 256 bytes is rejected.
-//! U9 stays open: the emitter is deterministic, not a unique textual form,
-//! and it does not extract `[defaults]`.
-//! U10 stays open: `type` is rejected instead of expanded into a DOF list.
+//! U9 is closed: two exports of one model are the same UTF-8 bytes, with LF,
+//! one trailing newline, two-space indentation under each header, and keys in
+//! the order of mamut-toml/1 section 6. A value the author wrote is kept.
+//! `[defaults]` is not extracted by deleting that value. U10 stays open:
+//! `type` is rejected instead of expanded into a DOF list.
 //! U11 stays open: nesting uses a provisional fence, and errors omit line
 //! and column. `spring.nonlinear` is accepted only with `nonlinearStatic`.
 
@@ -186,7 +188,8 @@ fn root_from_toml(table: &toml::Table) -> Result<Json, Failure> {
     check_root_keys(table)?;
     require_format(table)?;
     require_units(table)?;
-    let experimental = allow_experimental(table)?;
+    let written_experimental = allow_experimental(table)?;
+    let experimental = written_experimental.unwrap_or(false);
     let defaults = parse_defaults(table)?;
     let nodes = parse_nodes(optional_array(table, "nodes")?, &defaults)?;
     let sections = parse_sections(optional_table(table, "sections")?)?;
@@ -242,7 +245,7 @@ fn root_from_toml(table: &toml::Table) -> Result<Json, Failure> {
         diaphragms,
         cases: cases.bodies,
         combinations,
-        experimental,
+        experimental: written_experimental,
         analysis: analysis.body,
     }))
 }
@@ -296,15 +299,17 @@ fn require_units(table: &toml::Table) -> Result<(), Failure> {
     }
 }
 
-fn allow_experimental(table: &toml::Table) -> Result<bool, Failure> {
+/// `None` when the author omitted the key. `Some` keeps a written boolean,
+/// including `false`.
+fn allow_experimental(table: &toml::Table) -> Result<Option<bool>, Failure> {
     let Some(value) = table.get("options") else {
-        return Ok(false);
+        return Ok(None);
     };
     let options = as_table(value, "/options")?;
     reject_toml_keys(options, &["allow_experimental"], "/options")?;
     match options.get("allow_experimental") {
-        None => Ok(false),
-        Some(Toml::Boolean(value)) => Ok(*value),
+        None => Ok(None),
+        Some(Toml::Boolean(value)) => Ok(Some(*value)),
         Some(_) => Err(Failure::validation(
             Some("/options".to_string()),
             "A value has the wrong type.",
@@ -1147,7 +1152,8 @@ struct ModelParts {
     diaphragms: Vec<Json>,
     cases: Vec<Json>,
     combinations: Vec<CombinationRec>,
-    experimental: bool,
+    /// Written `allow_experimental`, when the author set the key.
+    experimental: Option<bool>,
     analysis: Json,
 }
 
@@ -1167,10 +1173,9 @@ fn assemble(parts: ModelParts) -> Json {
         experimental,
         analysis,
     } = parts;
-    let options = if experimental {
-        json!({"allow_experimental": true})
-    } else {
-        json!({})
+    let options = match experimental {
+        Some(value) => json!({"allow_experimental": value}),
+        None => json!({}),
     };
     let mut model = json!({
         "axes": "Z-up",
@@ -1747,7 +1752,7 @@ fn export_root(value: &Json) -> Result<String, Failure> {
             ))
         }
     }
-    let experimental = json_experimental(root)?;
+    let experimental = json_allow_experimental(root)?;
     let model = match root.get("model") {
         Some(model) => as_object(model, "/model")?,
         None => {
@@ -1804,7 +1809,7 @@ fn export_root(value: &Json) -> Result<String, Failure> {
         root,
         &case_names,
         &analysis::BranchContext {
-            experimental,
+            experimental: experimental.unwrap_or(false),
             structural_empty: nodes.is_empty()
                 && members.is_empty()
                 && sections.is_empty()
@@ -1835,22 +1840,23 @@ fn export_root(value: &Json) -> Result<String, Failure> {
     let case_names = write_cases(&mut out, cases, nodes, members)?;
     write_combinations(&mut out, combinations, &case_names)?;
     analysis::write(&mut out, &analysis)?;
-    if experimental {
+    if let Some(value) = experimental {
         out.header("[options]");
-        out.entry("allow_experimental", "true");
+        out.entry("allow_experimental", if value { "true" } else { "false" });
     }
     Ok(out.finish())
 }
 
-fn json_experimental(root: &serde_json::Map<String, Json>) -> Result<bool, Failure> {
+/// `None` when the key is absent. A written `false` stays `Some(false)`.
+fn json_allow_experimental(root: &serde_json::Map<String, Json>) -> Result<Option<bool>, Failure> {
     let Some(value) = root.get("options") else {
-        return Ok(false);
+        return Ok(None);
     };
     let options = as_object(value, "/options")?;
     reject_json_keys(options, &["allow_experimental"], "/options")?;
     match options.get("allow_experimental") {
-        None => Ok(false),
-        Some(Json::Bool(value)) => Ok(*value),
+        None => Ok(None),
+        Some(Json::Bool(value)) => Ok(Some(*value)),
         Some(_) => Err(Failure::validation(
             Some("/options".to_string()),
             "A value has the wrong type.",
@@ -3354,16 +3360,23 @@ fn reject_json_keys(
 }
 
 #[derive(Default)]
-struct Out(String);
+struct Out {
+    body: String,
+    /// Keys under a header are indented by two spaces. Root keys stay flush.
+    in_table: bool,
+}
 
 impl Out {
     fn line(&mut self, text: &str) {
-        self.0.push_str(text);
-        self.0.push('\n');
+        self.body.push_str(text);
+        self.body.push('\n');
     }
 
     fn entry(&mut self, key: &str, value: &str) {
         let mut line = String::new();
+        if self.in_table {
+            line.push_str("  ");
+        }
         push_key(&mut line, key);
         line.push_str(" = ");
         line.push_str(value);
@@ -3371,8 +3384,9 @@ impl Out {
     }
 
     fn header(&mut self, text: &str) {
-        if self.0.ends_with('\n') && !self.0.ends_with("\n\n") {
-            self.0.push('\n');
+        self.in_table = true;
+        if self.body.ends_with('\n') && !self.body.ends_with("\n\n") {
+            self.body.push('\n');
         }
         self.line(text);
     }
@@ -3385,10 +3399,10 @@ impl Out {
     }
 
     fn finish(self) -> String {
-        if self.0.ends_with('\n') {
-            self.0
+        if self.body.ends_with('\n') {
+            self.body
         } else {
-            let mut text = self.0;
+            let mut text = self.body;
             text.push('\n');
             text
         }
@@ -4469,6 +4483,260 @@ mod tests {
             let back: Json = serde_json::from_str(json.trim()).unwrap();
             assert_eq!(back["analyses"], source["analyses"], "{name}");
             assert_eq!(back["options"], source["options"], "{name}");
+        }
+    }
+
+    fn canonical_layout(text: &str) {
+        let bytes = text.as_bytes();
+        assert_eq!(std::str::from_utf8(bytes).unwrap(), text);
+        assert!(bytes.ends_with(b"\n"));
+        assert!(!bytes.ends_with(b"\n\n"));
+        assert!(!bytes.contains(&b'\r'));
+        assert!(!text.contains('\t'));
+        for line in text.lines() {
+            if line.is_empty() || line.starts_with('[') {
+                assert_eq!(line.trim_start(), line, "{line}");
+                continue;
+            }
+            if line.starts_with("format = ") || line.starts_with("units = ") {
+                assert_eq!(line.trim_start(), line, "{line}");
+                continue;
+            }
+            assert!(line.starts_with("  ") && !line.starts_with("   "), "{line}");
+        }
+    }
+
+    fn position(text: &str, needle: &str) -> usize {
+        text.find(needle)
+            .unwrap_or_else(|| panic!("missing {needle}"))
+    }
+
+    /// U9: two exports of one model are the same bytes, and a written value stays.
+    #[test]
+    fn canonical_export_repeats_bytes_and_keeps_written_values() {
+        let source = r#"
+            format = "mamut-toml/1"
+            units = "SI"
+
+            [options]
+            allow_experimental = false
+
+            [defaults]
+            dim = "D2"
+            dofs = ["Ux"]
+
+            [[nodes]]
+            id = 2
+            x = 3.5
+            y = 1
+
+            [[nodes]]
+            id = 1
+            x = 0
+            y = 0
+            z = 0
+            dim = "D2"
+            dofs = ["Uy", "Ux"]
+
+            [sections.S10]
+            A = 4
+
+            [sections.S2]
+            A = 5
+
+            [laws.b]
+            E = 1
+
+            [laws.a]
+            kind = "elastic"
+            mode = "both"
+            points = [[0, 0], [1, 1]]
+            E = 200
+
+            [[members]]
+            id = 4
+            from = 1
+            to = 2
+            section = "S2"
+            law = "a"
+            element = "frame2d.euler_elastic"
+            orientation = [0, 0, 1]
+            release_i = false
+            release_j = true
+            winkler = { k = 1.5 }
+
+            [[supports]]
+            id = "written-support"
+            node = 1
+            restrained = ["Uy", "Ux"]
+
+            [[supports]]
+            node = 2
+            restrained = ["Ux"]
+
+            [[masses]]
+            id = "M"
+            node = 1
+            Rz = 3
+            Ux = 4
+
+            [[springs]]
+            id = 10
+            nodes = [2]
+            kind = "spring.linear"
+            dof = "Ux"
+            k = 5
+
+            [[springs]]
+            id = 2
+            nodes = [1, 2]
+            kind = "spring.linear"
+            dof = "Ux"
+            k = 8
+
+            [[prescribed]]
+            node = 1
+            dof = "Ux"
+            value = 0
+
+            [[prescribed]]
+            node = 2
+            dof = "Uy"
+            value = 0.25
+
+            [[diaphragms]]
+            master = 1
+            slaves = [2]
+
+            [[cases]]
+            name = "L"
+
+            [[cases.loads]]
+            node = 1
+            Fy = 2
+            Fx = 9
+
+            [[cases]]
+            name = "D"
+
+            [[cases.member_loads]]
+            member = 4
+            force_per_length = [0, -6, 0]
+            moment_per_length = [0, 0, 0]
+
+            [combinations.10]
+            L = 1
+            D = 2
+
+            [combinations.2]
+            D = 0.5
+
+            [analysis]
+            method = "linearStatic"
+        "#;
+        let json = toml_to_json(source).unwrap_or_else(|error| panic!("{}", error.cause));
+        let value: Json = serde_json::from_str(json.trim()).unwrap();
+        assert_eq!(value["options"]["allow_experimental"], false);
+        assert_eq!(value["model"]["nodes"][0]["dofs"], json!(["Ux", "Uy"]));
+        assert_eq!(value["model"]["members"][0]["release_i"], false);
+        assert_eq!(
+            value["model"]["members"][0]["element"],
+            "frame2d.euler_elastic"
+        );
+
+        let first = json_to_toml(&json).unwrap();
+        let second = json_to_toml(&json).unwrap();
+        assert_eq!(first.as_bytes(), second.as_bytes());
+        canonical_layout(&first);
+        assert!(first.starts_with("format = \"mamut-toml/1\"\nunits = \"SI\"\n\n[[nodes]]\n"));
+        assert!(!first.contains("[defaults]"));
+        assert!(first.contains("allow_experimental = false"));
+        assert!(first.contains("release_i = false"));
+        assert!(first.contains("release_j = true"));
+        assert!(first.contains("element = \"frame2d.euler_elastic\""));
+        assert!(first.contains("winkler = { k = 1.5 }"));
+        assert!(first.contains("x = 3.5"));
+        assert!(first.contains("dofs = [\"Ux\", \"Uy\"]"));
+        assert!(first.contains("id = \"written-support\""));
+        assert!(first.contains("value = 0\n"));
+        assert!(first.contains("force_per_length = [0, -6, 0]"));
+        assert!(!first.contains("moment_per_length"));
+
+        let markers = [
+            "format = ",
+            "units = ",
+            "[[nodes]]",
+            "[sections.S10]",
+            "[sections.S2]",
+            "[laws.a]",
+            "[laws.b]",
+            "[[members]]",
+            "[[supports]]",
+            "[[masses]]",
+            "[[springs]]",
+            "[[prescribed]]",
+            "[[diaphragms]]",
+            "[[cases]]",
+            "[combinations.2]",
+            "[combinations.10]",
+            "[analysis]",
+            "[options]",
+        ];
+        let mut last = 0;
+        for marker in markers {
+            let at = position(&first, marker);
+            assert!(at >= last, "{marker}");
+            last = at;
+        }
+        let nodes = between(&first, "[[nodes]]", "[sections.S10]");
+        assert!(position(nodes, "id = 1\n") < position(nodes, "id = 2\n"));
+        let written = between(nodes, "id = 1\n", "id = 2\n");
+        let node_keys = ["id = ", "x = ", "y = ", "z = ", "dim = ", "dofs = "];
+        let mut node_at = 0;
+        for key in node_keys {
+            let at = position(written, key);
+            assert!(at >= node_at, "{key}");
+            node_at = at;
+        }
+        let member = between(&first, "[[members]]", "[[supports]]");
+        let member_keys = [
+            "id = ",
+            "from = ",
+            "to = ",
+            "section = ",
+            "law = ",
+            "element = ",
+            "orientation = ",
+            "release_i = ",
+            "release_j = ",
+            "winkler = ",
+        ];
+        let mut member_at = 0;
+        for key in member_keys {
+            let at = position(member, key);
+            assert!(at >= member_at, "{key}");
+            member_at = at;
+        }
+        let mass = between(&first, "[[masses]]", "[[springs]]");
+        assert!(position(mass, "Ux = ") < position(mass, "Rz = "));
+        let springs = between(&first, "[[springs]]", "[[prescribed]]");
+        assert!(position(springs, "id = 2\n") < position(springs, "id = 10\n"));
+        let load = between(&first, "[[cases.loads]]", "[[cases]]");
+        assert!(position(load, "Fx = ") < position(load, "Fy = "));
+        assert!(position(&first, "name = \"L\"") < position(&first, "name = \"D\""));
+        let combo = between(&first, "[combinations.10]", "[analysis]");
+        assert!(position(combo, "D = ") < position(combo, "L = "));
+
+        let again = json_to_toml(&toml_to_json(&first).unwrap()).unwrap();
+        assert_eq!(again.as_bytes(), first.as_bytes());
+    }
+
+    fn between<'a>(text: &'a str, start: &str, end: &str) -> &'a str {
+        let from = position(text, start);
+        let rest = &text[from..];
+        match rest[start.len()..].find(end) {
+            Some(to) => &rest[..start.len() + to],
+            None => rest,
         }
     }
 }
