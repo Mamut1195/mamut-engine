@@ -30,6 +30,7 @@ mod error;
 #[cfg(unix)]
 mod signals;
 mod timeout;
+mod toml;
 use error::report_failure;
 
 /// Adapter catalog; also available as the crate's `catalog.json` file.
@@ -170,6 +171,16 @@ impl EngineCli {
                 Ok(()) => ExitCodes::engine_v1().ok,
                 Err(kind) => report_failure(kind, operation, None, stderr),
             };
+        }
+        if let Some(code) = toml::dispatch(
+            &args,
+            operation,
+            lang,
+            stdin,
+            stdout,
+            &mut EventWriter(stderr),
+        ) {
+            return code;
         }
         let prepared = match PreparedArgs::new(&args) {
             Ok(prepared) => prepared,
