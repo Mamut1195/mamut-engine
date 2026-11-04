@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! `mamut-engine convert` for the mamut-toml/1 structural core.
+//! `mamut-engine convert` for mamut-toml/1.
 //!
-//! The core is the root, nodes, members, sections, laws, and supports.
-//! Cases, loads, masses, prescribed displacements, diaphragms, and springs
-//! stay outside this subset. U5, U7, U9, U10, and U11 stay open.
+//! The mapped subset is the structural core plus masses, loads, member
+//! loads, cases, combinations, prescribed displacements, diaphragms, and
+//! springs. U5, U7, U9, U10, and U11 stay open. A method other than
+//! `linearStatic` stays rejected.
 
 mod core;
 mod order;

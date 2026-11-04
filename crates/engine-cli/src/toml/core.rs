@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//! Map the structural subset of mamut-toml/1 to engine-input/1 and back.
+//! Map mamut-toml/1 to engine-input/1 and back for the structural core and
+//! the load, mass, combination, prescribed, diaphragm, and spring collections.
 //!
-//! U5 stays open: textual aliases of node and member ids are rejected.
+//! U5 stays open: textual aliases of node, member, and spring ids are rejected.
+//! U7 stays open: an identifier longer than 256 bytes is rejected.
 //! U9 stays open: the emitter is deterministic, not a unique textual form,
 //! and it does not extract `[defaults]`.
 //! U10 stays open: `type` is rejected instead of expanded into a DOF list.
 //! U11 stays open: nesting uses a provisional fence, and errors omit line
-//! and column.
+//! and column. Methods other than `linearStatic` stay rejected.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -22,8 +24,19 @@ const MAX_SAFE: i64 = (1_i64 << 53) - 1;
 const MAX_ID_BYTES: usize = 256;
 const MAX_NODES: usize = 256;
 const MAX_MEMBERS: usize = 1024;
+const MAX_CASES: usize = 64;
+const MAX_COMBINATIONS: usize = 128;
+const MAX_LOADS: usize = 16_384;
 const NEST_LIMIT: usize = 64;
 const DOFS: [&str; 6] = ["Ux", "Uy", "Uz", "Rx", "Ry", "Rz"];
+const LOAD_PAIRS: [(&str, &str); 6] = [
+    ("Fx", "Ux"),
+    ("Fy", "Uy"),
+    ("Fz", "Uz"),
+    ("Mx", "Rx"),
+    ("My", "Ry"),
+    ("Mz", "Rz"),
+];
 const KINDS: [&str; 4] = [
     "elastic",
     "steel.bilinear_kinematic",
@@ -31,11 +44,24 @@ const KINDS: [&str; 4] = [
     "elastic.cubic",
 ];
 const MODES: [&str; 3] = ["both", "compression_only", "tension_only"];
-const ROOT_KEYS: [&str; 10] = [
-    "format", "units", "defaults", "nodes", "sections", "laws", "members", "supports", "analysis",
+const ROOT_KEYS: [&str; 16] = [
+    "format",
+    "units",
+    "defaults",
+    "nodes",
+    "sections",
+    "laws",
+    "members",
+    "supports",
+    "masses",
+    "springs",
+    "prescribed",
+    "diaphragms",
+    "cases",
+    "combinations",
+    "analysis",
     "options",
 ];
-const ARRAY_DEFERRED: [&str; 5] = ["masses", "springs", "prescribed", "diaphragms", "cases"];
 
 /// Convert mamut-toml/1 text into engine-input/1 JSON, including a trailing newline.
 pub(crate) fn toml_to_json(text: &str) -> Result<String, Failure> {
@@ -166,12 +192,24 @@ fn root_from_toml(table: &toml::Table) -> Result<Json, Failure> {
     let laws = parse_laws(optional_table(table, "laws")?)?;
     let members = parse_members(optional_array(table, "members")?, &nodes, &sections, &laws)?;
     let supports = parse_supports(optional_array(table, "supports")?, &nodes)?;
+    let masses = parse_masses(optional_array(table, "masses")?, &nodes)?;
+    let springs = parse_springs(optional_array(table, "springs")?, &nodes, &members)?;
+    let prescribed = parse_prescribed(optional_array(table, "prescribed")?, &nodes)?;
+    let diaphragms = parse_diaphragms(optional_array(table, "diaphragms")?, &nodes)?;
+    let cases = parse_cases(optional_array(table, "cases")?, &nodes, &members)?;
+    let combinations = parse_combinations(optional_table(table, "combinations")?, &cases.names)?;
     Ok(assemble(
         nodes,
         members,
         sections,
         laws,
         supports,
+        masses,
+        springs,
+        prescribed,
+        diaphragms,
+        cases.bodies,
+        combinations,
         experimental,
     ))
 }
@@ -181,12 +219,8 @@ fn screen_root(table: &toml::Table) -> Result<(), Failure> {
 }
 
 fn check_root_keys(table: &toml::Table) -> Result<(), Failure> {
-    for (key, value) in table {
-        if ARRAY_DEFERRED.contains(&key.as_str()) {
-            require_empty_toml_array(value, key)?;
-        } else if key == "combinations" {
-            require_empty_toml_table(value, key)?;
-        } else if !ROOT_KEYS.contains(&key.as_str()) {
+    for key in table.keys() {
+        if !ROOT_KEYS.contains(&key.as_str()) {
             return Err(Failure::validation(
                 Some(String::new()),
                 "The document contains an unknown key.",
@@ -194,34 +228,6 @@ fn check_root_keys(table: &toml::Table) -> Result<(), Failure> {
         }
     }
     Ok(())
-}
-
-fn require_empty_toml_array(value: &Toml, key: &str) -> Result<(), Failure> {
-    match value {
-        Toml::Array(items) if items.is_empty() => Ok(()),
-        Toml::Array(_) => Err(Failure::validation(
-            Some(format!("/{key}")),
-            "This collection is outside the implemented subset.",
-        )),
-        _ => Err(Failure::validation(
-            Some(format!("/{key}")),
-            "A collection has the wrong shape.",
-        )),
-    }
-}
-
-fn require_empty_toml_table(value: &Toml, key: &str) -> Result<(), Failure> {
-    match value {
-        Toml::Table(table) if table.is_empty() => Ok(()),
-        Toml::Table(_) => Err(Failure::validation(
-            Some(format!("/{key}")),
-            "This collection is outside the implemented subset.",
-        )),
-        _ => Err(Failure::validation(
-            Some(format!("/{key}")),
-            "A collection has the wrong shape.",
-        )),
-    }
 }
 
 fn require_format(table: &toml::Table) -> Result<(), Failure> {
@@ -727,12 +733,389 @@ fn parse_supports(
     Ok(supports)
 }
 
+struct MassRec {
+    id: String,
+    body: Json,
+}
+
+fn parse_masses(items: Option<&Vec<Toml>>, nodes: &[NodeRec]) -> Result<Vec<MassRec>, Failure> {
+    let Some(items) = items else {
+        return Ok(Vec::new());
+    };
+    let node_ids = node_id_set(nodes);
+    let mut masses = Vec::with_capacity(items.len());
+    let mut seen = BTreeSet::new();
+    for (index, item) in items.iter().enumerate() {
+        let pointer = format!("/masses/{index}");
+        let table = as_table(item, &pointer)?;
+        reject_toml_keys(
+            table,
+            &["id", "node", "Ux", "Uy", "Uz", "Rx", "Ry", "Rz"],
+            &pointer,
+        )?;
+        let id = required_text(table, "id", &pointer)?;
+        if !seen.insert(id.clone()) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "An identifier is duplicated.",
+            ));
+        }
+        let node = required_u32(table, "node", &pointer)?;
+        if !node_ids.contains(&node) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A reference does not exist.",
+            ));
+        }
+        let values = toml_components(table, &MASS_PAIRS, &pointer)?;
+        let body = json!({"id": id.clone(), "node": node, "values": values});
+        masses.push(MassRec { id, body });
+    }
+    masses.sort_by_cached_key(|mass| order::natural_key(mass.id.as_bytes()));
+    Ok(masses)
+}
+
+const MASS_PAIRS: [(&str, &str); 6] = [
+    ("Ux", "Ux"),
+    ("Uy", "Uy"),
+    ("Uz", "Uz"),
+    ("Rx", "Rx"),
+    ("Ry", "Ry"),
+    ("Rz", "Rz"),
+];
+
+struct SpringRec {
+    id: u64,
+    body: Json,
+}
+
+fn parse_springs(
+    items: Option<&Vec<Toml>>,
+    nodes: &[NodeRec],
+    members: &[MemberRec],
+) -> Result<Vec<SpringRec>, Failure> {
+    let Some(items) = items else {
+        return Ok(Vec::new());
+    };
+    if members.len() + items.len() > MAX_MEMBERS {
+        return Err(Failure::validation(
+            Some("/springs".to_string()),
+            "A schema limit was exceeded.",
+        ));
+    }
+    let node_ids = node_id_set(nodes);
+    let mut seen: BTreeSet<u64> = members.iter().map(|member| member.id).collect();
+    let mut springs = Vec::with_capacity(items.len());
+    for (index, item) in items.iter().enumerate() {
+        let pointer = format!("/springs/{index}");
+        let table = as_table(item, &pointer)?;
+        reject_toml_keys(
+            table,
+            &[
+                "id",
+                "nodes",
+                "kind",
+                "dof",
+                "k",
+                "law",
+                "direction",
+                "rotation",
+            ],
+            &pointer,
+        )?;
+        let id = required_u32(table, "id", &pointer)?;
+        if !seen.insert(id) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "An identifier is duplicated.",
+            ));
+        }
+        let endpoints = spring_nodes(table, &pointer, &node_ids)?;
+        let kind = spring_kind(table, &pointer)?;
+        let dof = required_dof(table, "dof", &pointer)?;
+        let (direction, rotation) = spring_axes(table, &pointer)?;
+        let mut body = json!({
+            "id": id,
+            "nodes": endpoints,
+            "kind": kind,
+            "dof": dof,
+        });
+        if kind == "spring.linear" {
+            if table.contains_key("law") {
+                return Err(Failure::validation(
+                    Some(pointer),
+                    "A linear spring forbids a law.",
+                ));
+            }
+            let k = match table.get("k") {
+                Some(value) => nonnegative(value, &pointer)?,
+                None => {
+                    return Err(Failure::validation(
+                        Some(pointer),
+                        "A required field is missing.",
+                    ))
+                }
+            };
+            body["k"] = k;
+        } else {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A nonlinear spring requires nonlinearStatic.",
+            ));
+        }
+        if let Some(direction) = direction {
+            body["direction"] = direction;
+        }
+        if let Some(rotation) = rotation {
+            body["rotation"] = rotation;
+        }
+        springs.push(SpringRec { id, body });
+    }
+    springs.sort_by_cached_key(|spring| order::natural_key(spring.id.to_string().as_bytes()));
+    Ok(springs)
+}
+
+fn parse_prescribed(items: Option<&Vec<Toml>>, nodes: &[NodeRec]) -> Result<Vec<Json>, Failure> {
+    let Some(items) = items else {
+        return Ok(Vec::new());
+    };
+    let node_ids = node_id_set(nodes);
+    let mut prescribed = Vec::with_capacity(items.len());
+    for (index, item) in items.iter().enumerate() {
+        let pointer = format!("/prescribed/{index}");
+        let table = as_table(item, &pointer)?;
+        reject_toml_keys(table, &["node", "dof", "value"], &pointer)?;
+        let node = required_u32(table, "node", &pointer)?;
+        if !node_ids.contains(&node) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A reference does not exist.",
+            ));
+        }
+        let dof = required_dof(table, "dof", &pointer)?;
+        let value = json_scalar(required_scalar(table, "value", &pointer)?)?;
+        prescribed.push(json!({"node": node, "dof": dof, "value": value}));
+    }
+    Ok(prescribed)
+}
+
+fn parse_diaphragms(items: Option<&Vec<Toml>>, nodes: &[NodeRec]) -> Result<Vec<Json>, Failure> {
+    let Some(items) = items else {
+        return Ok(Vec::new());
+    };
+    let node_ids = node_id_set(nodes);
+    let mut diaphragms = Vec::with_capacity(items.len());
+    for (index, item) in items.iter().enumerate() {
+        let pointer = format!("/diaphragms/{index}");
+        let table = as_table(item, &pointer)?;
+        reject_toml_keys(table, &["master", "slaves"], &pointer)?;
+        let master = required_u32(table, "master", &pointer)?;
+        if !node_ids.contains(&master) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A reference does not exist.",
+            ));
+        }
+        let slaves = id_list(table.get("slaves"), &pointer, &node_ids)?;
+        diaphragms.push(json!({"master": master, "slaves": slaves}));
+    }
+    Ok(diaphragms)
+}
+
+struct ParsedCases {
+    bodies: Vec<Json>,
+    names: BTreeSet<String>,
+}
+
+fn parse_cases(
+    items: Option<&Vec<Toml>>,
+    nodes: &[NodeRec],
+    members: &[MemberRec],
+) -> Result<ParsedCases, Failure> {
+    let Some(items) = items else {
+        return Ok(ParsedCases {
+            bodies: Vec::new(),
+            names: BTreeSet::new(),
+        });
+    };
+    if items.len() > MAX_CASES {
+        return Err(Failure::validation(
+            Some("/cases".to_string()),
+            "A schema limit was exceeded.",
+        ));
+    }
+    let node_ids = node_id_set(nodes);
+    let member_ids: BTreeSet<u64> = members.iter().map(|member| member.id).collect();
+    let mut bodies = Vec::with_capacity(items.len());
+    let mut names = BTreeSet::new();
+    let mut load_count = 0usize;
+    for (index, item) in items.iter().enumerate() {
+        let pointer = format!("/cases/{index}");
+        let table = as_table(item, &pointer)?;
+        reject_toml_keys(table, &["name", "loads", "member_loads"], &pointer)?;
+        let name = required_text(table, "name", &pointer)?;
+        if !names.insert(name.clone()) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "An identifier is duplicated.",
+            ));
+        }
+        let loads = parse_loads(
+            array_at(table, "loads", &format!("{pointer}/loads"))?,
+            &pointer,
+            &node_ids,
+        )?;
+        let member_loads = parse_member_loads(
+            array_at(table, "member_loads", &format!("{pointer}/member_loads"))?,
+            &pointer,
+            &member_ids,
+        )?;
+        load_count = load_count
+            .saturating_add(loads.len())
+            .saturating_add(member_loads.len());
+        if load_count > MAX_LOADS {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A schema limit was exceeded.",
+            ));
+        }
+        let mut body = json!({"name": name, "loads": loads});
+        if !member_loads.is_empty() {
+            body["member_loads"] = Json::Array(member_loads);
+        }
+        bodies.push(body);
+    }
+    Ok(ParsedCases { bodies, names })
+}
+
+fn parse_loads(
+    items: Option<&Vec<Toml>>,
+    parent: &str,
+    node_ids: &BTreeSet<u64>,
+) -> Result<Vec<Json>, Failure> {
+    let Some(items) = items else {
+        return Ok(Vec::new());
+    };
+    let mut loads = Vec::with_capacity(items.len());
+    for (index, item) in items.iter().enumerate() {
+        let pointer = format!("{parent}/loads/{index}");
+        let table = as_table(item, &pointer)?;
+        reject_toml_keys(
+            table,
+            &["node", "Fx", "Fy", "Fz", "Mx", "My", "Mz"],
+            &pointer,
+        )?;
+        let node = required_u32(table, "node", &pointer)?;
+        if !node_ids.contains(&node) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A reference does not exist.",
+            ));
+        }
+        let values = toml_components(table, &LOAD_PAIRS, &pointer)?;
+        loads.push(json!({"node": node, "values": values}));
+    }
+    Ok(loads)
+}
+
+fn parse_member_loads(
+    items: Option<&Vec<Toml>>,
+    parent: &str,
+    member_ids: &BTreeSet<u64>,
+) -> Result<Vec<Json>, Failure> {
+    let Some(items) = items else {
+        return Ok(Vec::new());
+    };
+    let mut loads = Vec::with_capacity(items.len());
+    for (index, item) in items.iter().enumerate() {
+        let pointer = format!("{parent}/member_loads/{index}");
+        let table = as_table(item, &pointer)?;
+        reject_toml_keys(
+            table,
+            &["member", "force_per_length", "moment_per_length"],
+            &pointer,
+        )?;
+        let member = required_u32(table, "member", &pointer)?;
+        if !member_ids.contains(&member) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A reference does not exist.",
+            ));
+        }
+        let force = optional_vec3(table, "force_per_length", &pointer)?;
+        let moment = optional_vec3(table, "moment_per_length", &pointer)?;
+        loads.push(json!({
+            "member": member,
+            "force_per_length": force,
+            "moment_per_length": moment,
+        }));
+    }
+    Ok(loads)
+}
+
+struct CombinationRec {
+    id: String,
+    body: Json,
+}
+
+fn parse_combinations(
+    table: Option<&toml::Table>,
+    cases: &BTreeSet<String>,
+) -> Result<Vec<CombinationRec>, Failure> {
+    let Some(table) = table else {
+        return Ok(Vec::new());
+    };
+    if table.len() > MAX_COMBINATIONS {
+        return Err(Failure::validation(
+            Some("/combinations".to_string()),
+            "A schema limit was exceeded.",
+        ));
+    }
+    let mut combinations = Vec::with_capacity(table.len());
+    for (index, (id, value)) in table.iter().enumerate() {
+        let pointer = format!("/combinations/{index}");
+        check_text_len(id, &pointer)?;
+        let terms_table = as_table(value, &pointer)?;
+        let mut terms = Vec::with_capacity(terms_table.len());
+        for (case, factor) in terms_table {
+            check_text_len(case, &pointer)?;
+            if !cases.contains(case) {
+                return Err(Failure::validation(
+                    Some(pointer),
+                    "A reference does not exist.",
+                ));
+            }
+            let factor = json_scalar(expect_scalar(factor, &pointer)?)?;
+            terms.push(json!({"case": case, "factor": factor}));
+        }
+        terms.sort_by(|left, right| {
+            left["case"]
+                .as_str()
+                .unwrap_or("")
+                .as_bytes()
+                .cmp(right["case"].as_str().unwrap_or("").as_bytes())
+        });
+        combinations.push(CombinationRec {
+            id: id.clone(),
+            body: json!({"id": id, "terms": terms}),
+        });
+    }
+    combinations.sort_by_cached_key(|combination| order::natural_key(combination.id.as_bytes()));
+    Ok(combinations)
+}
+
 fn assemble(
     nodes: Vec<NodeRec>,
     members: Vec<MemberRec>,
     sections: Vec<Named>,
     laws: Vec<Named>,
     supports: Vec<SupportRec>,
+    masses: Vec<MassRec>,
+    springs: Vec<SpringRec>,
+    prescribed: Vec<Json>,
+    diaphragms: Vec<Json>,
+    cases: Vec<Json>,
+    combinations: Vec<CombinationRec>,
     experimental: bool,
 ) -> Json {
     let options = if experimental {
@@ -740,20 +1123,30 @@ fn assemble(
     } else {
         json!({})
     };
+    let mut model = json!({
+        "axes": "Z-up",
+        "nodes": nodes.into_iter().map(|node| node.body).collect::<Vec<_>>(),
+        "members": members.into_iter().map(|member| member.body).collect::<Vec<_>>(),
+        "sections": sections.into_iter().map(|section| section.body).collect::<Vec<_>>(),
+        "laws": laws.into_iter().map(|law| law.body).collect::<Vec<_>>(),
+        "supports": supports.into_iter().map(|support| support.body).collect::<Vec<_>>(),
+        "masses": masses.into_iter().map(|mass| mass.body).collect::<Vec<_>>(),
+    });
+    if !springs.is_empty() {
+        model["springs"] = Json::Array(springs.into_iter().map(|spring| spring.body).collect());
+    }
+    if !prescribed.is_empty() {
+        model["prescribed"] = Json::Array(prescribed);
+    }
+    if !diaphragms.is_empty() {
+        model["diaphragms"] = Json::Array(diaphragms);
+    }
     json!({
         "schema": "engine-input/1",
         "units": "SI",
-        "model": {
-            "axes": "Z-up",
-            "nodes": nodes.into_iter().map(|node| node.body).collect::<Vec<_>>(),
-            "members": members.into_iter().map(|member| member.body).collect::<Vec<_>>(),
-            "sections": sections.into_iter().map(|section| section.body).collect::<Vec<_>>(),
-            "laws": laws.into_iter().map(|law| law.body).collect::<Vec<_>>(),
-            "supports": supports.into_iter().map(|support| support.body).collect::<Vec<_>>(),
-            "masses": [],
-        },
-        "cases": [],
-        "combinations": [],
+        "model": model,
+        "cases": cases,
+        "combinations": combinations.into_iter().map(|combination| combination.body).collect::<Vec<_>>(),
         "analyses": [{"method": "linearStatic"}],
         "options": options,
     })
@@ -816,20 +1209,216 @@ fn required_scalar(table: &toml::Table, key: &str, pointer: &str) -> Result<Scal
 
 fn required_u32(table: &toml::Table, key: &str, pointer: &str) -> Result<u64, Failure> {
     match table.get(key) {
-        Some(Toml::Integer(value)) if (0..=4_294_967_295).contains(value) => Ok(*value as u64),
-        Some(Toml::Integer(_)) => Err(Failure::validation(
+        Some(value) => expect_u32(value, pointer),
+        None => Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A required field is missing.",
+        )),
+    }
+}
+
+fn expect_u32(value: &Toml, pointer: &str) -> Result<u64, Failure> {
+    match value {
+        Toml::Integer(number) if (0..=4_294_967_295).contains(number) => Ok(*number as u64),
+        Toml::Integer(_) => Err(Failure::validation(
             Some(pointer.to_string()),
             "An identifier is outside the integer range.",
         )),
-        Some(_) => Err(Failure::validation(
+        _ => Err(Failure::validation(
             Some(pointer.to_string()),
             "An identifier must be an integer.",
+        )),
+    }
+}
+
+fn node_id_set(nodes: &[NodeRec]) -> BTreeSet<u64> {
+    nodes.iter().map(|node| node.id).collect()
+}
+
+fn toml_components(
+    table: &toml::Table,
+    pairs: &[(&str, &str)],
+    pointer: &str,
+) -> Result<Vec<Json>, Failure> {
+    let mut values = Vec::new();
+    for (key, dof) in pairs {
+        if let Some(value) = table.get(*key) {
+            let number = json_scalar(expect_scalar(value, pointer)?)?;
+            values.push(json!({"dof": *dof, "value": number}));
+        }
+    }
+    Ok(values)
+}
+
+fn array_at<'a>(
+    table: &'a toml::Table,
+    key: &str,
+    pointer: &str,
+) -> Result<Option<&'a Vec<Toml>>, Failure> {
+    match table.get(key) {
+        None => Ok(None),
+        Some(Toml::Array(items)) => Ok(Some(items)),
+        Some(_) => Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A collection has the wrong shape.",
+        )),
+    }
+}
+
+fn required_dof(table: &toml::Table, key: &str, pointer: &str) -> Result<String, Failure> {
+    match table.get(key) {
+        Some(Toml::String(name)) if DOFS.contains(&name.as_str()) => Ok(name.clone()),
+        Some(_) => Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A degree of freedom is not recognized.",
         )),
         None => Err(Failure::validation(
             Some(pointer.to_string()),
             "A required field is missing.",
         )),
     }
+}
+
+fn spring_kind(table: &toml::Table, pointer: &str) -> Result<String, Failure> {
+    match table.get("kind") {
+        Some(Toml::String(value)) if value == "spring.linear" || value == "spring.nonlinear" => {
+            Ok(value.clone())
+        }
+        Some(Toml::String(_)) => Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A spring kind is not allowed.",
+        )),
+        Some(_) => Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A value has the wrong type.",
+        )),
+        None => Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A required field is missing.",
+        )),
+    }
+}
+
+fn spring_nodes(
+    table: &toml::Table,
+    pointer: &str,
+    node_ids: &BTreeSet<u64>,
+) -> Result<Vec<u64>, Failure> {
+    let Some(value) = table.get("nodes") else {
+        return Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A required field is missing.",
+        ));
+    };
+    let Toml::Array(items) = value else {
+        return Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A value has the wrong type.",
+        ));
+    };
+    if items.len() != 1 && items.len() != 2 {
+        return Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A spring needs one or two distinct nodes.",
+        ));
+    }
+    let mut ids = Vec::with_capacity(items.len());
+    for item in items {
+        let id = expect_u32(item, pointer)?;
+        if !node_ids.contains(&id) {
+            return Err(Failure::validation(
+                Some(pointer.to_string()),
+                "A reference does not exist.",
+            ));
+        }
+        ids.push(id);
+    }
+    if ids.len() == 2 && ids[0] == ids[1] {
+        return Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A spring needs one or two distinct nodes.",
+        ));
+    }
+    Ok(ids)
+}
+
+fn spring_axes(
+    table: &toml::Table,
+    pointer: &str,
+) -> Result<(Option<Json>, Option<Json>), Failure> {
+    let direction = match table.get("direction") {
+        None => None,
+        Some(value) => Some(expect_vec3(value, pointer)?),
+    };
+    let rotation = match table.get("rotation") {
+        None => None,
+        Some(value) => Some(expect_rotation(value, pointer)?),
+    };
+    if direction.is_some() && rotation.is_some() {
+        return Err(Failure::validation(
+            Some(pointer.to_string()),
+            "Direction and rotation are mutually exclusive.",
+        ));
+    }
+    Ok((direction, rotation))
+}
+
+fn expect_rotation(value: &Toml, pointer: &str) -> Result<Json, Failure> {
+    let Toml::Array(rows) = value else {
+        return Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A value has the wrong type.",
+        ));
+    };
+    if rows.len() != 3 {
+        return Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A value has the wrong type.",
+        ));
+    }
+    let mut matrix = Vec::with_capacity(3);
+    for row in rows {
+        matrix.push(expect_vec3(row, pointer)?);
+    }
+    Ok(Json::Array(matrix))
+}
+
+fn optional_vec3(table: &toml::Table, key: &str, pointer: &str) -> Result<Json, Failure> {
+    match table.get(key) {
+        None => Ok(json!([0, 0, 0])),
+        Some(value) => expect_vec3(value, pointer),
+    }
+}
+
+fn id_list(
+    value: Option<&Toml>,
+    pointer: &str,
+    node_ids: &BTreeSet<u64>,
+) -> Result<Vec<u64>, Failure> {
+    let Some(value) = value else {
+        return Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A required field is missing.",
+        ));
+    };
+    let Toml::Array(items) = value else {
+        return Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A value has the wrong type.",
+        ));
+    };
+    let mut ids = Vec::with_capacity(items.len());
+    for item in items {
+        let id = expect_u32(item, pointer)?;
+        if !node_ids.contains(&id) {
+            return Err(Failure::validation(
+                Some(pointer.to_string()),
+                "A reference does not exist.",
+            ));
+        }
+        ids.push(id);
+    }
+    Ok(ids)
 }
 
 fn required_text(table: &toml::Table, key: &str, pointer: &str) -> Result<String, Failure> {
@@ -1109,8 +1698,6 @@ fn export_root(value: &Json) -> Result<String, Failure> {
             ))
         }
     }
-    require_empty_json_array(root, "cases", "/cases")?;
-    require_empty_json_array(root, "combinations", "/combinations")?;
     require_json_linear_static(root)?;
     let experimental = json_experimental(root)?;
     let model = match root.get("model") {
@@ -1153,14 +1740,12 @@ fn export_root(value: &Json) -> Result<String, Failure> {
             ))
         }
     }
-    require_empty_json_array(model, "masses", "/model/masses")?;
-    require_empty_json_array(model, "prescribed", "/model/prescribed")?;
-    require_empty_json_array(model, "diaphragms", "/model/diaphragms")?;
-    require_empty_json_array(model, "springs", "/model/springs")?;
+    let nodes = required_array(model, "nodes", "/model/nodes")?;
+    let members = required_array(model, "members", "/model/members")?;
     let mut out = Out::default();
     out.entry("format", "\"mamut-toml/1\"");
     out.entry("units", "\"SI\"");
-    write_nodes(&mut out, required_array(model, "nodes", "/model/nodes")?)?;
+    write_nodes(&mut out, nodes)?;
     write_sections(
         &mut out,
         required_array(model, "sections", "/model/sections")?,
@@ -1168,15 +1753,47 @@ fn export_root(value: &Json) -> Result<String, Failure> {
     write_laws(&mut out, required_array(model, "laws", "/model/laws")?)?;
     write_members(
         &mut out,
-        required_array(model, "members", "/model/members")?,
-        required_array(model, "nodes", "/model/nodes")?,
+        members,
+        nodes,
         required_array(model, "sections", "/model/sections")?,
         required_array(model, "laws", "/model/laws")?,
     )?;
     write_supports(
         &mut out,
         required_array(model, "supports", "/model/supports")?,
-        required_array(model, "nodes", "/model/nodes")?,
+        nodes,
+    )?;
+    write_masses(
+        &mut out,
+        json_items(model, "masses", "/model/masses")?,
+        nodes,
+    )?;
+    write_springs(
+        &mut out,
+        json_items(model, "springs", "/model/springs")?,
+        nodes,
+        members,
+    )?;
+    write_prescribed(
+        &mut out,
+        json_items(model, "prescribed", "/model/prescribed")?,
+        nodes,
+    )?;
+    write_diaphragms(
+        &mut out,
+        json_items(model, "diaphragms", "/model/diaphragms")?,
+        nodes,
+    )?;
+    let case_names = write_cases(
+        &mut out,
+        json_items(root, "cases", "/cases")?,
+        nodes,
+        members,
+    )?;
+    write_combinations(
+        &mut out,
+        json_items(root, "combinations", "/combinations")?,
+        &case_names,
     )?;
     out.header("[analysis]");
     out.entry("method", "\"linearStatic\"");
@@ -1237,18 +1854,14 @@ fn json_experimental(root: &serde_json::Map<String, Json>) -> Result<bool, Failu
     }
 }
 
-fn require_empty_json_array(
-    object: &serde_json::Map<String, Json>,
+fn json_items<'a>(
+    object: &'a serde_json::Map<String, Json>,
     key: &str,
     pointer: &str,
-) -> Result<(), Failure> {
+) -> Result<&'a [Json], Failure> {
     match object.get(key) {
-        None => Ok(()),
-        Some(Json::Array(items)) if items.is_empty() => Ok(()),
-        Some(Json::Array(_)) => Err(Failure::validation(
-            Some(pointer.to_string()),
-            "This collection is outside the implemented subset.",
-        )),
+        None => Ok(&[]),
+        Some(Json::Array(items)) => Ok(items),
         Some(_) => Err(Failure::validation(
             Some(pointer.to_string()),
             "A collection has the wrong shape.",
@@ -1494,6 +2107,362 @@ fn write_supports(out: &mut Out, items: &[Json], nodes: &[Json]) -> Result<(), F
         out.entry("id", &quoted(&id));
         out.entry("node", &node.to_string());
         out.entry("restrained", &quoted_array(&dofs));
+    }
+    Ok(())
+}
+
+fn write_masses(out: &mut Out, items: &[Json], nodes: &[Json]) -> Result<(), Failure> {
+    let node_ids = node_dims(nodes)?;
+    let masses = sorted_objects(items, "/model/masses", |object, pointer| {
+        Ok(order::natural_key(
+            json_text_field(object, "id", pointer)?.as_bytes(),
+        ))
+    })?;
+    let mut seen = BTreeSet::new();
+    for (index, mass) in masses.iter().enumerate() {
+        let pointer = format!("/model/masses/{index}");
+        reject_json_keys(mass, &["id", "node", "values"], &pointer)?;
+        let id = json_text_field(mass, "id", &pointer)?;
+        if !seen.insert(id.clone()) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "An identifier is duplicated.",
+            ));
+        }
+        let node = json_u32_field(mass, "node", &pointer)?;
+        if !node_ids.contains_key(&node) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A reference does not exist.",
+            ));
+        }
+        let values = json_components(
+            mass.get("values").ok_or_else(|| {
+                Failure::validation(Some(pointer.clone()), "A required field is missing.")
+            })?,
+            &pointer,
+        )?;
+        out.header("[[masses]]");
+        out.entry("id", &quoted(&id));
+        out.entry("node", &node.to_string());
+        for (dof, value) in values {
+            out.entry(&dof, &format_f64(value)?);
+        }
+    }
+    Ok(())
+}
+
+fn write_springs(
+    out: &mut Out,
+    items: &[Json],
+    nodes: &[Json],
+    members: &[Json],
+) -> Result<(), Failure> {
+    if members.len() + items.len() > MAX_MEMBERS {
+        return Err(Failure::validation(
+            Some("/model/springs".to_string()),
+            "A schema limit was exceeded.",
+        ));
+    }
+    let node_ids = node_dims(nodes)?;
+    let mut seen = member_id_set(members)?;
+    let springs = sorted_objects(items, "/model/springs", |object, pointer| {
+        Ok(order::natural_key(json_u32_id(object, pointer)?.as_bytes()))
+    })?;
+    for (index, spring) in springs.iter().enumerate() {
+        let pointer = format!("/model/springs/{index}");
+        reject_json_keys(
+            spring,
+            &[
+                "id",
+                "nodes",
+                "kind",
+                "dof",
+                "k",
+                "law",
+                "direction",
+                "rotation",
+            ],
+            &pointer,
+        )?;
+        let id = json_u32_field(spring, "id", &pointer)?;
+        if !seen.insert(id) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "An identifier is duplicated.",
+            ));
+        }
+        let endpoints = json_spring_nodes(spring, &pointer, &node_ids)?;
+        let kind = json_spring_kind(spring, &pointer)?;
+        let dof = json_one_dof(
+            spring.get("dof").ok_or_else(|| {
+                Failure::validation(Some(pointer.clone()), "A required field is missing.")
+            })?,
+            &pointer,
+        )?;
+        let direction = optional_json_vec3(spring, "direction", &pointer)?;
+        let rotation = optional_json_rotation(spring, "rotation", &pointer)?;
+        if direction.is_some() && rotation.is_some() {
+            return Err(Failure::validation(
+                Some(pointer),
+                "Direction and rotation are mutually exclusive.",
+            ));
+        }
+        if kind == "spring.nonlinear" {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A nonlinear spring requires nonlinearStatic.",
+            ));
+        }
+        if spring.contains_key("law") {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A linear spring forbids a law.",
+            ));
+        }
+        let k = match spring.get("k") {
+            Some(value) => json_nonnegative(value, &pointer)?,
+            None => {
+                return Err(Failure::validation(
+                    Some(pointer),
+                    "A required field is missing.",
+                ))
+            }
+        };
+        out.header("[[springs]]");
+        out.entry("id", &id.to_string());
+        out.entry("nodes", &format_id_list(&endpoints));
+        out.entry("kind", &quoted(&kind));
+        out.entry("dof", &quoted(&dof));
+        out.entry("k", &format_f64(k)?);
+        if let Some(direction) = direction {
+            out.entry("direction", &format_vec3_text(direction)?);
+        }
+        if let Some(rotation) = rotation {
+            out.entry("rotation", &format_rotation(rotation)?);
+        }
+    }
+    Ok(())
+}
+
+fn write_prescribed(out: &mut Out, items: &[Json], nodes: &[Json]) -> Result<(), Failure> {
+    let node_ids = node_dims(nodes)?;
+    for (index, item) in items.iter().enumerate() {
+        let pointer = format!("/model/prescribed/{index}");
+        let record = as_object(item, &pointer)?;
+        reject_json_keys(record, &["node", "dof", "value"], &pointer)?;
+        let node = json_u32_field(record, "node", &pointer)?;
+        if !node_ids.contains_key(&node) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A reference does not exist.",
+            ));
+        }
+        let dof = json_one_dof(
+            record.get("dof").ok_or_else(|| {
+                Failure::validation(Some(pointer.clone()), "A required field is missing.")
+            })?,
+            &pointer,
+        )?;
+        let value = json_f64(record.get("value").ok_or_else(|| {
+            Failure::validation(Some(pointer.clone()), "A required field is missing.")
+        })?)?;
+        out.header("[[prescribed]]");
+        out.entry("node", &node.to_string());
+        out.entry("dof", &quoted(&dof));
+        out.entry("value", &format_f64(value)?);
+    }
+    Ok(())
+}
+
+fn write_diaphragms(out: &mut Out, items: &[Json], nodes: &[Json]) -> Result<(), Failure> {
+    let node_ids = node_dims(nodes)?;
+    for (index, item) in items.iter().enumerate() {
+        let pointer = format!("/model/diaphragms/{index}");
+        let record = as_object(item, &pointer)?;
+        reject_json_keys(record, &["master", "slaves"], &pointer)?;
+        let master = json_u32_field(record, "master", &pointer)?;
+        if !node_ids.contains_key(&master) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A reference does not exist.",
+            ));
+        }
+        let slaves = json_id_list(
+            record.get("slaves").ok_or_else(|| {
+                Failure::validation(Some(pointer.clone()), "A required field is missing.")
+            })?,
+            &pointer,
+            &node_ids,
+        )?;
+        out.header("[[diaphragms]]");
+        out.entry("master", &master.to_string());
+        out.entry("slaves", &format_id_list(&slaves));
+    }
+    Ok(())
+}
+
+fn write_cases(
+    out: &mut Out,
+    items: &[Json],
+    nodes: &[Json],
+    members: &[Json],
+) -> Result<BTreeSet<String>, Failure> {
+    if items.len() > MAX_CASES {
+        return Err(Failure::validation(
+            Some("/cases".to_string()),
+            "A schema limit was exceeded.",
+        ));
+    }
+    let node_ids = node_dims(nodes)?;
+    let member_ids = member_id_set(members)?;
+    let mut names = BTreeSet::new();
+    let mut load_count = 0usize;
+    for (index, item) in items.iter().enumerate() {
+        let pointer = format!("/cases/{index}");
+        let case = as_object(item, &pointer)?;
+        reject_json_keys(case, &["name", "loads", "member_loads"], &pointer)?;
+        let name = json_text_field(case, "name", &pointer)?;
+        if !names.insert(name.clone()) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "An identifier is duplicated.",
+            ));
+        }
+        let loads = required_array(case, "loads", &format!("{pointer}/loads"))?;
+        let member_loads = json_items(case, "member_loads", &format!("{pointer}/member_loads"))?;
+        load_count = load_count
+            .saturating_add(loads.len())
+            .saturating_add(member_loads.len());
+        if load_count > MAX_LOADS {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A schema limit was exceeded.",
+            ));
+        }
+        out.header("[[cases]]");
+        out.entry("name", &quoted(&name));
+        for (load_index, load) in loads.iter().enumerate() {
+            let load_pointer = format!("{pointer}/loads/{load_index}");
+            let load = as_object(load, &load_pointer)?;
+            reject_json_keys(load, &["node", "values"], &load_pointer)?;
+            let node = json_u32_field(load, "node", &load_pointer)?;
+            if !node_ids.contains_key(&node) {
+                return Err(Failure::validation(
+                    Some(load_pointer),
+                    "A reference does not exist.",
+                ));
+            }
+            let values = json_components(
+                load.get("values").ok_or_else(|| {
+                    Failure::validation(Some(load_pointer.clone()), "A required field is missing.")
+                })?,
+                &load_pointer,
+            )?;
+            out.header("[[cases.loads]]");
+            out.entry("node", &node.to_string());
+            for (dof, value) in values {
+                out.entry(force_key(&dof)?, &format_f64(value)?);
+            }
+        }
+        for (load_index, load) in member_loads.iter().enumerate() {
+            let load_pointer = format!("{pointer}/member_loads/{load_index}");
+            let load = as_object(load, &load_pointer)?;
+            reject_json_keys(
+                load,
+                &["member", "force_per_length", "moment_per_length"],
+                &load_pointer,
+            )?;
+            let member = json_u32_field(load, "member", &load_pointer)?;
+            if !member_ids.contains(&member) {
+                return Err(Failure::validation(
+                    Some(load_pointer),
+                    "A reference does not exist.",
+                ));
+            }
+            let force = json_vec3(
+                load.get("force_per_length").ok_or_else(|| {
+                    Failure::validation(Some(load_pointer.clone()), "A required field is missing.")
+                })?,
+                &load_pointer,
+            )?;
+            let moment = json_vec3(
+                load.get("moment_per_length").ok_or_else(|| {
+                    Failure::validation(Some(load_pointer.clone()), "A required field is missing.")
+                })?,
+                &load_pointer,
+            )?;
+            out.header("[[cases.member_loads]]");
+            out.entry("member", &member.to_string());
+            if !is_zero_vec(force) {
+                out.entry("force_per_length", &format_vec3_text(force)?);
+            }
+            if !is_zero_vec(moment) {
+                out.entry("moment_per_length", &format_vec3_text(moment)?);
+            }
+        }
+    }
+    Ok(names)
+}
+
+fn write_combinations(
+    out: &mut Out,
+    items: &[Json],
+    cases: &BTreeSet<String>,
+) -> Result<(), Failure> {
+    if items.len() > MAX_COMBINATIONS {
+        return Err(Failure::validation(
+            Some("/combinations".to_string()),
+            "A schema limit was exceeded.",
+        ));
+    }
+    let mut records = Vec::with_capacity(items.len());
+    let mut seen_ids = BTreeSet::new();
+    for (index, item) in items.iter().enumerate() {
+        let pointer = format!("/combinations/{index}");
+        let combination = as_object(item, &pointer)?;
+        reject_json_keys(combination, &["id", "terms"], &pointer)?;
+        let id = json_text_field(combination, "id", &pointer)?;
+        if !seen_ids.insert(id.clone()) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "An identifier is duplicated.",
+            ));
+        }
+        let term_items = required_array(combination, "terms", &format!("{pointer}/terms"))?;
+        let mut terms = Vec::with_capacity(term_items.len());
+        let mut seen_cases = BTreeSet::new();
+        for (term_index, term) in term_items.iter().enumerate() {
+            let term_pointer = format!("{pointer}/terms/{term_index}");
+            let term = as_object(term, &term_pointer)?;
+            reject_json_keys(term, &["case", "factor"], &term_pointer)?;
+            let case = json_text_field(term, "case", &term_pointer)?;
+            if !cases.contains(&case) {
+                return Err(Failure::validation(
+                    Some(term_pointer),
+                    "A reference does not exist.",
+                ));
+            }
+            if !seen_cases.insert(case.clone()) {
+                return Err(Failure::validation(
+                    Some(term_pointer),
+                    "A term is repeated.",
+                ));
+            }
+            let factor = json_f64(term.get("factor").ok_or_else(|| {
+                Failure::validation(Some(term_pointer.clone()), "A required field is missing.")
+            })?)?;
+            terms.push((case, factor));
+        }
+        terms.sort_by(|left, right| left.0.as_bytes().cmp(right.0.as_bytes()));
+        records.push((id, terms));
+    }
+    records.sort_by_cached_key(|(id, _)| order::natural_key(id.as_bytes()));
+    for (id, terms) in records {
+        out.header_named("combinations", &id);
+        for (case, factor) in terms {
+            out.entry(&case, &format_f64(factor)?);
+        }
     }
     Ok(())
 }
@@ -1822,6 +2791,233 @@ fn json_vec3(value: &Json, pointer: &str) -> Result<[f64; 3], Failure> {
         json_f64(&items[1])?,
         json_f64(&items[2])?,
     ])
+}
+
+fn json_components(value: &Json, pointer: &str) -> Result<Vec<(String, f64)>, Failure> {
+    let Some(items) = value.as_array() else {
+        return Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A collection has the wrong shape.",
+        ));
+    };
+    let mut present = [None; 6];
+    for item in items {
+        let object = as_object(item, pointer)?;
+        reject_json_keys(object, &["dof", "value"], pointer)?;
+        let dof = match object.get("dof") {
+            Some(value) => json_one_dof(value, pointer)?,
+            None => {
+                return Err(Failure::validation(
+                    Some(pointer.to_string()),
+                    "A required field is missing.",
+                ))
+            }
+        };
+        let Some(index) = DOFS.iter().position(|name| *name == dof) else {
+            return Err(Failure::validation(
+                Some(pointer.to_string()),
+                "A degree of freedom is not recognized.",
+            ));
+        };
+        if present[index].is_some() {
+            return Err(Failure::validation(
+                Some(pointer.to_string()),
+                "A degree of freedom is repeated.",
+            ));
+        }
+        let number = match object.get("value") {
+            Some(value) => json_f64(value)?,
+            None => {
+                return Err(Failure::validation(
+                    Some(pointer.to_string()),
+                    "A required field is missing.",
+                ))
+            }
+        };
+        present[index] = Some(number);
+    }
+    Ok(DOFS
+        .iter()
+        .enumerate()
+        .filter_map(|(index, dof)| present[index].map(|number| ((*dof).to_string(), number)))
+        .collect())
+}
+
+fn json_one_dof(value: &Json, pointer: &str) -> Result<String, Failure> {
+    match value.as_str() {
+        Some(name) if DOFS.contains(&name) => Ok(name.to_string()),
+        _ => Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A degree of freedom is not recognized.",
+        )),
+    }
+}
+
+fn json_spring_kind(
+    object: &serde_json::Map<String, Json>,
+    pointer: &str,
+) -> Result<String, Failure> {
+    match object.get("kind") {
+        Some(Json::String(value)) if value == "spring.linear" || value == "spring.nonlinear" => {
+            Ok(value.clone())
+        }
+        Some(Json::String(_)) => Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A spring kind is not allowed.",
+        )),
+        Some(_) => Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A value has the wrong type.",
+        )),
+        None => Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A required field is missing.",
+        )),
+    }
+}
+
+fn json_spring_nodes(
+    object: &serde_json::Map<String, Json>,
+    pointer: &str,
+    node_ids: &BTreeMap<u64, String>,
+) -> Result<Vec<u64>, Failure> {
+    let Some(value) = object.get("nodes") else {
+        return Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A required field is missing.",
+        ));
+    };
+    let ids = json_id_list(value, pointer, node_ids)?;
+    if (ids.len() != 1 && ids.len() != 2) || (ids.len() == 2 && ids[0] == ids[1]) {
+        return Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A spring needs one or two distinct nodes.",
+        ));
+    }
+    Ok(ids)
+}
+
+fn json_id_list(
+    value: &Json,
+    pointer: &str,
+    node_ids: &BTreeMap<u64, String>,
+) -> Result<Vec<u64>, Failure> {
+    let Some(items) = value.as_array() else {
+        return Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A value has the wrong type.",
+        ));
+    };
+    let mut ids = Vec::with_capacity(items.len());
+    for item in items {
+        let id = json_u32(item, pointer)?;
+        if !node_ids.contains_key(&id) {
+            return Err(Failure::validation(
+                Some(pointer.to_string()),
+                "A reference does not exist.",
+            ));
+        }
+        ids.push(id);
+    }
+    Ok(ids)
+}
+
+fn optional_json_vec3(
+    object: &serde_json::Map<String, Json>,
+    key: &str,
+    pointer: &str,
+) -> Result<Option<[f64; 3]>, Failure> {
+    match object.get(key) {
+        None => Ok(None),
+        Some(value) => Ok(Some(json_vec3(value, pointer)?)),
+    }
+}
+
+fn optional_json_rotation(
+    object: &serde_json::Map<String, Json>,
+    key: &str,
+    pointer: &str,
+) -> Result<Option<[[f64; 3]; 3]>, Failure> {
+    let Some(value) = object.get(key) else {
+        return Ok(None);
+    };
+    let Some(rows) = value.as_array() else {
+        return Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A value has the wrong type.",
+        ));
+    };
+    if rows.len() != 3 {
+        return Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A value has the wrong type.",
+        ));
+    }
+    Ok(Some([
+        json_vec3(&rows[0], pointer)?,
+        json_vec3(&rows[1], pointer)?,
+        json_vec3(&rows[2], pointer)?,
+    ]))
+}
+
+fn json_nonnegative(value: &Json, pointer: &str) -> Result<f64, Failure> {
+    let number = json_f64(value)?;
+    if number < 0.0 {
+        return Err(Failure::validation(
+            Some(pointer.to_string()),
+            "A value is outside the allowed range.",
+        ));
+    }
+    Ok(number)
+}
+
+fn member_id_set(members: &[Json]) -> Result<BTreeSet<u64>, Failure> {
+    let mut ids = BTreeSet::new();
+    for (index, item) in members.iter().enumerate() {
+        let pointer = format!("/model/members/{index}");
+        let object = as_object(item, &pointer)?;
+        ids.insert(json_u32_field(object, "id", &pointer)?);
+    }
+    Ok(ids)
+}
+
+fn force_key(dof: &str) -> Result<&'static str, Failure> {
+    LOAD_PAIRS
+        .iter()
+        .find(|(_, mapped)| *mapped == dof)
+        .map(|(key, _)| *key)
+        .ok_or_else(|| Failure::validation(None, "A degree of freedom is not recognized."))
+}
+
+fn is_zero_vec(vector: [f64; 3]) -> bool {
+    vector.iter().all(|item| *item == 0.0)
+}
+
+fn format_vec3_text(vector: [f64; 3]) -> Result<String, Failure> {
+    Ok(format!(
+        "[{}, {}, {}]",
+        format_f64(vector[0])?,
+        format_f64(vector[1])?,
+        format_f64(vector[2])?,
+    ))
+}
+
+fn format_rotation(matrix: [[f64; 3]; 3]) -> Result<String, Failure> {
+    Ok(format!(
+        "[{}, {}, {}]",
+        format_vec3_text(matrix[0])?,
+        format_vec3_text(matrix[1])?,
+        format_vec3_text(matrix[2])?,
+    ))
+}
+
+fn format_id_list(ids: &[u64]) -> String {
+    let text = ids
+        .iter()
+        .map(|id| id.to_string())
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("[{text}]")
 }
 
 fn json_f64(value: &Json) -> Result<f64, Failure> {
@@ -2387,9 +3583,16 @@ mod tests {
         assert_eq!(failure_of("nan_value = nan\n").code, "ENG-E-0008");
         assert_eq!(failure_of("nan_value = inf\n").code, "ENG-E-0008");
         assert_eq!(failure_of("nan_value = -inf\n").code, "ENG-E-0008");
+        let accepted = convert("[[cases]]\nname = \"DL\"\n");
+        assert_eq!(accepted["cases"][0]["name"], "DL");
+        assert_eq!(accepted["cases"][0]["loads"], json!([]));
         assert_eq!(
-            failure_of("[[cases]]\nname = \"SENTINEL_CASE_9f3a\"\n").cause,
-            "This collection is outside the implemented subset."
+            toml_to_json(
+                "format = \"mamut-toml/1\"\nunits = \"SI\"\n[analysis]\nmethod = \"pDelta\"\n"
+            )
+            .unwrap_err()
+            .cause,
+            "This analysis method is outside the implemented subset."
         );
         assert!(toml_to_json(&minimal("cases = []\n")).is_ok());
         let deep = format!(
@@ -2420,13 +3623,10 @@ mod tests {
     }
 
     #[test]
-    fn non_empty_deferred_json_is_not_dropped() {
+    fn missing_mass_node_does_not_echo_its_identifier() {
         let json = r#"{"schema":"engine-input/1","units":"SI","options":{},"model":{"axes":"Z-up","nodes":[],"members":[],"sections":[],"laws":[],"supports":[],"masses":[{"id":"SENTINEL_MASS_9f3a","node":1,"values":[]}]},"cases":[],"combinations":[],"analyses":[{"method":"linearStatic"}]}"#;
         let failure = json_to_toml(json).unwrap_err();
-        assert_eq!(
-            failure.cause,
-            "This collection is outside the implemented subset."
-        );
+        assert_eq!(failure.cause, "A reference does not exist.");
         hidden(&failure, "SENTINEL_MASS_9f3a");
     }
 
@@ -2583,13 +3783,252 @@ mod tests {
     }
 
     #[test]
-    fn empty_deferred_tables_are_accepted_and_nonempty_are_not() {
+    fn empty_combinations_are_accepted_and_missing_cases_are_not() {
         assert!(toml_to_json(&minimal("[combinations]\n")).is_ok());
         let failure = failure_of("[combinations.SENTINEL_COMB_9f3a]\nDL = 1\n");
-        assert_eq!(
-            failure.cause,
-            "This collection is outside the implemented subset."
-        );
+        assert_eq!(failure.cause, "A reference does not exist.");
         hidden(&failure, "SENTINEL_COMB_9f3a");
+    }
+
+    #[test]
+    fn application_collections_round_trip() {
+        let source = minimal(
+            r#"
+            [[nodes]]
+            id = 2
+            x = 1
+            y = 0
+            z = 0
+            dim = "D2"
+            dofs = ["Ux", "Uy", "Rz"]
+
+            [[nodes]]
+            id = 1
+            x = 0
+            y = 0
+            z = 0
+            dim = "D2"
+            dofs = ["Ux", "Uy", "Rz"]
+
+            [sections.S]
+            A = 1
+
+            [laws.L]
+            E = 1
+
+            [[members]]
+            id = 7
+            from = 1
+            to = 2
+            section = "S"
+            law = "L"
+
+            [[masses]]
+            id = "10"
+            node = 2
+            Rz = 3
+            Ux = 4
+
+            [[masses]]
+            id = "2"
+            node = 1
+
+            [[springs]]
+            id = 10
+            nodes = [2]
+            kind = "spring.linear"
+            dof = "Uy"
+            k = 5
+            direction = [0, 1, 0]
+
+            [[springs]]
+            id = 2
+            nodes = [1, 2]
+            kind = "spring.linear"
+            dof = "Ux"
+            k = 8
+
+            [[prescribed]]
+            node = 2
+            dof = "Uy"
+            value = 0.25
+
+            [[prescribed]]
+            node = 1
+            dof = "Ux"
+            value = 0
+
+            [[diaphragms]]
+            master = 2
+            slaves = [1, 2]
+
+            [[cases]]
+            name = "L"
+
+            [[cases.loads]]
+            node = 2
+            My = 1.5
+            Fx = 9
+
+            [[cases]]
+            name = "D"
+
+            [[cases.member_loads]]
+            member = 7
+            force_per_length = [0, -6, 0]
+
+            [combinations.10]
+            L = 1
+            D = 2
+
+            [combinations.2]
+            D = 0.5
+            "#,
+        );
+        let json = toml_to_json(&source).unwrap();
+        let value: Json = serde_json::from_str(json.trim()).unwrap();
+        assert_eq!(value["model"]["masses"][0]["id"], "2");
+        assert_eq!(value["model"]["masses"][1]["id"], "10");
+        assert_eq!(value["model"]["masses"][0]["values"], json!([]));
+        assert_eq!(value["model"]["masses"][1]["values"][0]["dof"], "Ux");
+        assert_eq!(
+            value["model"]["masses"][1]["values"][1],
+            json!({"dof": "Rz", "value": 3})
+        );
+        assert_eq!(value["model"]["springs"][0]["id"], 2);
+        assert_eq!(value["model"]["springs"][0]["nodes"], json!([1, 2]));
+        assert_eq!(value["model"]["springs"][1]["direction"], json!([0, 1, 0]));
+        assert_eq!(value["model"]["prescribed"][0]["node"], 2);
+        assert_eq!(value["model"]["prescribed"][1]["value"], 0);
+        assert_eq!(value["model"]["diaphragms"][0]["slaves"], json!([1, 2]));
+        assert_eq!(value["cases"][0]["name"], "L");
+        assert_eq!(
+            value["cases"][0]["loads"][0]["values"][0],
+            json!({"dof": "Ux", "value": 9})
+        );
+        assert_eq!(value["cases"][0]["loads"][0]["values"][1]["dof"], "Ry");
+        assert!(value["cases"][0].get("member_loads").is_none());
+        assert_eq!(value["cases"][1]["name"], "D");
+        assert_eq!(
+            value["cases"][1]["member_loads"][0]["moment_per_length"],
+            json!([0, 0, 0])
+        );
+        assert_eq!(value["combinations"][0]["id"], "2");
+        assert_eq!(value["combinations"][1]["id"], "10");
+        assert_eq!(value["combinations"][1]["terms"][0]["case"], "D");
+        assert_eq!(value["combinations"][1]["terms"][1]["case"], "L");
+
+        let toml_text = json_to_toml(&json).unwrap();
+        assert_eq!(toml_text, json_to_toml(&json).unwrap());
+        assert!(!toml_text.contains("moment_per_length"));
+        assert!(toml_text.contains("force_per_length = [0, -6, 0]"));
+        let masses_at = toml_text.find("[[masses]]").unwrap();
+        let mass_2 = toml_text[masses_at..].find("id = \"2\"").unwrap();
+        let mass_10 = toml_text[masses_at..].find("id = \"10\"").unwrap();
+        assert!(mass_2 < mass_10);
+        let springs_at = toml_text.find("[[springs]]").unwrap();
+        let spring_2 = toml_text[springs_at..].find("id = 2\n").unwrap();
+        let spring_10 = toml_text[springs_at..].find("id = 10\n").unwrap();
+        assert!(spring_2 < spring_10);
+        assert!(toml_text.find("name = \"L\"").unwrap() < toml_text.find("name = \"D\"").unwrap());
+        assert!(
+            toml_text.find("[combinations.2]").unwrap()
+                < toml_text.find("[combinations.10]").unwrap()
+        );
+        let again = toml_to_json(&toml_text).unwrap();
+        assert_eq!(
+            engine_api::input_sha256(json.trim()).unwrap(),
+            engine_api::input_sha256(again.trim()).unwrap()
+        );
+    }
+
+    #[test]
+    fn application_collection_boundaries_stay_closed() {
+        let node = "[[nodes]]\nid = 1\nx = 0\ny = 0\nz = 0\ndim = \"D2\"\ndofs = [\"Ux\"]\n";
+        let text_spring = failure_of(&format!(
+            "{node}[[springs]]\nid = \"S1\"\nnodes = [1]\nkind = \"spring.linear\"\ndof = \"Ux\"\nk = 1\n"
+        ));
+        assert_eq!(text_spring.cause, "An identifier must be an integer.");
+
+        let long_id = "9".repeat(4096);
+        let long = failure_of(&format!("{node}[[masses]]\nid = \"{long_id}\"\nnode = 1\n"));
+        assert_eq!(long.cause, "An identifier exceeds the length limit.");
+        assert_eq!(long.pointer.as_deref(), Some("/masses/0"));
+        assert!(toml_to_json(&minimal(&format!(
+            "{node}[[masses]]\nid = {long_id}\nnode = 1\n"
+        )))
+        .is_err());
+
+        let nonlinear = failure_of(&format!(
+            "{node}[[springs]]\nid = 3\nnodes = [1]\nkind = \"spring.nonlinear\"\ndof = \"Ux\"\nlaw = \"L\"\n"
+        ));
+        assert_eq!(
+            nonlinear.cause,
+            "A nonlinear spring requires nonlinearStatic."
+        );
+
+        let collision = failure_of(&format!(
+            "{node}[sections.S]\nA = 1\n[laws.L]\nE = 1\n[[members]]\nid = 4\nfrom = 1\nto = 1\nsection = \"S\"\nlaw = \"L\"\n[[springs]]\nid = 4\nnodes = [1]\nkind = \"spring.linear\"\ndof = \"Ux\"\nk = 1\n"
+        ));
+        assert_eq!(collision.cause, "An identifier is duplicated.");
+
+        let both_axes = failure_of(&format!(
+            "{node}[[springs]]\nid = 3\nnodes = [1]\nkind = \"spring.linear\"\ndof = \"Ux\"\nk = 1\ndirection = [1, 0, 0]\nrotation = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]\n"
+        ));
+        assert_eq!(
+            both_axes.cause,
+            "Direction and rotation are mutually exclusive."
+        );
+
+        let with_law = failure_of(&format!(
+            "{node}[[springs]]\nid = 3\nnodes = [1]\nkind = \"spring.linear\"\ndof = \"Ux\"\nk = 1\nlaw = \"L\"\n"
+        ));
+        assert_eq!(with_law.cause, "A linear spring forbids a law.");
+
+        let unknown = failure_of(&format!(
+            "{node}[[masses]]\nid = \"M\"\nnode = 1\nSENTINEL_MASSKEY_9f3a = 1\n"
+        ));
+        assert_eq!(unknown.cause, "The document contains an unknown key.");
+        hidden(&unknown, "SENTINEL_MASSKEY_9f3a");
+
+        let repeated = r#"{"schema":"engine-input/1","units":"SI","options":{},"model":{"axes":"Z-up","nodes":[{"id":1,"dim":"D2","coordinates":[0,0,0],"dofs":["Ux"]}],"members":[],"sections":[],"laws":[],"supports":[],"masses":[]},"cases":[{"name":"D","loads":[]}],"combinations":[{"id":"C","terms":[{"case":"D","factor":1},{"case":"D","factor":2}]}],"analyses":[{"method":"linearStatic"}]}"#;
+        assert_eq!(
+            json_to_toml(repeated).unwrap_err().cause,
+            "A term is repeated."
+        );
+
+        let support = failure_of(&format!("{node}[[supports]]\nnode = 1\ntype = \"pin\"\n"));
+        assert_eq!(support.cause, "Support type expansion is not decided.");
+
+        let same = failure_of(&format!(
+            "{node}[[springs]]\nid = 3\nnodes = [1, 1]\nkind = \"spring.linear\"\ndof = \"Ux\"\nk = 1\n"
+        ));
+        assert_eq!(same.cause, "A spring needs one or two distinct nodes.");
+
+        let negative = failure_of(&format!(
+            "{node}[[springs]]\nid = 3\nnodes = [1]\nkind = \"spring.linear\"\ndof = \"Ux\"\nk = -1\n"
+        ));
+        assert_eq!(negative.cause, "A value is outside the allowed range.");
+
+        let name = "m".repeat(256);
+        let accepted = convert(&format!(
+            "{node}[[masses]]\nid = \"{name}\"\nnode = 1\nUx = 1\n"
+        ));
+        assert_eq!(accepted["model"]["masses"][0]["id"], name);
+        assert_eq!(
+            accepted["model"]["masses"][0]["values"],
+            json!([{"dof": "Ux", "value": 1}])
+        );
+
+        let rotation = convert(&format!(
+            "{node}[[springs]]\nid = 3\nnodes = [1]\nkind = \"spring.linear\"\ndof = \"Ux\"\nk = 2\nrotation = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]\n"
+        ));
+        assert_eq!(
+            rotation["model"]["springs"][0]["rotation"],
+            json!([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+        );
+        let exported = json_to_toml(&serde_json::to_string(&rotation).unwrap()).unwrap();
+        assert!(exported.contains("rotation = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]"));
+        assert!(!exported.contains("direction"));
     }
 }

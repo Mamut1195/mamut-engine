@@ -90,6 +90,32 @@ fn convert_round_trip_and_direction_flags() {
 }
 
 #[test]
+fn convert_accepts_mass_load_spring_and_prescribed() {
+    let source = format!(
+        "{TOML}[[masses]]\nid = \"m\"\nnode = 1\nUx = 2\n[[springs]]\nid = 4\nnodes = [1]\nkind = \"spring.linear\"\ndof = \"Ux\"\nk = 5\n[[prescribed]]\nnode = 1\ndof = \"Ux\"\nvalue = 0\n[[diaphragms]]\nmaster = 1\nslaves = [1]\n[[cases]]\nname = \"D\"\n[[cases.loads]]\nnode = 1\nFx = 3\n[combinations.D]\nD = 1\n"
+    );
+    let (code, json, stderr) = invoke(&["convert", "--input", "-"], source.as_bytes());
+    assert_eq!(code, 0, "{}", String::from_utf8_lossy(&stderr));
+    assert!(stderr.is_empty());
+    let value: Value = serde_json::from_slice(&json[..json.len() - 1]).unwrap();
+    assert_eq!(value["model"]["masses"][0]["values"][0]["dof"], "Ux");
+    assert_eq!(value["model"]["springs"][0]["kind"], "spring.linear");
+    assert_eq!(value["model"]["prescribed"][0]["value"], 0);
+    assert_eq!(value["model"]["diaphragms"][0]["master"], 1);
+    assert_eq!(value["cases"][0]["loads"][0]["values"][0]["value"], 3);
+    assert_eq!(value["combinations"][0]["id"], "D");
+
+    let (toml_code, toml, toml_err) = invoke(&["convert", "--to", "toml", "--input", "-"], &json);
+    assert_eq!(toml_code, 0, "{}", String::from_utf8_lossy(&toml_err));
+    let (back, back_json, back_err) = invoke(&["convert", "--to", "json", "--input", "-"], &toml);
+    assert_eq!(back, 0, "{}", String::from_utf8_lossy(&back_err));
+    assert_eq!(
+        engine_api::input_sha256(std::str::from_utf8(&json).unwrap().trim()).unwrap(),
+        engine_api::input_sha256(std::str::from_utf8(&back_json).unwrap().trim()).unwrap()
+    );
+}
+
+#[test]
 fn usage_document_and_unsupported_keep_the_registered_contract() {
     let (code, envelope, _, _) = error_of(&["convert"], b"");
     assert_eq!(code, 2);
