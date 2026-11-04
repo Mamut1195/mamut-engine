@@ -376,6 +376,16 @@ entre comillas para conservar la clave literal. Se conservan los bytes
 Unicode, sin NFC/NFD. El export repetido de la misma entrada DEBE
 producir los mismos bytes.
 
+U9, decidido en [docs/V1.md](../V1.md) sección 13, fija esa escritura:
+UTF-8, saltos LF y un solo salto al final. `format` y `units` se escriben
+en la columna 0. Cada encabezado de tabla queda en la columna 0 y sus
+claves llevan sangría de dos espacios, también en una tabla anidada.
+No se extrae `[defaults]` quitando un valor que la persona escribió en
+el nudo, la barra o una opción. Un booleano escrito se emite, incluido
+`allow_experimental = false` y una liberación `false`. Siguen omitiéndose
+las colecciones vacías y los vectores de carga de barra completamente
+nulos, porque el lector los reconstruye.
+
 Un float de valor entero solo PUEDE escribirse como Integer cuando
 |v| ≤ 2^53−1. Por encima de ese límite DEBE conservar representación
 float; por ejemplo, 1e20 puede emitirse como 1.0e20.
@@ -559,14 +569,15 @@ y fallo interno. No se alteran 0/1 de
 
 ## 10. Registro de puntos abiertos
 
-Cada fila tiene el estado **DESCONOCIDO — pendiente de decisión de Jonathan**.
+U9 quedó decidido en [docs/V1.md](../V1.md), sección 13. Las demás filas
+siguen en **DESCONOCIDO — pendiente de decisión de Jonathan**.
 No se elige una alternativa por silencio, ni se presenta como verificada.
 U5 salió de esta tabla: la decisión está en [V1.md](../V1.md), sección 13.
 
 | Punto | Estado | Contradicción o precisión pendiente |
 | --- | --- | --- |
 | U7 | DESCONOCIDO — pendiente de decisión de Jonathan | Caso 32 de v4.2, con 4096 dígitos, frente al máximo público de 256 bytes por id. La comparación matemática y el rechazo público están descritos; queda pendiente el alcance de la prueba que exigía aceptación del caso largo. |
-| U9 | DESCONOCIDO — pendiente de decisión de Jonathan | El plan exige export de dos entradas idénticas con los mismos bytes, pero no define una escritura única completa: sangría, saltos finales, elección de escapes ni extracción de defaults. No se inventa una forma textual común entre emisores. |
+| U9 | Decidido en docs/V1.md, sección 13 | Dos exports del mismo modelo son los mismos bytes: UTF-8, LF, un salto final, sangría de dos espacios y las claves en el orden de la sección 6. No se borra un valor que la persona escribió. |
 | U10 | DESCONOCIDO — pendiente de decisión de Jonathan | El plan v4 exige expandir los cuatro type de apoyo según dimensión, pero no enumera las listas de GDL para todas las dimensiones y conjuntos activos. El esquema solo define restrained. No se deducen listas nuevas para cerrar ese vacío. |
 | U11 | DESCONOCIDO — pendiente de decisión de Jonathan | Profundidad 64 y posiciones UTF-8 están decididas; las fuentes permitidas no precisan si la raíz cuenta como nivel ni la base de línea/columna. Deben concretarse antes de establecer expectativas de frontera. |
 

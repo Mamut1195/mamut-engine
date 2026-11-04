@@ -323,9 +323,9 @@ method = \"linearStatic\"
     let _ = std::fs::remove_file(&path);
     assert_eq!(named_code, 0, "{}", String::from_utf8_lossy(&named_err));
     let named_text = String::from_utf8(named).unwrap();
-    assert!(named_text.contains("id = 1\nname = \"A\"\n"));
-    assert!(named_text.contains("id = 7\nname = \"A\"\n"));
-    assert!(named_text.contains("id = 8\nname = \"A\"\n"));
+    assert!(named_text.contains("  id = 1\n  name = \"A\"\n"));
+    assert!(named_text.contains("  id = 7\n  name = \"A\"\n"));
+    assert!(named_text.contains("  id = 8\n  name = \"A\"\n"));
 
     let missing =
         std::env::temp_dir().join(format!("SENTINEL_IDMAP_9f3a-{}.json", std::process::id()));

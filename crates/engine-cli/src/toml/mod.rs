@@ -4,7 +4,8 @@
 //!
 //! The mapped subset is the structural core, the load collections, and the
 //! analysis branches written in mamut-toml/1. Optional names follow U5 and
-//! return on export only with idmap/1. U7, U9, U10, and U11 stay open.
+//! return on export only with idmap/1. U9 is the canonical export in
+//! `docs/V1.md` section 13. U7, U10, and U11 stay open.
 //! `spring.nonlinear` is accepted only with `nonlinearStatic`.
 
 mod core;
