@@ -179,3 +179,44 @@ Final verification of increment 2c, with `CARGO_TARGET_DIR=/workspace/.cargo-tar
 - `bash clean-room/check.sh origin/main`: OK on the diff prepared for commit,
   including new files. No changes to docs/CLEAN_ROOM.md, .github/** or
   clean-room/**. Human clean-room review PENDING (J4).
+
+## Prepared linearStatic displacements · 2026-11-04
+
+- Ticket / PR: MAM-107 fragment only. ENG-VAL-004 stays in progress. This note
+  does not approve a time or memory budget and does not close MAM-107.
+- Author: Grok 4.7, implementation session, 2026-11-04.
+- Role: implementer. Clean-room reviewer: PENDING (J4). J4 is not signed by an agent.
+- Contract: `PreparedLinear::prepare` plus `displacements` for one `linearStatic`
+  analysis and no combinations. `run` still emits the same canonical `results/1`
+  bytes. `capabilities.operations` gains `prepare`. Python: `prepare` /
+  `PreparedLinear.displacements`.
+- Permitted sources: the existing engine-api `run` path, `StaticLinear` and
+  `LinearSystem::solve_cases` / `factorize_reduced` in this repository,
+  `Constraints::expand`, and the nodal component order in `docs` already used
+  by `results/1` (`Ux`…`Rz`, `Dof::index`). No network and no external solver.
+- Own derivation: the same reduced system `K_ff q = T_fᵀ(F − K u_0)` already
+  solved by `linearStatic`. The factor of `K_ff` is computed once. Each
+  `displacements` call substitutes the prepared right-hand sides and expands
+  `u = T_f q_f + u_0`. Nodal order is ascending node id, the order
+  `CaseResults` already publishes from a `BTreeMap`. −0.0 is stored as +0.0,
+  as in the results canonicalization. Member recovery, reactions, equilibrium
+  sums, and the results document are not part of this call.
+- The discarded pre-serialization of the results value inside `execute` is
+  removed. Successful `run` bytes are still produced by the final
+  `canonical_value`. Schemas are unchanged.
+- Third-party code copied: none.
+- Oracle comparison: no. Tests compare `displacements` with this engine's own
+  `run` on `axial-bar`, the cantilever fixture, and an in-repo three-bar truss.
+  This session had already seen external benchmark printouts for other
+  analyses. Those printouts were not used to write or check this path.
+- Declaration: "No consulté código fuente de OpenSees, Frame3DD, Stabileo ni derivados para este ticket."
+
+Verification in this implementation session, offline locked Cargo, Windows:
+
+- `cargo fmt --all -- --check`: OK.
+- `cargo clippy --offline --locked -p engine-api -p engine-assembly -p mamut-engine-py --all-targets -- -D warnings`: OK. Includes the `displacement_loop` example.
+- `cargo test --offline --locked -p engine-api --test prepared --test run`: OK. 5 prepared tests and 18 run tests.
+- `py -3.12 -m unittest bindings.python.tests.test_prepare bindings.python.tests.test_typing bindings.python.tests.test_version`: OK, 9 tests, against the wheel installed earlier in this session.
+- Not run here: workspace clippy, workspace tests, `cargo doc`, wasm32, and `cargo-deny`.
+- `bash clean-room/check.sh origin/main`: OK on the staged diff, including new files.
+- Human clean-room review remains PENDING (J4).

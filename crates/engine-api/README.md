@@ -35,6 +35,14 @@ API pública:
 - `run(input_json, &CancelToken, progress: impl FnMut(Progress)) -> Outcome`:
   devuelve `status` y `document: String` con los bytes UTF-8 canónicos de results/1,
   también ante errores. `Outcome::exit_code()` y `exit_code(Status)` son públicos.
+- `PreparedLinear::prepare(input_json, &CancelToken) -> Result<PreparedLinear, AnalysisFault>`:
+  un solo análisis `linearStatic`, al menos un caso y sin combinaciones.
+  Factoriza una vez. `displacements()` resuelve de nuevo y devuelve, por caso,
+  los nodos en el orden de `results/1` con id y `[Ux, Uy, Uz, Rx, Ry, Rz]`.
+  No construye el documento, no recupera esfuerzos de barras y no cambia los
+  bytes de `run`. Otro análisis, una combinación o un resorte no lineal
+  devuelven `invalid`: esos trabajos usan `run`. Los avisos que `run` escribiría
+  en el documento no se emiten aquí; los desplazamientos coinciden.
 - `Outcome::query(&ResultQuery) -> Result<Value, ApiError>`: filtra IDs de nodos
   y miembros y proyecta rutas de campos sobre resultados ya calculados.
 - `canonical_json(input_json) -> Result<String, ApiError>`: UTF-8 compacto,

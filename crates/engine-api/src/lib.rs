@@ -30,7 +30,10 @@ pub use limits::{
     MAX_MEMBERS, MAX_NODES,
 };
 pub use query::ResultQuery;
-pub use run::{exit_code, run, Outcome, Status};
+pub use run::{
+    exit_code, run, AnalysisFault, CaseDisplacements, NodeDisplacement, Outcome, PreparedLinear,
+    Status,
+};
 
 use engine_core::{EntityRef, Severity};
 use serde::Serialize;
@@ -171,7 +174,7 @@ pub fn version() -> Value {
 pub fn capabilities() -> Value {
     let mut capabilities = json!({
         "run": true,
-        "operations": ["version", "capabilities", "schema", "explain", "validate", "run"],
+        "operations": ["version", "capabilities", "schema", "explain", "validate", "run", "prepare"],
         "schemas": {"engine-input/1": {"validate": true}, "results/1": {"emit": true},
             "validate-report/1": {"emit": true}},
         "validation": "topology",
