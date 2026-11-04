@@ -152,7 +152,7 @@ a `run`, `validate`, `validate_with`, `input_sha256` y `canonical_json`:
 | `MAX_NODES` | 256 | Entradas de model.nodes |
 | `MAX_MEMBERS` | 1 024 | Entradas de model.members |
 | `MAX_CASES` | 64 | Entradas de cases |
-| `MAX_LOADS` | 16 384 | Suma de loads y member_loads de todos los casos |
+| `MAX_LOADS` | 16 384 | Suma de loads, member_loads y temperature_loads de todos los casos |
 | `MAX_COMBINATIONS` | 128 | Entradas de combinations |
 | `MAX_JSON_DEPTH` | 64 | Objetos/arrays abiertos; raíz = 1 |
 | `MAX_JSON_ARRAY_ITEMS` | 16 384 | Entradas de cualquier array auxiliar |
@@ -227,6 +227,19 @@ globales, N/m y N·m/m. Se suman múltiples cargas sobre un miembro. La misma
 colección sin escalar produce `Element::load_vector` para el ensamblado y las
 vistas `MemberRecovery` de **todos** los miembros para `CaseResults::recover`.
 Así se conserva la coherencia exigida por el equilibrio nodal de #69.
+
+`temperature_loads` es un canal aparte:
+`{member, alpha_per_kelvin, delta_t_kelvin}`, sin gradiente. Solo lo aceptan
+`truss2d.linear` y `truss3d.linear`. Las fuerzas de nudo equivalentes se
+agregan como cargas nodales del caso en el modelo que ensambla el sistema.
+No son un `MemberLoad`. El equilibrio nodal sigue cerrando: esas fuerzas
+están en las cargas nodales y la recuperación suma el axil térmico
+`N = −(E·A·α·ΔT)`. Los kinds de pórtico elástico rechazan el registro con
+`ENG-E-0013`; no hay fórmula de αΔT para ellos. Un registro repetido en el
+mismo miembro y caso es `ENG-E-0002`. La suma de 16384 incluye `loads`,
+`member_loads` y `temperature_loads`. Un modal que reconstruye el sistema
+desde el modelo original no conserva esas cargas nodales. La rigidez
+geométrica sigue mecánica.
 
 `model.prescribed` opcional: `[{node,dof,value}]`, constante para todos los casos,
 sin factor de carga. `model.diaphragms` opcional: `[{master,slaves:[ids]}]`, diafragma

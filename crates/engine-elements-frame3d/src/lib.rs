@@ -15,6 +15,8 @@
 //!
 //! `respond` returns elastic K and K u, without loads or Kg. Kg is obtained
 //! separately from axial N=EA(uj−ui)/L and fixed reference geometry.
+//! A uniform temperature change is not implemented: this element has no
+//! αΔT formula, and the public temperature load is rejected for this kind.
 //! Releases in local rx,ry,rz: analytical elastic Schur complement; mass and Kg
 //! projected with HᵀMH and HᵀKgH (Guyan and Schur derivative at N=0).
 //! This is not condensation of K+Kg at finite N. Released nodal rotations remain

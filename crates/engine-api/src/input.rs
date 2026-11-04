@@ -203,6 +203,8 @@ struct Case {
     loads: Vec<Object<Load>>,
     #[serde(default)]
     member_loads: Vec<Object<UniformLoad>>,
+    #[serde(default)]
+    temperature_loads: Vec<Object<UniformTemperature>>,
 }
 
 #[derive(Deserialize)]
@@ -234,6 +236,21 @@ struct UniformLoad {
     force_per_length: [f64; 3],
     moment_per_length: [f64; 3],
 }
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct UniformTemperature {
+    member: u32,
+    alpha_per_kelvin: f64,
+    delta_t_kelvin: f64,
+}
+
+/// One uniform temperature change on a member, without a gradient.
+pub(crate) struct TemperatureLoad {
+    pub member: MemberId,
+    pub alpha_per_kelvin: f64,
+    pub delta_t_kelvin: f64,
+}
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Prescribed {
@@ -257,6 +274,7 @@ pub(crate) struct Execution {
     pub springs: Vec<crate::extensions::Spring>,
     pub laws: Vec<crate::extensions::Law>,
     pub loads: Vec<Vec<(engine_core::MemberId, engine_contracts::MemberLoad)>>,
+    pub temperature: Vec<Vec<TemperatureLoad>>,
     pub prescribed: Vec<engine_assembly::PrescribedDof>,
     pub diaphragms: Vec<engine_assembly::RigidDiaphragm>,
 }
@@ -299,6 +317,20 @@ pub(crate) fn decode(value: Value) -> Result<Execution, ApiError> {
                             moment_per_length: l.moment_per_length,
                         },
                     )
+                })
+                .collect()
+        })
+        .collect();
+    let temperature: Vec<Vec<_>> = input
+        .cases
+        .iter()
+        .map(|Object(c)| {
+            c.temperature_loads
+                .iter()
+                .map(|Object(t)| TemperatureLoad {
+                    member: MemberId(t.member),
+                    alpha_per_kelvin: t.alpha_per_kelvin,
+                    delta_t_kelvin: t.delta_t_kelvin,
                 })
                 .collect()
         })
@@ -447,6 +479,16 @@ pub(crate) fn decode(value: Value) -> Result<Execution, ApiError> {
             }
         }
     }
+    for case_loads in &temperature {
+        for load in case_loads {
+            if !model.members.iter().any(|m| m.id == load.member) {
+                return Err(ApiError::InvalidInput(format!(
+                    "Load: missing member {}",
+                    load.member.0
+                )));
+            }
+        }
+    }
     Ok(Execution {
         allow_experimental: input.options.0.allow_experimental,
         model,
@@ -456,6 +498,7 @@ pub(crate) fn decode(value: Value) -> Result<Execution, ApiError> {
         springs,
         laws,
         loads,
+        temperature,
         prescribed,
         diaphragms,
     })

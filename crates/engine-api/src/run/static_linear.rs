@@ -43,19 +43,8 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
             .into_iter()
             .next()
             .ok_or_else(|| EngineError::new("ENG-E-0012", "Solver has no case result"))?;
-        let views: Vec<_> = members
-            .iter()
-            .map(|m| MemberRecovery {
-                id: m.id,
-                nodes: &m.nodes,
-                element: m.element.as_ref(),
-                dim: m.dim,
-                params: &m.params,
-                committed: &[],
-                loads: &m.loads[index],
-                stations: None,
-            })
-            .collect();
+        let heated = super::temperature::recovery_bars(members, index)?;
+        let views = member_views(members, &heated, index, None);
         let recovered = CaseResults::recover_with_check(&solution, system, &views, &mut || {
             check_cancel(cancel)
         });
@@ -84,20 +73,8 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
             .collect();
         for (index, solution) in solutions.iter().enumerate() {
             cancel.check()?;
-            let views: Vec<_> = members
-                .iter()
-                .zip(&stations)
-                .map(|(m, stations)| MemberRecovery {
-                    id: m.id,
-                    nodes: &m.nodes,
-                    element: m.element.as_ref(),
-                    dim: m.dim,
-                    params: &m.params,
-                    committed: &[],
-                    loads: &m.loads[index],
-                    stations: Some(stations),
-                })
-                .collect();
+            let heated = super::temperature::recovery_bars(members, index)?;
+            let views = member_views(members, &heated, index, Some(&stations));
             let recovered = CaseResults::recover_with_check(solution, system, &views, &mut || {
                 check_cancel(cancel)
             });
@@ -171,6 +148,35 @@ pub(crate) fn combinations(context: MethodContext<'_>) -> Result<(), Failure> {
     }
     document["combinations"] = json!(combinations);
     step(cancel, progress, "combinations", total - 1, total)
+}
+
+fn member_views<'a>(
+    members: &'a [Member],
+    heated: &'a [Option<engine_elements_truss::LinearTruss>],
+    index: usize,
+    stations: Option<&'a [Vec<f64>]>,
+) -> Vec<MemberRecovery<'a>> {
+    members
+        .iter()
+        .zip(heated)
+        .enumerate()
+        .map(|(ordinal, (member, bar))| {
+            let element: &dyn Element = match bar {
+                Some(bar) => bar,
+                None => member.element.as_ref(),
+            };
+            MemberRecovery {
+                id: member.id,
+                nodes: &member.nodes,
+                element,
+                dim: member.dim,
+                params: &member.params,
+                committed: &[],
+                loads: &member.loads[index],
+                stations: stations.map(|all| all[ordinal].as_slice()),
+            }
+        })
+        .collect()
 }
 
 fn check_cancel(cancel: &CancelToken) -> engine_core::EResult<()> {

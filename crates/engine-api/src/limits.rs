@@ -9,7 +9,7 @@ pub const MAX_NODES: usize = 256;
 pub const MAX_MEMBERS: usize = 1024;
 /// Maximum cases in `cases`.
 pub const MAX_CASES: usize = 64;
-/// Maximum total `loads` and `member_loads` records across all cases.
+/// Maximum total `loads`, `member_loads`, and `temperature_loads` records across all cases.
 pub const MAX_LOADS: usize = 16_384;
 /// Maximum combinations in `combinations`.
 pub const MAX_COMBINATIONS: usize = 128;
@@ -54,7 +54,7 @@ fn child_role(parent: Option<&Frame>, array: bool) -> Role {
             (Role::Root, "combinations", true) => Role::Combinations,
             (Role::Model, "nodes", true) => Role::Nodes,
             (Role::Model, "members", true) => Role::Members,
-            (Role::Case, "loads" | "member_loads", true) => Role::Loads,
+            (Role::Case, "loads" | "member_loads" | "temperature_loads", true) => Role::Loads,
             _ => Role::Other,
         },
         _ => Role::Other,

@@ -88,6 +88,12 @@ fn each_entity_limit_accepts_boundary_and_rejects_next_before_parsing() {
             MAX_LOADS,
         ),
         (
+            r#"{"cases":[{"temperature_loads":["#,
+            "]}]}",
+            "MAX_LOADS",
+            MAX_LOADS,
+        ),
+        (
             r#"{"auxiliary":["#,
             "]}",
             "MAX_JSON_ARRAY_ITEMS",

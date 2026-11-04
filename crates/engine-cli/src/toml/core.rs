@@ -1035,7 +1035,11 @@ fn parse_cases(
     for (index, item) in items.iter().enumerate() {
         let pointer = format!("/cases/{index}");
         let table = as_table(item, &pointer)?;
-        reject_toml_keys(table, &["name", "loads", "member_loads"], &pointer)?;
+        reject_toml_keys(
+            table,
+            &["name", "loads", "member_loads", "temperature_loads"],
+            &pointer,
+        )?;
         let name = required_text(table, "name", &pointer)?;
         if !names.insert(name.clone()) {
             return Err(Failure::validation(
@@ -1053,9 +1057,19 @@ fn parse_cases(
             &pointer,
             &member_ids,
         )?;
+        let temperature_loads = parse_temperature_loads(
+            array_at(
+                table,
+                "temperature_loads",
+                &format!("{pointer}/temperature_loads"),
+            )?,
+            &pointer,
+            &member_ids,
+        )?;
         load_count = load_count
             .saturating_add(loads.len())
-            .saturating_add(member_loads.len());
+            .saturating_add(member_loads.len())
+            .saturating_add(temperature_loads.len());
         if load_count > MAX_LOADS {
             return Err(Failure::validation(
                 Some(pointer),
@@ -1065,6 +1079,9 @@ fn parse_cases(
         let mut body = json!({"name": name, "loads": loads});
         if !member_loads.is_empty() {
             body["member_loads"] = Json::Array(member_loads);
+        }
+        if !temperature_loads.is_empty() {
+            body["temperature_loads"] = Json::Array(temperature_loads);
         }
         bodies.push(body);
     }
@@ -1131,6 +1148,48 @@ fn parse_member_loads(
             "member": member,
             "force_per_length": force,
             "moment_per_length": moment,
+        }));
+    }
+    Ok(loads)
+}
+
+fn parse_temperature_loads(
+    items: Option<&Vec<Toml>>,
+    parent: &str,
+    member_ids: &BTreeSet<u64>,
+) -> Result<Vec<Json>, Failure> {
+    let Some(items) = items else {
+        return Ok(Vec::new());
+    };
+    let mut loads = Vec::with_capacity(items.len());
+    let mut seen = BTreeSet::new();
+    for (index, item) in items.iter().enumerate() {
+        let pointer = format!("{parent}/temperature_loads/{index}");
+        let table = as_table(item, &pointer)?;
+        reject_toml_keys(
+            table,
+            &["member", "alpha_per_kelvin", "delta_t_kelvin"],
+            &pointer,
+        )?;
+        let member = required_u32(table, "member", &pointer)?;
+        if !member_ids.contains(&member) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A reference does not exist.",
+            ));
+        }
+        if !seen.insert(member) {
+            return Err(Failure::validation(
+                Some(pointer),
+                "An identifier is duplicated.",
+            ));
+        }
+        let alpha = json_scalar(required_scalar(table, "alpha_per_kelvin", &pointer)?)?;
+        let delta = json_scalar(required_scalar(table, "delta_t_kelvin", &pointer)?)?;
+        loads.push(json!({
+            "member": member,
+            "alpha_per_kelvin": alpha,
+            "delta_t_kelvin": delta,
         }));
     }
     Ok(loads)
@@ -2572,7 +2631,11 @@ fn write_cases(
     for (index, item) in items.iter().enumerate() {
         let pointer = format!("/cases/{index}");
         let case = as_object(item, &pointer)?;
-        reject_json_keys(case, &["name", "loads", "member_loads"], &pointer)?;
+        reject_json_keys(
+            case,
+            &["name", "loads", "member_loads", "temperature_loads"],
+            &pointer,
+        )?;
         let name = json_text_field(case, "name", &pointer)?;
         if !names.insert(name.clone()) {
             return Err(Failure::validation(
@@ -2582,9 +2645,15 @@ fn write_cases(
         }
         let loads = required_array(case, "loads", &format!("{pointer}/loads"))?;
         let member_loads = json_items(case, "member_loads", &format!("{pointer}/member_loads"))?;
+        let temperature_loads = json_items(
+            case,
+            "temperature_loads",
+            &format!("{pointer}/temperature_loads"),
+        )?;
         load_count = load_count
             .saturating_add(loads.len())
-            .saturating_add(member_loads.len());
+            .saturating_add(member_loads.len())
+            .saturating_add(temperature_loads.len());
         if load_count > MAX_LOADS {
             return Err(Failure::validation(
                 Some(pointer),
@@ -2651,6 +2720,39 @@ fn write_cases(
             if !is_zero_vec(moment) {
                 out.entry("moment_per_length", &format_vec3_text(moment)?);
             }
+        }
+        let mut seen_temperature = BTreeSet::new();
+        for (load_index, load) in temperature_loads.iter().enumerate() {
+            let load_pointer = format!("{pointer}/temperature_loads/{load_index}");
+            let load = as_object(load, &load_pointer)?;
+            reject_json_keys(
+                load,
+                &["member", "alpha_per_kelvin", "delta_t_kelvin"],
+                &load_pointer,
+            )?;
+            let member = json_u32_field(load, "member", &load_pointer)?;
+            if !member_ids.contains(&member) {
+                return Err(Failure::validation(
+                    Some(load_pointer),
+                    "A reference does not exist.",
+                ));
+            }
+            if !seen_temperature.insert(member) {
+                return Err(Failure::validation(
+                    Some(load_pointer),
+                    "An identifier is duplicated.",
+                ));
+            }
+            let alpha = json_f64(load.get("alpha_per_kelvin").ok_or_else(|| {
+                Failure::validation(Some(load_pointer.clone()), "A required field is missing.")
+            })?)?;
+            let delta = json_f64(load.get("delta_t_kelvin").ok_or_else(|| {
+                Failure::validation(Some(load_pointer.clone()), "A required field is missing.")
+            })?)?;
+            out.header("[[cases.temperature_loads]]");
+            out.entry("member", &member.to_string());
+            out.entry("alpha_per_kelvin", &format_f64(alpha)?);
+            out.entry("delta_t_kelvin", &format_f64(delta)?);
         }
     }
     Ok(names)
@@ -5102,5 +5204,167 @@ mod tests {
             Some(to) => &rest[..start.len() + to],
             None => rest,
         }
+    }
+
+    fn restrained_truss() -> String {
+        minimal(
+            r#"
+            [defaults]
+            dim = "D2"
+            dofs = ["Ux", "Uy"]
+
+            [[nodes]]
+            id = 1
+            x = 0
+            y = 0
+
+            [[nodes]]
+            id = 2
+            x = 2
+            y = 0
+
+            [[nodes]]
+            id = 3
+            x = 4
+            y = 0
+
+            [sections.s]
+            A = 4
+
+            [laws.elastic]
+            E = 8
+            rho = 0
+
+            [[members]]
+            id = 1
+            from = 1
+            to = 2
+            section = "s"
+            law = "elastic"
+            element = "truss2d.linear"
+
+            [[members]]
+            id = 2
+            from = 2
+            to = 3
+            section = "s"
+            law = "elastic"
+            element = "truss2d.linear"
+
+            [[supports]]
+            node = 1
+            restrained = ["Ux", "Uy"]
+
+            [[supports]]
+            node = 2
+            restrained = ["Ux", "Uy"]
+
+            [[supports]]
+            node = 3
+            restrained = ["Uy"]
+
+            [[cases]]
+            name = "T"
+
+            [[cases.temperature_loads]]
+            member = 1
+            alpha_per_kelvin = 0.5
+            delta_t_kelvin = 3
+
+            [[cases]]
+            name = "D"
+            "#,
+        )
+    }
+
+    #[test]
+    fn uniform_temperature_round_trip_recovers_the_fixed_end_axial() {
+        let json = toml_to_json(&restrained_truss()).unwrap();
+        let value: Json = serde_json::from_str(json.trim()).unwrap();
+        assert_eq!(value["cases"][0]["temperature_loads"][0]["member"], 1);
+        assert_eq!(
+            value["cases"][0]["temperature_loads"][0]["alpha_per_kelvin"],
+            0.5
+        );
+        assert_eq!(
+            value["cases"][0]["temperature_loads"][0]["delta_t_kelvin"],
+            3
+        );
+        assert!(value["cases"][1].get("temperature_loads").is_none());
+        let toml = json_to_toml(&json).unwrap();
+        let again = toml_to_json(&toml).unwrap();
+        assert_eq!(
+            engine_api::input_sha256(json.trim()).unwrap(),
+            engine_api::input_sha256(again.trim()).unwrap()
+        );
+        assert!(
+            toml.find("[[cases.temperature_loads]]").unwrap() > toml.find("name = \"T\"").unwrap()
+        );
+        let outcome = engine_api::run(json.trim(), &engine_api::CancelToken::new(), |_| {});
+        assert_eq!(
+            outcome.status,
+            engine_api::Status::Ok,
+            "{}",
+            outcome.document
+        );
+        let document: Json = serde_json::from_str(&outcome.document).unwrap();
+        // Hand product 8*4*0.5*3 = 48. Heating is compression. Provenance ENG-LOAD-TEMP-972.
+        assert_eq!(
+            document["cases"][0]["members"][0]["stations"][0]["forces_local"][0],
+            -48.0
+        );
+        assert_eq!(document["cases"][0]["nodes"][0]["reactions"][0], 48.0);
+        assert_eq!(document["cases"][0]["nodes"][1]["reactions"][0], -48.0);
+        assert_eq!(document["cases"][0]["nodes"][2]["displacements"][0], 0.0);
+        assert_eq!(
+            document["cases"][1]["members"][0]["stations"][0]["forces_local"][0],
+            0.0
+        );
+    }
+
+    #[test]
+    fn uniform_temperature_rejects_unknown_keys_duplicates_and_nonfinite() {
+        let broken = |extra: &str| {
+            restrained_truss().replace(
+                "alpha_per_kelvin = 0.5\n            delta_t_kelvin = 3\n",
+                extra,
+            )
+        };
+        assert_eq!(
+            toml_to_json(&broken(
+                "alpha_per_kelvin = 0.5\n            delta_t_kelvin = 3\n            gradient = 1\n"
+            ))
+            .unwrap_err()
+            .cause,
+            "The document contains an unknown key."
+        );
+        assert_eq!(
+            toml_to_json(&broken("alpha_per_kelvin = 0.5\n"))
+                .unwrap_err()
+                .cause,
+            "A required field is missing."
+        );
+        assert_eq!(
+            toml_to_json(&restrained_truss().replace("member = 1\n", "member = 9\n"))
+                .unwrap_err()
+                .cause,
+            "A reference does not exist."
+        );
+        let duplicated = restrained_truss().replace(
+            "delta_t_kelvin = 3\n",
+            "delta_t_kelvin = 3\n\n            [[cases.temperature_loads]]\n            member = 1\n            alpha_per_kelvin = 0.5\n            delta_t_kelvin = 1\n",
+        );
+        assert_eq!(
+            toml_to_json(&duplicated).unwrap_err().cause,
+            "An identifier is duplicated."
+        );
+        assert_eq!(
+            toml_to_json(&broken(
+                "alpha_per_kelvin = inf\n            delta_t_kelvin = 3\n"
+            ))
+            .unwrap_err()
+            .code,
+            "ENG-E-0008"
+        );
     }
 }
