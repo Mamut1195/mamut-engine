@@ -1,0 +1,2 @@
+- MAM-11: walk the buckling residual by component so the test loop satisfies clippy.
+- MAM-11: move the buckling wording tests below `SystemView` so clippy accepts the module order.

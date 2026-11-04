@@ -172,9 +172,9 @@ fn check_mode(system: &mut LinearSystem<ReferenceBackend>, result: &BucklingResu
     for row in 0..n {
         let mut elastic = 0.0;
         let mut geometric = 0.0;
-        for column in 0..n {
-            elastic += k.dense().values()[row * n + column] * phi[column];
-            geometric += kg.dense().values()[row * n + column] * phi[column];
+        for (column, component) in phi.iter().enumerate() {
+            elastic += k.dense().values()[row * n + column] * component;
+            geometric += kg.dense().values()[row * n + column] * component;
         }
         let component = elastic + mode.eigenvalue * geometric;
         residual = residual.max(component.abs());

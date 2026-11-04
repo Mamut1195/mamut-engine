@@ -203,7 +203,7 @@ fn read_source(input: &str, stdin: &mut impl Read) -> Result<String, Failure> {
 }
 
 fn detect_json(text: &str) -> bool {
-    text.trim_start_matches(|c: char| matches!(c, ' ' | '\t' | '\n' | '\r'))
+    text.trim_start_matches([' ', '\t', '\n', '\r'])
         .starts_with('{')
 }
 
