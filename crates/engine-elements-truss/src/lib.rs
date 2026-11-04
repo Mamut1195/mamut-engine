@@ -16,6 +16,13 @@
 //! properties and evaluates N with total u_e, including prescribed displacements.
 //! Only uniform axial loads without moments; self-weight must be converted
 //! explicitly to q=rho A g and be parallel to the axis. Gravity is not assumed.
+//! A bar fixed at both ends with a uniform temperature change is
+//! [`LinearTruss::fixed_end_uniform_temperature`]: tension-positive
+//! N = -(E A α ΔT), plus the equivalent joint forces of this same bar.
+//! [`Element::recover`] adds that N when the bar comes from
+//! [`LinearTruss::with_fixed_end_uniform_temperature`], including at zero
+//! displacement. The thermal term does not depend on length. A thermal
+//! gradient is not represented. That resultant is not a `MemberLoad`.
 //! Recovery returns local ends [-N_i,0,…,N_j,0,…] and stations
 //! with N on the positive face; no D3 transverse orientation is needed.
 //!
@@ -54,6 +61,28 @@ use engine_linalg::DMat;
 pub use factory::TrussFactory;
 pub use producer::geometric_producer;
 
+/// Uniform temperature on one existing bar fixed at both ends.
+///
+/// Tension is positive. The thermal gradient is absent: this record is only
+/// the uniform change. It is not inferred from a `MemberLoad`.
+/// [`Element::recover`] reports this same axial force when the bar carries
+/// the change, including at zero displacement.
+#[derive(Clone, Debug, PartialEq)]
+pub struct FixedEndUniformTemperature {
+    /// Axial force in N, constant along the bar. Negative when αΔT > 0.
+    pub axial_force: Real,
+    /// Global equivalent joint forces in N, in [`Element::load_vector`] order.
+    ///
+    /// Assemble them through the existing element-load channel. Their sum is
+    /// zero. Heating pushes the two joints outward.
+    pub joint_forces: Vec<Real>,
+    /// Local end actions and stations for this constant N.
+    ///
+    /// The axial slot at end i is -N and the axial slot at end j is +N.
+    /// Every requested station repeats `axial_force`. Other components are zero.
+    pub output: ElementOutput,
+}
+
 /// Two-node linear truss with immutable SI properties and no history.
 ///
 /// Both kinds share the formulation; only dimension and active DOFs differ.
@@ -65,6 +94,11 @@ pub struct LinearTruss {
     area: Real,
     density: Real,
     ea: Real,
+    /// Tension-positive axial from one uniform fixed-end temperature change.
+    ///
+    /// Zero leaves recovery mechanical. This is not prestress: `respond` and
+    /// geometric stiffness keep the displacement axial only.
+    fixed_end_temperature_axial: Real,
 }
 
 impl LinearTruss {
@@ -86,6 +120,7 @@ impl LinearTruss {
             area,
             density,
             ea,
+            fixed_end_temperature_axial: 0.0,
         })
     }
 
@@ -111,6 +146,91 @@ impl LinearTruss {
 
     fn geometry(&self, ctx: &ElementCtx<'_>) -> EResult<geometry::Geometry> {
         geometry::Geometry::new(self.dim, ctx)
+    }
+
+    /// Copy that carries one uniform fixed-end temperature change into recovery.
+    ///
+    /// `alpha_per_kelvin` is the linear expansion coefficient in 1/K and
+    /// `delta_t_kelvin` is the uniform change in K. [`Element::recover`] then
+    /// adds `N = -(E · A · α · ΔT)`, tension positive, including when the
+    /// displacement is zero. The thermal term does not depend on the length.
+    /// A later call replaces the stored change; it does not add a second one.
+    ///
+    /// `respond` and geometric stiffness stay mechanical, so the equivalent
+    /// joint forces are not counted twice. No gradient is stored. A nonfinite
+    /// product is ENG-E-0008.
+    ///
+    /// ```
+    /// use engine_contracts::{Element, ElementCtx, ElementParams};
+    /// use engine_core::Dim;
+    /// use engine_elements_truss::LinearTruss;
+    /// let bar = LinearTruss::new(Dim::D2, 8.0, 4.0, 0.0)?;
+    /// let heated = bar.with_fixed_end_uniform_temperature(0.5, 3.0)?;
+    /// let params = ElementParams::default();
+    /// let coords = [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]];
+    /// let ctx = ElementCtx { dim: Dim::D2, coords: &coords, params: &params };
+    /// let out = heated.recover(&ctx, &[0.0; 4], &[], &[], &[0.5])?;
+    /// assert_eq!(out.stations[0].forces_local[0], -48.0);
+    /// # Ok::<(), engine_core::EngineError>(())
+    /// ```
+    pub fn with_fixed_end_uniform_temperature(
+        self,
+        alpha_per_kelvin: Real,
+        delta_t_kelvin: Real,
+    ) -> EResult<Self> {
+        let fixed_end_temperature_axial =
+            loads::fixed_end_uniform_temperature(self.ea, alpha_per_kelvin, delta_t_kelvin)?;
+        Ok(Self {
+            fixed_end_temperature_axial,
+            ..self
+        })
+    }
+
+    /// Fixed-end axial response to one uniform temperature change.
+    ///
+    /// `alpha_per_kelvin` is the linear expansion coefficient in 1/K and
+    /// `delta_t_kelvin` is the uniform change in K. Both must be finite;
+    /// either sign is kept. With the tension-positive convention of this
+    /// element, `axial_force = -(E · A · α · ΔT)` in N. The magnitude
+    /// `E · A · α · ΔT` does not depend on the length. `stations` are
+    /// dimensionless x/L in [0, 1], as in [`Element::recover`].
+    ///
+    /// No second temperature and no gradient are accepted. A nonfinite
+    /// product is ENG-E-0008. Geometry errors are the same codes as the
+    /// other bar operations. `output` is [`Element::recover`] of this bar at
+    /// zero displacement and with no span load, so its station N is
+    /// `axial_force`.
+    ///
+    /// ```
+    /// use engine_contracts::{ElementCtx, ElementParams};
+    /// use engine_core::Dim;
+    /// use engine_elements_truss::LinearTruss;
+    /// let bar = LinearTruss::new(Dim::D2, 8.0, 4.0, 0.0)?;
+    /// let params = ElementParams::default();
+    /// let coords = [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]];
+    /// let ctx = ElementCtx { dim: Dim::D2, coords: &coords, params: &params };
+    /// let thermal = bar.fixed_end_uniform_temperature(&ctx, 0.5, 3.0, &[0.5])?;
+    /// assert_eq!(thermal.axial_force, -48.0);
+    /// # Ok::<(), engine_core::EngineError>(())
+    /// ```
+    pub fn fixed_end_uniform_temperature(
+        &self,
+        ctx: &ElementCtx<'_>,
+        alpha_per_kelvin: Real,
+        delta_t_kelvin: Real,
+        stations: &[Real],
+    ) -> EResult<FixedEndUniformTemperature> {
+        let heated = self.with_fixed_end_uniform_temperature(alpha_per_kelvin, delta_t_kelvin)?;
+        let axial_force = heated.fixed_end_temperature_axial;
+        let g = heated.geometry(ctx)?;
+        let joint_forces = loads::fixed_end_uniform_temperature_forces(&g, axial_force)?;
+        let zeros = vec![0.0; 2 * g.axes];
+        let output = recover::output(&heated, &g, &zeros, &[], &[], stations)?;
+        Ok(FixedEndUniformTemperature {
+            axial_force,
+            joint_forces,
+            output,
+        })
     }
 }
 

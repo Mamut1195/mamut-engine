@@ -1,4 +1,4 @@
-//! Axial equilibrium dN/dx=−q; N(x)=N_elástico+qL(1/2−x/L).
+//! Axial equilibrium dN/dx=−q; N(x)=N_elástico+N_ΔT+qL(1/2−x/L).
 use crate::{finite, geometry::Geometry, invalid, loads, stiffness, LinearTruss};
 use engine_contracts::{ElementOutput, MemberLoad, StationResult};
 use engine_core::{EResult, Real};
@@ -11,7 +11,10 @@ pub(crate) fn output(
     member_loads: &[MemberLoad],
     stations: &[Real],
 ) -> EResult<ElementOutput> {
-    let n = stiffness::axial(bar, g, u, committed)?;
+    let elastic = stiffness::axial(bar, g, u, committed)?;
+    // Constant tension-positive thermal axial. Independent of L, and present
+    // when the displacement is zero. A gradient is not added here.
+    let n = finite(elastic + bar.fixed_end_temperature_axial, "N (N)")?;
     let mut q = 0.0;
     for load in member_loads {
         q = finite(q + loads::axial(g, load)?, "Sum of axial q (N/m)")?;
