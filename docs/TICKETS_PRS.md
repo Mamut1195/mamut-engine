@@ -14,7 +14,9 @@
 Migration note (2026-11-03, parent-verified): the original repository
 (GitHub ID `1412637886`) is now the private archive named above. The new
 `Mamut1195/mamut-engine` has a different GitHub ID, `1444444923`, and remains
-private; PUBLIC publication is pending independent review. All PR/issue
+private; PUBLIC publication is pending independent review. Continuation
+tickets opened on 2026-11-04 are in [docs/tickets/README.md](tickets/README.md)
+and are not part of this reconciliation. All PR/issue
 references and pre-migration commit SHAs in this reconciliation belong to
 the private archive. Statuses remain those of the original cutoff, not
 current statuses. See [repository history and lookup](REPOSITORY_HISTORY.md).
