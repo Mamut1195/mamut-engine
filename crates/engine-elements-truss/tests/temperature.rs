@@ -183,6 +183,56 @@ fn restrained(dofs: &[Dof], free: Option<Dof>) -> Vec<Dof> {
 }
 
 #[test]
+fn recover_reports_the_same_axial_force_at_zero_displacement() {
+    let params = ElementParams::default();
+    let element = bar();
+    let short = [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0]];
+    let long = [[0.0, 0.0, 0.0], [5.0, 0.0, 0.0]];
+    let heated = element
+        .with_fixed_end_uniform_temperature(0.5, 3.0)
+        .unwrap();
+    let recovered = |coords: [[f64; 3]; 2], u: &[f64], stations: &[f64]| {
+        heated
+            .recover(&ctx(Dim::D2, &coords, &params), u, &[], &[], stations)
+            .unwrap()
+    };
+    let case = element
+        .fixed_end_uniform_temperature(&ctx(Dim::D2, &short, &params), 0.5, 3.0, &[0.0, 0.5, 1.0])
+        .unwrap();
+    let short_out = recovered(short, &[0.0; 4], &[0.0, 0.5, 1.0]);
+    assert_eq!(case.axial_force, -48.0);
+    assert_eq!(short_out.end_forces_local, case.output.end_forces_local);
+    assert_eq!(short_out.stations, case.output.stations);
+    for station in &short_out.stations {
+        assert_eq!(station.forces_local[0], -48.0);
+        assert_eq!(&station.forces_local[1..], &[0.0; 5]);
+    }
+    let long_out = recovered(long, &[0.0; 4], &[0.5]);
+    assert_eq!(long_out.stations[0].forces_local[0], -48.0);
+    let cooling = element
+        .with_fixed_end_uniform_temperature(0.5, -3.0)
+        .unwrap();
+    let cooled = cooling
+        .recover(&ctx(Dim::D2, &short, &params), &[0.0; 4], &[], &[], &[1.0])
+        .unwrap();
+    assert_eq!(cooled.stations[0].forces_local[0], 48.0);
+    let plain = element
+        .recover(&ctx(Dim::D2, &short, &params), &[0.0; 4], &[], &[], &[0.5])
+        .unwrap();
+    assert_eq!(plain.stations[0].forces_local[0], 0.0);
+    let none = element
+        .with_fixed_end_uniform_temperature(0.0, 3.0)
+        .unwrap();
+    let zero_change = none
+        .recover(&ctx(Dim::D2, &short, &params), &[0.0; 4], &[], &[], &[0.0])
+        .unwrap();
+    assert_eq!(zero_change.stations[0].forces_local[0], 0.0);
+    // ε = 0.25/2 = 0.125. N_elastic = E·A·ε = 4 N. N = 4 − 48.
+    let combined = recovered(short, &[0.0, 0.0, 0.25, 0.0], &[0.5]);
+    assert_eq!(combined.stations[0].forces_local[0], -44.0);
+}
+
+#[test]
 fn fixed_axial_reactions_use_the_existing_load_channel() {
     // The existing assembler rejects a model with no free DOF.
     let locked = bar();
@@ -232,7 +282,8 @@ fn fixed_axial_reactions_use_the_existing_load_channel() {
         let thermal = bar
             .fixed_end_uniform_temperature(&ctx(dim, &coords, &params), 0.5, 3.0, &[0.5])
             .unwrap();
-        let mechanical = bar
+        let heated = bar.with_fixed_end_uniform_temperature(0.5, 3.0).unwrap();
+        let recovered = heated
             .recover(
                 &ctx(dim, &coords, &params),
                 &vec![0.0; 2 * dofs.len()],
@@ -241,7 +292,9 @@ fn fixed_axial_reactions_use_the_existing_load_channel() {
                 &[0.5],
             )
             .unwrap();
-        assert_eq!(mechanical.stations[0].forces_local[0], 0.0);
+        assert_eq!(recovered.stations[0].forces_local[0], thermal.axial_force);
+        assert_eq!(recovered.stations[0].forces_local[0], -48.0);
+        assert_eq!(recovered.end_forces_local, thermal.output.end_forces_local);
         let mut model = Model::new();
         let points = [coords[0], coords[1], third];
         for (i, coordinates) in points.iter().enumerate() {

@@ -29,14 +29,18 @@ change, tension positive:
   and `d` the unit vector from end i to end j.
 
 The same N is constant at every station. It does not depend on L.
+`Element::recover` on a bar from `with_fixed_end_uniform_temperature`
+returns that N at every station when the displacement is zero. A mechanical
+elongation adds `E · A · ε` to it.
 
 ## Not in the claim
 
 The thermal gradient is UNKNOWN in MAM-972 and is not implemented. There is
 no second temperature, no `dT/dx`, and no thermal moment. Free elongation
 `δ = α · ΔT · L` is not this case and is not returned. `Element::recover`
-at zero displacement stays mechanical and returns N = 0; it does not infer
-temperature from `MemberLoad`. No code-compliance statement is made.
+does not infer temperature from `MemberLoad`. A bar that does not carry the
+change returns N = 0 at zero displacement. `respond` and geometric stiffness
+stay mechanical. No code-compliance statement is made.
 
 ## Evidence record
 
@@ -50,7 +54,8 @@ temperature from `MemberLoad`. No code-compliance statement is made.
   ΔT = −3 K, α = −0.5 1/K, α = 0, ΔT = 0. Lengths 2 m, 5 m, and 7 m.
   Source: this derivation. Unknown gradient stays unknown.
 - method: own closed form in this file, evaluated by
-  `fixed_end_uniform_temperature` in `src/loads.rs`.
+  `fixed_end_uniform_temperature` in `src/loads.rs`. Recovery adds that
+  axial in `recover::output`.
 - sources: this file and the in-repo sign convention. No external source.
 - toolchain: rustc 1.99.0 (b940084d7 2026-09-28), cargo 1.99.0 (5f94df478 2026-08-27).
   Arithmetic is f64. No added dependency.
@@ -68,6 +73,8 @@ temperature from `MemberLoad`. No code-compliance statement is made.
 - execution: `cargo test --offline --locked -p engine-elements-truss`,
   exit code 0, on 2026-11-03. Counts: analytical 4, geometric_producer 5,
   invariants 10, temperature 6, doctests 2. `--offline` did not fail.
+  The recovery extension below reran that command: temperature 7,
+  doctests 3, exit code 0.
 - comparison: pass. See the table.
 
 | Quantity | Expected | Observed | Tolerance | Result |
@@ -84,6 +91,10 @@ temperature from `MemberLoad`. No code-compliance statement is made.
 | Joint forces, (2, 3, 6), L = 7 m | ±48·(2, 3, 6)/7 N | within bound | 1×10⁻¹² N | pass |
 | Axial reactions, fixed ends | +48 N at i, −48 N at j | same | 0 | pass |
 | Free unknown of the unloaded companion bar | 0 m | 0 m | 0 | pass |
+| Recovered station N, u = 0, L = 2 m and L = 5 m | −48 N | −48 N | 0 | pass |
+| Recovered station N, ΔT = −3 K, u = 0 | +48 N | +48 N | 0 | pass |
+| Recovered station N, bar without the change, u = 0 | 0 N | 0 N | 0 | pass |
+| Recovered station N, Δu = 0.25 m along d, L = 2 m | −44 N | −44 N | 0 | pass |
 
 `MemberLoad` was not given a temperature field. The public JSON schema was
 not edited. A withheld schema note lives outside the repository.
@@ -160,3 +171,21 @@ Command, from the worktree at parent `dc2b5b3a27cfc12cfa71345b1f877b515a04c283`:
 `cargo test --offline --locked -p engine-elements-truss`
 
 Exit code 0. No dependency was downloaded. `--offline` did not fail.
+
+## Recovery extension
+
+`Element::recover` adds the fixed-end uniform axial to the mechanical axial.
+At zero displacement the station N is `-(E · A · α · ΔT)`. The thermal term
+does not depend on L. For the fixture, Δu = 0.25 m on L = 2 m gives
+ε = 0.125 and `E · A · ε = 4 N`, so the recovered N is 4 − 48 = −44 N.
+`respond` and geometric stiffness do not use this axial.
+
+Command, on the worktree whose parent is
+`e4db3fab2aad3602c4d133a9c303df14b5f27760`:
+
+`cargo test --offline --locked -p engine-elements-truss`
+
+Exit code 0 on 2026-11-03. Counts: analytical 4, geometric_producer 5,
+invariants 10, temperature 7, doctests 3. `--offline` did not fail. No
+dependency was downloaded. `cargo fmt -p engine-elements-truss -- --check`
+also exited 0.
