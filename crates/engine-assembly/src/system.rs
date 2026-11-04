@@ -342,8 +342,11 @@ impl<B: LinAlgBackend> LinearSystem<B> {
     /// state. The dense solver requires a positive definite metric, so the
     /// problem is rewritten `K φ = λ (−Kg) φ`. Identically zero rows of −Kg
     /// (axial DOFs, members without geometric stiffness) are condensed with
-    /// the same Guyan path as zero-mass rows. Its diagnostics keep
-    /// ENG-E-0006 and ENG-E-0014; in this call the metric is −Kg, not a mass.
+    /// the same Guyan path as zero-mass rows. Diagnostics stay
+    /// ENG-E-0006 and ENG-E-0014. The shared solver text says "mass" for the
+    /// modal problem and is left unchanged; this call replaces that wording
+    /// and names the metric −Kg. The same replacement applies to the Cholesky
+    /// sentence ENG-E-0010 that says the mass is not positive definite.
     /// A negative diagonal of −Kg, or a zero Kg when `count > 0`, is
     /// ENG-E-0010: the reference load is not a compression metric.
     /// An indefinite −Kg with no negative diagonal still fails in the
@@ -428,6 +431,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             }
         };
         solve().map_err(|e| {
+            let e = buckling_metric_wording(e);
             if e.code == "ENG-E-0006" && !e.entities.iter().any(|v| matches!(v, EntityRef::Dof(_)))
             {
                 e
@@ -904,6 +908,114 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         }
         e.entities = entities;
         e
+    }
+}
+
+/// Replaces modal mass wording on the buckling path.
+///
+/// The shared Guyan and Cholesky sentences stay as they are for modal
+/// analysis. Buckling uses the same routines with metric −Kg, so only this
+/// call rewrites the text. Codes, entities, and the eigenvalue path are
+/// unchanged. A stiffness singularity that does not name mass is left as the
+/// solver wrote it.
+fn buckling_metric_wording(mut error: EngineError) -> EngineError {
+    if error.code != "ENG-E-0006" && error.code != "ENG-E-0010" && error.code != "ENG-E-0014" {
+        return error;
+    }
+    let message = error.message.clone();
+    let rewritten = if let Some(rest) = message.strip_prefix("Guyan: negative mass") {
+        format!("Buckling: negative diagonal of -Kg{rest}")
+    } else if let Some(rest) = message.strip_prefix("Guyan: no free DOFs with mass remain") {
+        format!("Buckling: no free DOF remains with a nonzero row of -Kg{rest}")
+    } else if let Some(rest) =
+        message.strip_prefix("Guyan: massless mechanism; Kss is singular or not positive definite")
+    {
+        format!(
+            "Buckling: DOFs with a zero row of -Kg have singular or non-positive-definite Kss{rest}"
+        )
+    } else if let Some(rest) = message.strip_prefix("Mass Cholesky: numerically insufficient pivot")
+    {
+        format!("Buckling: -Kg has a numerically insufficient pivot{rest}")
+    } else if let Some(rest) = message.strip_prefix("Mass Cholesky: mass is not positive definite")
+    {
+        format!("Buckling: -Kg is not positive definite{rest}")
+    } else {
+        return error;
+    };
+    error.message = rewritten;
+    error
+}
+
+#[cfg(test)]
+mod buckling_wording_tests {
+    use super::buckling_metric_wording;
+    use engine_core::{DofIndex, EngineError, EntityRef};
+
+    fn wording(code: &'static str, message: &str) -> EngineError {
+        let mut error = EngineError::new(code, message);
+        error.entities.push(EntityRef::Dof(DofIndex(3)));
+        buckling_metric_wording(error)
+    }
+
+    #[test]
+    fn shared_mass_sentences_name_geometric_metric() {
+        let negative = wording(
+            "ENG-E-0006",
+            "Guyan: negative mass: singular pivot at DOF 3.",
+        );
+        assert_eq!(negative.code, "ENG-E-0006");
+        assert_eq!(
+            negative.message,
+            "Buckling: negative diagonal of -Kg: singular pivot at DOF 3."
+        );
+        let absent = wording(
+            "ENG-E-0006",
+            "Guyan: no free DOFs with mass remain: singular pivot at DOF 3.",
+        );
+        assert_eq!(
+            absent.message,
+            "Buckling: no free DOF remains with a nonzero row of -Kg: singular pivot at DOF 3."
+        );
+        let pivot = wording(
+            "ENG-E-0006",
+            "Mass Cholesky: numerically insufficient pivot: singular pivot at DOF 3.",
+        );
+        assert_eq!(
+            pivot.message,
+            "Buckling: -Kg has a numerically insufficient pivot: singular pivot at DOF 3."
+        );
+        let condensed = wording(
+            "ENG-E-0014",
+            "Guyan: massless mechanism; Kss is singular or not positive definite, DOF block 3.",
+        );
+        assert_eq!(condensed.code, "ENG-E-0014");
+        assert_eq!(
+            condensed.message,
+            "Buckling: DOFs with a zero row of -Kg have singular or non-positive-definite Kss, DOF block 3."
+        );
+        let indefinite = wording(
+            "ENG-E-0010",
+            "Mass Cholesky: mass is not positive definite, DOF 3.",
+        );
+        assert_eq!(indefinite.code, "ENG-E-0010");
+        assert_eq!(
+            indefinite.message,
+            "Buckling: -Kg is not positive definite, DOF 3."
+        );
+        for error in [&negative, &absent, &pivot, &condensed, &indefinite] {
+            assert!(!error.message.to_ascii_lowercase().contains("mass"));
+            assert!(matches!(
+                error.entities.as_slice(),
+                [EntityRef::Dof(DofIndex(index))] if *index == 3
+            ));
+        }
+    }
+
+    #[test]
+    fn stiffness_singularity_stays_unchanged() {
+        let singular = wording("ENG-E-0006", "Reference LDLᵀ: singular pivot at DOF 0.");
+        assert_eq!(singular.code, "ENG-E-0006");
+        assert_eq!(singular.message, "Reference LDLᵀ: singular pivot at DOF 0.");
     }
 }
 

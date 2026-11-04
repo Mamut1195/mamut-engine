@@ -5,9 +5,9 @@ use engine_analysis::buckling::{BucklingLinear, BucklingResults};
 use engine_assembly::{DofMap, ElementContribution, LinearSystem};
 use engine_contracts::{Element, ElementCtx, ElementParams};
 use engine_core::math;
-use engine_core::{Dim, Dof, EResult, NodeId};
+use engine_core::{Dim, Dof, DofIndex, EResult, NodeId};
 use engine_elements_frame::{EulerFrame2D, MomentReleases};
-use engine_linalg::{ReferenceBackend, SymMatrix};
+use engine_linalg::{DMat, ReferenceBackend, SymMatrix};
 use engine_model::{Model, Node, Support};
 use std::f64::consts::PI;
 
@@ -335,4 +335,75 @@ fn zero_geometric_stiffness_and_tension_are_rejected() -> EResult<()> {
         "ENG-E-0010"
     );
     Ok(())
+}
+
+fn free_uy_rz() -> Model {
+    let mut model = Model::new();
+    model
+        .nodes
+        .push(Node::new(NodeId(2), Dim::D2, [0.0, 0.0, 0.0]));
+    model.supports.push(Support {
+        id: "s".into(),
+        node: NodeId(2),
+        restrained: vec![Dof::Ux],
+    });
+    model
+}
+
+fn names_geometric_metric(error: &engine_core::EngineError) {
+    assert!(
+        error.message.contains("-Kg"),
+        "buckling diagnostic must name -Kg: {}",
+        error.message
+    );
+    assert!(
+        !error.message.to_ascii_lowercase().contains("mass"),
+        "buckling diagnostic must not say mass: {}",
+        error.message
+    );
+}
+
+#[test]
+fn zero_metric_row_names_geometric_stiffness_not_mass() {
+    // Uy carries -Kg = 1. Rz is an identically zero row of -Kg, and Kss of that
+    // rotation is singular. Guyan still returns ENG-E-0014; the text must name -Kg.
+    let element = ElementContribution {
+        location: vec![DofIndex(1), DofIndex(2)],
+        stiffness: DMat::new(2, 2, vec![1.0, 0.0, 0.0, 0.0]).unwrap(),
+        mass_lumped: None,
+        mass_consistent: None,
+        geometric: Some(DMat::new(2, 2, vec![-1.0, 0.0, 0.0, 0.0]).unwrap()),
+        loads: vec![],
+    };
+    let mut system =
+        LinearSystem::from_model(ReferenceBackend, &free_uy_rz(), &[element], &[]).unwrap();
+    let error = BucklingLinear::run(&mut system, 1).unwrap_err();
+    assert_eq!(error.code, "ENG-E-0014");
+    assert!(error.message.starts_with(
+        "Buckling: DOFs with a zero row of -Kg have singular or non-positive-definite Kss, DOF block "
+    ));
+    assert!(error.message.contains("Node 2, DOF Rz (global 2)."));
+    names_geometric_metric(&error);
+}
+
+#[test]
+fn indefinite_geometric_metric_names_minus_kg_not_mass() {
+    // -Kg = [[1, 2], [2, 1]] has positive diagonals and a negative eigenvalue.
+    // Cholesky rejects it. The shared sentence names mass; buckling must name -Kg.
+    let element = ElementContribution {
+        location: vec![DofIndex(1), DofIndex(2)],
+        stiffness: DMat::new(2, 2, vec![2.0, 0.0, 0.0, 3.0]).unwrap(),
+        mass_lumped: None,
+        mass_consistent: None,
+        geometric: Some(DMat::new(2, 2, vec![-1.0, -2.0, -2.0, -1.0]).unwrap()),
+        loads: vec![],
+    };
+    let mut system =
+        LinearSystem::from_model(ReferenceBackend, &free_uy_rz(), &[element], &[]).unwrap();
+    let error = BucklingLinear::run(&mut system, 1).unwrap_err();
+    assert_eq!(error.code, "ENG-E-0010");
+    assert!(error
+        .message
+        .starts_with("Buckling: -Kg is not positive definite, DOF "));
+    names_geometric_metric(&error);
 }

@@ -52,8 +52,9 @@ impl BucklingLinear {
     /// Does not modify accepted or trial state. `count = 0` returns an empty
     /// list and does not require a definite geometric metric.
     /// ENG-E-0010: zero Kg, a tension metric, or `count` above the free order.
-    /// ENG-E-0006 and ENG-E-0014 propagate from a singular metric or from the
-    /// condensed elastic block. ENG-E-0007: incomplete spectrum. ENG-E-0008:
+    /// ENG-E-0006, ENG-E-0010, and ENG-E-0014 that come from the shared metric
+    /// solver name −Kg. The modal wording that says "mass" is not reused.
+    /// ENG-E-0007: incomplete spectrum. ENG-E-0008:
     /// nonfinite values. ENG-E-0012: incompatible backend dimensions.
     pub fn run<B: LinAlgBackend>(
         system: &mut LinearSystem<B>,
