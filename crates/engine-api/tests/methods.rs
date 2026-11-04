@@ -129,6 +129,11 @@ fn capabilities_are_deterministic_compatible_and_backed_by_evidence() {
         assert_eq!(a["methods"][id], json!({"engine": true, "run": true}));
     }
     assert_eq!(a["combinations"], json!({"run": true}));
+    assert!(a["laws"]
+        .as_array()
+        .expect("laws")
+        .iter()
+        .any(|law| law == "concrete.kent_park"));
     // Historical camelCase method keys are preserved; every new extension
     // uses the approved naming grammar, without expanding LEGACY_DEFS.
     ascii_keys(&a["method_descriptors"]);

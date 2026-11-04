@@ -3,13 +3,19 @@
 //! Map mamut-toml/1 to engine-input/1 and back for the structural core,
 //! the load collections, and the analysis branches.
 //!
-//! U5 stays open: textual aliases of node, member, and spring ids are rejected.
+//! U5: `name` is optional on nodes, members and springs. The integer id is
+//! required and is never invented. The same name may be reused across those
+//! three collections. It does not enter engine JSON. Export writes it back
+//! only when an idmap/1 document accompanies the model.
 //! U7 stays open: an identifier longer than 256 bytes is rejected.
-//! U9 stays open: the emitter is deterministic, not a unique textual form,
-//! and it does not extract `[defaults]`.
-//! U10 stays open: `type` is rejected instead of expanded into a DOF list.
-//! U11 stays open: nesting uses a provisional fence, and errors omit line
-//! and column. `spring.nonlinear` is accepted only with `nonlinearStatic`.
+//! U9 is closed: two exports of one model are the same UTF-8 bytes, with LF,
+//! one trailing newline, two-space indentation under each header, and keys in
+//! the order of mamut-toml/1 section 6. A value the author wrote is kept.
+//! `[defaults]` is not extracted by deleting that value. U10 stays open:
+//! `type` is rejected instead of expanded into a DOF list.
+//! U11: the root table is nesting level 1. A document error keeps its code
+//! and reports a 1-based line and column when the parser span exists.
+//! `spring.nonlinear` is accepted only with `nonlinearStatic`.
 
 mod analysis;
 
@@ -74,11 +80,21 @@ pub(crate) fn toml_to_json(text: &str) -> Result<String, Failure> {
 }
 
 /// Export an engine-input/1 JSON subset to mamut-toml/1, including a trailing newline.
+/// Names are omitted. Pass idmap/1 to [`json_to_toml_with_idmap`] to restore them.
 pub(crate) fn json_to_toml(text: &str) -> Result<String, Failure> {
+    json_to_toml_with_idmap(text, None)
+}
+
+/// Export engine JSON to mamut-toml/1. `idmap` restores names when it is idmap/1.
+pub(crate) fn json_to_toml_with_idmap(text: &str, idmap: Option<&str>) -> Result<String, Failure> {
     ensure_len(text.len())?;
     let value = parse_json(text)?;
     reject_null(&value)?;
-    export_root(&value)
+    let aliases = match idmap {
+        Some(document) => parse_idmap(document)?,
+        None => AliasMap::default(),
+    };
+    export_root(&value, aliases)
 }
 
 fn ensure_len(len: usize) -> Result<(), Failure> {
@@ -93,12 +109,34 @@ fn parse_table(text: &str) -> Result<toml::Table, Failure> {
     match toml::from_str::<toml::Table>(text) {
         Ok(table) => Ok(table),
         Err(error) => {
-            // Parser text can quote source tokens. Keep only the fact of failure.
+            // Parser text can quote source tokens. The code stays. The span,
+            // when it exists, becomes the 1-based position and nothing else.
             let _message = error.message();
-            let _span = error.span();
-            Err(Failure::document("The TOML document is invalid."))
+            Err(Failure::document("The TOML document is invalid.")
+                .with_position(position_hint(text, error.span())))
         }
     }
+}
+
+/// U11. `span` is a byte range. Line and column count Unicode scalar values
+/// and start at 1. A missing span, an index past the text, or an index that
+/// would split a character does not invent a line.
+fn document_position(text: &str, span: Option<std::ops::Range<usize>>) -> Option<(usize, usize)> {
+    let start = span?.start;
+    if start > text.len() || !text.is_char_boundary(start) {
+        return None;
+    }
+    let prefix = &text[..start];
+    let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
+    let after_newline = match prefix.rsplit_once('\n') {
+        Some((_, rest)) => rest,
+        None => prefix,
+    };
+    Some((line, after_newline.chars().count() + 1))
+}
+
+fn position_hint(text: &str, span: Option<std::ops::Range<usize>>) -> Option<String> {
+    document_position(text, span).map(|(line, column)| format!("line {line}, column {column}"))
 }
 
 fn parse_json(text: &str) -> Result<Json, Failure> {
@@ -144,9 +182,8 @@ fn reject_null(value: &Json) -> Result<(), Failure> {
     }
 }
 
-/// Provisional fence. U11 does not decide whether the root counts as a level.
-/// This count treats the root table as one level and each nested table or
-/// array as one more level. It is not the closed convention.
+/// U11: the root table is level 1. Each nested table or array adds one
+/// level, and a scalar counts as one level. Depth 64 remains the limit.
 fn nesting_table(table: &toml::Table) -> usize {
     1 + table.values().map(nesting_value).max().unwrap_or(0)
 }
@@ -186,7 +223,8 @@ fn root_from_toml(table: &toml::Table) -> Result<Json, Failure> {
     check_root_keys(table)?;
     require_format(table)?;
     require_units(table)?;
-    let experimental = allow_experimental(table)?;
+    let written_experimental = allow_experimental(table)?;
+    let experimental = written_experimental.unwrap_or(false);
     let defaults = parse_defaults(table)?;
     let nodes = parse_nodes(optional_array(table, "nodes")?, &defaults)?;
     let sections = parse_sections(optional_table(table, "sections")?)?;
@@ -242,7 +280,7 @@ fn root_from_toml(table: &toml::Table) -> Result<Json, Failure> {
         diaphragms,
         cases: cases.bodies,
         combinations,
-        experimental,
+        experimental: written_experimental,
         analysis: analysis.body,
     }))
 }
@@ -296,15 +334,17 @@ fn require_units(table: &toml::Table) -> Result<(), Failure> {
     }
 }
 
-fn allow_experimental(table: &toml::Table) -> Result<bool, Failure> {
+/// `None` when the author omitted the key. `Some` keeps a written boolean,
+/// including `false`.
+fn allow_experimental(table: &toml::Table) -> Result<Option<bool>, Failure> {
     let Some(value) = table.get("options") else {
-        return Ok(false);
+        return Ok(None);
     };
     let options = as_table(value, "/options")?;
     reject_toml_keys(options, &["allow_experimental"], "/options")?;
     match options.get("allow_experimental") {
-        None => Ok(false),
-        Some(Toml::Boolean(value)) => Ok(*value),
+        None => Ok(None),
+        Some(Toml::Boolean(value)) => Ok(Some(*value)),
         Some(_) => Err(Failure::validation(
             Some("/options".to_string()),
             "A value has the wrong type.",
@@ -355,10 +395,15 @@ fn parse_nodes(items: Option<&Vec<Toml>>, defaults: &Defaults) -> Result<Vec<Nod
     }
     let mut nodes = Vec::with_capacity(items.len());
     let mut seen = BTreeMap::new();
+    let mut names = BTreeSet::new();
     for (index, item) in items.iter().enumerate() {
         let pointer = format!("/nodes/{index}");
         let table = as_table(item, &pointer)?;
-        reject_toml_keys(table, &["id", "x", "y", "z", "dim", "dofs"], &pointer)?;
+        reject_toml_keys(
+            table,
+            &["id", "name", "x", "y", "z", "dim", "dofs"],
+            &pointer,
+        )?;
         let id = required_u32(table, "id", &pointer)?;
         if seen.insert(id, index).is_some() {
             return Err(Failure::validation(
@@ -366,6 +411,7 @@ fn parse_nodes(items: Option<&Vec<Toml>>, defaults: &Defaults) -> Result<Vec<Nod
                 "An identifier is duplicated.",
             ));
         }
+        take_alias(table, &pointer, &mut names)?;
         let x = json_scalar(required_scalar(table, "x", &pointer)?)?;
         let y = json_scalar(required_scalar(table, "y", &pointer)?)?;
         let z_scalar = match table.get("z") {
@@ -561,6 +607,7 @@ fn parse_members(
         .collect();
     let mut members = Vec::with_capacity(items.len());
     let mut seen = BTreeSet::new();
+    let mut names = BTreeSet::new();
     for (index, item) in items.iter().enumerate() {
         let pointer = format!("/members/{index}");
         let table = as_table(item, &pointer)?;
@@ -568,6 +615,7 @@ fn parse_members(
             table,
             &[
                 "id",
+                "name",
                 "from",
                 "to",
                 "section",
@@ -587,6 +635,7 @@ fn parse_members(
                 "An identifier is duplicated.",
             ));
         }
+        take_alias(table, &pointer, &mut names)?;
         let from = required_u32(table, "from", &pointer)?;
         let to = required_u32(table, "to", &pointer)?;
         let section = required_text(table, "section", &pointer)?;
@@ -814,6 +863,7 @@ fn parse_springs(
     }
     let node_ids = node_id_set(nodes);
     let mut seen: BTreeSet<u64> = members.iter().map(|member| member.id).collect();
+    let mut names = BTreeSet::new();
     let mut springs = Vec::with_capacity(items.len());
     for (index, item) in items.iter().enumerate() {
         let pointer = format!("/springs/{index}");
@@ -822,6 +872,7 @@ fn parse_springs(
             table,
             &[
                 "id",
+                "name",
                 "nodes",
                 "kind",
                 "dof",
@@ -839,6 +890,7 @@ fn parse_springs(
                 "An identifier is duplicated.",
             ));
         }
+        take_alias(table, &pointer, &mut names)?;
         let endpoints = spring_nodes(table, &pointer, &node_ids)?;
         let kind = spring_kind(table, &pointer)?;
         let dof = required_dof(table, "dof", &pointer)?;
@@ -1147,7 +1199,8 @@ struct ModelParts {
     diaphragms: Vec<Json>,
     cases: Vec<Json>,
     combinations: Vec<CombinationRec>,
-    experimental: bool,
+    /// Written `allow_experimental`, when the author set the key.
+    experimental: Option<bool>,
     analysis: Json,
 }
 
@@ -1167,10 +1220,9 @@ fn assemble(parts: ModelParts) -> Json {
         experimental,
         analysis,
     } = parts;
-    let options = if experimental {
-        json!({"allow_experimental": true})
-    } else {
-        json!({})
+    let options = match experimental {
+        Some(value) => json!({"allow_experimental": value}),
+        None => json!({}),
     };
     let mut model = json!({
         "axes": "Z-up",
@@ -1470,6 +1522,25 @@ fn id_list(
     Ok(ids)
 }
 
+fn take_alias(
+    table: &toml::Table,
+    pointer: &str,
+    seen: &mut BTreeSet<String>,
+) -> Result<(), Failure> {
+    let Some(value) = table.get("name") else {
+        return Ok(());
+    };
+    let name = expect_text(value, pointer)?;
+    if seen.insert(name) {
+        Ok(())
+    } else {
+        Err(Failure::validation(
+            Some(pointer.to_string()),
+            "An identifier is duplicated.",
+        ))
+    }
+}
+
 fn required_text(table: &toml::Table, key: &str, pointer: &str) -> Result<String, Failure> {
     match table.get(key) {
         Some(value) => expect_text(value, pointer),
@@ -1707,7 +1778,118 @@ fn reject_toml_keys(table: &toml::Table, allowed: &[&str], pointer: &str) -> Res
     }
 }
 
-fn export_root(value: &Json) -> Result<String, Failure> {
+#[derive(Clone, Copy)]
+enum AliasKind {
+    Node,
+    Member,
+    Spring,
+}
+
+#[derive(Default)]
+struct AliasMap {
+    nodes: BTreeMap<u64, String>,
+    members: BTreeMap<u64, String>,
+    springs: BTreeMap<u64, String>,
+}
+
+impl AliasMap {
+    fn of(&self, kind: AliasKind) -> &BTreeMap<u64, String> {
+        match kind {
+            AliasKind::Node => &self.nodes,
+            AliasKind::Member => &self.members,
+            AliasKind::Spring => &self.springs,
+        }
+    }
+
+    fn get(&self, kind: AliasKind, id: u64) -> Option<&str> {
+        self.of(kind).get(&id).map(String::as_str)
+    }
+
+    fn covers(&self, kind: AliasKind, ids: &BTreeSet<u64>) -> Result<(), Failure> {
+        let pointer = match kind {
+            AliasKind::Node => "/model/nodes",
+            AliasKind::Member => "/model/members",
+            AliasKind::Spring => "/model/springs",
+        };
+        if self.of(kind).keys().any(|id| !ids.contains(id)) {
+            Err(Failure::validation(
+                Some(pointer.to_string()),
+                "A reference does not exist.",
+            ))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+fn parse_idmap(text: &str) -> Result<AliasMap, Failure> {
+    ensure_len(text.len())?;
+    let value = match parse_json(text) {
+        Ok(value) => value,
+        Err(failure) if failure.code == "CLI-E-DOCUMENT" => {
+            return Err(Failure::document("The identity map is invalid."));
+        }
+        Err(failure) => return Err(failure),
+    };
+    reject_null(&value)?;
+    let root = as_object(&value, "")?;
+    reject_json_keys(root, &["format", "nodes", "members", "springs"], "")?;
+    match root.get("format").and_then(Json::as_str) {
+        Some("idmap/1") => {}
+        Some(_) => return Err(Failure::unsupported("The format version is not supported.")),
+        None => {
+            return Err(Failure::validation(
+                Some(String::new()),
+                "The format field is missing.",
+            ))
+        }
+    }
+    Ok(AliasMap {
+        nodes: idmap_entries(root, "nodes")?,
+        members: idmap_entries(root, "members")?,
+        springs: idmap_entries(root, "springs")?,
+    })
+}
+
+fn idmap_entries(
+    root: &serde_json::Map<String, Json>,
+    key: &str,
+) -> Result<BTreeMap<u64, String>, Failure> {
+    let pointer = format!("/{key}");
+    let items = match root.get(key) {
+        Some(Json::Array(items)) => items,
+        Some(_) => {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A collection has the wrong shape.",
+            ))
+        }
+        None => {
+            return Err(Failure::validation(
+                Some(pointer),
+                "A required field is missing.",
+            ))
+        }
+    };
+    let mut by_id = BTreeMap::new();
+    let mut names = BTreeSet::new();
+    for (index, item) in items.iter().enumerate() {
+        let pointer = format!("/{key}/{index}");
+        let object = as_object(item, &pointer)?;
+        reject_json_keys(object, &["name", "id"], &pointer)?;
+        let name = json_text_field(object, "name", &pointer)?;
+        let id = json_u32_field(object, "id", &pointer)?;
+        if !names.insert(name.clone()) || by_id.insert(id, name).is_some() {
+            return Err(Failure::validation(
+                Some(pointer),
+                "An identifier is duplicated.",
+            ));
+        }
+    }
+    Ok(by_id)
+}
+
+fn export_root(value: &Json, aliases: AliasMap) -> Result<String, Failure> {
     let root = as_object(value, "")?;
     reject_json_keys(
         root,
@@ -1747,7 +1929,7 @@ fn export_root(value: &Json) -> Result<String, Failure> {
             ))
         }
     }
-    let experimental = json_experimental(root)?;
+    let experimental = json_allow_experimental(root)?;
     let model = match root.get("model") {
         Some(model) => as_object(model, "/model")?,
         None => {
@@ -1804,7 +1986,7 @@ fn export_root(value: &Json) -> Result<String, Failure> {
         root,
         &case_names,
         &analysis::BranchContext {
-            experimental,
+            experimental: experimental.unwrap_or(false),
             structural_empty: nodes.is_empty()
                 && members.is_empty()
                 && sections.is_empty()
@@ -1820,7 +2002,7 @@ fn export_root(value: &Json) -> Result<String, Failure> {
             diaphragms_empty: diaphragms.is_empty(),
         },
     )?;
-    let mut out = Out::default();
+    let mut out = Out::new(aliases);
     out.entry("format", "\"mamut-toml/1\"");
     out.entry("units", "\"SI\"");
     write_nodes(&mut out, nodes)?;
@@ -1835,22 +2017,23 @@ fn export_root(value: &Json) -> Result<String, Failure> {
     let case_names = write_cases(&mut out, cases, nodes, members)?;
     write_combinations(&mut out, combinations, &case_names)?;
     analysis::write(&mut out, &analysis)?;
-    if experimental {
+    if let Some(value) = experimental {
         out.header("[options]");
-        out.entry("allow_experimental", "true");
+        out.entry("allow_experimental", if value { "true" } else { "false" });
     }
     Ok(out.finish())
 }
 
-fn json_experimental(root: &serde_json::Map<String, Json>) -> Result<bool, Failure> {
+/// `None` when the key is absent. A written `false` stays `Some(false)`.
+fn json_allow_experimental(root: &serde_json::Map<String, Json>) -> Result<Option<bool>, Failure> {
     let Some(value) = root.get("options") else {
-        return Ok(false);
+        return Ok(None);
     };
     let options = as_object(value, "/options")?;
     reject_json_keys(options, &["allow_experimental"], "/options")?;
     match options.get("allow_experimental") {
-        None => Ok(false),
-        Some(Json::Bool(value)) => Ok(*value),
+        None => Ok(None),
+        Some(Json::Bool(value)) => Ok(Some(*value)),
         Some(_) => Err(Failure::validation(
             Some("/options".to_string()),
             "A value has the wrong type.",
@@ -1914,13 +2097,14 @@ fn write_nodes(out: &mut Out, items: &[Json]) -> Result<(), Failure> {
             &pointer,
         )?;
         out.header("[[nodes]]");
-        out.entry("id", &id.to_string());
+        out.named_id(AliasKind::Node, id);
         out.entry("x", &format_f64(coordinates[0])?);
         out.entry("y", &format_f64(coordinates[1])?);
         out.entry("z", &format_f64(coordinates[2])?);
         out.entry("dim", &quoted(&dim));
         out.entry("dofs", &quoted_array(&dofs));
     }
+    out.aliases.covers(AliasKind::Node, &seen)?;
     Ok(())
 }
 
@@ -2029,7 +2213,7 @@ fn write_members(
             ));
         }
         out.header("[[members]]");
-        out.entry("id", &id.to_string());
+        out.named_id(AliasKind::Member, id);
         out.entry("from", &endpoints[0].to_string());
         out.entry("to", &endpoints[1].to_string());
         out.entry("section", &quoted(&section));
@@ -2073,6 +2257,7 @@ fn write_members(
             out.entry("winkler", &json_winkler(winkler, from_dim, &pointer)?);
         }
     }
+    out.aliases.covers(AliasKind::Member, &seen)?;
     Ok(())
 }
 
@@ -2172,6 +2357,7 @@ fn write_springs(
     }
     let node_ids = node_dims(nodes)?;
     let mut seen = member_id_set(members)?;
+    let mut spring_ids = BTreeSet::new();
     let law_names = if nonlinear {
         law_records(laws)?
             .into_iter()
@@ -2206,6 +2392,7 @@ fn write_springs(
                 "An identifier is duplicated.",
             ));
         }
+        spring_ids.insert(id);
         let endpoints = json_spring_nodes(spring, &pointer, &node_ids)?;
         let kind = json_spring_kind(spring, &pointer)?;
         let dof = json_one_dof(
@@ -2266,7 +2453,7 @@ fn write_springs(
             None
         };
         out.header("[[springs]]");
-        out.entry("id", &id.to_string());
+        out.named_id(AliasKind::Spring, id);
         out.entry("nodes", &format_id_list(&endpoints));
         out.entry("kind", &quoted(&kind));
         out.entry("dof", &quoted(&dof));
@@ -2283,6 +2470,7 @@ fn write_springs(
             out.entry("rotation", &format_rotation(rotation)?);
         }
     }
+    out.aliases.covers(AliasKind::Spring, &spring_ids)?;
     Ok(())
 }
 
@@ -3353,26 +3541,49 @@ fn reject_json_keys(
     }
 }
 
-#[derive(Default)]
-struct Out(String);
+struct Out {
+    body: String,
+    /// Keys under a header are indented by two spaces. Root keys stay flush.
+    in_table: bool,
+    aliases: AliasMap,
+}
 
 impl Out {
+    fn new(aliases: AliasMap) -> Self {
+        Self {
+            body: String::new(),
+            in_table: false,
+            aliases,
+        }
+    }
+
     fn line(&mut self, text: &str) {
-        self.0.push_str(text);
-        self.0.push('\n');
+        self.body.push_str(text);
+        self.body.push('\n');
     }
 
     fn entry(&mut self, key: &str, value: &str) {
         let mut line = String::new();
+        if self.in_table {
+            line.push_str("  ");
+        }
         push_key(&mut line, key);
         line.push_str(" = ");
         line.push_str(value);
         self.line(&line);
     }
 
+    fn named_id(&mut self, kind: AliasKind, id: u64) {
+        self.entry("id", &id.to_string());
+        if let Some(name) = self.aliases.get(kind, id) {
+            self.entry("name", &quoted(name));
+        }
+    }
+
     fn header(&mut self, text: &str) {
-        if self.0.ends_with('\n') && !self.0.ends_with("\n\n") {
-            self.0.push('\n');
+        self.in_table = true;
+        if self.body.ends_with('\n') && !self.body.ends_with("\n\n") {
+            self.body.push('\n');
         }
         self.line(text);
     }
@@ -3385,10 +3596,10 @@ impl Out {
     }
 
     fn finish(self) -> String {
-        if self.0.ends_with('\n') {
-            self.0
+        if self.body.ends_with('\n') {
+            self.body
         } else {
-            let mut text = self.0;
+            let mut text = self.body;
             text.push('\n');
             text
         }
@@ -3417,6 +3628,7 @@ mod tests {
     fn hidden(failure: &Failure, sentinel: &str) {
         assert!(!failure.cause.contains(sentinel));
         assert!(!failure.pointer.as_deref().unwrap_or("").contains(sentinel));
+        assert!(!failure.hint.as_deref().unwrap_or("").contains(sentinel));
     }
 
     #[test]
@@ -3680,7 +3892,88 @@ mod tests {
         let duplicate = "SENTINEL_DUPKEY_9f3a = 1\nSENTINEL_DUPKEY_9f3a = 2\n";
         let failure = toml_to_json(duplicate).unwrap_err();
         assert_eq!(failure.code, "CLI-E-DOCUMENT");
+        assert_eq!(failure.cause, "The TOML document is invalid.");
+        // The second key starts at the first column of line 2.
+        assert_eq!(failure.hint.as_deref(), Some("line 2, column 1"));
         hidden(&failure, "SENTINEL_DUPKEY_9f3a");
+    }
+
+    #[test]
+    fn document_error_position_starts_at_one_and_counts_scalars() {
+        let first = toml_to_json("=\n").unwrap_err();
+        assert_eq!(first.code, "CLI-E-DOCUMENT");
+        assert_eq!(first.cause, "The TOML document is invalid.");
+        assert_eq!(first.hint.as_deref(), Some("line 1, column 1"));
+        assert!(first.pointer.is_none());
+
+        let second = toml_to_json("\n=\n").unwrap_err();
+        assert_eq!(second.code, "CLI-E-DOCUMENT");
+        assert_eq!(second.hint.as_deref(), Some("line 2, column 1"));
+
+        // U+00F1 is two UTF-8 bytes and one scalar. A byte index inside it is not a column.
+        assert_eq!("ñ".len(), 2);
+        assert_eq!(document_position("ñ=\n", Some(2..3)), Some((1, 2)));
+        assert_eq!(document_position("ñ=\n", Some(1..1)), None);
+        assert_eq!(document_position("ñ=\n", None), None);
+        assert_eq!(document_position("\r\n=", Some(2..2)), Some((2, 1)));
+        assert_eq!(document_position("ab", Some(4..4)), None);
+
+        // The second '=' follows a string whose value is one scalar and two bytes.
+        // Eight scalars precede it, so the column is 9. Its byte index is 9,
+        // so a 1-based byte column would be 10.
+        let multibyte = "a = \"ñ\" =\n";
+        let equals = multibyte.rfind('=').unwrap();
+        assert_eq!(equals, 9);
+        assert_eq!(multibyte[..equals].chars().count() + 1, 9);
+        assert_eq!(equals + 1, 10);
+        let Err(parsed) = toml::from_str::<toml::Table>(multibyte) else {
+            panic!("the multibyte document is invalid");
+        };
+        let _message = parsed.message();
+        let span = parsed.span();
+        assert_eq!(span.as_ref().map(|span| span.start), Some(equals));
+        let reported = toml_to_json(multibyte).unwrap_err();
+        assert_eq!(reported.code, "CLI-E-DOCUMENT");
+        assert_eq!(reported.cause, "The TOML document is invalid.");
+        assert_eq!(reported.hint.as_deref(), Some("line 1, column 9"));
+        assert_eq!(
+            reported.hint.as_deref(),
+            position_hint(multibyte, span).as_deref()
+        );
+    }
+
+    #[test]
+    fn document_error_without_a_span_does_not_invent_a_line() {
+        // The parser's own key limit reports "recursion limit" with no span.
+        // 81 segments make the dotted path reach that limit before our depth check.
+        let key = (0..81).map(|_| "a").collect::<Vec<_>>().join(".");
+        let source = format!("{key} = 1\n");
+        let failure = toml_to_json(&source).unwrap_err();
+        assert_eq!(failure.code, "CLI-E-DOCUMENT");
+        assert_eq!(failure.cause, "The TOML document is invalid.");
+        assert!(failure.hint.is_none());
+        assert!(failure.pointer.is_none());
+    }
+
+    #[test]
+    fn nesting_limit_still_counts_the_root_as_level_one() {
+        // Header of N names, then one integer: depth = 1 (root) + N + 1 (scalar).
+        let inside = format!(
+            "[{}]\nx = 1\n",
+            (0..62).map(|_| "a").collect::<Vec<_>>().join(".")
+        );
+        assert_ne!(
+            toml_to_json(&inside).unwrap_err().cause,
+            "The nesting exceeds the depth limit."
+        );
+        let outside = format!(
+            "[{}]\nx = 1\n",
+            (0..63).map(|_| "a").collect::<Vec<_>>().join(".")
+        );
+        let failure = toml_to_json(&outside).unwrap_err();
+        assert_eq!(failure.code, "CLI-E-VALIDATION");
+        assert_eq!(failure.cause, "The nesting exceeds the depth limit.");
+        assert!(failure.hint.is_none());
     }
 
     #[test]
@@ -4469,6 +4762,345 @@ mod tests {
             let back: Json = serde_json::from_str(json.trim()).unwrap();
             assert_eq!(back["analyses"], source["analyses"], "{name}");
             assert_eq!(back["options"], source["options"], "{name}");
+        }
+    }
+
+    fn alias_body(name_lines: bool) -> String {
+        let name = if name_lines { "name = \"A\"\n" } else { "" };
+        minimal(&format!(
+            "[[nodes]]\nid = 1\n{name}x = 0\ny = 0\nz = 0\ndim = \"D2\"\ndofs = [\"Ux\"]\n\
+             [sections.S]\nA = 1\n[laws.L]\nE = 1\n\
+             [[members]]\nid = 7\n{name}from = 1\nto = 1\nsection = \"S\"\nlaw = \"L\"\n\
+             [[springs]]\nid = 8\n{name}nodes = [1]\nkind = \"spring.linear\"\ndof = \"Ux\"\nk = 1\n"
+        ))
+    }
+
+    #[test]
+    fn ids_without_names_convert_as_before() {
+        let json = toml_to_json(&alias_body(false)).unwrap();
+        let value: Json = serde_json::from_str(json.trim()).unwrap();
+        assert_eq!(value["model"]["nodes"][0]["id"], 1);
+        assert!(value["model"]["nodes"][0].get("name").is_none());
+        assert!(value["model"]["members"][0].get("name").is_none());
+        assert!(value["model"]["springs"][0].get("name").is_none());
+        let exported = json_to_toml(&json).unwrap();
+        assert!(!exported.contains("name ="));
+        assert_eq!(toml_to_json(&exported).unwrap(), json);
+    }
+
+    #[test]
+    fn repeated_names_across_kinds_stay_out_of_engine_json() {
+        let named = toml_to_json(&alias_body(true)).unwrap();
+        let plain = toml_to_json(&alias_body(false)).unwrap();
+        assert_eq!(named, plain);
+        let value: Json = serde_json::from_str(named.trim()).unwrap();
+        assert!(value["model"]["nodes"][0].get("name").is_none());
+        assert!(value["model"]["members"][0].get("name").is_none());
+        assert!(value["model"]["springs"][0].get("name").is_none());
+        assert!(!json_to_toml(&named).unwrap().contains("name ="));
+    }
+
+    #[test]
+    fn export_restores_written_names_only_with_idmap() {
+        let json = toml_to_json(&alias_body(true)).unwrap();
+        let idmap = r#"{"format":"idmap/1","nodes":[{"name":"A","id":1}],"members":[{"name":"A","id":7}],"springs":[{"name":"A","id":8}]}"#;
+        let restored = json_to_toml_with_idmap(&json, Some(idmap)).unwrap();
+        assert!(restored.contains("  id = 1\n  name = \"A\"\n"));
+        assert!(restored.contains("  id = 7\n  name = \"A\"\n"));
+        assert!(restored.contains("  id = 8\n  name = \"A\"\n"));
+        assert_eq!(toml_to_json(&restored).unwrap(), json);
+        let empty = r#"{"format":"idmap/1","nodes":[],"members":[],"springs":[]}"#;
+        assert_eq!(
+            json_to_toml_with_idmap(&json, Some(empty)).unwrap(),
+            json_to_toml(&json).unwrap()
+        );
+    }
+
+    #[test]
+    fn missing_integer_id_is_not_invented() {
+        for body in [
+            "[[nodes]]\nname = \"SENTINEL_MISSING_9f3a\"\nx = 0\ny = 0\nz = 0\ndim = \"D2\"\ndofs = [\"Ux\"]\n",
+            "[[nodes]]\nid = 1\nx = 0\ny = 0\nz = 0\ndim = \"D2\"\ndofs = [\"Ux\"]\n[sections.S]\nA = 1\n[laws.L]\nE = 1\n[[members]]\nname = \"SENTINEL_MISSING_9f3a\"\nfrom = 1\nto = 1\nsection = \"S\"\nlaw = \"L\"\n",
+            "[[nodes]]\nid = 1\nx = 0\ny = 0\nz = 0\ndim = \"D2\"\ndofs = [\"Ux\"]\n[[springs]]\nname = \"SENTINEL_MISSING_9f3a\"\nnodes = [1]\nkind = \"spring.linear\"\ndof = \"Ux\"\nk = 1\n",
+        ] {
+            let failure = failure_of(body);
+            assert_eq!(failure.code, "CLI-E-VALIDATION");
+            assert_eq!(failure.cause, "A required field is missing.");
+            hidden(&failure, "SENTINEL_MISSING_9f3a");
+        }
+    }
+
+    #[test]
+    fn the_same_name_cannot_repeat_inside_one_collection() {
+        let failure = failure_of(
+            "[[nodes]]\nid = 1\nname = \"SENTINEL_ALIAS_9f3a\"\nx = 0\ny = 0\nz = 0\ndim = \"D2\"\ndofs = [\"Ux\"]\n[[nodes]]\nid = 2\nname = \"SENTINEL_ALIAS_9f3a\"\nx = 1\ny = 0\nz = 0\ndim = \"D2\"\ndofs = [\"Ux\"]\n",
+        );
+        assert_eq!(failure.code, "CLI-E-VALIDATION");
+        assert_eq!(failure.cause, "An identifier is duplicated.");
+        hidden(&failure, "SENTINEL_ALIAS_9f3a");
+    }
+
+    #[test]
+    fn idmap_does_not_restore_an_unknown_id_or_echo_the_name() {
+        let json = toml_to_json(&alias_body(false)).unwrap();
+        let idmap = r#"{"format":"idmap/1","nodes":[{"name":"SENTINEL_ALIAS_9f3a","id":99}],"members":[],"springs":[]}"#;
+        let failure = json_to_toml_with_idmap(&json, Some(idmap)).unwrap_err();
+        assert_eq!(failure.code, "CLI-E-VALIDATION");
+        assert_eq!(failure.cause, "A reference does not exist.");
+        hidden(&failure, "SENTINEL_ALIAS_9f3a");
+    }
+
+    fn canonical_layout(text: &str) {
+        let bytes = text.as_bytes();
+        assert_eq!(std::str::from_utf8(bytes).unwrap(), text);
+        assert!(bytes.ends_with(b"\n"));
+        assert!(!bytes.ends_with(b"\n\n"));
+        assert!(!bytes.contains(&b'\r'));
+        assert!(!text.contains('\t'));
+        for line in text.lines() {
+            if line.is_empty() || line.starts_with('[') {
+                assert_eq!(line.trim_start(), line, "{line}");
+                continue;
+            }
+            if line.starts_with("format = ") || line.starts_with("units = ") {
+                assert_eq!(line.trim_start(), line, "{line}");
+                continue;
+            }
+            assert!(line.starts_with("  ") && !line.starts_with("   "), "{line}");
+        }
+    }
+
+    fn position(text: &str, needle: &str) -> usize {
+        text.find(needle)
+            .unwrap_or_else(|| panic!("missing {needle}"))
+    }
+
+    /// U9: two exports of one model are the same bytes, and a written value stays.
+    #[test]
+    fn canonical_export_repeats_bytes_and_keeps_written_values() {
+        let source = r#"
+            format = "mamut-toml/1"
+            units = "SI"
+
+            [options]
+            allow_experimental = false
+
+            [defaults]
+            dim = "D2"
+            dofs = ["Ux"]
+
+            [[nodes]]
+            id = 2
+            x = 3.5
+            y = 1
+
+            [[nodes]]
+            id = 1
+            x = 0
+            y = 0
+            z = 0
+            dim = "D2"
+            dofs = ["Uy", "Ux"]
+
+            [sections.S10]
+            A = 4
+
+            [sections.S2]
+            A = 5
+
+            [laws.b]
+            E = 1
+
+            [laws.a]
+            kind = "elastic"
+            mode = "both"
+            points = [[0, 0], [1, 1]]
+            E = 200
+
+            [[members]]
+            id = 4
+            from = 1
+            to = 2
+            section = "S2"
+            law = "a"
+            element = "frame2d.euler_elastic"
+            orientation = [0, 0, 1]
+            release_i = false
+            release_j = true
+            winkler = { k = 1.5 }
+
+            [[supports]]
+            id = "written-support"
+            node = 1
+            restrained = ["Uy", "Ux"]
+
+            [[supports]]
+            node = 2
+            restrained = ["Ux"]
+
+            [[masses]]
+            id = "M"
+            node = 1
+            Rz = 3
+            Ux = 4
+
+            [[springs]]
+            id = 10
+            nodes = [2]
+            kind = "spring.linear"
+            dof = "Ux"
+            k = 5
+
+            [[springs]]
+            id = 2
+            nodes = [1, 2]
+            kind = "spring.linear"
+            dof = "Ux"
+            k = 8
+
+            [[prescribed]]
+            node = 1
+            dof = "Ux"
+            value = 0
+
+            [[prescribed]]
+            node = 2
+            dof = "Uy"
+            value = 0.25
+
+            [[diaphragms]]
+            master = 1
+            slaves = [2]
+
+            [[cases]]
+            name = "L"
+
+            [[cases.loads]]
+            node = 1
+            Fy = 2
+            Fx = 9
+
+            [[cases]]
+            name = "D"
+
+            [[cases.member_loads]]
+            member = 4
+            force_per_length = [0, -6, 0]
+            moment_per_length = [0, 0, 0]
+
+            [combinations.10]
+            L = 1
+            D = 2
+
+            [combinations.2]
+            D = 0.5
+
+            [analysis]
+            method = "linearStatic"
+        "#;
+        let json = toml_to_json(source).unwrap_or_else(|error| panic!("{}", error.cause));
+        let value: Json = serde_json::from_str(json.trim()).unwrap();
+        assert_eq!(value["options"]["allow_experimental"], false);
+        assert_eq!(value["model"]["nodes"][0]["dofs"], json!(["Ux", "Uy"]));
+        assert_eq!(value["model"]["members"][0]["release_i"], false);
+        assert_eq!(
+            value["model"]["members"][0]["element"],
+            "frame2d.euler_elastic"
+        );
+
+        let first = json_to_toml(&json).unwrap();
+        let second = json_to_toml(&json).unwrap();
+        assert_eq!(first.as_bytes(), second.as_bytes());
+        canonical_layout(&first);
+        assert!(first.starts_with("format = \"mamut-toml/1\"\nunits = \"SI\"\n\n[[nodes]]\n"));
+        assert!(!first.contains("[defaults]"));
+        assert!(first.contains("allow_experimental = false"));
+        assert!(first.contains("release_i = false"));
+        assert!(first.contains("release_j = true"));
+        assert!(first.contains("element = \"frame2d.euler_elastic\""));
+        assert!(first.contains("winkler = { k = 1.5 }"));
+        assert!(first.contains("x = 3.5"));
+        assert!(first.contains("dofs = [\"Ux\", \"Uy\"]"));
+        assert!(first.contains("id = \"written-support\""));
+        assert!(first.contains("value = 0\n"));
+        assert!(first.contains("force_per_length = [0, -6, 0]"));
+        assert!(!first.contains("moment_per_length"));
+
+        let markers = [
+            "format = ",
+            "units = ",
+            "[[nodes]]",
+            "[sections.S10]",
+            "[sections.S2]",
+            "[laws.a]",
+            "[laws.b]",
+            "[[members]]",
+            "[[supports]]",
+            "[[masses]]",
+            "[[springs]]",
+            "[[prescribed]]",
+            "[[diaphragms]]",
+            "[[cases]]",
+            "[combinations.2]",
+            "[combinations.10]",
+            "[analysis]",
+            "[options]",
+        ];
+        let mut last = 0;
+        for marker in markers {
+            let at = position(&first, marker);
+            assert!(at >= last, "{marker}");
+            last = at;
+        }
+        let nodes = between(&first, "[[nodes]]", "[sections.S10]");
+        assert!(position(nodes, "id = 1\n") < position(nodes, "id = 2\n"));
+        let written = between(nodes, "id = 1\n", "id = 2\n");
+        let node_keys = ["id = ", "x = ", "y = ", "z = ", "dim = ", "dofs = "];
+        let mut node_at = 0;
+        for key in node_keys {
+            let at = position(written, key);
+            assert!(at >= node_at, "{key}");
+            node_at = at;
+        }
+        let member = between(&first, "[[members]]", "[[supports]]");
+        let member_keys = [
+            "id = ",
+            "from = ",
+            "to = ",
+            "section = ",
+            "law = ",
+            "element = ",
+            "orientation = ",
+            "release_i = ",
+            "release_j = ",
+            "winkler = ",
+        ];
+        let mut member_at = 0;
+        for key in member_keys {
+            let at = position(member, key);
+            assert!(at >= member_at, "{key}");
+            member_at = at;
+        }
+        let mass = between(&first, "[[masses]]", "[[springs]]");
+        assert!(position(mass, "Ux = ") < position(mass, "Rz = "));
+        let springs = between(&first, "[[springs]]", "[[prescribed]]");
+        assert!(position(springs, "id = 2\n") < position(springs, "id = 10\n"));
+        let load = between(&first, "[[cases.loads]]", "[[cases]]");
+        assert!(position(load, "Fx = ") < position(load, "Fy = "));
+        assert!(position(&first, "name = \"L\"") < position(&first, "name = \"D\""));
+        let combo = between(&first, "[combinations.10]", "[analysis]");
+        assert!(position(combo, "D = ") < position(combo, "L = "));
+
+        let again = json_to_toml(&toml_to_json(&first).unwrap()).unwrap();
+        assert_eq!(again.as_bytes(), first.as_bytes());
+    }
+
+    fn between<'a>(text: &'a str, start: &str, end: &str) -> &'a str {
+        let from = position(text, start);
+        let rest = &text[from..];
+        match rest[start.len()..].find(end) {
+            Some(to) => &rest[..start.len() + to],
+            None => rest,
         }
     }
 

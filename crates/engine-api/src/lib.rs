@@ -181,7 +181,7 @@ pub fn capabilities() -> Value {
         "validation": "topology",
         "combinations": {"run": true},
         "elements": ["frame2d.euler_elastic", "frame3d.euler_elastic", "truss2d.linear", "truss3d.linear", "frame2d.winkler", "frame3d.winkler", "spring.linear", "spring.nonlinear"],
-        "laws": ["elastic", "steel.bilinear_kinematic", "multilinear_elastic", "elastic.cubic"],
+        "laws": ["elastic", "steel.bilinear_kinematic", "multilinear_elastic", "elastic.cubic", "concrete.kent_park"],
         "end_releases": ["frame2d.euler_elastic", "frame3d.euler_elastic"],
         "methods": {
             "linearStatic": {"engine": true, "run": true},
