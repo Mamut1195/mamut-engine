@@ -195,7 +195,12 @@ fn snapshot(
                 *v *= factor;
             }
         }
-        let out = m.element.recover(
+        let heated = super::temperature::recovery_bar(m, case_index, factor)?;
+        let element: &dyn Element = match &heated {
+            Some(bar) => bar,
+            None => m.element.as_ref(),
+        };
+        let out = element.recover(
             &ctx,
             &u,
             state,

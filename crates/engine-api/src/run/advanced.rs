@@ -84,6 +84,9 @@ fn prepare_mass(
             ))
         }
     };
+    // The clone is the original model plus masses. Uniform-temperature joint
+    // forces live only on the system built for the case, so this rebuild drops
+    // them. There is no thermal mass formula.
     *system = LinearSystem::from_model_with_diaphragms(
         ReferenceBackend,
         &model,

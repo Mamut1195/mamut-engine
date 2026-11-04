@@ -15,6 +15,8 @@
 //! `respond` is elastic: Kg is returned separately with N obtained from u_e.
 //! Global uniform XY loads and distributed moment about Z;
 //! self-weight requires explicit gravity; Y is never assumed vertical.
+//! A uniform temperature change is not implemented: this element has no
+//! αΔT formula, and the public temperature load is rejected for this kind.
 //! Recovered ends are K u minus equivalent loads (actions on
 //! the member); stations `[N,Vy,0,0,0,Mz]` on the local positive face.
 //!

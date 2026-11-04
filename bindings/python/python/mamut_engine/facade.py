@@ -149,7 +149,10 @@ def _input(model: ModelLike) -> str:
     spec = _spec("engine-input/1")
     checks.structure(document, spec, spec)
     cases = cast(list[dict[str, Any]], document["cases"])
-    if sum(len(c["loads"]) + len(c.get("member_loads", [])) for c in cases) > 16384:
+    if sum(
+        len(c["loads"]) + len(c.get("member_loads", [])) + len(c.get("temperature_loads", []))
+        for c in cases
+    ) > 16384:
         raise checks.invalid("máximo total 16384 registros de cargas", "$.cases")
     for analysis in cast(list[dict[str, Any]], document["analyses"]):
         options = analysis.get("options", {})
