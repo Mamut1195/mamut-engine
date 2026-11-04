@@ -18,7 +18,7 @@ The structural core, the load and case collections, and the specified analysis b
 
 U5, U7, U9, U10, and U11 stay open. A support `type` is still rejected. Diagnostics do not carry line or column.
 
-The converter mapping is unchanged by the clippy cleanup on 2026-11-04: `json_to_toml` returns the export result directly, the assembly arguments travel in one struct, section records use a named tuple, and JSON detection trims whitespace with a character array. No numerical result changed.
+The converter mapping is unchanged by the clippy cleanup on 2026-11-04: `json_to_toml` returns the export result directly, the assembly arguments travel in one struct, section records use a named tuple, and JSON detection trims whitespace with a character array. The convert test joins `temp_dir()` directly. No numerical result changed.
 
 ## Pending work
 

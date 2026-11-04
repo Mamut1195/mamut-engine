@@ -6,7 +6,6 @@
 mod schema;
 
 use std::io::{self, Cursor, Write};
-use std::path::PathBuf;
 
 use engine_cli::EngineCli;
 use serde_json::Value;
@@ -136,7 +135,7 @@ fn usage_document_and_unsupported_keep_the_registered_contract() {
         assert_eq!(envelope["operation"], "cli");
     }
 
-    let missing = PathBuf::from(std::env::temp_dir()).join("SENTINEL_MISSING_9f3a.toml");
+    let missing = std::env::temp_dir().join("SENTINEL_MISSING_9f3a.toml");
     let _ = std::fs::remove_file(&missing);
     let (code, envelope, text, _) = error_of(
         &[
