@@ -60,6 +60,7 @@ const SOIL: [&str; 4] = [
     "groundwater_depth_m",
     "water_unit_weight_kn_m3",
 ];
+const BUCKLING: [&str; 2] = ["mode_count", "reference"];
 const CONSOLIDATION: [&str; 7] = [
     "layers",
     "drainage",
@@ -116,6 +117,7 @@ pub(super) fn from_toml(
         "nonlinearStatic" => newton_toml(table, cases)?,
         "soilProfile" => soil_toml(table)?,
         "consolidation1d" => consolidation_toml(table)?,
+        "buckling.linear" => buckling_toml(table, cases)?,
         _ => {
             return Err(invalid(
                 "/analysis",
@@ -158,6 +160,7 @@ pub(super) fn from_json(
         "nonlinearStatic" => newton_json(analysis, cases)?,
         "soilProfile" => soil_json(analysis)?,
         "consolidation1d" => consolidation_json(analysis)?,
+        "buckling.linear" => buckling_json(analysis, cases)?,
         _ => {
             return Err(invalid(
                 "/analyses/0",
@@ -185,6 +188,7 @@ pub(super) fn write(out: &mut super::Out, mapped: &MappedAnalysis) -> Result<(),
         "nonlinearStatic" => write_newton(out, analysis),
         "soilProfile" => write_soil(out, analysis),
         "consolidation1d" => write_consolidation(out, analysis),
+        "buckling.linear" => write_buckling(out, analysis),
         _ => Err(invalid(
             "/analyses/0",
             "This analysis method is outside the implemented subset.",
@@ -200,7 +204,7 @@ fn finish(
 ) -> Result<MappedAnalysis, Failure> {
     let experimental = matches!(
         method,
-        "nonlinearStatic" | "soilProfile" | "consolidation1d"
+        "nonlinearStatic" | "soilProfile" | "consolidation1d" | "buckling.linear"
     );
     if experimental && !side.experimental {
         return Err(invalid(
@@ -431,6 +435,22 @@ fn consolidation_toml(table: &toml::Table) -> Result<Json, Failure> {
     Ok(json!({"method": "consolidation1d", "options": options}))
 }
 
+fn buckling_toml(table: &toml::Table, cases: &BTreeSet<String>) -> Result<Json, Failure> {
+    super::reject_toml_keys(table, &with_method(&BUCKLING), "/analysis")?;
+    let reference = term_toml(
+        nested(table, "reference", "/analysis", "/analysis/reference")?,
+        cases,
+        "/analysis/reference",
+    )?;
+    Ok(json!({
+        "method": "buckling.linear",
+        "options": {
+            "mode_count": int_toml(table, "mode_count", 0, 16_384, "/analysis")?,
+            "reference": reference,
+        }
+    }))
+}
+
 fn linear_json(analysis: &Map<String, Json>) -> Result<(), Failure> {
     super::reject_json_keys(analysis, &["method"], "/analyses/0")
 }
@@ -601,6 +621,23 @@ fn consolidation_json(analysis: &Map<String, Json>) -> Result<(), Failure> {
     json_closed_unit(require_json(options, "theta", pointer)?, pointer)?;
     json_positive(require_json(options, "max_step_s", pointer)?, pointer)?;
     optional_geo_json(options, "water_unit_weight_kn_m3", pointer)?;
+    Ok(())
+}
+
+fn buckling_json(analysis: &Map<String, Json>, cases: &BTreeSet<String>) -> Result<(), Failure> {
+    let options = options_json(analysis, &BUCKLING)?;
+    let pointer = "/analyses/0/options";
+    json_int(
+        require_json(options, "mode_count", pointer)?,
+        0,
+        16_384,
+        pointer,
+    )?;
+    json_term(
+        require_json(options, "reference", pointer)?,
+        cases,
+        &format!("{pointer}/reference"),
+    )?;
     Ok(())
 }
 
@@ -833,6 +870,25 @@ fn write_consolidation(out: &mut super::Out, analysis: &Map<String, Json>) -> Re
             out.entry("delta_stress_kpa", &format_geo(value, pointer)?);
         }
     }
+    Ok(())
+}
+
+fn write_buckling(out: &mut super::Out, analysis: &Map<String, Json>) -> Result<(), Failure> {
+    let options = super::as_object(
+        require_json(analysis, "options", "/analyses/0")?,
+        "/analyses/0/options",
+    )?;
+    emit_int(
+        out,
+        "mode_count",
+        require_json(options, "mode_count", "/analyses/0/options")?,
+    )?;
+    write_term(
+        out,
+        "[analysis.reference]",
+        require_json(options, "reference", "/analyses/0/options")?,
+        "/analyses/0/options/reference",
+    )?;
     Ok(())
 }
 

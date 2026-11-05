@@ -25,6 +25,8 @@ pub(crate) enum Analysis {
     Modal { options: Object<Modal> },
     #[serde(rename = "responseSpectrum")]
     Spectrum { options: Object<Spectrum> },
+    #[serde(rename = "buckling.linear")]
+    Buckling { options: Object<BucklingOptions> },
 }
 impl Analysis {
     pub fn method(&self) -> &'static str {
@@ -36,6 +38,7 @@ impl Analysis {
             Self::PDelta { .. } => "pDelta",
             Self::Modal { .. } => "modal",
             Self::Spectrum { .. } => "responseSpectrum",
+            Self::Buckling { .. } => "buckling.linear",
         }
     }
 }
@@ -45,6 +48,15 @@ impl Analysis {
 pub(crate) struct CaseFactor {
     pub case: String,
     pub factor: f64,
+}
+/// `mode_count` lowest finite factors of `K + λ Kg = 0`.
+/// `reference` is an existing load case and factor. Its linear solution is the
+/// geometric reference; λ multiplies that `Kg`. No default factor is invented.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct BucklingOptions {
+    pub mode_count: usize,
+    pub reference: Object<CaseFactor>,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]

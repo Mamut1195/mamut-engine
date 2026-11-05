@@ -188,4 +188,8 @@ def export(document: ResultsDocument, *, numpy: bool) -> ArrayResults:
             block(response, ("modes", index, "spectrum_responses", response_index))
     for index, envelope in enumerate(raw["envelopes"]):
         block(envelope, ("envelopes", index))
+    buckling = raw.get("buckling")
+    if buckling:
+        for index, mode in enumerate(buckling["modes"]):
+            block({"nodes": mode["shape"]}, ("buckling", "modes", index, "shape"))
     return ArrayResults(document, tuple(blocks))

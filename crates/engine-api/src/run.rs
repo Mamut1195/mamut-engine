@@ -195,6 +195,10 @@ pub fn run(input_json: &str, cancel: &CancelToken, mut progress: impl FnMut(Prog
             ] {
                 document[key] = json!([]);
             }
+            // buckling is an object, not an array. A null would fail results/1.
+            if let Some(object) = document.as_object_mut() {
+                object.remove("buckling");
+            }
             if !matches!(status, Status::NotConverged | Status::Unstable) {
                 document["convergence"] = Value::Null;
             }

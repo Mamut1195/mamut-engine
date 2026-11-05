@@ -165,12 +165,13 @@ pub fn version() -> Value {
         "contracts": ["engine-input/1", "results/1"]})
 }
 
-/// Actual capabilities: static, P-Delta, modal, spectrum, and linear combinations.
+/// Actual capabilities: static, P-Delta, modal, spectrum, linear buckling, and combinations.
 /// `engine` indicates presence in engine-analysis; `run` indicates facade support.
 /// `method_descriptors` publishes status, contracts, and evidence from the SDK registry;
 /// pDelta is Stable and enabled by default. nonlinearStatic, soilProfile, and
-/// consolidation1d are Experimental until ENG-VAL-006; they require
-/// options.allow_experimental = true when running the job.
+/// consolidation1d are Experimental until ENG-VAL-006. buckling.linear is
+/// Experimental while ENG-ANL-006 stays unsigned and its page citation stays
+/// unknown. Experimental methods require options.allow_experimental = true.
 pub fn capabilities() -> Value {
     let mut capabilities = json!({
         "run": true,
@@ -189,7 +190,8 @@ pub fn capabilities() -> Value {
             "consolidation1d": {"engine": true, "run": true},
             "pDelta": {"engine": true, "run": true},
             "modal": {"engine": true, "run": true},
-            "responseSpectrum": {"engine": true, "run": true}
+            "responseSpectrum": {"engine": true, "run": true},
+            "buckling.linear": {"engine": true, "run": true}
         }
     });
     match method_descriptors() {

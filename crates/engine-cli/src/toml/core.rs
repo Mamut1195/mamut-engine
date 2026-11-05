@@ -5206,6 +5206,92 @@ mod tests {
         }
     }
 
+    #[test]
+    fn buckling_linear_round_trip_matches_the_one_element_factor() {
+        let source = r#"
+format = "mamut-toml/1"
+units = "SI"
+[options]
+allow_experimental = true
+[[nodes]]
+id = 1
+x = 0
+y = 0
+z = 0
+dim = "D2"
+dofs = ["Ux", "Uy", "Rz"]
+[[nodes]]
+id = 2
+x = 4
+y = 0
+z = 0
+dim = "D2"
+dofs = ["Ux", "Uy", "Rz"]
+[[members]]
+id = 1
+from = 1
+to = 2
+section = "s"
+law = "elastic"
+[sections.s]
+A = 2
+I = 3
+[laws.elastic]
+E = 200
+rho = 0
+[[supports]]
+id = "a"
+node = 1
+restrained = ["Ux", "Uy"]
+[[supports]]
+id = "b"
+node = 2
+restrained = ["Uy"]
+[[cases]]
+name = "N"
+[[cases.loads]]
+node = 2
+Fx = -1
+[analysis]
+method = "buckling.linear"
+mode_count = 1
+[analysis.reference]
+case = "N"
+factor = 1
+"#;
+        let json = toml_to_json(source).unwrap();
+        let back = json_to_toml(json.trim()).unwrap();
+        let again = toml_to_json(&back).unwrap();
+        let first: Json = serde_json::from_str(json.trim()).unwrap();
+        let second: Json = serde_json::from_str(again.trim()).unwrap();
+        assert_eq!(first["analyses"], second["analyses"]);
+        assert_eq!(first["options"]["allow_experimental"], true);
+        let outcome = engine_api::run(json.trim(), &engine_api::CancelToken::new(), |_| {});
+        assert_eq!(
+            outcome.status,
+            engine_api::Status::Ok,
+            "{}",
+            outcome.document
+        );
+        let document: Json = serde_json::from_str(&outcome.document).unwrap();
+        let factor = document["buckling"]["modes"][0]["eigenvalue"]
+            .as_f64()
+            .unwrap();
+        assert!((factor - 450.0).abs() <= 1e-8, "{factor}");
+        assert_eq!(
+            document["buckling"]["modes"][0]["normalization"],
+            "negative_kg"
+        );
+        assert_eq!(document["modes"], json!([]));
+        let missing = toml_to_json(
+            "format = \"mamut-toml/1\"\nunits = \"SI\"\n[[cases]]\nname = \"N\"\n[analysis]\nmethod = \"buckling.linear\"\nmode_count = 1\n[analysis.reference]\ncase = \"N\"\nfactor = 1\n",
+        )
+        .unwrap_err();
+        assert_eq!(
+            missing.cause,
+            "An experimental method requires allow_experimental."
+        );
+    }
     fn restrained_truss() -> String {
         minimal(
             r#"

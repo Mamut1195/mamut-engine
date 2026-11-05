@@ -67,7 +67,7 @@ fn dimensions() -> MethodDimensions {
 
 fn registry() -> Result<MethodRegistry<EngineMethod>, ApiError> {
     let mut registry = MethodRegistry::new();
-    let factories: [MethodFactory<EngineMethod>; 8] = [
+    let factories: [MethodFactory<EngineMethod>; 9] = [
         linear_static,
         combinations,
         pdelta,
@@ -76,6 +76,7 @@ fn registry() -> Result<MethodRegistry<EngineMethod>, ApiError> {
         nonlinear,
         soil,
         consolidation,
+        buckling,
     ];
     for factory in factories {
         let method = factory(&NumericParameters::new()).map_err(ApiError::InvalidInput)?;
@@ -325,6 +326,18 @@ fn consolidation(_: &NumericParameters) -> Result<EngineMethod, String> {
         "provenance/ENG-GEO-006.md",
     )?;
     Ok(method)
+}
+fn buckling(_: &NumericParameters) -> Result<EngineMethod, String> {
+    builtin(
+        "buckling.linear",
+        MethodStatus::Experimental,
+        "engine-input/1",
+        Runner::Structural(run::advanced::buckling),
+        run::advanced::buckling_budget,
+        "crates/engine-api/tests/buckling.rs",
+        "provenance/ENG-ANL-006.md · EI w'''' + P w'' = 0; Timoshenko–Gere page and table: UNKNOWN",
+        "provenance/ENG-ANL-006.md",
+    )
 }
 
 #[cfg(test)]

@@ -124,14 +124,14 @@ convierten implícitamente a otra unidad.
 D significa forma directa en su nivel: estructura y claves conservadas.
 R significa derivación, renombre, aplanado o valor por defecto. La raíz,
 descrita en la sección 2, no es una definición de $defs y no se cuenta.
-La tabla contiene exactamente las 36 definiciones del esquema:
-16 D y 20 R. Los hijos siguen su propio mapeo aunque el contenedor sea D.
+La tabla contiene exactamente las 37 definiciones del esquema:
+16 D y 21 R. Los hijos siguen su propio mapeo aunque el contenedor sea D.
 
 | Definición de $defs | Forma TOML | Clase | Renombres, derivaciones, valores por defecto y rechazos |
 | --- | --- | --- | --- |
 | id | id o referencia entera | D | Entero 0..4294967295. No se convierte un float en identidad. |
 | dof | string de GDL | D | Solo Ux, Uy, Uz, Rx, Ry, Rz. |
-| method | analysis.method | D | Siete valores literales del esquema; no se traducen. |
+| method | analysis.method | D | Ocho valores literales del esquema; no se traducen. |
 | model | Hijos en la raíz | R | Se reconstruye model; axes se deriva como Z-up. Sin tabla model ni axes escrito. Colecciones omitidas: vacías. |
 | node | [[nodes]] | R | id, x, y; name opcional y fuera del JSON. coordinates = [x,y,z], z = 0 si falta. dim y dofs locales prevalecen sobre [defaults]; ambos deben quedar definidos. D2 exige z = 0. |
 | member | [[members]] | R | id obligatorio; name opcional y fuera del JSON. from y to forman nodes = [from,to]; section y law son referencias textuales. element, orientation, release_i, release_j y winkler se conservan. element ausente deja al motor sus valores frame2d.euler_elastic o frame3d.euler_elastic según dimensión. |
@@ -146,7 +146,7 @@ La tabla contiene exactamente las 36 definiciones del esquema:
 | uniform_temperature | [[cases.temperature_loads]] | D | member, alpha_per_kelvin y delta_t_kelvin son obligatorios y se conservan. No hay gradiente ni valor físico por defecto. Un mismo member repetido en el caso es error. El export omite el array vacío. |
 | case | [[cases]] | D | name y colecciones de cargas; loads omitido produce []; member_loads y temperature_loads conservan su carácter opcional y admiten vacío. Orden del documento conservado dentro de cada colección. El export escribe loads, luego member_loads, luego temperature_loads. |
 | combination | `[combinations.<id>]` | R | Nombre de tabla → id; cada clave de caso y factor → terms. Sin casos inexistentes ni términos repetidos. |
-| term | Clave de caso = factor; tablas gravity/lateral | R | En combinación, forma corta → {case,factor}. En pDelta se conserva explícitamente {case,factor}. No se inventa factor. |
+| term | Clave de caso = factor; tablas gravity/lateral/reference | R | En combinación, forma corta → {case,factor}. En pDelta y en buckling.linear se conserva explícitamente {case,factor}. No se inventa factor. |
 | prescribed | [[prescribed]] | D | node, dof, value obligatorios; sin valor por defecto. |
 | diaphragm | [[diaphragms]] | D | master, slaves obligatorios; identidades de nudos, sin renumeración por posición. |
 | spring | [[springs]] | D | Mismas claves del esquema, más name opcional y fuera del JSON. id, nodes, kind, dof obligatorios; condiciones de k/law y direction/rotation en sección 4. |
@@ -165,10 +165,11 @@ La tabla contiene exactamente las 36 definiciones del esquema:
 | consolidation_layer | [[analysis.layers]], consolidation1d | D | thickness_m y elements obligatorios en el esquema; cv_m2_s, mv_per_kpa y k_m_s conservan geo_parameter y exigencias del motor. |
 | consolidation_load | [[analysis.history]] | D | time_s obligatorio en esquema; delta_stress_kpa conserva geo_parameter. Sin incremento de tensión inventado. |
 | consolidation_options | [analysis], consolidation1d | R | Se aplana options; layers, drainage, history, output_times_s, theta, max_step_s obligatorios. water_unit_weight_kn_m3 mantiene geo_parameter. |
+| buckling_options | [analysis], buckling.linear | R | Se aplana options; mode_count y reference obligatorios. reference es {case,factor} de un caso existente. mode_count es entero 0..16384. No se inventa factor. |
 
 Los rechazos adicionales de esta representación incluyen el límite de id,
 las reservas P1 y los duplicados que una tabla no puede representar.
-La cobertura de las 36 formas no promete exportabilidad de cualquier JSON
+La cobertura de las 37 formas no promete exportabilidad de cualquier JSON
 válido sin atender a esas restricciones.
 
 ## 4. Claves permitidas: ALLOWED
@@ -246,16 +247,20 @@ No se permite ninguna clave de otra rama, aunque tenga un valor inocuo.
 | nonlinearStatic | method, case, load_factors, tolerance, max_iterations, force_scale, displacement_scale, displacement_tolerance, energy_scale, energy_tolerance | case*, load_factors*, tolerance*, max_iterations*, force_scale*. |
 | soilProfile | method, layers, depths_m, groundwater_depth_m, water_unit_weight_kn_m3 | layers*, depths_m*. |
 | consolidation1d | method, layers, drainage, history, output_times_s, theta, max_step_s, water_unit_weight_kn_m3 | layers*, drainage*, history*, output_times_s*, theta*, max_step_s*. |
+| buckling.linear | method, mode_count, reference | mode_count*, reference*. |
 
 linearStatic, pDelta, modal y responseSpectrum son métodos estables.
-nonlinearStatic, soilProfile y consolidation1d requieren
+nonlinearStatic, soilProfile, consolidation1d y buckling.linear requieren
 [options] allow_experimental = true; se conserva el control de engine-api.
+buckling.linear sigue Experimental mientras la página de Timoshenko–Gere
+siga desconocida y ENG-ANL-006 no tenga firma de J4.
 
 ### 4.3. Tablas internas y restricciones de análisis
 
 | Tabla o ubicación | ALLOWED | Obligatorias, tipos y condiciones |
 | --- | --- | --- |
 | [analysis.gravity], [analysis.lateral], pDelta | case, factor | Ambas en cada tabla. case referencia un caso existente. |
+| [analysis.reference], buckling.linear | case, factor | Ambas. case referencia un caso existente. factor es un número finito; no se inventa. |
 | [analysis.mass_source], modal o responseSpectrum | method, case, factor, direction, gravity | Todas. method: masses_from_case, system_case o masses_from_system_case; case existente; factor ≥ 0; direction de tres números; gravity > 0. |
 | [[analysis.directions]], responseSpectrum | direction, spectra | Ambas. direction de tres números; spectra con al menos un espectro. |
 | [[analysis.directions.spectra]] | pairs, units, damping, interpolation, extrapolation | Todas. pairs: al menos dos pares numéricos. 0 ≤ damping < 1; interpolation: linear o logLog; extrapolation: error o plateau. |
@@ -265,8 +270,10 @@ nonlinearStatic, soilProfile y consolidation1d requieren
 | Cada geo_parameter, también en línea | value, provenance | Ambas. value numérico finito; provenance: measured o assumed. |
 
 No hay tabla interna para directions de modal: es un array no vacío
-de vectores de tres números. En ambos métodos dinámicos, mode_count es
-entero 1..16384 y mass_kind es lumped o consistent. mass_source no
+de vectores de tres números. En modal y responseSpectrum, mode_count es
+entero 1..16384 y mass_kind es lumped o consistent. En buckling.linear,
+mode_count es entero 0..16384. reference no añade una magnitud física:
+es el caso y el factor cuya solución lineal define Kg. mass_source no
 autoriza suma implícita de dos fuentes de masa.
 
 En responseSpectrum, modal_combination es srss o cqc;
@@ -593,7 +600,7 @@ en el entorno de integración. T1 no presenta mediciones nuevas.
 
 ## 11. Verificación exigida a la implementación posterior
 
-La cobertura deberá recorrer las 36 definiciones y sus referencias,
+La cobertura deberá recorrer las 37 definiciones y sus referencias,
 ramas oneOf y condiciones allOf/if, relacionando campos del esquema
 con este mapeo en ambos sentidos. Un campo nuevo sin forma documentada
 debe hacer fallar la comprobación. Se cubrirá cada valor enum y const.

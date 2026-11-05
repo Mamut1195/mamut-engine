@@ -92,7 +92,7 @@ fn ascii_keys(value: &Value) {
 fn capabilities_are_deterministic_compatible_and_backed_by_evidence() {
     let a = capabilities();
     let descriptors = method_descriptors().unwrap();
-    assert_eq!(descriptors.len(), 8);
+    assert_eq!(descriptors.len(), 9);
     let ids: Vec<_> = descriptors
         .iter()
         .map(|d| d.workflow.method_id.as_str())
@@ -100,6 +100,7 @@ fn capabilities_are_deterministic_compatible_and_backed_by_evidence() {
     assert_eq!(
         ids,
         [
+            "buckling.linear",
             "combinations",
             "consolidation1d",
             "linearStatic",
@@ -170,6 +171,7 @@ mod sfc010;
 fn sfc010_experimental_methods_require_explicit_job_opt_in() {
     let capabilities = capabilities();
     for (id, expected) in [
+        ("buckling.linear", MethodStatus::Experimental),
         ("combinations", MethodStatus::Validated),
         ("consolidation1d", MethodStatus::Experimental),
         ("linearStatic", MethodStatus::Validated),
