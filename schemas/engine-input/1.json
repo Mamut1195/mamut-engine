@@ -17,6 +17,15 @@
   },
   "$defs": {
     "uniformLoad": {"type": "object", "additionalProperties": false, "required": ["member", "force_per_length", "moment_per_length"], "properties": {"member": {"$ref": "#/$defs/id"}, "force_per_length": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}, "moment_per_length": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}}},
+    "uniform_temperature": {
+      "type": "object", "additionalProperties": false,
+      "required": ["member", "alpha_per_kelvin", "delta_t_kelvin"],
+      "properties": {
+        "member": {"$ref": "#/$defs/id"},
+        "alpha_per_kelvin": {"type": "number", "description": "Linear expansion coefficient, 1/K."},
+        "delta_t_kelvin": {"type": "number", "description": "Uniform temperature change, K. No gradient."}
+      }
+    },
     "prescribed": {"type": "object", "additionalProperties": false, "required": ["node", "dof", "value"], "properties": {"node": {"$ref": "#/$defs/id"}, "dof": {"$ref": "#/$defs/dof"}, "value": {"type": "number"}}},
     "diaphragm": {"type": "object", "additionalProperties": false, "required": ["master", "slaves"], "properties": {"master": {"$ref": "#/$defs/id"}, "slaves": {"type": "array", "items": {"$ref": "#/$defs/id"}}}},
     "id": {"type": "integer", "minimum": 0, "maximum": 4294967295},
@@ -103,8 +112,9 @@
       "type": "object", "additionalProperties": false, "required": ["name", "loads"],
       "properties": {
         "name": {"type": "string"},
-        "loads": {"type": "array", "maxItems": 16384, "description": "At most 16384 records across loads and member_loads in all cases.", "items": {"$ref": "#/$defs/load"}},
-        "member_loads": {"type": "array", "maxItems": 16384, "items": {"$ref": "#/$defs/uniformLoad"}}
+        "loads": {"type": "array", "maxItems": 16384, "description": "At most 16384 records across loads, member_loads, and temperature_loads in all cases.", "items": {"$ref": "#/$defs/load"}},
+        "member_loads": {"type": "array", "maxItems": 16384, "items": {"$ref": "#/$defs/uniformLoad"}},
+        "temperature_loads": {"type": "array", "maxItems": 16384, "description": "Uniform temperature on one member: linear expansion coefficient per kelvin and a temperature change in kelvin. No gradient. The 16384 total includes loads, member_loads, and temperature_loads. Only truss2d.linear and truss3d.linear accept a record; elastic beam-column kinds reject it.", "items": {"$ref": "#/$defs/uniform_temperature"}}
       }
     },
     "combination": {

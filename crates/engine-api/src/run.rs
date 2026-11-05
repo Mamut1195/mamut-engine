@@ -4,6 +4,7 @@ pub(crate) mod geo;
 pub(crate) mod nonlinear;
 mod prepared;
 pub(crate) mod static_linear;
+mod temperature;
 use crate::{input, ApiError, CancelToken, Diagnostic, Progress};
 use engine_analysis::{results::CaseResults, results::MemberRecovery, StaticLinear};
 use engine_assembly::{DofMap, ElementContribution, ElementLoad, LinearSystem};
@@ -150,6 +151,8 @@ pub(crate) struct Member {
     params: ElementParams,
     // A single source for load_vector and MemberRecovery, without scaled loads.
     loads: Vec<Vec<engine_contracts::MemberLoad>>,
+    // Per case. None leaves recovery mechanical. The assembled element stays cold.
+    temperature: Vec<Option<temperature::Change>>,
 }
 
 /// Runs linearStatic, pDelta, modal, or responseSpectrum with explicit options.
@@ -292,10 +295,17 @@ fn execute(
         return step(cancel, progress, "serialization", total, total);
     }
     let members = build_members(&execution)?;
+    let loaded;
+    let model_for_system = if execution.temperature.iter().any(|case| !case.is_empty()) {
+        loaded = temperature::with_joint_forces(model, &members)?;
+        &loaded
+    } else {
+        model
+    };
     let contributions = assemble_members(model, &members)?;
     let mut system = LinearSystem::from_model_with_diaphragms(
         ReferenceBackend,
-        model,
+        model_for_system,
         &contributions,
         &execution.prescribed,
         &execution.diaphragms,
@@ -460,6 +470,8 @@ fn build_members(execution: &input::Execution) -> Result<Vec<Member>, Failure> {
                         .collect()
                 })
                 .collect();
+            let temperature =
+                temperature::for_member(m.id, element.kind(), &execution.temperature)?;
             Ok(Member {
                 id: m.id,
                 nodes: m.nodes.to_vec(),
@@ -468,6 +480,7 @@ fn build_members(execution: &input::Execution) -> Result<Vec<Member>, Failure> {
                 element: Arc::from(element),
                 params,
                 loads,
+                temperature,
             })
         };
         members.push(build().map_err(|mut e| {
@@ -489,6 +502,7 @@ fn build_members(execution: &input::Execution) -> Result<Vec<Member>, Failure> {
             element: Arc::from(element),
             params: ElementParams::default(),
             loads: vec![vec![]; model.cases.len()],
+            temperature: vec![None; model.cases.len()],
         });
     }
     Ok(members)
@@ -591,14 +605,23 @@ pub(crate) fn validation(e: &input::Execution) -> Vec<Diagnostic> {
         diagnostics.push(error.into());
         return diagnostics;
     }
-    if e.elements.iter().any(|b| {
-        b.winkler.is_some()
-            || b.release_i.is_some()
-            || b.release_j.is_some()
-            || matches!(b.kind.as_str(), "frame2d.winkler" | "frame3d.winkler")
-    }) {
-        if let Err(failure) = build_members(e) {
-            diagnostics.extend(failure.1);
+    let has_temperature = e.temperature.iter().any(|case| !case.is_empty());
+    if has_temperature
+        || e.elements.iter().any(|b| {
+            b.winkler.is_some()
+                || b.release_i.is_some()
+                || b.release_j.is_some()
+                || matches!(b.kind.as_str(), "frame2d.winkler" | "frame3d.winkler")
+        })
+    {
+        match build_members(e) {
+            Err(failure) => diagnostics.extend(failure.1),
+            Ok(members) if has_temperature => {
+                if let Err(error) = temperature::with_joint_forces(&e.model, &members) {
+                    diagnostics.extend(Failure::from(error).1);
+                }
+            }
+            Ok(_) => {}
         }
     }
     diagnostics

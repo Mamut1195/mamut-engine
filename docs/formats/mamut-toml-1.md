@@ -17,10 +17,13 @@ v4.2 y v4.3. El resumen de tickets se considera desactualizado en alias,
 salidas y tratamiento de identificadores equivalentes.
 
 La conversión pertenece exclusivamente a engine-cli y ocurre antes de
-engine-api. NO DEBE modificar engine-api, engine-wasm, engine-input/1 ni
-results/1. La Opción 0 conserva cli-error/1 y cli-describe/1: en este último,
-inputs.format sigue siendo const "json". No se añaden campos ni códigos.
-Esta especificación no declara que el CLI actual implemente TOML.
+engine-api. El alcance de MAM-939 NO DEBE modificar engine-api, engine-wasm,
+engine-input/1 ni results/1. La Opción 0 conserva cli-error/1 y
+cli-describe/1: en este último, inputs.format sigue siendo const "json".
+No se añaden campos ni códigos de error del CLI.
+`cases[].temperature_loads` entró después, en engine-input/1, con el ticket
+de temperatura uniforme de la cercha. Este mapeo lo traduce. results/1 no
+cambia. Esta especificación no declara que el CLI actual implemente TOML.
 
 La dependencia prevista es toml =1.1.8+spec-1.1.0, con
 default-features=false y std, serde, parse, display; sin unbounded.
@@ -121,8 +124,8 @@ convierten implícitamente a otra unidad.
 D significa forma directa en su nivel: estructura y claves conservadas.
 R significa derivación, renombre, aplanado o valor por defecto. La raíz,
 descrita en la sección 2, no es una definición de $defs y no se cuenta.
-La tabla contiene exactamente las 36 definiciones del esquema:
-15 D y 21 R. Los hijos siguen su propio mapeo aunque el contenedor sea D.
+La tabla contiene exactamente las 37 definiciones del esquema:
+16 D y 21 R. Los hijos siguen su propio mapeo aunque el contenedor sea D.
 
 | Definición de $defs | Forma TOML | Clase | Renombres, derivaciones, valores por defecto y rechazos |
 | --- | --- | --- | --- |
@@ -140,7 +143,8 @@ La tabla contiene exactamente las 36 definiciones del esquema:
 | mass | [[masses]] | R | id, node y claves Ux..Rz forman values; componentes ausentes se omiten, sin masa implícita. |
 | load | [[cases.loads]] | R | node y claves Fx..Mz forman values con GDL Ux..Rz; componentes ausentes se omiten, sin rellenarlas con cero. |
 | uniformLoad | [[cases.member_loads]] | R | member se conserva. force_per_length y moment_per_length son vectores de tres números; vector omitido se reconstruye como [0,0,0]. El export omite vectores completamente nulos. |
-| case | [[cases]] | D | name y colecciones de cargas; loads omitido produce []; member_loads conserva su carácter opcional y admite vacío. Orden del documento conservado. |
+| uniform_temperature | [[cases.temperature_loads]] | D | member, alpha_per_kelvin y delta_t_kelvin son obligatorios y se conservan. No hay gradiente ni valor físico por defecto. Un mismo member repetido en el caso es error. El export omite el array vacío. |
+| case | [[cases]] | D | name y colecciones de cargas; loads omitido produce []; member_loads y temperature_loads conservan su carácter opcional y admiten vacío. Orden del documento conservado dentro de cada colección. El export escribe loads, luego member_loads, luego temperature_loads. |
 | combination | `[combinations.<id>]` | R | Nombre de tabla → id; cada clave de caso y factor → terms. Sin casos inexistentes ni términos repetidos. |
 | term | Clave de caso = factor; tablas gravity/lateral/reference | R | En combinación, forma corta → {case,factor}. En pDelta y en buckling.linear se conserva explícitamente {case,factor}. No se inventa factor. |
 | prescribed | [[prescribed]] | D | node, dof, value obligatorios; sin valor por defecto. |
@@ -165,7 +169,7 @@ La tabla contiene exactamente las 36 definiciones del esquema:
 
 Los rechazos adicionales de esta representación incluyen el límite de id,
 las reservas P1 y los duplicados que una tabla no puede representar.
-La cobertura de las 36 formas no promete exportabilidad de cualquier JSON
+La cobertura de las 37 formas no promete exportabilidad de cualquier JSON
 válido sin atender a esas restricciones.
 
 ## 4. Claves permitidas: ALLOWED
@@ -200,9 +204,10 @@ rotación tiene tres filas de tres números.
 | [[springs]] | id, name, nodes, kind, dof, k, law, direction, rotation | id, nodes, kind, dof; name opcional. Condiciones debajo de la tabla. |
 | [[prescribed]] | node, dof, value | Todas. |
 | [[diaphragms]] | master, slaves | Todas. |
-| [[cases]] | name, loads, member_loads | name; loads omitido: []. |
+| [[cases]] | name, loads, member_loads, temperature_loads | name; loads omitido: []. |
 | [[cases.loads]] | node, Fx, Fy, Fz, Mx, My, Mz | node; values se construye con las componentes presentes. |
 | [[cases.member_loads]] | member, force_per_length, moment_per_length | member; vectores omitidos: [0,0,0]. |
+| [[cases.temperature_loads]] | member, alpha_per_kelvin, delta_t_kelvin | Las tres. Coeficiente en 1/K e incremento en K. Sin gradiente. Un member repetido en el caso es error. |
 | [combinations] | Ids de combinación dinámicos | Cada valor es tabla. "" permitido. |
 | `[combinations.<id>]` | Nombres de caso dinámicos | Cada valor es factor numérico de un caso existente. |
 | [options] | allow_experimental | Opcional, booleano; ausente: false. |
@@ -363,7 +368,8 @@ format, units, defaults, nodes, sections, laws, members, supports,
 masses, springs, prescribed, diaphragms, cases, combinations, analysis,
 options.
 
-Las cargas de cada caso se escriben dentro de ese caso. Se omiten las
+Las cargas de cada caso se escriben dentro de ese caso, en el orden
+loads, member_loads, temperature_loads. Se omiten las
 colecciones vacías y los vectores de carga de barra completamente nulos;
 el lector los reconstruye según las reglas anteriores.
 
@@ -374,7 +380,7 @@ el lector los reconstruye según las reglas anteriores.
 | combinations | Por id con orden natural; términos por nombre de caso, por bytes. |
 | properties, parameters | Por nombre de clave, por bytes UTF-8. |
 | Componentes de GDL | Ux, Uy, Uz, Rx, Ry, Rz; cargas en correspondencia Fx, Fy, Fz, Mx, My, Mz. |
-| cases, loads, member_loads, prescribed, diaphragms | Conservan el orden del documento. |
+| cases, loads, member_loads, temperature_loads, prescribed, diaphragms | Conservan el orden del documento dentro de cada colección. |
 | directions, spectra, pairs, layers, history, output_times_s, load_factors | Conservan el orden del documento. No se ordenan muestras ni historia física. |
 
 Las claves con punto o que no admitan escritura simple DEBEN escribirse
@@ -594,7 +600,7 @@ en el entorno de integración. T1 no presenta mediciones nuevas.
 
 ## 11. Verificación exigida a la implementación posterior
 
-La cobertura deberá recorrer las 36 definiciones y sus referencias,
+La cobertura deberá recorrer las 37 definiciones y sus referencias,
 ramas oneOf y condiciones allOf/if, relacionando campos del esquema
 con este mapeo en ambos sentidos. Un campo nuevo sin forma documentada
 debe hacer fallar la comprobación. Se cubrirá cada valor enum y const.

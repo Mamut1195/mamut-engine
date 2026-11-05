@@ -16,6 +16,12 @@ class InputUniformLoad(TypedDict):
     force_per_length: list[float]
     moment_per_length: list[float]
 
+class InputUniform_temperature(TypedDict):
+    """Campos requeridos del contrato InputUniform_temperature."""
+    member: InputId
+    alpha_per_kelvin: float
+    delta_t_kelvin: float
+
 class InputPrescribed(TypedDict):
     """Campos requeridos del contrato InputPrescribed."""
     node: InputId
@@ -106,6 +112,7 @@ class InputCaseRequired(TypedDict):
 class InputCase(InputCaseRequired, total=False):
     """Campos opcionales, sin valores físicos implícitos."""
     member_loads: list[InputUniformLoad]
+    temperature_loads: list[InputUniform_temperature]
 
 class InputCombination(TypedDict):
     """Campos requeridos del contrato InputCombination."""

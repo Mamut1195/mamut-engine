@@ -146,7 +146,7 @@ coincide con el comportamiento actual de main para JSON.
 La representación añade un segundo contrato de entrada en el CLI. Una
 tabla exhaustiva y controles de cobertura en ambos sentidos deben detectar
 campos del esquema sin forma TOML y formas TOML sin correspondencia.
-Las siete ramas de análisis conservan sus campos obligatorios y el control
+Las ocho ramas de análisis conservan sus campos obligatorios y el control
 explícito de métodos experimentales.
 
 El export reordena arrays. El hash de TOML es el del JSON convertido y no
