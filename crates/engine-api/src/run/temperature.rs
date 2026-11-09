@@ -4,6 +4,7 @@
 //! other kind, turns the equivalent joint forces into nodal loads on a cloned
 //! model, and builds a per-case bar so recovery can report the thermal axial.
 //! A gradient is not accepted. Elastic beam-column kinds have no αΔT formula.
+//! `run` and `PreparedLinear::prepare` both assemble from [`model_for_system`].
 //!
 //! `respond` and geometric stiffness stay mechanical. The joint forces are
 //! nodal loads of the assembled model, not a `MemberLoad`, so nodal
@@ -12,6 +13,7 @@
 
 use super::*;
 use engine_elements_truss::LinearTruss;
+use std::borrow::Cow;
 
 /// One finite uniform change stored on a member for a single case.
 #[derive(Clone, Copy, Debug)]
@@ -57,6 +59,23 @@ pub(crate) fn for_member(
         changes.push(found);
     }
     Ok(changes)
+}
+
+/// Model whose nodal loads include the equivalent joint forces.
+///
+/// An empty temperature list returns `model`. A non-empty list returns the
+/// clone from [`with_joint_forces`]. Stiffness stays on the caller's original
+/// model: this function only changes the loads seen by the assembler.
+pub(crate) fn model_for_system<'a>(
+    model: &'a engine_model::Model,
+    members: &[Member],
+    temperature: &[Vec<crate::input::TemperatureLoad>],
+) -> Result<Cow<'a, engine_model::Model>, EngineError> {
+    if temperature.iter().any(|case| !case.is_empty()) {
+        Ok(Cow::Owned(with_joint_forces(model, members)?))
+    } else {
+        Ok(Cow::Borrowed(model))
+    }
 }
 
 /// Clones `model` and appends equivalent joint forces as nodal loads.

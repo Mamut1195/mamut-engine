@@ -105,6 +105,19 @@ fn reject_combinations(execution: &input::Execution) -> Result<(), Failure> {
     Ok(())
 }
 
+/// `true` when `case` carries a non-empty uniform temperature list.
+///
+/// Kg recovers the mechanical axial only. A thermal term αΔT is not part of
+/// that axial, so the geometric reference must not carry `temperature_loads`.
+fn case_has_temperature(execution: &input::Execution, case: &str) -> bool {
+    execution
+        .model
+        .cases
+        .iter()
+        .zip(&execution.temperature)
+        .any(|(item, loads)| item.name == case && !loads.is_empty())
+}
+
 pub(crate) fn pdelta_budget(execution: &input::Execution) -> usize {
     if let Analysis::PDelta {
         options: input::Object(o),
@@ -181,6 +194,13 @@ pub(crate) fn pdelta(context: MethodContext<'_>) -> Result<(), Failure> {
         return Err(EngineError::new(
             "ENG-E-0013",
             "P-Delta: gravity requires nodal loads; Kg does not support member load correction",
+        )
+        .into());
+    }
+    if case_has_temperature(execution, &o.gravity.0.case) {
+        return Err(EngineError::new(
+            "ENG-E-0013",
+            "P-Delta: the gravity case has uniform temperature; Kg does not include the thermal axial",
         )
         .into());
     }
@@ -307,6 +327,13 @@ pub(crate) fn buckling(context: MethodContext<'_>) -> Result<(), Failure> {
         return Err(EngineError::new(
             "ENG-E-0013",
             "Buckling: the reference case requires nodal loads; Kg does not include member-load correction",
+        )
+        .into());
+    }
+    if case_has_temperature(execution, &o.reference.0.case) {
+        return Err(EngineError::new(
+            "ENG-E-0013",
+            "Buckling: the reference case has uniform temperature; Kg does not include the thermal axial",
         )
         .into());
     }

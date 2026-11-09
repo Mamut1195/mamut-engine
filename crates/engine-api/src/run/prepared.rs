@@ -78,7 +78,8 @@ struct PreparedCase {
 ///
 /// `displacements` solves the stored factor again. It does not parse JSON,
 /// fingerprint the input, recover member forces, or build `results/1`.
-/// `run` is unchanged. Combinations, other analyses, and nonlinear springs
+/// `run` is unchanged. Uniform temperature loads use the same joint forces
+/// as `run`. Combinations, other analyses, and nonlinear springs
 /// are rejected: those callers use `run`.
 pub struct PreparedLinear {
     system: LinearSystem<ReferenceBackend>,
@@ -102,7 +103,9 @@ impl PreparedLinear {
     /// Parses, validates, assembles, and factorizes one linearStatic model.
     ///
     /// Requires exactly one analysis, method `linearStatic`, at least one case,
-    /// and no combinations. Checks `cancel` before parsing and before factorization.
+    /// and no combinations. Uniform `temperature_loads` are applied with the
+    /// same equivalent joint forces as `run`. Checks `cancel` before parsing
+    /// and before factorization.
     pub fn prepare(input_json: &str, cancel: &CancelToken) -> Result<Self, AnalysisFault> {
         cancel.check()?;
         let value = crate::json::parse(input_json)?;
@@ -150,10 +153,15 @@ impl PreparedLinear {
                 "prepare does not accept nonlinear springs; use run",
             ));
         }
+        let model_for_system = super::temperature::model_for_system(
+            &execution.model,
+            &members,
+            &execution.temperature,
+        )?;
         let contributions = assemble_members(&execution.model, &members)?;
         let mut system = LinearSystem::from_model_with_diaphragms(
             ReferenceBackend,
-            &execution.model,
+            model_for_system.as_ref(),
             &contributions,
             &execution.prescribed,
             &execution.diaphragms,

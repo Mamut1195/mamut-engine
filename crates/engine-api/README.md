@@ -37,12 +37,15 @@ API pública:
   también ante errores. `Outcome::exit_code()` y `exit_code(Status)` son públicos.
 - `PreparedLinear::prepare(input_json, &CancelToken) -> Result<PreparedLinear, AnalysisFault>`:
   un solo análisis `linearStatic`, al menos un caso y sin combinaciones.
-  Factoriza una vez. `displacements()` resuelve de nuevo y devuelve, por caso,
+  Factoriza una vez. `temperature_loads` entra igual que en `run`: las fuerzas
+  de nudo equivalentes se agregan como cargas nodales del modelo que ensambla
+  el sistema. `displacements()` resuelve de nuevo y devuelve, por caso,
   los nodos en el orden de `results/1` con id y `[Ux, Uy, Uz, Rx, Ry, Rz]`.
   No construye el documento, no recupera esfuerzos de barras y no cambia los
   bytes de `run`. Otro análisis, una combinación o un resorte no lineal
   devuelven `invalid`: esos trabajos usan `run`. Los avisos que `run` escribiría
-  en el documento no se emiten aquí; los desplazamientos coinciden.
+  en el documento no se emiten aquí; los desplazamientos coinciden con `run`,
+  también cuando el caso lleva temperatura uniforme.
 - `Outcome::query(&ResultQuery) -> Result<Value, ApiError>`: filtra IDs de nodos
   y miembros y proyecta rutas de campos sobre resultados ya calculados.
 - `canonical_json(input_json) -> Result<String, ApiError>`: UTF-8 compacto,
@@ -235,14 +238,17 @@ Así se conserva la coherencia exigida por el equilibrio nodal de #69.
 `{member, alpha_per_kelvin, delta_t_kelvin}`, sin gradiente. Solo lo aceptan
 `truss2d.linear` y `truss3d.linear`. Las fuerzas de nudo equivalentes se
 agregan como cargas nodales del caso en el modelo que ensambla el sistema.
+`run` y `PreparedLinear::prepare` usan ese mismo modelo.
 No son un `MemberLoad`. El equilibrio nodal sigue cerrando: esas fuerzas
 están en las cargas nodales y la recuperación suma el axil térmico
 `N = −(E·A·α·ΔT)`. Los kinds de pórtico elástico rechazan el registro con
 `ENG-E-0013`; no hay fórmula de αΔT para ellos. Un registro repetido en el
 mismo miembro y caso es `ENG-E-0002`. La suma de 16384 incluye `loads`,
 `member_loads` y `temperature_loads`. Un modal que reconstruye el sistema
-desde el modelo original no conserva esas cargas nodales. La rigidez
-geométrica sigue mecánica.
+desde el modelo original no conserva esas cargas nodales. Kg sigue el axil
+mecánico y no incluye αΔT. `buckling.linear` rechaza con `ENG-E-0013` un caso
+de referencia con `temperature_loads` no vacío. pDelta rechaza igual el caso
+de gravedad. No se publica factor ni desplazamiento.
 
 `model.prescribed` opcional: `[{node,dof,value}]`, constante para todos los casos,
 sin factor de carga. `model.diaphragms` opcional: `[{master,slaves:[ids]}]`, diafragma
@@ -451,6 +457,8 @@ carga lateral. El caso lateral es independiente: no incluye desplazamientos ni
 reacciones de gravedad. Los prescritos no se escalan. La gravedad requiere
 cargas nodales: con cargas de miembro se devuelve unsupported/3, porque el
 productor no recibe la corrección de acciones de extremo para recuperar N.
+El mismo estado y el código `ENG-E-0013` se devuelven si el caso de gravedad
+trae `temperature_loads` no vacío: Kg no incluye el axil térmico.
 `convergence` publica casos/factores, opciones, inercia y métricas ordenadas por
 iteración (cambio relativo y residual absoluto/relativo). NotConverged y Unstable
 producen código 4, sin respuestas parciales, conservando ese reporte y avisos.
