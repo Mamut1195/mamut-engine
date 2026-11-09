@@ -4,6 +4,9 @@
 //! [`uniaxial::Elastic`] and [`uniaxial::MultilinearElastic`] implement
 //! `uniaxial/1` (kinds `elastic` and `multilinear_elastic`), and
 //! [`section::ElasticFrame`] implements `section/1` (kind `elastic_frame`).
+//! [`section::RectangleFiberBending`] implements `section/1`, kind
+//! `rectangle.fiber_bending`: a rectangular fiber section and a
+//! moment-curvature point at constant axial force.
 //! [`uniaxial::SteelBilinearKinematic`] implements `uniaxial/1`, with plasticity
 //! history and kind `steel.bilinear_kinematic`.
 //! [`uniaxial::CubicElastic`] implements `uniaxial/1`, kind `elastic.cubic`,

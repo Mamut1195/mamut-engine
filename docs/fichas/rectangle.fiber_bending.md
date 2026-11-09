@@ -211,8 +211,18 @@ stops before the residual limit (`ENG-E-0007`).
   analytical rows only. No fixture/1 document, because this section is not
   an engine-input kind.
 - Checks, tests passed/failed and logs under `$CARGO_TARGET_DIR`:
-  DESCONOCIDO until this session runs the commands. The expected values
-  above are not waiting on that run.
+  `cargo test --offline --locked -p engine-laws --test rectangle_fiber`:
+  9 passed, 0 failed.
+  `cargo test --offline --locked -p engine-laws --doc rectangle_fiber`:
+  1 passed.
+  `cargo test --offline --locked --workspace`: exit 0.
+  `cargo fmt --all -- --check`: exit 0.
+  `cargo clippy --offline --locked --workspace --all-targets -- -D warnings`:
+  exit 0.
+  `cargo doc --offline --locked --no-deps --workspace` with warnings denied:
+  exit 0.
+  `cargo check --offline --locked --workspace --target wasm32-unknown-unknown`:
+  exit 0. That check compiles; it does not execute the section on wasm.
 - Comparison of the 16 hashes across targets without modifying the reference:
   `docs/DETERMINISM.md` is not modified. The hashes are not regenerated to
   accept a difference.
