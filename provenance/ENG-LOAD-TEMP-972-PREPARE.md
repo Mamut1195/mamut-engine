@@ -2,7 +2,7 @@
 
 - Ticket / PR: MAM-972. `PreparedLinear::prepare` aplica `temperature_loads`
   igual que `run`. No cierra MAM-972 ni MAM-107. No aprueba presupuestos.
-- Autor: agente de implementación, Grok 4.7, 2026-11-09 (América/Guayaquil).
+- Autor: agente cloud de Cursor (Cursor Agent), modelo: DESCONOCIDO, 2026-11-09 (América/Guayaquil).
 - Rol: implementador. Sesión limpia. Sin operador de oráculo.
 - Contrato implementado: el mismo `PreparedLinear::prepare` ya publicado.
   No hay kind nuevo ni ley nueva. La carga sigue siendo
@@ -19,8 +19,8 @@
   `crates/engine-api/tests/temperature_geometric.rs` y los tests Python
   `test_prepare_temperature.py` y `test_temperature_geometric.py`.
 - Comparación con oráculo (repositorio hermano, informativa): no. No se
-  ejecutaron ni se leyeron OpenSees, Frame3DD ni Stabileo.
-- Declaración: "No consulté código fuente de OpenSees, Frame3DD, Stabileo ni derivados para este ticket."
+  ejecutaron ni se leyeron OpenSees, Frame3DD, Stabileo, CalculiX ni LAPACK.
+- Declaración: "No consulté código fuente de OpenSees, Frame3DD, Stabileo, CalculiX, LAPACK ni derivados para este ticket."
 - Revisor clean-room: PENDING
 
 ## Qué se eligió
@@ -75,5 +75,5 @@ no calibra el producto cerrado.
 ## Declaración de sesión
 
 Esta sesión no vio salidas de programas externos. No abrió código de
-OpenSees, Frame3DD, Stabileo ni derivados, ni el informe de humo del
-banco comparativo.
+OpenSees, Frame3DD, Stabileo, CalculiX ni LAPACK, ni derivados, ni el
+informe de humo del banco comparativo.
