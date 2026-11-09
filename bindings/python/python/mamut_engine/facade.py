@@ -336,8 +336,10 @@ class PreparedLinear:
     """Modelo linearStatic factorizado una vez.
 
     displacements() vuelve a resolver y devuelve los nodos de cada caso en el
-    mismo orden que results/1, sin reconstruir ese documento. run() no cambia.
-    Otro análisis, una combinación o un resorte no lineal se rechazan.
+    mismo orden que results/1, sin reconstruir ese documento. Las cargas de
+    temperatura uniforme entran con las mismas fuerzas de nudo equivalentes
+    que run(). run() no cambia. Otro análisis, una combinación o un resorte
+    no lineal se rechazan.
     """
 
     def __init__(self, native: _native.PreparedLinear) -> None:
@@ -351,8 +353,9 @@ class PreparedLinear:
 def prepare(model: ModelLike) -> PreparedLinear:
     """Prepara un linearStatic sin combinaciones.
 
-    La preparación y cada displacements() mantienen el GIL: el trabajo que se
-    repite es solo la resolución, no el documento.
+    Aplica temperature_loads igual que run(). La preparación y cada
+    displacements() mantienen el GIL: el trabajo que se repite es solo la
+    resolución, no el documento.
     """
     return PreparedLinear(_call(_native.prepare, _input(model)))
 

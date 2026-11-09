@@ -295,17 +295,11 @@ fn execute(
         return step(cancel, progress, "serialization", total, total);
     }
     let members = build_members(&execution)?;
-    let loaded;
-    let model_for_system = if execution.temperature.iter().any(|case| !case.is_empty()) {
-        loaded = temperature::with_joint_forces(model, &members)?;
-        &loaded
-    } else {
-        model
-    };
+    let model_for_system = temperature::model_for_system(model, &members, &execution.temperature)?;
     let contributions = assemble_members(model, &members)?;
     let mut system = LinearSystem::from_model_with_diaphragms(
         ReferenceBackend,
-        model_for_system,
+        model_for_system.as_ref(),
         &contributions,
         &execution.prescribed,
         &execution.diaphragms,
