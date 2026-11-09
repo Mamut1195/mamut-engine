@@ -1,7 +1,7 @@
 # Clean-room log · ENG-SEC-002
 
 - Ticket / PR: GitHub issue 5, branch `j2/ticket-02-seccion-fibras`. Pull request against `main`. This log does not close MAM-107 and does not approve a time or memory budget.
-- Author(s): implementation sub-agent, Grok 4.7; date 2026-11-09 (America/Guayaquil).
+- Author(s): agente cloud de Cursor (Cursor Agent); modelo: DESCONOCIDO; date 2026-11-09 (America/Guayaquil).
 - Role: specifier and implementer.
 - Session: clean session, distinct from the session of 2026-11-04 that saw numerical outputs of an external program. This session has not seen outputs of OpenSees, Frame3DD or Stabileo.
 - Contract implemented: `section/1`, kind `rectangle.fiber_bending`, contract 1.0 and method 0.1.0.
@@ -10,5 +10,5 @@
 - Third-party code copied: none. No listing was transcribed. Dependencies remain `engine-core` and `engine-contracts`.
 - Validation: analytical. `cargo test --offline --locked -p engine-laws --test rectangle_fiber` — 9 passed, 0 failed. `cargo test --offline --locked -p engine-laws --doc rectangle_fiber` — 1 passed. `cargo test --offline --locked --workspace` — exit 0. `cargo fmt --all -- --check` — exit 0. `cargo clippy --offline --locked --workspace --all-targets -- -D warnings` — exit 0. `cargo doc --offline --locked --no-deps --workspace` with warnings denied — exit 0. `cargo check --offline --locked --workspace --target wasm32-unknown-unknown` — exit 0. That wasm command compiles; it does not execute the section on wasm. `docs/DETERMINISM.md` was not modified. The workspace run includes the existing determinism tests. The 16 published hashes were not regenerated.
 - Comparison with oracle (sibling repo, informative): no.
-- Declaration: "No consulté código fuente de OpenSees, Frame3DD, Stabileo ni derivados para este ticket."
+- Declaration: "No consulté código fuente ni salidas de OpenSees, Frame3DD, Stabileo, CalculiX ni LAPACK, ni de sus derivados, para este ticket. Esta sesión no abrió ese código ni esas salidas."
 - Clean-room reviewer: PENDING (J4).

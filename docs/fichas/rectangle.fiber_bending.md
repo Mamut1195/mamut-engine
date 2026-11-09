@@ -5,8 +5,8 @@ evaluated from the equations in this sheet before the section was written.
 This session is a clean session, distinct from the session of 2026-11-04.
 It did not view numerical output of an external structural program.
 
-- Author, model if AI, date and role: implementation sub-agent, Grok 4.7,
-  2026-11-09 (America/Guayaquil). Role: specifier and implementer.
+- Author, model if AI, date and role: agente cloud de Cursor (Cursor Agent),
+  modelo: DESCONOCIDO, 2026-11-09 (America/Guayaquil). Role: specifier and implementer.
 - Own kind, contract and method version: `rectangle.fiber_bending`,
   `section/1` (`ContractId::new("section", 1, 0)`), method `0.1.0`.
 - Module/crate and intended consumer: `crates/engine-laws/src/section/rectangle_fiber.rs`,
