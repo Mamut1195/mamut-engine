@@ -1,9 +1,20 @@
-//! Elastic frame section `elastic_frame`, contract `section/1`.
+//! Section laws, contract `section/1`.
+//!
+//! [`ElasticFrame`] is the homogeneous linear section `elastic_frame`.
+//! [`RectangleFiberBending`] is `rectangle.fiber_bending`, a rectangle of
+//! concrete and steel fibers used for moment-curvature at a constant axial
+//! force.
 //!
 //! Approved axes: right-handed triad, horizontal X-Y, vertical Z upward. D2 is
 //! represented in X-Y, Z = 0. Local x runs from i to j; in D2 local z
 //! points toward +Z. In D3 the consumer sets the transverse orientation.
 //! See `docs/AXES_CONVENTION.md`; the D2 elevation plane is not redefined.
+
+mod rectangle_fiber;
+pub use rectangle_fiber::{
+    CurvaturePoint, RectangleFiberBending, RectangleFiberBendingFactory,
+    RectangleFiberBendingParams, SteelBar, RECTANGLE_FIBER_BENDING,
+};
 
 use crate::{finite, positive, vector, LawDescriptor};
 use engine_contracts::{DMat, SectionLaw, SectionResponse};
