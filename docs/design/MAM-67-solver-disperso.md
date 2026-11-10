@@ -5,7 +5,7 @@
 - Base leída: `9aeebcc000ca42c0f94b5aa41507b1da1e378743`.
 - Ficha: [11-solver-disperso.md](../tickets/11-solver-disperso.md).
 - Bitácora: [ENG-LA-008-DISENO.md](../../provenance/ENG-LA-008-DISENO.md).
-- La decisión de dependencias es de Jonathan. Este texto recomienda y no incorpora crates.
+- Dependencias: decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT. Opción A. Este texto no incorpora crates.
 
 ## 1. Para qué es este diseño
 
@@ -97,7 +97,7 @@ Esas cuentas son aritmética de este diseño. No son mediciones de un ensayo.
 
 La ruta dispersa no implementa `SystemView` escribiendo una `SymMatrix`. Añade operaciones que prestan la `SimetricaDispersa` o que factorizan directo. La vista densa solo se ofrece cuando el llamador está en la ruta densa y `dense_bytes(n, n)` cabe en el presupuesto. Pedir la densa por encima de ese tamaño devuelve ENG-E-0013, que es el código que `MemoryBudget` ya usa, y no reserva.
 
-Propuesta para Jonathan, no una constante ya aprobada: la fachada deja los casos actuales en `ReferenceBackend` mientras `n ≤ 2048`. En ese tamaño una densa de `f64` ocupa 32 MiB justos (`2048² × 8 = 33 554 432`). Los dieciséis hashes de `docs/DETERMINISM.md` salen de modelos muy por debajo. A partir de 2049 GDL libres la fachada usa la ruta dispersa. Si esa ruta rechaza, el error se propaga. No hay segundo intento denso.
+Decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT: se retira el corte `n ≤ 2048`. El pórtico 3D de 250 nudos tiene unos 1 500 GDL libres y en la ruta densa tarda 6,48 s; ese corte no lo saca de la ruta densa y no mejora el tiempo. El umbral entre las dos rutas se fija midiendo en la fase 10. Conservar los hashes de `docs/DETERMINISM.md` no es criterio para fijarlo. Si cambian, se documentan y J4 los audita. Por qué unos 1 500 GDL tardan 6,48 s es la pregunta de MAM-1056, el perfil de la ruta densa. Este diseño no la responde. Si la ruta dispersa rechaza, el error se propaga. No hay segundo intento denso.
 
 ## 4. Ordenamiento, factorización e inercia
 
@@ -133,7 +133,7 @@ Sobre el patrón ya permutado:
 
 El primer almacenamiento del simbólico es O(`n`) enteros: árbol, conteos y permutación. También ese O(`n`) se comprueba contra el presupuesto antes de `try_reserve`.
 
-No se propone un factor supernodal en la primera implementación. Los núcleos por bloques suelen apoyarse en SIMD y en una contracción de productos que `docs/DETERMINISM.md` no admite. Si el ensayo de 26 460 GDL libres no cumple los 60 s, Jonathan puede abrir esa vía en otro diseño. No es un rescate silencioso de esta ruta.
+No se propone un factor supernodal en la primera implementación. Los núcleos por bloques suelen apoyarse en SIMD y en una contracción de productos que `docs/DETERMINISM.md` no admite. Si la fase 10 no cumple las metas, se reabren B y C con números medidos, como dice el apartado 11. Un núcleo por bloques sería otro diseño, no un rescate silencioso de esta ruta.
 
 ### 4.3. Factorización numérica
 
@@ -242,15 +242,9 @@ Se reutiliza ENG-E-0013, resultado `unsupported`, salida 3. Es el código con el
 
 ENG-E-0010 se reserva para un tamaño incoherente o para un `try_reserve` que falla después de haber aceptado la cota. ENG-E-0006 sigue siendo el mecanismo. ENG-E-0009 sigue siendo el marcador de `FaerBackend` y no se usa para «no cabe».
 
-ENG-E-0013 hoy también significa otras cosas: inercia no disponible, máscara densa imposible, esclavo con apoyo, Kg estática sin productor. El mensaje tiene que distinguir el rechazo de capacidad. Si Jonathan quiere un código propio, la propuesta, que no se añade al catálogo, es:
+ENG-E-0013 hoy también significa otras cosas: inercia no disponible, máscara densa imposible, esclavo con apoyo, Kg estática sin productor. El mensaje tiene que distinguir el rechazo de capacidad por el texto, con `n`, la cota y el límite.
 
-- id: `ENG-E-0015`
-- salida: 3
-- resultado: `unsupported`
-- descripción: el solver disperso rechazó el sistema antes de reservar porque el número de GDL libres o la estimación de memoria supera el límite declarado
-- estado: PROPUESTA para Jonathan
-
-`docs/contracts/error-codes-1.json` permanece en 32 entradas. No se toca `catalog.rs`.
+Decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT: se reutiliza ENG-E-0013. No hay ENG-E-0015. `docs/contracts/error-codes-1.json` permanece en 32 entradas. No se toca `catalog.rs`.
 
 ### 5.4. wasm32
 
@@ -275,7 +269,7 @@ Con eso, dos ejecuciones en el mismo binario tienen que coincidir bit a bit, inc
 
 Entre nativo y wasm la igualdad de bits no se declara por anticipado. `docs/DETERMINISM.md` la exige como ensayo, no como consecuencia de desactivar rayon. La fase 10 añade un caso disperso pequeño a la comparación nativo/Node, en depuración y en release, y publica el hash. Si los bits difieren, se registran el campo y los valores, y la ruta no se da por cumplida. Una tolerancia numérica no sustituye esa comparación.
 
-Los dieciséis hashes publicados no se regeneran en las fases que dejan los casos pequeños en `ReferenceBackend`.
+Conservar los dieciséis hashes publicados no decide el umbral entre rutas. Si una fase los cambia, el PR documenta el cambio y J4 lo audita.
 
 ## 7. Opciones de implementación
 
@@ -338,18 +332,17 @@ Se miraron fichas y, donde se indica, la documentación de API. No se abrió có
 
 No apareció otra crate de Rust puro, en esta consulta del registro, que documente a la vez LDLᵀ disperso, bloques 2×2, inercia sin alterar pivotes, ausencia de C o Fortran, y un modo escalar compatible con `docs/DETERMINISM.md`.
 
-### 7.4. Recomendación
+### 7.4. Decisión
 
-**Recomendación: (A).** Implementación propia, simplicial, sin dependencias.
+**Decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT: (A).** Implementación propia, en sala limpia, simplicial, sin crates nuevas.
 
-Los motivos, en el orden en que atan el ticket:
+La delegación escrita es del 2026-11-10, 01:13 ECT. El registro de la decisión es 01:17 ECT.
 
-1. El ticket pide los mismos bits entre ejecuciones y entre nativo y wasm. (A) puede escribirse dentro de `docs/DETERMINISM.md`. (B) tiene la no promesa ya aceptada en ADR-002, y la ficha activa núcleos con SIMD.
-2. El ticket pide la inercia para Sturm. (A) la publica por contrato. La API dispersa de (B), en las páginas leídas, no la publica. (C) `sparse-ldlt` dice publicar signos, y también dice alterar el caso de pivote pequeño.
-3. (A) no mete en `vendor-crates/` un paquete con avisos de AMD, Eigen y LAPACK. Esa puerta sigue cerrada hasta que Jonathan la abra.
-4. Cero crates transitivas, verificado por ausencia de dependencia nueva.
+Condición de salida de A, medida en la fase 10 sobre el pórtico 3D de 250 nudos: estático en 54 ms o menos, modal en 0,58 s o menos y P-Delta en 88 ms o menos. Si la fase 10 no llega a esas metas, o a las de 60 s y 2 GiB del modelo de 10 pisos, se reabren B y C con los números medidos por nosotros. No se cambia de crate dentro del mismo PR.
 
-El riesgo de (A) es el tiempo. La fase 10 lo mide con el reloj del ensayo, no con una cifra heredada. Si ese ensayo pasa de 60 s o de 2 GiB, se vuelve a Jonathan con la medición. No se cambia de crate dentro del mismo PR.
+Con A aprobada, la pregunta de B sobre avisos de licencia e igualdad de bits ya no aplica. Esas preguntas vuelven solo si B se reabre.
+
+Los motivos que llevaron a A siguen en el texto de arriba: inercia por contrato, cero crates transitivas (verificado por ausencia de dependencia nueva) y una ruta escribible dentro de `docs/DETERMINISM.md`.
 
 ## 8. Plan de validación
 
@@ -390,9 +383,11 @@ Familias generadas por nosotros, antes del modelo grande, para ver que la cota c
 - cadena de barras, `nnz` lineal en `n`;
 - malla plana regular de vigas, de tamaño creciente, parando en cuanto la cota supere un presupuesto chico de ensayo.
 
-El modelo de aceptación es el de 10 pisos con losas y 26 460 GDL libres. Su malla no está en este diseño y no se inventa aquí. La fase 10 lo construye o lo toma del modelo que el proyecto fije, y registra `n` real. Si ese `n` no es 26 460, el criterio no se da por medido.
+El modelo de aceptación de memoria es el de 10 pisos con losas y 26 460 GDL libres. Su malla no está en este diseño y no se inventa aquí. La fase 10 lo construye o lo toma del modelo que el proyecto fije, y registra `n` real. Si ese `n` no es 26 460, el criterio no se da por medido.
 
-El tope de ese ensayo es 60 s de reloj de pared, de la entrada al ensamblaje hasta los desplazamientos, y 2 GiB de pico de proceso. Son el criterio de MAM-67 para ese modelo. No cierran MAM-107 y no autorizan otro presupuesto.
+El tope de ese ensayo es 60 s de reloj de pared, de la entrada al ensamblaje hasta los desplazamientos, y 2 GiB de pico de proceso. Decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT: esas dos cotas valen solo para MAM-67. No cierran MAM-107.
+
+La misma fase 10 mide el pórtico 3D de 250 nudos, el de unos 1 500 GDL libres que en la ruta densa tarda 6,48 s en estático. El criterio de salida de la opción A en ese pórtico es: estático en 54 ms o menos, modal en 0,58 s o menos y P-Delta en 88 ms o menos. El perfil de por qué la ruta densa tarda 6,48 s es MAM-1056. Si la fase 10 no cumple las metas, se reabren B y C con los tiempos y la memoria medidos.
 
 No se publican cifras de otro programa.
 
@@ -404,13 +399,13 @@ Jonathan fija dos sistemas de primera clase: SI y el sistema de Estados Unidos. 
 
 Hoy el código no cumple esa regla. `crates/engine-core/src/units.rs` dice que el cálculo interno es SI y convierte con `to_si` y `from_si`. El catálogo tiene metro, centímetro, milímetro, newton y sus múltiplos, pascal y sus múltiplos, radián, grado y la unidad adimensional. No tiene pulgada, pie, kip, libra ni ksi. `SystemView` documenta metros, radianes, newtons y kilogramos.
 
-Este diseño no cambia `units.rs`. Dice dónde tiene que vivir la conversión para que el solver no la necesite.
+Este diseño no cambia `units.rs`. Decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT: el solver trabaja en unidades coherentes y no convierte nada. La conversión vive en la frontera, en MAM-1043.
 
 ### 9.2. Dónde se convierte
 
 La frontera es la fachada que recibe el documento: JSON, TOML y Python, antes de `DofMap`, del ensamblaje y de cualquier factorización.
 
-1. El documento declara el sistema coherente del análisis. Los nombres propuestos, sujetos a Jonathan, son `si` y `estados_unidos`. No hay valor por omisión. Si falta la declaración, el error es de frontera. ENG-E-0001 ya significa unidad desconocida; una ausencia de sistema puede usar ese código o API-E-INPUT. Jonathan elige. No se rellena «SI» en silencio.
+1. El documento declara el sistema coherente del análisis. Los nombres de ese sistema y el par de unidades de Estados Unidos los decide MAM-1043, no este solver. No hay valor por omisión dentro del factor. Si falta la declaración, el error es de frontera, antes de factorizar. No se rellena «SI» en silencio.
 2. Cada magnitud del documento nombra su unidad. La frontera convierte al sistema coherente elegido, con factores que viven solo en `engine-core::units`.
 3. A partir de ahí, ensamblaje, elementos, masa, Kg y el solver ven `f64` de un solo sistema. `K u = f` es homogéneo. El solver no llama a `convert`, no lee símbolos y no multiplica por 0,0254 ni por un factor de fuerza.
 4. Al escribir resultados, la misma frontera convierte de vuelta a la unidad pedida por el documento. El factor no se aplica dentro de la sustitución triangular.
@@ -419,7 +414,7 @@ Un sistema coherente tiene una longitud, una fuerza y un ángulo, con momento = 
 
 ### 9.3. Qué sistema coherente de Estados Unidos
 
-Propuesta para Jonathan, no implementada:
+Queda en MAM-1043. Este apartado solo recuerda el encaje, ya decidido, de que el solver no convierte:
 
 - longitud: pulgada, o pie, una de las dos, declarada;
 - fuerza: kip, o libra-fuerza, la que case con la longitud elegida;
@@ -440,7 +435,7 @@ Cuando el ticket de unidades cambie los comentarios que hoy dicen «metros» y �
 
 No se añade API en este corte. Cuando se publique, va entera en tipos, con nombres legibles. El cálculo sigue en Rust. Python no factoriza y no convierte unidades por su cuenta.
 
-El informe no entra en `results/1` hasta el PR que actualice el esquema. Hasta entonces vive en el tipo Rust del ensayo. El objeto de abajo es la forma que ese PR debería exponer. Un lector viejo de `results/1` no tiene que romperse: el objeto es opcional y el major no cambia sin una decisión de esquema.
+Decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT: el objeto opcional en `results/1` queda aprobado. El PR que actualice el esquema lo publica con la forma de abajo. Un lector viejo no tiene que romperse: el objeto es opcional y el major no cambia por añadirlo.
 
 ```python
 from enum import Enum
@@ -533,19 +528,23 @@ class InformeSolverDisperso:
         self.pico_proceso_bytes = pico_proceso_bytes
 ```
 
-El rechazo de capacidad, cuando llegue a Python, es una `EngineError` con el código vigente (ENG-E-0013, o ENG-E-0015 si Jonathan lo acepta), el mensaje en español y los enteros `grados_de_libertad_libres`, `bytes_estimados` y `bytes_limite` como campos con tipo, no como texto que el llamador tenga que partir.
+El rechazo de capacidad, cuando llegue a Python, es una `EngineError` con ENG-E-0013, el mensaje en español y los enteros `grados_de_libertad_libres`, `bytes_estimados` y `bytes_limite` como campos con tipo, no como texto que el llamador tenga que partir.
 
 `run` sigue siendo la entrada. No se propone un solver paralelo en Python.
 
-## 11. Decisiones que quedan para Jonathan
+## 11. Decisiones
 
-1. Dependencias: aceptar la recomendación (A), o elegir (B) `faer` 0.24.4, o (C) `sparse-ldlt` 0.3.3 u otra crate. Este PR no añade ninguna.
-2. Si elige (B): los avisos de licencia ya descritos en ADR-002, y si relaja la igualdad de bits entre nativo y wasm.
-3. Si acepta el código nuevo ENG-E-0015 o se queda en ENG-E-0013 para el rechazo previo a la reserva.
-4. El par coherente de Estados Unidos (pulgada o pie, kip o libra) y que el ángulo interno siga en radianes. El catálogo de unidades no se amplía en los PR del solver.
-5. El corte `n ≤ 2048` para seguir en la ruta densa, y con él la conservación de los hashes publicados.
-6. El objeto opcional del informe en `results/1`.
-7. Los 60 s y los 2 GiB siguen siendo el criterio de MAM-67 para un modelo. No son, por este documento, un presupuesto de release.
+Estado: decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT. La delegación escrita es del 2026-11-10, 01:13 ECT. Este PR no añade crates ni códigos de error.
+
+1. Opción A aprobada: implementación propia en sala limpia, sin crates nuevas. Condición: el criterio de salida incluye las metas de velocidad en el pórtico 3D de 250 nudos, con estático en 54 ms o menos, modal en 0,58 s o menos y P-Delta en 88 ms o menos. Si la fase 10 no llega, se reabren B y C con números medidos.
+2. Con A, la pregunta de B sobre avisos de licencia e igualdad de bits ya no aplica.
+3. Se reutiliza ENG-E-0013. No hay ENG-E-0015. El catálogo se queda en 32 entradas.
+4. Unidades aprobadas: el solver trabaja en unidades coherentes y no convierte nada. La conversión vive en la frontera (MAM-1043).
+5. Se retira el corte `n ≤ 2048`. El pórtico de 250 nudos tiene unos 1 500 GDL y en la ruta densa tarda 6,48 s, así que ese corte no mejora nada. El umbral se fija midiendo en la fase 10. Conservar los hashes publicados no es criterio para fijarlo: si cambian, se documenta y J4 lo audita. MAM-1056 es el perfil de la ruta densa: por qué 1 500 GDL tardan 6,48 s.
+6. El objeto opcional en `results/1` queda aprobado.
+7. Los límites de 60 s y 2 GiB valen solo para MAM-67 y no cierran MAM-107. Aprobado.
+
+La fase 2 se lleva en MAM-1055, con su propio PR.
 
 ## 12. Fuera de este diseño
 

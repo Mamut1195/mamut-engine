@@ -1,5 +1,25 @@
 # Bitácora clean-room · ENG-LA-008-DISENO
 
+## Decisiones registradas
+
+- Estado: decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT. La delegación escrita es del 2026-11-10, 01:13 ECT.
+- Autor de este apartado: agente cloud de Cursor (Cursor Agent), modelo: DESCONOCIDO, 2026-11-10 01:18 (America/Guayaquil, ECT, UTC-5).
+- Rol: especificador. Sigue sin haber código de producción en el corte de MAM-67.
+- Session: continuación del 2026-11-10 (America/Guayaquil, ECT, UTC-5). Esta continuación no vio código fuente ni salidas de OpenSees, Frame3DD, Stabileo, CalculiX ni LAPACK, ni de sus derivados. No se abrió el código de SuiteSparse, CSparse, CHOLMOD, AMD de Davis, MUMPS, PARDISO ni de un derivado.
+- Qué se registra, ya escrito en `docs/design/MAM-67-solver-disperso.md`, apartado 11, y en `docs/tickets/11-solver-disperso.md`:
+  1. Opción A aprobada: implementación propia en sala limpia, sin crates nuevas. El criterio de salida incluye el pórtico 3D de 250 nudos: estático en 54 ms o menos, modal en 0,58 s o menos y P-Delta en 88 ms o menos. Si la fase 10 no llega, se reabren B y C con números medidos.
+  2. Con A, la pregunta de B sobre avisos de licencia e igualdad de bits ya no aplica.
+  3. Se reutiliza ENG-E-0013. No hay ENG-E-0015. El catálogo sigue en 32 entradas.
+  4. El solver trabaja en unidades coherentes y no convierte. La conversión vive en la frontera, MAM-1043.
+  5. Se retira el corte de 2048 GDL. El umbral se mide en la fase 10. Si los hashes publicados cambian, se documentan y J4 los audita. MAM-1056 pregunta por qué unos 1 500 GDL tardan 6,48 s en la ruta densa.
+  6. El objeto opcional en `results/1` queda aprobado.
+  7. Los límites de 60 s y 2 GiB valen solo para MAM-67 y no cierran MAM-107.
+- La fase 2 se lleva en MAM-1055, con su propio PR.
+- Integración: `git merge` de `18928b1b60516ea90bba56d9f0ab39c3185790f6`, sin rebase.
+- Revisor clean-room: PENDING
+
+## Registro original
+
 - Ticket / PR: MAM-67, ENG-LA-008. Diseño del solver directo disperso simétrico. Rama `j2/mam-67-diseno-solver-disperso`. Pull request en borrador contra `main`. Este corte no implementa el solver, no añade dependencias y no cierra MAM-107.
 - Autor: agente cloud de Cursor (Cursor Agent), modelo: DESCONOCIDO, 2026-11-10 01:09 (America/Guayaquil, ECT, UTC-5).
 - Rol: especificador. No hay código de producción.
