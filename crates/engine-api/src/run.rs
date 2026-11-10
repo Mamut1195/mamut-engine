@@ -618,5 +618,10 @@ pub(crate) fn validation(e: &input::Execution) -> Vec<Diagnostic> {
             Ok(_) => {}
         }
     }
+    if !diagnostics.iter().any(|d| d.severity == "error") {
+        if let Some(error) = advanced::geometric_temperature_rejection(e) {
+            diagnostics.extend(Failure::from(error).1);
+        }
+    }
     diagnostics
 }
