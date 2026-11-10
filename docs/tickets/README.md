@@ -46,3 +46,4 @@ no implementa los tickets 01, 02 ni 03.
 | 8 | [08-toml-linea-columna.md](08-toml-linea-columna.md) | Ya, en paralelo | Decisión U11 ya escrita en `docs/V1.md`. |
 | 9 | [09-pilote-reese-matlock.md](09-pilote-reese-matlock.md) | Solo con la fuente publicada en la sesión | MAM-49. |
 | — | [10-no-empezar.md](10-no-empezar.md) | No | Presupuestos, release y licencia comercial. |
+| 11 | [11-solver-disperso.md](11-solver-disperso.md) | El diseño, ya. La implementación es la opción A | MAM-67, ENG-LA-008. |
