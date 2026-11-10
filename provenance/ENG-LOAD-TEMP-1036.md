@@ -32,7 +32,9 @@
 temperatura. También repite el rechazo por `member_loads` y el de un
 documento que no trae exactamente un análisis, con el mismo código y el mismo
 texto que `run`. Si `run` se detiene antes (método experimental, elemento,
-ensamblado, combinaciones o pasos), `validate` devuelve esa causa. `run` no
+ensamblado, sistema con prescritos o diafragmas, combinaciones o pasos),
+`validate` devuelve esa causa. Un diafragma que el sistema acepta conserva
+el aviso que `run` escribe antes del método, y no añade otro. `run` no
 cambia: un modelo inválido con temperatura en la referencia sigue en
 `invalid`, sin un segundo diagnóstico.
 
@@ -43,6 +45,13 @@ f29a9673f0010c757674e1ed8f4004fbbf228f07 sobre el corpus de la revisión. De 313
 casos, los cuatro modelos rc3d modal y spectrum grandes quedaron fuera en
 debug. Los otros 309 coinciden en stdout, stderr y código de salida: 0
 diferencias. Fecha de esta corrida: 2026-11-09 (ECT).
+
+## Corrida posterior a la revisión r2
+
+La misma CLI se volvió a comparar con esa base. El corpus principal repite
+309 casos y 0 diferencias, con los cuatro rc3d grandes fuera. El corpus
+extra compara 101 casos y 0 diferencias; cuatro variantes rc3d modal y
+spectrum no terminan en debug. Fecha: 2026-11-09 (ECT).
 
 ## Declaración de sesión
 

@@ -393,6 +393,120 @@ fn reference_temperature_precedes_member_loads() {
     assert_same_diagnostics(&framed, Status::Unsupported);
 }
 
+fn incline(mut model: Value) -> Value {
+    model["model"]["nodes"][1]["coordinates"] = json!([2.0, 1.0, 0.0]);
+    model
+}
+
+fn as_buckling(mut model: Value) -> Value {
+    model["options"]["allow_experimental"] = json!(true);
+    model["analyses"] = json!([{
+        "method": "buckling.linear",
+        "options": {"mode_count": 1, "reference": {"case": "G", "factor": 1.0}}
+    }]);
+    model
+}
+
+fn prescribe_missing(mut model: Value) -> Value {
+    model["model"]["prescribed"] = json!([{"node": 12345, "dof": "Ux", "value": 0.0}]);
+    model
+}
+
+fn slave_is_master(mut model: Value) -> Value {
+    model["model"]["diaphragms"] = json!([{"master": 1, "slaves": [1]}]);
+    model
+}
+
+fn xy_on_plane(mut model: Value) -> Value {
+    model["model"]["diaphragms"] = json!([{"master": 1, "slaves": [2]}]);
+    model
+}
+
+#[test]
+fn system_construction_precedes_member_loads() {
+    let cases = [
+        (
+            "pDelta missing prescribed node",
+            prescribe_missing(frame()),
+            "ENG-E-0003",
+            "Node 12345, DOF Ux",
+            Status::Invalid,
+        ),
+        (
+            "inclined pDelta missing prescribed node",
+            prescribe_missing(incline(frame())),
+            "ENG-E-0003",
+            "Node 12345, DOF Ux",
+            Status::Invalid,
+        ),
+        (
+            "frame buckling missing prescribed node",
+            prescribe_missing(as_buckling(frame())),
+            "ENG-E-0003",
+            "Node 12345, DOF Ux",
+            Status::Invalid,
+        ),
+        (
+            "truss pDelta missing prescribed node",
+            prescribe_missing(truss(pdelta(), true, false)),
+            "ENG-E-0003",
+            "Node 12345, DOF Ux",
+            Status::Invalid,
+        ),
+        (
+            "pDelta slave equals master",
+            slave_is_master(frame()),
+            "ENG-E-0010",
+            "Slave equals master",
+            Status::Invalid,
+        ),
+        (
+            "inclined pDelta slave equals master",
+            slave_is_master(incline(frame())),
+            "ENG-E-0010",
+            "Slave equals master",
+            Status::Invalid,
+        ),
+        (
+            "frame buckling slave equals master",
+            slave_is_master(as_buckling(frame())),
+            "ENG-E-0010",
+            "Slave equals master",
+            Status::Invalid,
+        ),
+        (
+            "truss buckling slave equals master",
+            slave_is_master(truss(buckling(), true, false)),
+            "ENG-E-0010",
+            "Slave equals master",
+            Status::Invalid,
+        ),
+        (
+            "plane frame XY diaphragm",
+            xy_on_plane(frame()),
+            "ENG-E-0013",
+            "XY diaphragm supports only D3",
+            Status::Unsupported,
+        ),
+    ];
+    assert_eq!(cases.len(), 9);
+    for (name, model, code, fragment, status) in cases {
+        let validated = validate(&model.to_string()).unwrap();
+        assert_eq!(validated.len(), 1, "{name}: {validated:?}");
+        assert_eq!(validated[0].code, code, "{name}");
+        assert!(
+            validated[0].cause.contains(fragment),
+            "{name}: {}",
+            validated[0].cause
+        );
+        assert!(
+            !validated[0].cause.contains("requires nodal loads"),
+            "{name}"
+        );
+        assert_same_diagnostics(&model, status);
+    }
+}
+
 #[test]
 fn plain_member_loads_still_report_model_and_assembly_progress() {
     let input = frame().to_string();

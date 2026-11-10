@@ -618,23 +618,50 @@ fn experimental_diagnostics(e: &input::Execution) -> Option<Vec<Diagnostic>> {
     }
 }
 
-/// Member-load rejection in the order `run` reaches it, after assembly.
+/// Member-load rejection in the order `run` reaches it.
 ///
-/// Absent when the reference has no member loads. An earlier `build_members`
-/// or `load_vector` error is returned instead, so a transverse truss load stays
-/// ENG-E-0010 and an unknown element stays that cause.
+/// Absent when the reference has no member loads. The steps before the method
+/// are `build_members`, `model_for_system`, `assemble_members`, and
+/// `LinearSystem::from_model_with_diaphragms`. A prescribed node or a diaphragm
+/// that fails there is returned instead of the member-load diagnostic. A valid
+/// diaphragm keeps the same recovery warning `run` records before the method.
 fn anticipate_reference_member_loads(e: &input::Execution) -> Option<Vec<Diagnostic>> {
     advanced::member_load_rejection(e)?;
     let members = match build_members(e) {
         Err(failure) => return Some(failure.1),
         Ok(members) => members,
     };
-    if let Err(failure) = assemble_members(&e.model, &members) {
-        return Some(failure.1);
+    let model_for_system = match temperature::model_for_system(&e.model, &members, &e.temperature) {
+        Err(error) => return Some(Failure::from(error).1),
+        Ok(model) => model,
+    };
+    let contributions = match assemble_members(&e.model, &members) {
+        Err(failure) => return Some(failure.1),
+        Ok(contributions) => contributions,
+    };
+    if let Err(error) = LinearSystem::from_model_with_diaphragms(
+        ReferenceBackend,
+        model_for_system.as_ref(),
+        &contributions,
+        &e.prescribed,
+        &e.diaphragms,
+    ) {
+        return Some(Failure::from(error).1);
+    }
+    let mut diagnostics = Vec::new();
+    if !e.diaphragms.is_empty() {
+        diagnostics.push(diagnostic(
+            "API-W-DIAPHRAGM-RECOVERY",
+            "warning",
+            "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados.".into(),
+        ));
     }
     match advanced::geometric_gate(e) {
-        Ok(()) => None,
-        Err(failure) => Some(failure.1),
+        Ok(()) => (!diagnostics.is_empty()).then_some(diagnostics),
+        Err(failure) => {
+            diagnostics.extend(failure.1);
+            Some(diagnostics)
+        }
     }
 }
 

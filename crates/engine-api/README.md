@@ -255,8 +255,9 @@ siendo `invalid` y no se añade otro ENG-E-0013. `validate` también repite,
 con el mismo código y el mismo texto, el rechazo por `member_loads` en ese
 caso y el de un documento que no trae exactamente un análisis (`ENG-E-0013`
 y `API-E-INPUT`). Si `run` rechaza antes por el método experimental, el
-elemento, el ensamblado, las combinaciones o el número de pasos, `validate`
-devuelve ese diagnóstico y no el de `member_loads`. No se publica factor ni
+elemento, el ensamblado, el sistema con prescritos o diafragmas, las
+combinaciones o el número de pasos, `validate` devuelve ese diagnóstico y no
+el de `member_loads`. No se publica factor ni
 desplazamiento. La temperatura solo
 en el caso lateral de pDelta, o en un caso que no es la referencia de
 `buckling.linear`, sigue permitida.
