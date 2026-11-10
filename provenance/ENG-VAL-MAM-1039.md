@@ -1,7 +1,7 @@
 # Bitácora clean-room · ENG-VAL-MAM-1039
 
 - Ticket / PR: MAM-1039. Seguimiento de VAL-037 y VAL-038 (MAM-850, pull request 23, ya fusionado). Rama `j2/mam-1039-seguimiento-val-037`. Base `9aeebcc000ca42c0f94b5aa41507b1da1e378743`. Notas bajas de la r2 de J4. No se mueve el head de ese pull request. El número de este pull request queda DESCONOCIDO en esta bitácora: se abre después del push.
-- Autor: agente cloud de Cursor (Cursor Agent), modelo: DESCONOCIDO, 2026-11-09 (América/Guayaquil, ECT, UTC-5).
+- Autor: agente cloud de Cursor (Cursor Agent), modelo: DESCONOCIDO, 2026-11-09 (América/Guayaquil, ECT, UTC-5). El commit que introduce esta bitácora registró 2026-11-10T05:00:01Z, esto es 2026-11-10 00:00:01 ECT. Esa hora sale de git y no se asignó a mano.
 - Sesión: agente cloud de Cursor (Cursor Agent), modelo: DESCONOCIDO. Esta sesión no consultó código fuente ni salidas de OpenSees, Frame3DD, Stabileo, CalculiX ni LAPACK, ni de sus derivados.
 - Rol: especificador. Sin código de producción.
 - Contrato implementado: ninguno. Cambia la redacción, el nombre de un ensayo y las erratas. No cambia tolerancias ni valores esperados.
@@ -40,7 +40,7 @@ Si el modelo se ejecutó en local antes del push del preregistro `5696f82a806b05
 - `cargo check --offline --locked --workspace --target wasm32-unknown-unknown`: exit 0
 - `cargo build --offline --locked --release --target wasm32-unknown-unknown -p engine-wasm`: exit 0
 - `bash clean-room/check.sh origin/main`: exit 0 en el árbol de esta entrega
-- `bash scripts/changelog-check.sh origin/main`: el script lee HEAD. El exit se anota en el commit que sigue a esta corrida.
+- `bash scripts/changelog-check.sh origin/main`: exit 0. Changelog: OK (1 new fragment).
 
 Cargo imprimió, en clippy, doc, el check de wasm y el build de wasm, un aviso ya presente del manifiesto de `engine-cli`: la dependencia `toml` lleva metadatos de semver. Este cambio no toca ese manifiesto. `docs/contracts/error-codes-1.json` no se editó y sigue con 32 entradas. Esta sesión no compiló LaTeX. `lualatex` y `latexmk` no están en el PATH.
 
