@@ -226,71 +226,28 @@ tabla. F1 no reescribe la ley.
 - El pie de agrimensura.
 - La short ton.
 
-## F2 propuesta de contrato
+## F2 · contrato `engine-input/2`
 
-Texto de Jonathan del 2026-10-31 en MAM-990, tal como se trasladó a este
-encargo. No hay una copia de MAM-990 en el repositorio; la ruta local es
-DESCONOCIDO.
+Jonathan, 2026-11-10 a las 01:12 ECT, a través de J0: «Apruebo que
+MAM-1043 cambie el contrato de entrada para declarar unidades SI o EE. UU.»
 
-> Un campo opcional nuevo cabe en results/1… Solo un cambio incompatible
-> exige results/2: quitar o renombrar un campo, cambiar su tipo o su
-> significado, o volver obligatorio uno opcional.
+La frase de MAM-990 del 2026-10-31, trasladada a este encargo, dice que un
+campo opcional nuevo cabe en la versión 1 y que solo un cambio incompatible
+exige la versión 2: quitar o renombrar un campo, cambiar su tipo o su
+significado, o volver obligatorio uno opcional. No hay una copia de MAM-990
+en el repositorio.
 
-La frase habla de `results`. Aquí se aplica el mismo criterio a
-`engine-input`, porque Jonathan pidió que el cambio de contrato de este
-ticket pase por MAM-990. Si la frase era solo para results, eso también
-queda para él.
+El cambio no es aditivo. `units` en `engine-input/1` es la constante
+`"SI"`. Admitir `"US"` en ese mismo campo cambia el tipo y el significado.
+Por eso el contrato nuevo es `engine-input/2`. `engine-input/1` queda como
+está. La migración está en
+[docs/migration/engine-input-2.md](migration/engine-input-2.md).
 
-Hoy, en `schemas/engine-input/1.json`, `units` es obligatorio y su esquema
-es la constante `"SI"`. MAM-918 hace que cualquier otro texto sea
-`ENG-E-0001`. Este PR no modifica ese archivo.
-
-Hay tres maneras de declarar las unidades. Las dos primeras pueden ser un
-campo nuevo. La tercera reutiliza `units`.
-
-1. **Por magnitud.** Un objeto opcional, por ejemplo `quantity_units`,
-   con una clave por dimensión del catálogo y un símbolo de esta tabla.
-   Cada número de esa dimensión se lee en ese símbolo. No hay símbolo por
-   omisión: si la clave falta, esa magnitud no tiene unidad declarada y
-   el documento no pasa. Si el objeto entero falta, el documento es el de
-   hoy.
-2. **Bloque de documento con preset.** Un objeto opcional, por ejemplo
-   `unit_preset`, cuyo valor es `N-m`, `kN-m`, `N-mm`, `kip-in`, `kip-ft`,
-   `lb-in` o `lb-ft`. El preset nombra el conjunto cerrado de arriba. La
-   masa que el preset deja vacía se declara en el mapa de magnitudes. El
-   preset no adivina: `"lb"` a secas sigue siendo error. Si el bloque
-   falta, el documento es el de hoy.
-3. **Reusar `units`.** Pasar de la constante `"SI"` a un enum o a un
-   objeto.
-
-Lectura de la regla:
-
-- (1) y (2), como campo opcional nuevo, caben en `engine-input/1` solo si
-  no cambian el tipo ni el significado de lo que ya existe. Un documento
-  viejo, sin el campo, sigue significando lo mismo y `units` sigue siendo
-  `"SI"`.
-- Cuando el campo nuevo está presente, las coordenadas, los módulos y las
-  cargas dejan de leerse siempre en SI. Los documentos ya válidos no
-  cambian. El significado del campo viejo, en el contrato, pasa de
-  «siempre metros» a «metros, salvo que el bloque diga otra cosa». La
-  lectura compatible dice que el valor por omisión conserva los documentos
-  actuales. La lectura estricta dice que el significado cambió, y eso pide
-  versión mayor.
-- (3) cambia el tipo de `units` (de constante a enumeración u objeto) y
-  cambia su significado: deja de afirmar «este documento está en SI».
-  Textos que hoy son `ENG-E-0001` pasarían a ser válidos. Quien solo
-  comprueba `schema: engine-input/1` y asume SI leería un documento en kip
-  como si fuera SI. Según la regla, cambiar el tipo o el significado exige
-  versión mayor: `engine-input/2`.
-
-**Decisión, pendiente de Jonathan. Este PR no la toma y no toca el esquema.**
-
-Recomendación del agente, no adoptada: no ampliar `units` dentro de
-`engine-input/1`. Si `units` deja de ser la constante `"SI"`, F2 es
-`engine-input/2`. Un bloque opcional en `engine-input/1` solo es
-compatible si Jonathan acepta las dos condiciones: su ausencia reproduce
-el comportamiento actual, y su presencia puede condicionar la lectura de
-los números ya existentes.
+`engine-input/2` exige `units` con uno de dos textos, `"SI"` o `"US"`.
+No hay valor por omisión. `"SI"` significa las mismas magnitudes que
+`engine-input/1`. `"US"` es el conjunto kip-in: in, kip, kip·in, ksi y
+kip·s²/in. La frontera convierte a SI antes del núcleo. Los resultados
+siguen en SI; `units_out` es F3.
 
 ## Propuesta de código, no añadida
 
@@ -308,11 +265,9 @@ le parece demasiado amplio. No se añade en este PR.
 
 ## Decisiones abiertas
 
-1. Versión de F2: bloque opcional en `engine-input/1`, o `engine-input/2`
-   si `units` deja de ser `"SI"`.
-2. `pcf`: en F1 es lbm/ft³, densidad másica. En la práctica de EE. UU. el
+1. `pcf`: en F1 es lbm/ft³, densidad másica. En la práctica de EE. UU. el
    mismo nombre suele ser peso específico, lbf/ft³. Esta tabla no tiene
    fuerza por volumen y no infiere g. Confirmar o cambiar el significado.
-3. Si tensión y fuerza/área deben ser dimensiones incompatibles.
-4. Si N·m permanece en el catálogo como ancla o solo como unidad interna.
-5. Si el código propuesto de arriba hace falta.
+2. Si tensión y fuerza/área deben ser dimensiones incompatibles.
+3. Si N·m permanece en el catálogo como ancla o solo como unidad interna.
+4. Si el código propuesto de arriba hace falta.

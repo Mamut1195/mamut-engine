@@ -2,7 +2,7 @@
 
 - Estado: F1 es el corte de catálogo y conversión. F2, F3 y F4 siguen abiertas.
 - Relación: MAM-1043, ENG-CORE-012. No cierra MAM-12 ni MAM-107.
-- Aprobación: Jonathan, 2026-11-10, autorizó que este ticket cambie el contrato de entrada para declarar unidades SI o de EE. UU. Ese cambio pasa por la política de MAM-990. F1 no cambia el contrato.
+- Aprobación: Jonathan, 2026-11-10 a las 01:12 ECT, a través de J0: «Apruebo que MAM-1043 cambie el contrato de entrada para declarar unidades SI o EE. UU.» F2 ya no espera otra decisión. El cambio pasa por MAM-990. F1 no cambia el contrato.
 - Reglas comunes: [README.md](README.md).
 
 ## Reglas que no se relajan
@@ -66,11 +66,22 @@ F1 no toca esquemas, goldens ni el valor `units: "SI"`.
 
 ### F2 · Contrato de entrada
 
-Declarar las unidades del documento, por magnitud o con un bloque de
-preset. La versión (`engine-input/1` aditivo o `engine-input/2`) no se
-decide aquí. La propuesta y el análisis de MAM-990 están en
-[docs/UNITS.md](../UNITS.md), sección «F2 propuesta de contrato».
-Hasta la decisión de Jonathan, `units` sigue siendo la constante `"SI"`.
+El documento declara el sistema con el campo obligatorio `units`. Los
+valores son `"SI"` o `"US"`. No hay omisión ni otro valor que se lea como
+SI.
+
+No es aditivo. En `engine-input/1`, `units` es la constante `"SI"`.
+Pasarlo a una enumeración cambia el tipo y el significado: un texto que
+hoy es `ENG-E-0001` pasaría a ser válido, y quien solo comprueba
+`engine-input/1` leería números en kip como si fueran newtons. MAM-990
+pide versión mayor para eso. El contrato nuevo es `engine-input/2`.
+`engine-input/1` no se reescribe.
+
+`"US"` es el conjunto kip-in de la tabla: longitud en in, fuerza en kip,
+momento en kip·in, tensión en ksi, masa en kip·s²/in. La conversión a SI
+es exacta y ocurre en la frontera, antes del núcleo. Los giros siguen en
+radianes. La migración está en
+[docs/migration/engine-input-2.md](../migration/engine-input-2.md).
 
 ### F3 · `units_out` en resultados e informes
 
@@ -112,7 +123,13 @@ F1:
 - `units: "SI"` y los esquemas no cambian. Los goldens y los digestos de determinismo quedan iguales.
 - Hay `docs/UNITS.md`, `provenance/ENG-CORE-012.md` y fragmento en `changelog.d/`. El revisor clean-room queda en PENDING.
 
-F2: el contrato de entrada declara las unidades y Jonathan ya eligió la versión.
+F2:
+
+- `engine-input/2` exige `units` igual a `"SI"` o `"US"`, sin valor por omisión.
+- `"US"` se convierte a SI en la frontera con los factores de `units-table/1`.
+- La ida y vuelta de esa frontera queda dentro de 1e-15.
+- `engine-input/1` y los goldens de documentos SI no cambian.
+- La migración está escrita en `docs/migration/engine-input-2.md`.
 
 F3: resultados e informes publican la unidad de salida acordada.
 
