@@ -18,7 +18,7 @@
   atributos Python `entity_kind`, `missing_id` y `referenced_by`.
 - Comparison with oracle (sibling repo, informative): no
 - Declaration: "No consulté código ni salidas de OpenSees, Frame3DD, Stabileo, CalculiX ni LAPACK para este ticket."
-- Session: no se abrió `provenance/ENG-BENCH-001-SMOKE-VPS.md`, `/workspace/audit/restricted/` ni un registro de Codex.
+- Session: no se abrió provenance/ENG-BENCH-001-SMOKE-VPS.md, la carpeta de auditoría restringida ni registros de Codex.
 - Clean-room reviewer: PENDING
 
 ## Decisión de idioma
