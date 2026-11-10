@@ -50,7 +50,7 @@ Estos cambios de documentación vienen de la r2 de J4 sobre #27 y de la decisió
 
 Lo mismo quedó escrito en `docs/design/MAM-67-solver-disperso.md`, en la ficha 11 y en `provenance/ENG-LA-008-DISENO.md`. La frase que sigue describiendo el CSR general suma en el orden de entrada: ese tipo no cambió.
 
-En esta ronda, después de integrar `main`: `cargo fmt --all -- --check` exit 0; `cargo clippy --offline --locked --workspace --all-targets -- -D warnings` exit 0; `cargo test --offline --locked --workspace` exit 0; `bash clean-room/check.sh origin/main` Clean-room OK. El script de fragmentos se corre sobre HEAD al cerrar el commit.
+En esta ronda, después de integrar `main`: `cargo fmt --all -- --check` exit 0; `cargo clippy --offline --locked --workspace --all-targets -- -D warnings` exit 0; `cargo test --offline --locked --workspace` exit 0; `bash clean-room/check.sh origin/main` Clean-room OK; `bash scripts/changelog-check.sh origin/main` Changelog OK, un fragmento nuevo.
 
 ## Verificación
 
