@@ -8,8 +8,9 @@ tickets 01 y 02, y distinta de la del 2026-11-04. No vio salidas numéricas
 de un programa estructural externo.
 
 - Autor, modelo si es IA, fecha y rol: agente cloud de Cursor (Cursor Agent),
-  modelo: Grok 4.7, 2026-11-09 (America/Guayaquil). Rol: especificador e
-  implementador.
+  modelo: DESCONOCIDO, 2026-11-09 (America/Guayaquil). Rol: especificador e
+  implementador. La corrección del signo de κz es de la misma sesión, el
+  2026-11-10.
 - Kind propio, contrato y versión del método: `frame2d.fiber_stations`,
   `element/1` (`ContractId::new("element", 1, 0)`), método `0.1.0`.
 - Módulo, crate y consumidor previsto:
@@ -139,19 +140,30 @@ se mueven para igualar un programa externo.
    v(ξ) = H1 v_i + H2 L θ_i + H3 v_j + H4 L θ_j.
 
    La sección usa ε(y) = ε0 − κz y y un κz positivo produce Mz positivo.
-   Un v″ positivo alarga la fibra y > 0, así que ε(y) = ε0 + y v″ y
+   Un giro θ positivo alrededor de +z sigue la mano derecha: el punto de
+   la sección situado en y se desplaza hacia −x en y·θ. El desplazamiento
+   axial de esa fibra es u − y θ. Con θ = dv/dx,
 
-   (6) κz = −v″.
+   ε(y) = du/dx − y dθ/dx = ε0 − y v″.
+
+   Igualando con ε(y) = ε0 − κz y queda, ecuación (6):
+
+   κz = v″.
+
+   Un v″ positivo acorta la fibra y > 0: el centro de curvatura queda del
+   lado −y y esa fibra está más cerca del centro. La frase anterior de
+   esta ficha, que ponía κz = −v″, contradecía a `ElasticFrame`.
 
    El operador que sale de (5) y (6) es, ecuación (7):
 
    B_ε = [−1/L, 0, 0, 1/L, 0, 0],
-   B_κ,v_i = 6 (1 − 2 ξ) / L², B_κ,θ_i = (4 − 6 ξ) / L,
-   B_κ,v_j = −6 (1 − 2 ξ) / L², B_κ,θ_j = (2 − 6 ξ) / L.
+   B_κ,v_i = (−6 + 12 ξ) / L², B_κ,θ_i = (−4 + 6 ξ) / L,
+   B_κ,v_j = (6 − 12 ξ) / L², B_κ,θ_j = (−2 + 6 ξ) / L.
 
-   Si Mz = EI κz y N = EA ε0, ∫ B^T diag(EA, EI) B dx reproduce la matriz
-   de `stiffness.rs`: 4EI/L en θ_i, 2EI/L entre θ_i y θ_j, y 6EI/L² entre
-   v_i y θ_i. La integral se hizo a mano antes del código.
+   Cada componente de B_κ es la derivada de v″. El producto B_κ,a B_κ,c no
+   cambia si se invierten todos los signos, así que ∫ B^T diag(EA, EI) B dx
+   sigue reproduciendo la matriz de `stiffness.rs`: 4EI/L en θ_i, 2EI/L
+   entre θ_i y θ_j, y 6EI/L² entre v_i y θ_i. La integral se hizo a mano.
 
 4. Trabajo virtual. En cada estación la sección devuelve s = [N, Mz] y la
    tangente k_s de 2×2. La fuerza interna local, en el mismo convenio que
@@ -172,12 +184,14 @@ se mueven para igualar un programa externo.
    h = 1/2 m, cuatro franjas, dos barras de área 1/1024 m² en
    y = ±3/16 m, hormigón de 3000 psi con ρ_s = 0, acero
    E = 200000000000 Pa, fy = 500000000 Pa, b = 0, historia inicial nula.
-   Se impone en toda la luz la deformación de esa sección, ecuación (9):
+   El mismo desplazamiento de control de la primera redacción se conserva.
+   Con (6) corregida ese campo ya no produce κz = +1/256. Ecuación (9):
 
-   ε0 = −1/1024, κz = 1/256 m⁻¹.
+   ε0 = (u_j − u_i) / L = −1/1024,
+   κz = v″ = −1/256 m⁻¹.
 
    Con v_i = v_j = 0, (7) es constante si θ_j = −θ_i y
-   κz = 2 θ_i / L. Se elige L = 4 m para que los giros y el acortamiento
+   κz = −2 θ_i / L. Se elige L = 4 m para que los giros y el acortamiento
    sean racionales diádicos, ecuación (10):
 
    u_i = 0, v_i = 0, θ_i = 1/128 rad,
@@ -189,11 +203,11 @@ se mueven para igualar un programa externo.
    transversal. No es un voladizo con fuerza en la punta.
 
 6. Equilibrio en la estación de control. Como ε0 y κz son constantes, cada
-   estación, y también cualquier x/L de recuperación, ve el mismo par de
-   deformaciones que la sección ya probada. N y Mz son los de la ecuación
-   (8) de la ficha de la sección. El momento no cambia con x. Sin carga
-   repartida ni momento repartido, el equilibrio de la directriz pide
-   corte nulo, ecuación (11):
+   estación, y también cualquier x/L de recuperación, ve ε0 = −1/1024 y
+   κz = −1/256. La sección de la ficha 02 es simétrica, así que
+   N(ε0, −κ) = N(ε0, κ) y Mz(ε0, −κ) = −Mz(ε0, κ). N es el de la ecuación
+   (8) de esa ficha y Mz es su opuesto. El momento no cambia con x. Sin
+   carga repartida, el corte de ese estado es nulo, ecuación (11):
 
    dMz/dx = 0 ⇒ Vy = 0.
 
@@ -202,22 +216,27 @@ se mueven para igualar un programa externo.
 
    N = −f′_c · 695875 / 8388608 − E / 524288,
    Vy = 0,
-   Mz = f′_c · 81875 / 16777216 + 9 E / 33554432.
+   Mz = −(f′_c · 81875 / 16777216 + 9 E / 33554432).
 
    f′_c es 3000 psi pasado al pascal con el factor de unidad ya usado por
    `concrete.kent_park`, 4.4482216152605 / 0.0254². E es el módulo del
-   acero. Estos valores no salen de otro programa.
+   acero. El paréntesis es el momento de la ecuación (8) de la ficha de
+   la sección, evaluado en κz = +1/256. El signo menos es el de κz = −1/256.
+   Estos valores no salen de otro programa.
 
 7. Fuerza nodal del mismo estado. Con N y Mz constantes, (8) integra
    polinomios de grado ≤ 1. La regla (3) los integra exactamente porque
-   los pesos suman 2 y la regla es simétrica. Sale, ecuación (13):
+   los pesos suman 2 y la regla es simétrica. ∫ B_κ,θ_i dx = −1 y
+   ∫ B_κ,θ_j dx = +1, así que, ecuación (13):
 
-   f = [−N, 0, Mz, N, 0, −Mz].
+   f = [−N, 0, −Mz, N, 0, Mz].
 
-   En esta barra horizontal la fuerza global coincide con la local. El
-   corte de la cara positiva se informa como −f_v,i, el mismo signo que
-   la recuperación de la barra elástica sin carga. En este estado ese
-   corte es 0, de acuerdo con (11).
+   Con el Mz negativo de (12), el momento de extremo en i es positivo.
+   En x = 0 y con corte nulo, el momento de cara positiva de la barra
+   elástica cumple M = −f_θ,i. Esa identidad coincide con el Mz de la
+   sección. En esta barra horizontal la fuerza global coincide con la
+   local. El corte de la cara positiva se informa como −f_v,i. En este
+   estado ese corte es 0, de acuerdo con (11).
 
 8. Tangente en el mismo estado. k_s es la ecuación (9) de la ficha de la
    sección y es constante a lo largo de la luz. (8) la integra con la
@@ -228,48 +247,92 @@ se mueven para igualar un programa externo.
    5×10⁻⁷. La fibra menos comprimida está a 1/4096 del quiebro en
    deformación nula, y la más comprimida está a unos 2.9×10⁻⁴ del pico
    0.002. El acero de control está a unos 7.9×10⁻⁴ de la fluencia. La
-   muestra ±h no cambia de rama.
+   muestra ±h no cambia de rama. Con κz = −1/256 las deformaciones de las
+   fibras son las de la ficha 02 intercambiadas de arriba abajo, así que
+   las distancias a los quiebros no cambian.
+
+9. Armadura asimétrica, mismo desplazamiento (10), régimen de la parábola
+   y del acero elástico. La barra inferior sigue en 1/1024 m². La superior
+   pasa a 4/1024 m², en y = +3/16 m. Las deformaciones de las franjas, de
+   abajo arriba, son −7/4096, −5/4096, −3/4096 y −1/4096. Todas caen en la
+   parábola. El acero mayor es 7E/4096, por debajo de fy. El hormigón
+   aporta el mismo axil que en (12) y el momento opuesto al de la sección
+   simétrica en κz = +1/256, porque las razones de la parábola se invierten
+   con y. El acero suma, ecuación (14):
+
+   N = −f′_c · 695875 / 8388608 − 11 E / 4194304,
+   Mz = −f′_c · 81875 / 16777216 − 9 E / 67108864.
+
+   La fuerza nodal es otra vez (13) con este par (N, Mz). `ElasticFrame`
+   con la misma (ε0, κz) devuelve N = EA ε0 y Mz = EI κz. No es el mismo
+   número que (14): la parábola no es lineal. El convenio sí es el mismo:
+   κz = v″ y, con corte nulo, el Mz de estación es −f_θ,i. Una barra de
+   Euler con los mismos E, A e I cumple esa identidad con Mz = EI v″.
+
+10. Curvatura lineal, sección simétrica de control. Ecuación (15):
+
+   u_i = v_i = v_j = θ_j = 0, θ_i = 1/256 rad, u_j = −1/256 m, L = 4 m.
+
+   ε0 sigue en −1/1024. κz(ξ) = (−4 + 6ξ) θ_i / L = (3ξ − 2) / 512, desde
+   −1/256 hasta 1/512. En todo el vano cada fibra de hormigón sigue en la
+   parábola y el acero sigue elástico, así que N y Mz son cuadráticos en
+   ξ y el integrando de (8) es cúbico. La regla (3) integra ese polinomio
+   de forma exacta. Una regla de Boole con nodos 0, 1/4, 1/2, 3/4 y 1 y
+   pesos 7, 32, 12, 32, 7, también exacta hasta grado 5, da el mismo
+   integral y no usa los nodos ni los pesos de (2)–(4). Esa integral es
+   el esperado. Si se cambia 5/9, 8/9 o ±√(3/5), el elemento deja de
+   coincidir con ella.
+
+11. Historia distinta en una sola estación. En el campo (15), la barra
+   superior de la estación izquierda guarda ε_p = 1/10000 y el resto de
+   la historia sigue en cero. σ = E(ε − ε_p) mientras |σ| < fy, que aquí
+   se cumple. El esperado usa las estaciones en el orden izquierda,
+   centro, derecha. Si ese orden se permuta, la misma historia cae en
+   otra abscisa y la fuerza nodal cambia.
+
+12. Recuperación. Una estación pedida reutiliza la historia aceptada de
+   la estación de integración más cercana en ξ. Si hay empate, gana el
+   índice menor. El Mz informado es el de la sección en esa abscisa. El
+   corte informado es el constante −f_v,i. Cuando Mz varía a lo largo de
+   la luz, dMz/dx y ese corte no coinciden punto a punto: el equilibrio
+   que la barra impone es el trabajo virtual (8), no el equilibrio fuerte
+   en cada x. Con Mz constante, como en (11), sí coinciden. El número de
+   estaciones pedidas va de 0 a 64. Pasar de 64 es `ENG-E-0010`. Ese tope
+   es el dominio del método 0.1.0, no un presupuesto de tiempo o memoria.
 
 ## Casos fijados antes de ejecutar
 
 | Caso / fuente / cita | Parámetros SI | Entrada e historia | Esperado analítico | Tolerancia y justificación |
 | --- | --- | --- | --- | --- |
-| Barra biapoyada con giro impuesto. Ecuaciones (9)–(13) de esta ficha. N y Mz de la ecuación (8) de `docs/fichas/rectangle.fiber_bending.md`. Corte de la ecuación (11). | La sección de control de esa ficha. L = 4 m. Tres estaciones y pesos de las ecuaciones (2)–(4). | q de la ecuación (10). Historia de 12 ceros. Estación ξ = 1/2. | N, Vy = 0 y Mz de la ecuación (12). Fuerza local de la ecuación (13). | El mayor entre 1×10⁻⁹ y 1×10⁻¹² por el valor absoluto esperado, en la unidad de cada componente. Es el criterio ya usado por la sección para la holgura entre la fracción y la suma f64. No sale de otro programa. El corte usa el piso absoluto porque el esperado es cero. |
-| Las otras dos estaciones de integración y los extremos x/L = 0 y x/L = 1, mismo campo. | Igual. | Igual. | El mismo N, el mismo Mz y Vy = 0, porque la deformación no depende de x. | La misma. |
+| Barra biapoyada con giro impuesto. Ecuaciones (9)–(13). N de la ecuación (8) de `docs/fichas/rectangle.fiber_bending.md`; Mz es su opuesto porque κz = −1/256. | La sección de control de esa ficha. L = 4 m. | q de la ecuación (10). Historia de 12 ceros. Estación ξ = 1/2. | N, Vy = 0 y Mz de la ecuación (12). Fuerza local de la ecuación (13). | El mayor entre 1×10⁻⁹ y 1×10⁻¹² por el valor absoluto esperado. Es el criterio ya usado por la sección para la holgura entre la fracción y la suma f64. El corte usa el piso absoluto porque el esperado es cero. |
+| Armadura asimétrica. Ecuación (14). Mismo campo. `ElasticFrame` y la barra de Euler con el mismo κz = v″, Mz = EI v″. | Barras 1/1024 m² y 4/1024 m². Euler: E, A e I explícitos. | q de (10). Historia nula. | (14) y (13) para la barra de fibras. EA ε0 y EI v″ para `ElasticFrame` y para la estación de Euler. En ambos, Mz de estación = −f_θ,i. | La misma holgura. |
+| Curvatura lineal. Ecuación (15). Integral de Boole, independiente de (2)–(4). | Sección simétrica de control. | q de (15). Historia nula. | La integral de Boole de (8). | Holgura de redondeo f64 de esa integral, piso 1×10⁻⁶ N o N·m, por encima del último bit de sumas del orden de 1×10⁶. |
+| Historia solo en la estación izquierda. Apartado 11. | Igual. | ε_p = 1/10000 en la barra superior izquierda. | Cuadratura (2)–(4) con esa historia en la primera estación. | La misma holgura de 1×10⁻⁶. |
 
 Muestra lisa para la diferencia finita del kit: solo el desplazamiento de
 la ecuación (10), h = 1×10⁻⁶. El origen no entra en esa muestra.
 
 Comprobaciones aparte, sin otro esperado de tensión: historia de longitud
 incorrecta, desplazamiento no finito, D3, Z distinto de cero, luz por
-debajo de 1×10⁻¹² m, estación fuera de [0, 1], y carga de vano distinta
-de cero (`ENG-E-0013`).
+debajo de 1×10⁻¹² m, estación fuera de [0, 1], carga de vano distinta
+de cero (`ENG-E-0013`), y más de 64 estaciones pedidas (`ENG-E-0010`).
 
 ## Integración y evidencia
 
-- Exportaciones: `FiberStationBar`, kind `frame2d.fiber_stations`. Sin
-  fábrica JSON y sin registro global. `frame2d.euler_elastic` queda como
-  está.
+- Exportaciones: `FiberStationBar`, kind `frame2d.fiber_stations`,
+  marcado experimental en el código. Sin fábrica JSON y sin registro
+  global. `frame2d.euler_elastic` queda como está. La entrada JSON, el
+  esquema, la CLI y los bindings no entran en este método.
 - Conformidad del rasgo: `check_element` con la muestra de la ecuación
   (10) y h = 1×10⁻⁶.
 - Banco nativo: el caso de la tabla, en el test del crate. No hay
   documento fixture/1, porque la barra no es un kind de la entrada del
   motor.
-- Comandos, aciertos y fallos, en esta sesión:
-  `cargo test --offline --locked -p engine-elements-frame --test fiber_stations`:
-  4 passed, 0 failed.
-  `cargo test --offline --locked -p engine-elements-frame --doc fiber_stations`:
-  1 passed.
-  `cargo test --offline --locked --workspace`: exit 0.
-  `cargo fmt --all -- --check`: exit 0.
-  `cargo clippy --offline --locked --workspace --all-targets -- -D warnings`:
-  exit 0.
-  `cargo doc --offline --locked --no-deps --workspace` con warnings denegados:
-  exit 0.
-  `cargo check --offline --locked --workspace --target wasm32-unknown-unknown`:
-  exit 0. Ese comando compila; no ejecuta la barra en wasm.
-  La comparación de los 16 hashes no regenera `docs/DETERMINISM.md`.
-  El detalle queda en `provenance/ENG-ELM-006.md`.
+- Comandos de la primera ejecución midieron κz = −v″, que esta revisión
+  retira. Los conteos de esa ejecución no se reutilizan como evidencia de
+  (6). La ejecución de la barra ya alineada con (6) se anota en
+  `provenance/ENG-ELM-006.md` junto con el código. `docs/DETERMINISM.md`
+  no se regenera.
 - Bitácora y revisión: `provenance/ENG-ELM-006.md`. Revisor clean-room:
   PENDING. Este cambio no cierra MAM-107 y no aprueba un presupuesto de
   tiempo o memoria. El método queda experimental: no se declara validado
