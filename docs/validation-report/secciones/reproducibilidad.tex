@@ -1,0 +1,34 @@
+\chapter{Anexo de reproducibilidad}\label{sec:repro}
+\section{Commits del Engine}
+Estos son los commits del Engine que el informe ya cita. No se inventa otro.
+\begin{itemize}
+\item Portada y fichas de VAL-001 a VAL-030: \texttt{\EngineCommit}. La matriz de trazabilidad usa ese mismo commit.
+\item Fichas de VAL-037 y VAL-038: \texttt{453a743dd602670eb21c5a0db2743d01e5cbb32a}.
+\item Squash de MAM-850 en main: \texttt{9aeebcc000ca42c0f94b5aa41507b1da1e378743}.
+\item main de la tabla de tolerancias (MAM-845): \texttt{18928b1b60516ea90bba56d9f0ab39c3185790f6}.
+\end{itemize}
+El commit que versiona este anexo es el de la rama en \texttt{Mamut1195/mamut-engine}. Quien reproduzca usa el commit que contiene este archivo. Otras huellas de la columna \texttt{introduccion\_git} fechan la entrada del archivo al repositorio; no son un segundo binario. El SHA-256 del binario sigue siendo \texttt{\EngineBinSHA}.
+
+\section{Oráculos}
+\begin{tabular}{ll}\toprule
+Campo & Valor\\\midrule
+Commit de oráculos & pendiente (Q2)\\
+Digest de la imagen & pendiente (Q2)\\
+Versión de OpenSees & pendiente (Q2)\\
+Versión de Frame3DD & pendiente (Q2)\\
+SHA-256 de los CSV de oráculos & pendiente (Q2)\\\bottomrule
+\end{tabular}
+
+\section{SO y toolchain}
+\begin{itemize}
+\item SO de la imagen de la campaña: DESCONOCIDO. El digest de esa imagen de construcción sigue pendiente (H6), el mismo hueco de la sección de construcción reproducible.
+\item Rust: canal 1.99.0, con rustfmt y clippy, y el objetivo wasm32-unknown-unknown, como fija \texttt{rust-toolchain.toml}.
+\item LaTeX: LuaLaTeX mediante \texttt{latexmk}. La versión de la distribución es DESCONOCIDO.
+\end{itemize}
+
+\section{Un solo comando}
+Desde \texttt{docs/validation-report}:
+\begin{verbatim}
+make report
+\end{verbatim}
+Ese comando solo compila el informe. No ejecuta oráculos, no abre el repositorio hermano y no regenera series.
