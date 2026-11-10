@@ -42,6 +42,13 @@
   salida de la CLI. Solo documentación; la implementación va al backlog de
   Structures.
 
+- MAM-67: documenta el diseño del solver directo disperso simétrico
+  (ENG-LA-008), la ficha del ticket y la bitácora.
+  J0 aprueba la implementación propia en sala limpia, sin crates nuevas,
+  con delegación escrita de Jonathan a J0 (2026-11-10 01:13 ECT),
+  registrada en el comentario de Linear MAM-67.
+  No añade código ni códigos de error.
+
 - MAM-84: Add a Spanish Python user guide, a community method procedure, and reproducible cantilever notebooks with an offline runner.
 
 - MAM-86: add a shared analytical conformance matrix for Rust API, CLI, WASM facade, and Python bindings with numerical, unit, sign, SHA-256, and typed error parity checks.
