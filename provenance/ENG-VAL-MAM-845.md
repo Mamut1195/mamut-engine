@@ -44,3 +44,7 @@ Conteos: 34 consolidados, 5 preregistrados, 1 DESCONOCIDO, 1 pendiente de congel
 VAL-032 no es consolidación. El README de `docs/validation-report/fixtures/val032/README.md`, sección Congelación, no declara un SHA de congelación: Q2 debe verificar antes de congelar. Una parte del caso es solo diagnóstico. La fila cita el campo `tolerances_preregistered` y no copia valores.
 
 Las fichas VAL-001 a VAL-030 salen de `docs/validation-report/herramientas/gen_casos.py`. La frase «fijada a priori» pasó a la clase consolidada, con orden DESCONOCIDO, y remite a las otras clases del marco. Los números de \(A\) y \(R\) no se tocaron. Los `\input` de VAL-037 y VAL-038 siguen en `secciones/casos.tex`.
+
+## Seguimiento MAM-846
+
+Las filas de preregistro cambiaron el texto pero no los números. La cita de VAL-033, VAL-034, VAL-036 y VAL-041 gana el punto que faltaba antes de «El plan». VAL-035 recupera la absoluta 0: un preregistro no pierde un valor ya escrito. No es una tolerancia nueva. Ningún otro número de esas filas cambia.

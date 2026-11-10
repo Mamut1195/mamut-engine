@@ -43,11 +43,11 @@ Se acepta el piso cuando
 \bigl|B_2^{\mathrm{motor}}-50/47\bigr|\le 10^{-6}.
 \label{eq:val037-tol}
 \end{equation}
-La cota se arma antes de ejecutar este modelo, por tres contribuciones ya contadas y no por una corrida:
+La cota se arma antes de ejecutar este modelo, por las contribuciones que sí mueven \(B_2\), y no por una corrida:
 el redondeo de \texttt{f64} en un sistema cuyo contraste axial/lateral es del orden de \(10^{6}\) mueve \(B_2\) en torno a \(10^{-8}\);
-\(G\le 2\cdot 10^{-7}\) mueve la rigidez lateral en una fracción de ese orden y \(B_2\) bastante por debajo de \(10^{-7}\);
-el acortamiento \(7{,}5\cdot 10^{-9}\) queda, aun entrando entero en \(B_2\), debajo de \(10^{-8}\).
-La suma está por debajo de \(2\cdot 10^{-7}\). El \(10^{-6}\) es cinco veces esa suma.
+\(G\le 2\cdot 10^{-7}\) mueve la rigidez lateral en una fracción de ese orden y \(B_2\) bastante por debajo de \(10^{-7}\).
+El acortamiento \(7{,}5\cdot 10^{-9}\) no actúa sobre \(B_2\). No entra en esta suma. El orden \(10^{-8}\) que se le atribuía no es un término del amplificador: en \texttt{pDelta} ese acortamiento no altera \(B_2\).
+La suma de lo que sí actúa está por debajo de \(2\cdot 10^{-7}\). El \(10^{-6}\) es cinco veces esa suma.
 
 Esa cota separa el operador de Hermite de las variantes siguientes, evaluadas con la misma aritmética y sin ejecutar el motor. El hueco es \(|B-50/47|\).
 

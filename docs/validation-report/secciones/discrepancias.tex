@@ -1,0 +1,12 @@
+\chapter{Discrepancias abiertas}
+\section{Si viene de un oráculo}
+Si la comparación con OpenSees o con Frame3DD queda abierta, este repositorio solo puede decir «difiere en el caso X», sin valores. En este árbol no hay ese aviso para ningún caso de VAL-001 a VAL-041. La celda queda pendiente (Q2, repo de oráculos). No se copia ningún valor de esa comparación.
+
+\section{Lo que está abierto aquí}
+\begin{itemize}
+\item La campaña no está cerrada. Donde no hay serie del motor, el semáforo queda en pendiente. Eso no es un fallo: falta la serie.
+\item VAL-038. La aceptación del informe es la de la ficha y de la tabla de tolerancias. \texttt{provenance/ENG-ANL-006.md} conserva además otra absoluta y una forma cuadrática. La página del caso dice que no las reajusta. Esta entrega tampoco cambia esos números. No es una discrepancia de oráculo.
+\item VAL-032 sigue pendiente de congelación (Q2). El README de congelación no declara un SHA. No se transcriben los valores del campo citado.
+\item VAL-031 sigue en DESCONOCIDO. En este árbol no hay fuente definida, y no se inventa una tolerancia.
+\end{itemize}
+VAL-037 no se abre como discrepancia nueva. La derivación ya explica el hueco de la corrida anterior: en \texttt{pDelta} el acortamiento por gravedad no altera \(B_2\). La causa que queda escrita es la flexibilidad axial de las columnas por el vuelco. El presupuesto de la ficha ya no cuenta ese acortamiento como un término que actúe sobre \(B_2\). La cota de aceptación no cambia.

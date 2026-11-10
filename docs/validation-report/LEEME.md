@@ -1,5 +1,5 @@
 # ENG-VAL-006 (MAM-604) — Informe de validación MAMUT Engine V1
-Compilar: `latexmk -lualatex informe.tex` (TeX Live con texlive-luatex).
+Compilar, un solo comando, desde este directorio: `make report` (es `latexmk -lualatex informe.tex`, TeX Live con texlive-luatex). No ejecuta oráculos.
 - `herramientas/gen_referencia.py` → `datos/<caso>/referencia.csv` (analítica propia).
 - `herramientas/results_a_csv.py` → `datos/<caso>/engine.csv` (salida del Engine).
 - `datos/<caso>/opensees.csv` → **Q2-PLACEHOLDER: solo lo llena Q2**, en su propio PR. J2 no lo lee.

@@ -1,5 +1,5 @@
 % ENG-VAL-006 (MAM-604) -- Informe de validación de MAMUT Engine V1
-% Compilar: latexmk -lualatex informe.tex
+% Compilar, un solo comando, desde este directorio: make report
 \documentclass[11pt,openany]{report}
 \usepackage{mamut}
 \title{MAMUT Engine V1\\[2mm]\large Informe de verificación y validación ENG-VAL-006}
@@ -13,8 +13,10 @@
 \input{preregistro/marco}
 \input{secciones/casos}
 \input{secciones/limitaciones}
+\input{secciones/discrepancias}
 \input{secciones/conclusiones}
 \appendix
 \input{secciones/anexos}
+\input{secciones/reproducibilidad}
 \input{secciones/bibliografia}
 \end{document}

@@ -95,4 +95,181 @@ function M.tabla_par(caso, xk, yk, A, R)
       " & " .. err .. " & " .. string.format("%.1e", tol) .. " & " .. ver .. "\\\\")
   end
 end
+
+-- Tabla semáforo. Lee tolerancias.csv y las series referencia/engine.
+-- No abre datos/<caso>/opensees.csv ni ningún archivo de contraste.
+local function parse_csv_line(line)
+  local fields, buf, inq = {}, {}, false
+  local i = 1
+  while i <= #line do
+    local c = line:sub(i, i)
+    if inq then
+      if c == '"' then
+        if line:sub(i + 1, i + 1) == '"' then
+          buf[#buf + 1] = '"'
+          i = i + 1
+        else
+          inq = false
+        end
+      else
+        buf[#buf + 1] = c
+      end
+    else
+      if c == '"' then
+        inq = true
+      elseif c == ',' then
+        fields[#fields + 1] = table.concat(buf)
+        buf = {}
+      else
+        buf[#buf + 1] = c
+      end
+    end
+    i = i + 1
+  end
+  fields[#fields + 1] = table.concat(buf)
+  return fields
+end
+
+local function texesc(s)
+  local out = {}
+  for i = 1, #s do
+    local c = s:sub(i, i)
+    if c == "\\" then out[#out + 1] = "\\textbackslash{}"
+    elseif c == "%" then out[#out + 1] = "\\%"
+    elseif c == "_" then out[#out + 1] = "\\_"
+    elseif c == "#" then out[#out + 1] = "\\#"
+    elseif c == "&" then out[#out + 1] = "\\&"
+    elseif c == "$" then out[#out + 1] = "\\$"
+    else out[#out + 1] = c end
+  end
+  return table.concat(out)
+end
+
+local function load_tol()
+  local map = {}
+  local f = io.open("preregistro/tolerancias.csv", "r")
+  if not f then return map end
+  local header = nil
+  for line in f:lines() do
+    line = line:gsub("\r", "")
+    if line ~= "" and not line:match("^#") then
+      local cells = parse_csv_line(line)
+      if not header then
+        header = {}
+        for i, h in ipairs(cells) do header[h] = i end
+      else
+        local caso = cells[header.caso]
+        map[caso] = {
+          caso = caso,
+          criterio_aceptacion = cells[header.criterio_aceptacion] or "",
+          tolerancia_relativa = cells[header.tolerancia_relativa] or "",
+          tolerancia_absoluta = cells[header.tolerancia_absoluta] or "",
+        }
+      end
+    end
+  end
+  f:close()
+  return map
+end
+
+local function read_series(path)
+  local rows = {}
+  local f = io.open(path, "r")
+  if not f then return rows end
+  for line in f:lines() do
+    line = line:gsub("\r", "")
+    if line ~= "" and not line:match("^#") then
+      local cells = parse_csv_line(line)
+      local x, y = tonumber(cells[1]), tonumber(cells[2])
+      if x and y then rows[#rows + 1] = {x = x, y = y} end
+    end
+  end
+  f:close()
+  return rows
+end
+
+local function match_y(eng, x)
+  for _, row in ipairs(eng) do
+    if math.abs(row.x - x) <= 1e-9 * math.max(1, math.abs(x)) then return row.y end
+  end
+  return nil
+end
+
+local function tol_text(rec)
+  local a = rec.tolerancia_absoluta or ""
+  local r = rec.tolerancia_relativa or ""
+  local function escrito(x) return x ~= "" and x ~= "DESCONOCIDO" end
+  if rec.caso == "VAL-035" then
+    return texesc(rec.criterio_aceptacion or "") .. " Absoluta " .. texesc(a) .. "."
+  end
+  if escrito(a) and escrito(r) then
+    return "A=" .. texesc(a) .. ", R=" .. texesc(r)
+  end
+  if a == "DESCONOCIDO" or r == "DESCONOCIDO" then return "DESCONOCIDO" end
+  local base = texesc(rec.criterio_aceptacion or "DESCONOCIDO")
+  if escrito(a) and r == "" then
+    if not (rec.criterio_aceptacion or ""):find(a, 1, true) then
+      return base .. " Absoluta " .. texesc(a) .. "."
+    end
+  end
+  return base
+end
+
+local function evaluar(caso, rec)
+  local ref = read_series("datos/" .. caso .. "/referencia.csv")
+  local eng = read_series("datos/" .. caso .. "/engine.csv")
+  if #ref == 0 or #eng == 0 then
+    return "\\textit{pendiente}", "pendiente", "DESCONOCIDO"
+  end
+  local a = rec.tolerancia_absoluta or ""
+  local r = rec.tolerancia_relativa or ""
+  local A, R, judged = nil, nil, false
+  if tonumber(a) and tonumber(r) then
+    A, R, judged = tonumber(a), tonumber(r), true
+  elseif tonumber(a) and r == "" then
+    -- Criterio solo absoluto. No se escribe una relativa nueva en el CSV.
+    A, R, judged = tonumber(a), 0, true
+  end
+  local maxe, n, any_zero, falla = nil, 0, false, false
+  for _, row in ipairs(ref) do
+    local ev = match_y(eng, row.x)
+    if not ev then return "\\textit{pendiente}", "pendiente", "DESCONOCIDO" end
+    n = n + 1
+    local d = math.abs(ev - row.y)
+    if row.y == 0 then
+      any_zero = true
+    else
+      local e = d / math.abs(row.y)
+      if not maxe or e > maxe then maxe = e end
+    end
+    if judged then
+      local tol = A + R * math.abs(row.y)
+      if d > tol then falla = true end
+    end
+  end
+  if n == 0 then return "\\textit{pendiente}", "pendiente", "DESCONOCIDO" end
+  local err = "DESCONOCIDO"
+  if not any_zero and maxe then err = string.format("%.3e", maxe):gsub(",", ".") end
+  local ver = "\\textit{pendiente}"
+  if judged and not any_zero then
+    ver = falla and "\\textcolor{red}{FALLA}" or "\\textcolor{ok}{PASA}"
+  end
+  return ver, err, tostring(n)
+end
+
+function M.semaforo()
+  local map = load_tol()
+  for i = 1, 41 do
+    local caso = string.format("VAL-%03d", i)
+    local rec = map[caso] or {
+      caso = caso,
+      criterio_aceptacion = "DESCONOCIDO",
+      tolerancia_relativa = "DESCONOCIDO",
+      tolerancia_absoluta = "DESCONOCIDO",
+    }
+    local ver, err, n = evaluar(caso, rec)
+    tex.print(caso .. " & " .. ver .. " & " .. err .. " & " .. tol_text(rec) .. " & " .. n .. " \\\\")
+  end
+end
+
 return M

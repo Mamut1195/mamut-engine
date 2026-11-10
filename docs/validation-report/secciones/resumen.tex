@@ -1,4 +1,26 @@
 \chapter*{Resumen ejecutivo}\addcontentsline{toc}{chapter}{Resumen ejecutivo}
+\section*{Tabla semáforo}
+La tabla abre el informe. El veredicto, el error máximo y \(N\) se calculan al compilar, desde \texttt{preregistro/tolerancias.csv} y desde \texttt{datos/<caso>/referencia.csv} y \texttt{datos/<caso>/engine.csv}. \(N\) es el número de magnitudes emparejadas en esa serie. Si no hay serie del motor, el veredicto es pendiente, el error máximo es pendiente y \(N\) es DESCONOCIDO. La tolerancia es la celda ya escrita: si la relativa y la absoluta traen número, se imprimen como \(A\) y \(R\); si no, se imprime el criterio. Cuando la relativa está vacía y la absoluta es un número, el veredicto usa solo esa absoluta y no inventa una relativa. Esta tabla no reescribe el CSV. La página del PDF es DESCONOCIDO.
+\begin{longtable}{@{}llp{3.1cm}>{\raggedright\arraybackslash}p{6.2cm}l@{}}
+\caption{Semáforo de VAL-001 a VAL-041. Fuentes: tolerancias y series del Engine ya versionadas.}\label{tab:semaforo}\\
+\toprule
+Caso & Veredicto & Error máximo & Tolerancia & \(N\)\\
+\midrule
+\endfirsthead
+\toprule
+Caso & Veredicto & Error máximo & Tolerancia & \(N\)\\
+\midrule
+\endhead
+\directlua{mamut.semaforo()}
+\bottomrule
+\end{longtable}
+
+\begin{tabular}{lll}\toprule
+Caso & OpenSees & Frame3DD\\\midrule
+VAL-001 a VAL-041 & pendiente (Q2, repo de oráculos) & pendiente (Q2, repo de oráculos)\\\bottomrule
+\end{tabular}
+
+Esas dos columnas no se rellenan en este repositorio.
+
 Este informe documenta la verificación y validación de la versión~1 de MAMUT Engine, un motor de análisis estructural y geotécnico. Cada capacidad declarada para la V1 se contrasta con soluciones analíticas cerradas, derivadas por el equipo, y con resultados publicados en la literatura técnica. En los casos indicados, además, se compara con un modelo independiente en OpenSees, que se usa solo como programa de referencia de terceros.
 La validación contra ensayos físicos queda fuera de la V1. Las tolerancias se clasifican en el marco: consolidada (orden de ejecución DESCONOCIDO), preregistrada, DESCONOCIDO, VAL-037 fijada después de la revisión r1 de \#23, y VAL-032 pendiente de congelación (Q2). Los datos de tablas y gráficos se leen de archivos versionados mediante un módulo Lua. Así el informe se puede reproducir por completo a partir del commit del Engine indicado en la portada.
-% RESUMEN-PENDIENTE: completar con el balance de veredictos al cerrar la campaña.
