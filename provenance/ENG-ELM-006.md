@@ -1,7 +1,7 @@
 # Bitácora clean-room · ENG-ELM-006
 
 - Ticket / PR: issue 6 de GitHub, rama `j2/ticket-03-barra-integrada`. Pull request contra `main`. Esta bitácora no cierra MAM-107 y no aprueba un presupuesto de tiempo o memoria.
-- Autor: agente cloud de Cursor (Cursor Agent), modelo: DESCONOCIDO; fecha 2026-11-09 (America/Guayaquil). La corrección del signo de κz es del 2026-11-10, misma sesión.
+- Autor: agente cloud de Cursor (Cursor Agent), modelo: DESCONOCIDO; fecha 2026-11-09 (America/Guayaquil). La corrección del signo de κz es del 2026-11-09 (ECT), misma sesión.
 - Rol: especificador e implementador.
 - Sesión: sesión limpia, distinta de las que implementaron los tickets 01 y 02, y distinta de la del 2026-11-04. Esta sesión no vio salidas numéricas de un programa estructural externo.
 - Contrato implementado: `element/1`, kind `frame2d.fiber_stations`, contrato 1.0 y método 0.1.0. Experimental. No sustituye a `frame2d.euler_elastic`.
@@ -9,6 +9,7 @@
 - Derivaciones propias: [docs/fichas/frame2d.fiber_stations.md](../docs/fichas/frame2d.fiber_stations.md). Tres estaciones, raíces de P3(t) = (5t³ − 3t)/2, pesos 5/9, 8/9 y 5/9 por momentos. La primera redacción ponía κz = −v″. El giro positivo alrededor de +z desplaza la fibra y hacia −x en y·θ, así que ε(y) = ε0 − y v″ y κz = v″. Con el desplazamiento de control, κz = −1/256. El axil sigue la ecuación (8) de la ficha de la sección y el momento es su opuesto. La armadura asimétrica está en la ecuación (14). La curvatura lineal se integra con la regla de Boole, sin usar los nodos de Gauss.
 - Código de terceros copiado: ninguno. No se transcribió un listado. No se añadió ninguna dependencia. `engine-elements-frame` ya dependía de `engine-laws`.
 - Validación: analítica, con κz = v″. La corrida anterior medía el signo invertido y no se reutiliza. `cargo test --offline --locked -p engine-elements-frame --test fiber_stations` — 6 passed, 0 failed. `cargo test --offline --locked -p engine-analysis --test fiber_station_newton` — 1 passed, 0 failed. `cargo test --offline --locked --workspace` — exit 0. `cargo fmt --all -- --check` — exit 0. `cargo clippy --offline --locked --workspace --all-targets -- -D warnings` — exit 0. `bash clean-room/check.sh origin/main` — OK. `docs/DETERMINISM.md` no se modificó. Los 16 hashes publicados no se regeneraron.
+- Seguimiento MAM-1037, 2026-11-09 (America/Guayaquil, ECT, UTC-5): la fecha de la corrección de κz queda en 2026-11-09 (ECT). Corridas de doc y de wasm de esa sesión, todas con exit 0: `cargo doc --offline --locked --no-deps --workspace` con los avisos de rustdoc denegados; `cargo check --offline --locked --workspace --target wasm32-unknown-unknown`; `cargo build --offline --locked --target wasm32-unknown-unknown --release -p engine-wasm`. El detalle está en `provenance/ENG-ELM-006-MAM-1037.md`.
 - Comparación con oráculo (repositorio hermano, informativa): no.
 - Declaración: "No consulté código fuente ni salidas de OpenSees, Frame3DD, Stabileo, CalculiX ni LAPACK, ni de sus derivados, para este ticket. Esta sesión no abrió ese código ni esas salidas. Es una sesión limpia, distinta de las que implementaron los tickets 01 y 02 y de la del 2026-11-04."
 - Revisor clean-room: PENDING (J4).
