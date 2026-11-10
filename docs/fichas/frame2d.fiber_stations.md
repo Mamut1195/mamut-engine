@@ -387,9 +387,17 @@ reducciones de abajo se hicieron antes de ejecutar el ensayo.
 Autor de estos dos apartados: agente cloud de Cursor (Cursor Agent),
 modelo: DESCONOCIDO, 2026-11-09 (America/Guayaquil, ECT, UTC−5). Rol:
 especificador de los esperados. La barra y la sección no cambian de
-código. Esta reducción se escribió antes del ensayo que la lee. No sale
-de ejecutar el código bajo prueba ni de otro programa. No se copió un
-listado. Página de libro: cita desconocida.
+código. El orden en el reloj entre esta reducción y el ensayo queda
+DESCONOCIDO. Las marcas de tiempo de `22e009d36f93522646c90fc2f8bc90c96d1dc8ae`,
+`eaed1926cc91ebd7f21f96be4d49167fa45a369c`,
+`238fe7f2a2fd03c1bacac8aaa6a99fce2641cbf2` y
+`718115e679150810ce3e3ad7d8ace484fb78e3d7` se fijaron a mano. No
+reflejan cuándo se hizo el trabajo, no prueban el orden y no sirven
+como evidencia de nada. El orden real esperados → ensayos queda
+DESCONOCIDO, salvo por el orden de los commits en la rama. Que la
+reducción se haya escrito sin ejecutar el código bajo prueba queda
+DESCONOCIDO. No sale de otro programa. No se copió un listado.
+Página de libro: cita desconocida.
 
 15. Cota elástica de tracción del acero, paso a paso. Los datos son los
     del apartado 14: L = 4 m, M = 1000 N·m, E = 200000000000 Pa,
@@ -505,8 +513,9 @@ listado. Página de libro: cita desconocida.
     par devuelve N = 0 y Mz = 1000 N·m, salvo un resto de redondeo de
     unos 2×10⁻¹¹ N·m. Las tres franjas inferiores salen en tracción,
     la superior en compresión con x < 1, y |E ε| de cada barra queda
-    muy por debajo de fy. Esos son los esperados del ensayo. No se
-    movieron después de una corrida.
+    muy por debajo de fy. Esos son los esperados escritos en este
+    apartado. Que no se hayan movido después de una corrida queda
+    DESCONOCIDO.
 
     Holgura. `StaticNewton` acepta el paso cuando la norma infinito
     del residuo libre, partida por la escala de fuerza, no pasa de
@@ -523,7 +532,8 @@ listado. Página de libro: cita desconocida.
     de esos techos es 2.8×10⁻¹² m en Ux, 2.2×10⁻¹¹ rad en θ y
     4×10⁻¹¹ m en v. La comparación usa 1×10⁻¹¹ m, 3×10⁻¹¹ rad y
     1×10⁻¹⁰ m. Esas tres cotas quedan por encima del producto y del
-    último bit de los decimales publicados. No salen de una corrida.
+    último bit de los decimales publicados. Que no salgan de una
+    corrida queda DESCONOCIDO.
 
 ## Casos fijados antes de ejecutar
 
