@@ -2,6 +2,8 @@
 pub(crate) mod advanced;
 pub(crate) mod geo;
 pub(crate) mod nonlinear;
+#[cfg(test)]
+mod perfil_mam_1056;
 mod prepared;
 pub(crate) mod static_linear;
 mod temperature;
@@ -297,13 +299,23 @@ fn execute(
     let members = build_members(&execution)?;
     let model_for_system = temperature::model_for_system(model, &members, &execution.temperature)?;
     let contributions = assemble_members(model, &members)?;
-    let mut system = LinearSystem::from_model_with_diaphragms(
-        ReferenceBackend,
-        model_for_system.as_ref(),
-        &contributions,
-        &execution.prescribed,
-        &execution.diaphragms,
-    )?;
+    let mut system = if execution.methods[0] == "linearStatic" {
+        LinearSystem::from_model_with_diaphragms_static(
+            ReferenceBackend,
+            model_for_system.as_ref(),
+            &contributions,
+            &execution.prescribed,
+            &execution.diaphragms,
+        )?
+    } else {
+        LinearSystem::from_model_with_diaphragms(
+            ReferenceBackend,
+            model_for_system.as_ref(),
+            &contributions,
+            &execution.prescribed,
+            &execution.diaphragms,
+        )?
+    };
     if !execution.diaphragms.is_empty() {
         push_warning(document, "API-W-DIAPHRAGM-RECOVERY", "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados.".into());
     }

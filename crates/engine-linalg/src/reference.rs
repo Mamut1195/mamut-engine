@@ -304,6 +304,12 @@ impl Ldlt {
         check: &mut dyn FnMut() -> EResult<()>,
     ) -> EResult<Self> {
         check()?;
+        // One finiteness pass over the matrix about to be factored. The
+        // elimination below does not scan the whole storage again. A NaN or
+        // an Inf already stored here still reports ENG-E-0008 with the same
+        // message as the previous per-column pass. Pivot values still go
+        // through `count`.
+        finite(matrix.dense().values())?;
         let n = matrix.order();
         let equil = equilibration(matrix.dense().values(), n);
         let balanced: Vec<Real> = (0..n * n)
@@ -423,7 +429,6 @@ impl Ldlt {
                     a[j * n + i] = a[i * n + j];
                 }
             }
-            finite(&a)?;
             f.blocks.push(block);
             k += block;
         }
@@ -725,6 +730,36 @@ pub(crate) fn normalize_modes_with_check(
         eigenvalues,
         vectors,
     })
+}
+
+#[cfg(test)]
+mod nonfinite_input_tests {
+    use super::*;
+
+    fn factor_error(value: f64) -> EngineError {
+        let mut dense = DMat::new(2, 2, vec![4.0, -1.0, -1.0, 4.0]).unwrap();
+        dense.values[0] = value;
+        let matrix = SymMatrix::new(dense).unwrap();
+        match ReferenceBackend.factorize(&matrix) {
+            Err(error) => error,
+            Ok(_) => panic!("a non-finite matrix was accepted"),
+        }
+    }
+
+    /// A NaN and an Inf already stored in the matrix report the same
+    /// ENG-E-0008 as the per-column finiteness pass on the base.
+    #[test]
+    fn nan_and_inf_keep_the_base_factor_error() {
+        let expected =
+            EngineError::new("ENG-E-0008", "Linear algebra: non-finite input or result.");
+        for value in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            let error = factor_error(value);
+            assert_eq!(error.code, expected.code);
+            assert_eq!(error.message, expected.message);
+            assert!(error.entities.is_empty());
+            assert_eq!(error.to_string(), expected.to_string());
+        }
+    }
 }
 
 #[cfg(test)]

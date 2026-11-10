@@ -47,3 +47,5 @@ no implementa los tickets 01, 02 ni 03.
 | 9 | [09-pilote-reese-matlock.md](09-pilote-reese-matlock.md) | Solo con la fuente publicada en la sesión | MAM-49. |
 | — | [10-no-empezar.md](10-no-empezar.md) | No | Presupuestos, release y licencia comercial. |
 | 11 | [11-solver-disperso.md](11-solver-disperso.md) | El diseño, ya. La implementación es la opción A | MAM-67, ENG-LA-008. |
+| 16 | [16-perfil-ruta-densa.md](16-perfil-ruta-densa.md) | Ya, en paralelo | MAM-1056. Solo mide y propone. |
+| 17 | [17-ruta-densa-sin-cambio-de-hashes.md](17-ruta-densa-sin-cambio-de-hashes.md) | Ya, sobre el head de #33 | MAM-1064. Propuestas 2 a 5 del perfil. Los hashes no cambian. |

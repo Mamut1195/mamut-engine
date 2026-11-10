@@ -566,7 +566,7 @@ fn fixed_point_iteration_count_history_residual_and_no_hidden_retry() {
     let r = PDelta::run(&mut s, &(case("G"), 1.0), &(case("H"), 1.0), settings).unwrap();
     assert_eq!(r.outcome, PDeltaOutcome::Completed);
     assert_eq!(r.iterations.len(), 10);
-    assert_eq!(factors.get(), 3); // gravity, total inertia, K at the fixed point
+    assert_eq!(factors.get(), 2); // gravity K, reused by Picard; inertia of K+Kg
     assert_eq!(solves.get(), 1 + r.iterations.len());
     assert_eq!(s.accepted_displacement(), &[0.7]);
     assert_eq!(s.trial_displacement(), &[0.8]);
@@ -602,7 +602,7 @@ fn fixed_point_iteration_count_history_residual_and_no_hidden_retry() {
     assert_eq!(limited.outcome, PDeltaOutcome::NotConverged);
     assert_eq!(limited.iterations.len(), 3);
     assert_eq!(solves.get(), 15);
-    assert_eq!(factors.get(), 6);
+    assert_eq!(factors.get(), 4);
     assert_eq!(s.accepted_displacement(), &[0.7]);
     assert_eq!(s.trial_displacement(), &[0.8]);
 }

@@ -34,7 +34,7 @@ pub mod spectrum;
 use engine_assembly::{LinearSystem, Reaction};
 use engine_contracts::CaseRef;
 use engine_core::{DofIndex, EResult, EngineError, Real};
-use engine_linalg::LinAlgBackend;
+use engine_linalg::{LinAlgBackend, SymFactorization};
 
 pub mod newton;
 
@@ -125,9 +125,21 @@ impl StaticLinear {
         point: [Real; 3],
         check: &mut dyn FnMut() -> EResult<()>,
     ) -> EResult<StaticResults> {
+        Ok(Self::run_about_with_factor(system, cases, point, check)?.0)
+    }
+
+    /// Like [`Self::run_about_with_check`], and returns the single K factor.
+    pub(crate) fn run_about_with_factor<B: LinAlgBackend>(
+        system: &mut LinearSystem<B>,
+        cases: &[(CaseRef, Real)],
+        point: [Real; 3],
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<(StaticResults, Box<dyn SymFactorization>)> {
         check()?;
         finite(&point)?;
-        let solutions = system.solve_cases_with_check(cases, check)?;
+        let solved = system.solve_cases_with_factor(cases, check)?;
+        let stiffness_factor = solved.factor;
+        let solutions = solved.displacements;
         let mut results = Vec::new();
         for ((case, factor), free) in cases.iter().zip(solutions) {
             check()?;
@@ -148,7 +160,7 @@ impl StaticLinear {
                 relative_free_residual,
             });
         }
-        Ok(StaticResults { cases: results })
+        Ok((StaticResults { cases: results }, stiffness_factor))
     }
 }
 

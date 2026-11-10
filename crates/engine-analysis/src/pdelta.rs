@@ -5,8 +5,9 @@
 //! iteration `K_red q_{i+1} = T_fᵀ(F − K u_0 − Kg u_i)`, equivalent to
 //! `T_fᵀ(K + Kg)(T_f q + u_0) = T_fᵀF`. Axes, materials, and axial forces are not updated by the
 //! lateral load; this is an initial-prestress approximation, not large-deformation analysis.
-//! The LDLᵀ inertia of `T_fᵀ(K + Kg)T_f` is checked before iteration; a mechanism
-//! still yields ENG-E-0006. A stable matrix may fail to converge with Picard iteration
+//! The LDLᵀ inertia of `T_fᵀ(K + Kg)T_f` is checked before iteration.
+//! The gravity solve's factor of K is reused for the Picard substitution.
+//! A mechanism still yields ENG-E-0006. A stable matrix may fail to converge with Picard iteration
 //! (e.g. very large tension): this is reported without changing strategy or retrying.
 //! The cases are independent: lateral u excludes u_g; prescribed displacements are not
 //! scaled. The system state is neither accepted nor modified. See the derivation
@@ -170,16 +171,16 @@ impl PDelta {
         // Also validate the lateral case before any factorization.
         let force = system.global_force(&lateral.0, lateral.1)?;
         let elastic_rhs = system.reduced_rhs(&lateral.0, lateral.1)?;
-        let gravity = StaticLinear::run_about_with_check(
+        let (gravity_solved, elastic_factor) = StaticLinear::run_about_with_factor(
             system,
             std::slice::from_ref(gravity),
             [0.0; 3],
             &mut check,
-        )?
-        .cases
-        .into_iter()
-        .next()
-        .ok_or_else(|| EngineError::new("ENG-E-0012", "P-Delta: missing gravity solution."))?;
+        )?;
+        let gravity =
+            gravity_solved.cases.into_iter().next().ok_or_else(|| {
+                EngineError::new("ENG-E-0012", "P-Delta: missing gravity solution.")
+            })?;
         checkpoint(0)?;
         let kg = system.geometric_at(&gravity.free_displacements)?;
         let total = sum(system.stiffness(), &kg)?;
@@ -230,10 +231,10 @@ impl PDelta {
             return Ok(result);
         }
         // This factor only diagnosed stability; an eigensolver is never used.
+        // Picard reuses the gravity factor of K.
         drop(total_factor);
-        let elastic = system.reduced_stiffness().clone();
-        let factor = system.factorize_reduced_with_check(&elastic, &mut check)?;
-        let n = elastic.order();
+        let factor = elastic_factor;
+        let n = system.n_free_dofs();
         let mut previous = vec![0.0; n];
         let scales = (0..n)
             .map(|i| {
