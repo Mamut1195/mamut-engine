@@ -7,6 +7,9 @@
 //! [`convert`] validates quantities and values. [`to_si`] and [`from_si`] are the
 //! arithmetic operations for boundaries whose values have already been validated.
 //!
+//! The customary catalog in [`catalog`] is phase 1 of MAM-1043. It does not
+//! change [`Unit::parse`]. `engine-input/1` still accepts only `units: "SI"`.
+//!
 //! ```
 //! use engine_core::units::{convert, Unit};
 //! let momento_si = convert(2.5, Unit::KilonewtonMeter, Unit::NewtonMeter)?;
@@ -19,6 +22,8 @@
 use std::collections::BTreeMap;
 
 use crate::{EResult, EngineError, Real};
+
+pub mod catalog;
 
 // Explicit decimal factors, without runtime power calculations.
 const CENTI: Real = 1e-2;

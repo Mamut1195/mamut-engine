@@ -16,7 +16,7 @@
 ## Qué ya existe
 
 MAM-12 (ENG-CORE-002) cierra las unidades del núcleo en SI.
-`crates/engine-core/src/units.rs` acepta N, kN, MN, m, cm, mm, N·m, kN·m,
+`crates/engine-core/src/units` acepta N, kN, MN, m, cm, mm, N·m, kN·m,
 MN·m, Pa, kPa, MPa, GPa, rad, deg y la unidad adimensional «1».
 `engine-input/1` solo admite `units: "SI"`.
 Cualquier otro texto da `ENG-E-0001`.
