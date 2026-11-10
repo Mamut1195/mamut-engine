@@ -174,6 +174,136 @@ tension, so concrete contributes neither force nor tangent. Both bars stay
 elastic (E/1024 = 195312500 Pa < fy). Then N = 2 E / 1048576 and Mz = 0.
 At ε0 = 0 and κz = 0 every stress is zero, so both resultants are zero.
 
+## Follow-up cases · MAM-1032
+
+These two cases were reduced by exact integer arithmetic on 2026-11-09
+(America/Guayaquil, ECT, UTC−5), before the tests that read them. Author:
+agente cloud de Cursor (Cursor Agent), modelo: DESCONOCIDO. Role: specifier
+of the expected values. The section implementation is left unchanged. This
+session did not view numerical output of an external structural program.
+No listing was copied. The strains and the history are dyadic rationals
+chosen so each fiber stays on one branch. They were not moved to resemble
+another program.
+
+The control rectangle, materials and bar positions stay equations (1), (2)
+and (4). Concrete still uses (A.9) on the parabola. Tension stays the rule
+already written in `docs/fichas/concrete.kent_park.md`: for engine strain
+ε > 0, σ = 0 and K = 0. That sheet records the rule as an assumption of
+the law, because (A.9)–(A.15) do not define tension. Printed page: cita
+desconocida. The law has no positive tensile strength. Every strictly
+positive strain is the zero-stress branch.
+
+Steel follows the statement already written in
+`crates/engine-laws/src/uniaxial/steel_bilinear.rs`. With accepted history
+[ε_p, α], σ_tr = E(ε − ε_p) and ξ = σ_tr − α. If |ξ| ≤ fy the response is
+σ = σ_tr, the tangent is E, and the trial history is the accepted pair.
+If |ξ| > fy, s = sign(ξ). With b = 0 the stress is σ = α + s fy, the
+tangent is 0, ε_p' = ε_p + s (|ξ| − fy) / E and α' = α. A textbook page
+for that return was not in this session: cita desconocida.
+
+### Prior steel history, equations (11)–(14)
+
+The deformation is the control pair of (5): ε0 = −1/1024, κz = 1/256.
+Every concrete strain stays on the compressive parabola of (5), so the
+concrete parts of (8) and (9) do not change. The accepted history, in bar
+order, is [−1/8192, 0, 1/128, 0].
+
+11. Bar at y = −3/16. The fiber strain is ε = −1/4096. With
+    ε_p = −1/8192 the elastic strain is −1/8192, so σ = −E/8192.
+    |σ| = E/8192 = 24414062.5 Pa, which is below fy. The branch is
+    elastic, the tangent is E, and this bar’s trial pair is the accepted
+    pair.
+
+12. Bar at y = +3/16. The fiber strain is ε = −7/4096. With ε_p = 1/128,
+    ε − ε_p = −39/4096 and σ_tr = −39 E / 4096 = −1904296875 Pa.
+    |σ_tr| − fy = 1404296875 Pa > 0, and the sign of ξ is negative.
+    With α = 0 and b = 0, σ = −fy and the tangent is 0.
+    Δγ = 1404296875 / E = 719/102400.
+    ε_p' = 1/128 − 719/102400 = 81/102400.
+    α' = 0, because the back-stress update is s b (|ξ| − fy) and b = 0.
+    In binary64 the division that forms Δγ, and the subtraction of that
+    quotient from the exact 1/128, each round once. The unit in the last
+    place near 1/128 = 2^(−7) is 2^(−59), about 1.7×10⁻¹⁸. An absolute
+    tolerance of 1×10⁻¹⁵ on ε_p' sits above that rounding and far below
+    the plastic strain. It is not taken from another program. α' is exact.
+
+13. Steel resultants, with each area A_s = 1/1024:
+    N_steel = (−E/8192) A_s + (−fy) A_s = −E/8388608 − fy/1024,
+    M_steel = (3/16)(−E/8192) A_s + (−3/16)(−fy) A_s
+    = −3 E/134217728 + 3 fy/16384.
+    Adding the concrete parts of (8):
+    N = −f'_c · 695875 / 8388608 − E/8388608 − fy/1024,
+    Mz = f'_c · 81875 / 16777216 − 3 E/134217728 + 3 fy/16384.
+
+14. Tangent. The concrete entries stay those of (9). Equation (9) writes
+    the pair of elastic bars as E/512 in ∂N/∂ε0 and as 9 E/131072 in
+    ∂Mz/∂κz, and it writes no steel term in the coupling. Here only the
+    bar at y = −3/16 remains elastic, so those steel terms become
+    E/1024, 3 E/16384 and 9 E/262144. The yielded bar adds nothing.
+    ∂N/∂ε0 = f'_c · 16375 / 256 + E/1024,
+    ∂N/∂κz = ∂Mz/∂ε0 = f'_c · 78125 / 16384 + 3 E/16384,
+    ∂Mz/∂κz = f'_c · 81875 / 65536 + 9 E/262144.
+    One elastic bar is half of the pair in (9): 9 E/131072 = 18 E/262144.
+
+### Cracked bending, equations (15)–(18)
+
+15. ε0 = 0 and κz = 1/256, so ε(y) = −y/256. The strip and bar stations
+    are still (1) and (2).
+    y = −3/16 gives ε = 3/4096 > 0.
+    y = −1/16 gives ε = 1/4096 > 0.
+    Those two concrete strips have σ = 0 and K = 0.
+    y = +1/16 gives ε = −1/4096.
+    y = +3/16 gives ε = −3/4096.
+    The compression ratios are the k = 1 and k = 3 values already reduced
+    in (6): 240375/1048576 and 627375/1048576. Both
+    x = 125 k / 1024 are below 1, so (A.9) applies. The history is four
+    zeros.
+
+16. Concrete sums use only the two compressed strips, each of area
+    A_i = 1/32. The ratio sum is 867750/1048576, and
+    N_concrete / f'_c = −867750 / 33554432 = −433875 / 16777216.
+    The moment sum is (r_1 + 3 r_3) / 512 = 2122500 / 536870912
+    = 530625 / 134217728.
+    N_concrete = −f'_c · 433875 / 16777216,
+    M_concrete = f'_c · 530625 / 134217728.
+
+17. Both bars stay elastic. |3 E/4096| = 146484375 Pa, which is below fy,
+    so σ = ±3 E/4096. The axial forces cancel:
+    N_steel = 0.
+    M_steel = 2 · (3/16) · (3 E/4096) · (1/1024) = 9 E/33554432,
+    the same reduction as the second line of (7).
+    N = −f'_c · 433875 / 16777216,
+    Mz = f'_c · 530625 / 134217728 + 9 E/33554432.
+    The trial history stays four zeros.
+
+18. Tangent. The two cracked strips add nothing. On the parabola
+    K = f'_c · (2 / 0.002) · (1 − x). In binary64 the quotient 2/0.002
+    is 1000, which is the factor stored by the existing law, so
+    K = f'_c · 1000 · (1024 − 125 k) / 1024.
+    For k = 1 and k = 3 the coefficients are 899 and 649.
+    Their area-weighted sum reduces to
+    ∂N/∂ε0 from concrete = f'_c · 48375 / 1024.
+    Both bars are elastic, so they add E/512:
+    ∂N/∂ε0 = f'_c · 48375 / 1024 + E/512.
+    The coupling sum is −(K_1 + 3 K_3) / 512. That reduces to
+    ∂N/∂κz = ∂Mz/∂ε0 = −f'_c · 177875 / 32768.
+    The steel coupling cancels, as it does in (9). The sign is (−y) on
+    the compressed side, where y is positive: a larger κz makes N more
+    compressive.
+    The bending sum (K_1 + 9 K_3) / 8192 reduces to
+    f'_c · 210625 / 262144, and the two elastic bars add 9 E/131072:
+    ∂Mz/∂κz = f'_c · 210625 / 262144 + 9 E/131072.
+
+Comparison of (13), (14), (17) and (18) uses the control tolerance: the
+maximum of an absolute floor 1×10⁻⁹ and a relative term 1×10⁻¹² times
+the absolute expected value. These resultants are at most a few times
+10⁶ N or N·m. One unit in the last place at that magnitude is below the
+absolute floor. The tangent entries reach about 10⁹, where one unit in
+the last place is a few times 10⁻⁷. The relative term then governs and
+stays above that gap. Dropping or keeping the yielded bar moves N by
+fy/1024 = 488281.25 N, which is outside the tolerance. The tolerance is
+not taken from another program.
+
 ## Cases established before execution
 
 | Case / source / citation | SI parameters | Input and history | Analytical expected values | Tolerance and justification |
@@ -182,6 +312,8 @@ At ε0 = 0 and κz = 0 every stress is zero, so both resultants are zero.
 | Constant axial at the same curvature. Equation (8) and the update in the assumptions. | Same section | Target N from equation (8), κz = 1/256, guess ε0 = −5/4096, residual limit 1×10⁻⁶ N, 8 updates, history four zeros | Returned ε0 = −1/1024 and returned Mz from equation (8). The returned N is within the residual limit of the target. | Same resultant tolerance. Strain absolute tolerance 1×10⁻⁹. |
 | Tension limit, κz = 0. Concrete tension rule of the existing law; steel σ = E ε. | Same section | e = [1/1024, 0], history four zeros | N = 2 E / 1048576, Mz = 0 | Exact for these dyadic products. |
 | Origin. | Same section | e = [0, 0], history four zeros | N = 0, Mz = 0 | Exact. |
+| Prior steel history. Equations (11)–(14) of this sheet. Concrete parts of (8) and (9). Steel return from `crates/engine-laws/src/uniaxial/steel_bilinear.rs`; textbook page: cita desconocida. | Same section | e = [−1/1024, 1/256], history [−1/8192, 0, 1/128, 0] | N and Mz from (13). Tangent from (14). The yielded bar’s trial ε_p is 81/102400 within 1×10⁻¹⁵ and its α is 0. The other bar keeps [−1/8192, 0]. | Same resultant and tangent tolerance as the control row. Plastic-strain absolute tolerance 1×10⁻¹⁵, from the binary64 bound in (12). |
+| Cracked bending. Equations (15)–(18). Tension rule of `docs/fichas/concrete.kent_park.md`; printed page: cita desconocida. Elastic steel σ = Eε. | Same section | e = [0, 1/256], history four zeros | N and Mz from (17). Tangent from (18). Trial history stays four zeros. | Same resultant and tangent tolerance as the control row. The two positive concrete strains are the zero-stress branch, so they are absent from (16) and (18). |
 
 Finite-difference sample: the control strain only, h = 1×10⁻⁶. That h is
 inside the kit limits 1×10⁻⁹ and 1×10⁻². On the parabola,
