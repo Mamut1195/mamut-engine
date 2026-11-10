@@ -271,17 +271,22 @@ fn closed_at_height(height: f64, gravity_scale: f64) -> f64 {
 }
 
 #[test]
-fn mutations_stay_outside_the_1e_6_band() {
+fn gravity_scale_sensitivity_stays_outside_the_1e_6_band() {
     let accepted = 50.0 / 47.0;
     let (_, nominal) = amplifiers(STORY_HEIGHT, -ROOF_GRAVITY);
-    // Kg scales with the axial force. 5/6 turns the sway factor 6/5 into 1.
-    let chord = amplifiers(STORY_HEIGHT, -ROOF_GRAVITY * 5.0 / 6.0).1;
+    // Escalar la carga vertical escala toda la Kg. El factor 5/6 no es la
+    // mutación 6/5 a 1 (36 a 30): coincide con 1/(1-r) solo porque los giros
+    // son casi nulos. Esa mutación la detecta el ensayo principal
+    // three_story_hermite_b2_stays_within_1e_6, que exige 50/47.
+    // «L x 2» es aritmética de la forma cerrada en closed_at_height,
+    // no una corrida del motor.
+    let scaled = amplifiers(STORY_HEIGHT, -ROOF_GRAVITY * 5.0 / 6.0).1;
     let softer = amplifiers(STORY_HEIGHT, -ROOF_GRAVITY * 0.8).1;
     let stiffer = amplifiers(STORY_HEIGHT, -ROOF_GRAVITY * 1.1).1;
     let tension = amplifiers(STORY_HEIGHT, ROOF_GRAVITY).1;
     let doubled = closed_at_height(STORY_HEIGHT * 2.0, 1.0);
     let variants = [
-        ("6/5 a 1", chord[0]),
+        ("gravedad x 5/6", scaled[0]),
         ("Kg x 0.8", softer[0]),
         ("Kg x 1.1", stiffer[0]),
         ("sin pdelta", 1.0),
