@@ -30,8 +30,35 @@
 - Session: sin exposición a OpenSees, Frame3DD, Stabileo, CalculiX ni LAPACK, en código y en salidas.
 - Clean-room reviewer: PENDING
 
+## Fase 2 · 2026-11-10
+
+Jonathan, 01:12 ECT, a través de J0: «Apruebo que MAM-1043 cambie el contrato
+de entrada para declarar unidades SI o EE. UU.»
+
+El cambio no es aditivo. `units` pasa de constante `"SI"` a la enumeración
+`"SI"` | `"US"`, así que MAM-990 pide `engine-input/2`. La versión 1 no se
+reescribe. La migración está en `docs/migration/engine-input-2.md`.
+`"US"` en esta fase es solo kip-in. kip-ft, lb-in, lb-ft y los demás
+presets quedan para otro ticket. La fachada convierte a SI antes del núcleo.
+Un texto distinto de `"SI"` y `"US"` en la versión 2 es `ENG-E-0001` y nombra
+el texto recibido. Si falta `units`, el rechazo nombra el campo `units`.
+`error-codes-1.json` sigue en 32 entradas. `engine-input/1` sigue validando.
+
+La equivalencia US frente a SI no promete los mismos bits. La prueba de la
+cercha usa tolerancia relativa 1e-12. En esa cercha los resultados
+coincidieron salvo `input_sha256`; es una observación, no el contrato.
+
+El digesto de `describe --json` pasa de
+`7a76a5bbfe58cb284e4cf6c9f64e8da4eb3c3854e1e582a6d7bfded3c358d049` a
+`201d3d0ba755bd39bccc5ebba5bfbdc268ca3af5de018a57ad5862588f7cd0c8`.
+La causa es que entra `engine-input/2` en el catálogo de esquemas y en
+`capabilities`. Los 16 digestos de determinismo no cambian.
+`schemas/engine-input/1.json` no cambia. El digesto nuevo es provisional:
+#28 (MAM-1045) se fusiona antes y también cambia esa instantánea; después
+este PR integra main y la regenera.
+
 ## Pendiente
 
-F2, F3 y F4 de la ficha. La versión del contrato de entrada la decide
-Jonathan; este corte no la toma. La firma clean-room sigue en PENDING.
-Una sesión de agente no firma esa línea.
+F3 y F4 de la ficha. La firma clean-room sigue en PENDING.
+Una sesión de agente no firma esa línea. La aceptación final de esta F2
+la dan J0, después de la auditoría de J4, y Jonathan. El PR queda en borrador.

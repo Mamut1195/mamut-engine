@@ -162,7 +162,7 @@ impl From<engine_core::Diagnostic> for Diagnostic {
 /// Engine version in this workspace and contracts recognized by the facade.
 pub fn version() -> Value {
     json!({"engine_version": env!("CARGO_PKG_VERSION"),
-        "contracts": ["engine-input/1", "results/1"]})
+        "contracts": ["engine-input/1", "engine-input/2", "results/1"]})
 }
 
 /// Actual capabilities: static, P-Delta, modal, spectrum, linear buckling, and combinations.
@@ -176,7 +176,7 @@ pub fn capabilities() -> Value {
     let mut capabilities = json!({
         "run": true,
         "operations": ["version", "capabilities", "schema", "explain", "validate", "run", "prepare"],
-        "schemas": {"engine-input/1": {"validate": true}, "results/1": {"emit": true},
+        "schemas": {"engine-input/1": {"validate": true}, "engine-input/2": {"validate": true}, "results/1": {"emit": true},
             "validate-report/1": {"emit": true}},
         "validation": "topology",
         "combinations": {"run": true},
@@ -212,6 +212,10 @@ const SCHEMAS: &[(&str, &str)] = &[
     (
         "engine-input/1",
         include_str!("../schemas/engine-input-1.json"),
+    ),
+    (
+        "engine-input/2",
+        include_str!("../schemas/engine-input-2.json"),
     ),
     ("results/1", include_str!("../schemas/results-1.json")),
     (
@@ -292,7 +296,7 @@ pub fn validate_with(
         .get("schema")
         .and_then(Value::as_str)
         .ok_or_else(|| ApiError::InvalidInput("schema is required and must be text".into()))?;
-    if contract != "engine-input/1" {
+    if !input::supported_input_schema(contract) {
         return Err(ApiError::UnsupportedSchema(contract.into()));
     }
     checkpoint(cancel, &mut progress, "parse", 1)?;

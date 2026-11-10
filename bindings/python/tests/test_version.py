@@ -12,7 +12,10 @@ class FacadeTest(unittest.TestCase):
         version = engine.version()
         self.assertEqual(version["engine_version"], distribution_version("mamut-engine"))
         self.assertEqual(engine.__version__, version["engine_version"])
-        self.assertEqual(version["contracts"], ["engine-input/1", "results/1"])
+        self.assertEqual(
+            version["contracts"],
+            ["engine-input/1", "engine-input/2", "results/1"],
+        )
         self.assertEqual(_native.version(), version)
         self.assertIsNot(engine.EngineError, _native.EngineError)
         self.assertIsNot(engine.CancelToken, _native.CancelToken)

@@ -751,7 +751,7 @@ fn validate_input_reports_directly_and_preserves_explicit_workflow_validation() 
 fn validate_model_errors_have_deterministic_reports_and_eng_diagnostics() {
     let files = Files::new();
     let mut wrong_schema = value(INPUT.as_bytes());
-    wrong_schema["schema"] = json!("engine-input/2");
+    wrong_schema["schema"] = json!("engine-input/9");
     let mut wrong_field = value(INPUT.as_bytes());
     wrong_field["model"]["axes"] = json!("Y-up");
     let mut wrong_units = value(INPUT.as_bytes());
@@ -766,7 +766,7 @@ fn validate_model_errors_have_deterministic_reports_and_eng_diagnostics() {
     for (input, expected, cause) in [
         ("{}".into(), "ENG-E-0009", "schema"),
         ("{".into(), "ENG-E-0009", ""),
-        (wrong_schema.to_string(), "ENG-E-0009", "engine-input/2"),
+        (wrong_schema.to_string(), "ENG-E-0009", "engine-input/9"),
         (wrong_field.to_string(), "ENG-E-0009", ""),
         (wrong_units.to_string(), "ENG-E-0001", "Unknown unit system"),
         (too_many_nodes.to_string(), "ENG-E-0009", "MAX_NODES"),

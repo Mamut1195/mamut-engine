@@ -1,5 +1,6 @@
 //! Private DTOs: no serde dependency crosses engine-model.
 use crate::ApiError;
+use engine_core::units::catalog::CatalogUnit;
 use engine_core::{Dim, Dof, MemberId, NodeId};
 use engine_model as domain;
 use serde::{de::DeserializeOwned, Deserialize, Deserializer};
@@ -50,7 +51,7 @@ struct Input {
     options: Object<Options>,
 }
 
-string_enum!(Units { SI => "SI" });
+string_enum!(Units { SI => "SI", US => "US" });
 string_enum!(Axes { ZUp => "Z-up" });
 string_enum!(Dimension { D2 => "D2", D3 => "D3" });
 string_enum!(Component { Ux => "Ux", Uy => "Uy", Uz => "Uz", Rx => "Rx", Ry => "Ry", Rz => "Rz" });
@@ -279,16 +280,49 @@ pub(crate) struct Execution {
     pub diaphragms: Vec<engine_assembly::RigidDiaphragm>,
 }
 
+pub(crate) fn supported_input_schema(schema: &str) -> bool {
+    matches!(schema, "engine-input/1" | "engine-input/2")
+}
+
 pub(crate) fn decode(value: Value) -> Result<Execution, ApiError> {
-    if let Some(label) = value.get("units").and_then(Value::as_str) {
-        if label != "SI" {
-            return Err(ApiError::UnknownUnit(
-                "Unknown unit system; only \"SI\" is accepted".into(),
-            ));
+    let schema = value.get("schema").and_then(Value::as_str).unwrap_or("");
+    let united_states = match schema {
+        "engine-input/1" => {
+            if let Some(label) = value.get("units").and_then(Value::as_str) {
+                if label != "SI" {
+                    return Err(ApiError::UnknownUnit(
+                        "Unknown unit system; only \"SI\" is accepted".into(),
+                    ));
+                }
+            }
+            false
         }
-    }
-    let Object(input): Object<Input> =
+        "engine-input/2" => match value.get("units") {
+            Some(Value::String(label)) if label == "SI" => false,
+            Some(Value::String(label)) if label == "US" => true,
+            Some(Value::String(label)) => {
+                return Err(ApiError::UnknownUnit(format!(
+                    "The specified unit is not recognized: «{label}»."
+                )));
+            }
+            None => {
+                return Err(ApiError::InvalidInput(
+                    "Missing required field units.".into(),
+                ));
+            }
+            Some(_) => {
+                return Err(ApiError::InvalidInput("Field units must be text.".into()));
+            }
+        },
+        _ => {
+            return Err(ApiError::UnsupportedSchema(schema.into()));
+        }
+    };
+    let Object(mut input): Object<Input> =
         serde_json::from_value(value).map_err(|e| ApiError::InvalidInput(e.to_string()))?;
+    if united_states {
+        convert_united_states(&mut input)?;
+    }
     let Object(source) = input.model;
     let analyses: Vec<_> = input.analyses.into_iter().map(|Object(a)| a).collect();
     let methods = analyses.iter().map(Analysis::method).collect();
@@ -502,4 +536,194 @@ pub(crate) fn decode(value: Value) -> Result<Execution, ApiError> {
         prescribed,
         diaphragms,
     })
+}
+
+fn translation(dof: Component) -> bool {
+    matches!(dof, Component::Ux | Component::Uy | Component::Uz)
+}
+
+fn scale(value: f64, factor: f64) -> Result<f64, ApiError> {
+    if !value.is_finite() {
+        return Err(ApiError::NonFiniteNumber(value.to_string()));
+    }
+    let scaled = value * factor;
+    if !scaled.is_finite() {
+        return Err(ApiError::NonFiniteNumber(scaled.to_string()));
+    }
+    Ok(scaled)
+}
+
+fn scale_slot(slot: &mut Option<f64>, factor: f64) -> Result<(), ApiError> {
+    if let Some(value) = slot.as_mut() {
+        *value = scale(*value, factor)?;
+    }
+    Ok(())
+}
+
+fn section_factor(
+    name: &str,
+    ksi: f64,
+    area: f64,
+    inertia: f64,
+    density: f64,
+) -> Result<f64, ApiError> {
+    Ok(match name {
+        "E" | "G" => ksi,
+        "A" | "Ax" | "Ay" | "Az" | "As" | "Asy" | "Asz" => area,
+        "I" | "Ix" | "Iy" | "Iz" | "J" => inertia,
+        "rho" => density,
+        "nu" => 1.0,
+        "k" | "ky" | "kz" => ksi,
+        other => {
+            return Err(ApiError::InvalidInput(format!(
+                "US boundary has no conversion for section parameter «{other}»."
+            )));
+        }
+    })
+}
+
+fn convert_law(law: &mut Law, ksi: f64, density: f64) -> Result<(), ApiError> {
+    for parameter in &mut law.parameters {
+        let factor = match parameter.0.name.as_str() {
+            "E" | "G" | "fy" | "C" => ksi,
+            "rho" => density,
+            "b" => 1.0,
+            other => {
+                return Err(ApiError::InvalidInput(format!(
+                    "US boundary has no conversion for law parameter «{other}»."
+                )));
+            }
+        };
+        parameter.0.value = scale(parameter.0.value, factor)?;
+    }
+    for point in &mut law.points {
+        point[1] = scale(point[1], ksi)?;
+    }
+    Ok(())
+}
+
+fn convert_analysis(
+    analysis: &mut Analysis,
+    inch: f64,
+    kip: f64,
+    moment: f64,
+) -> Result<(), ApiError> {
+    match analysis {
+        Analysis::LinearStatic {}
+        | Analysis::SoilProfile { .. }
+        | Analysis::Consolidation { .. }
+        | Analysis::Buckling { .. } => {}
+        Analysis::PDelta { options } => {
+            options.0.displacement_scale = scale(options.0.displacement_scale, inch)?;
+        }
+        Analysis::Modal { options } => {
+            if let Some(source) = options.0.mass_source.as_mut() {
+                source.0.gravity = scale(source.0.gravity, inch)?;
+            }
+        }
+        Analysis::Spectrum { options } => {
+            if let Some(source) = options.0.mass_source.as_mut() {
+                source.0.gravity = scale(source.0.gravity, inch)?;
+            }
+        }
+        Analysis::Nonlinear { options } => {
+            options.0.force_scale = scale(options.0.force_scale, kip)?;
+            scale_slot(&mut options.0.displacement_scale, inch)?;
+            scale_slot(&mut options.0.energy_scale, moment)?;
+        }
+    }
+    Ok(())
+}
+
+/// Rewrites a kip-in document into the SI quantities the kernel already uses.
+fn convert_united_states(input: &mut Input) -> Result<(), ApiError> {
+    let kip = CatalogUnit::Kip.si_factor().to_f64();
+    let inch = CatalogUnit::Inch.si_factor().to_f64();
+    let ksi = CatalogUnit::Ksi.si_factor().to_f64();
+    let moment = CatalogUnit::KipInch.si_factor().to_f64();
+    let per_fahrenheit = CatalogUnit::PerFahrenheit.si_factor().to_f64();
+    let delta_fahrenheit = CatalogUnit::Fahrenheit.si_factor().to_f64();
+    let area = inch * inch;
+    let inertia = area * area;
+    let per_length = kip / inch;
+    let mass = kip / inch;
+    let density = kip / inertia;
+    let model = &mut input.model.0;
+    for node in &mut model.nodes {
+        for coordinate in &mut node.0.coordinates {
+            *coordinate = scale(*coordinate, inch)?;
+        }
+    }
+    for section in &mut model.sections {
+        for property in &mut section.0.properties {
+            let factor = section_factor(property.0.name.as_str(), ksi, area, inertia, density)?;
+            property.0.value = scale(property.0.value, factor)?;
+        }
+    }
+    for law in &mut model.laws {
+        convert_law(&mut law.0, ksi, density)?;
+    }
+    for item in &mut model.masses {
+        for value in &mut item.0.values {
+            let factor = if translation(value.0.dof) {
+                mass
+            } else {
+                moment
+            };
+            value.0.value = scale(value.0.value, factor)?;
+        }
+    }
+    for prescribed in &mut model.prescribed {
+        let factor = if translation(prescribed.0.dof) {
+            inch
+        } else {
+            1.0
+        };
+        prescribed.0.value = scale(prescribed.0.value, factor)?;
+    }
+    for member in &mut model.members {
+        if let Some(winkler) = member.0.winkler.as_mut() {
+            scale_slot(&mut winkler.0.k, ksi)?;
+            scale_slot(&mut winkler.0.ky, ksi)?;
+            scale_slot(&mut winkler.0.kz, ksi)?;
+        }
+    }
+    for spring in &mut model.springs {
+        if let Some(stiffness) = spring.0.k.as_mut() {
+            let factor = if translation(spring.0.dof) {
+                per_length
+            } else {
+                moment
+            };
+            *stiffness = scale(*stiffness, factor)?;
+        }
+    }
+    for case in &mut input.cases {
+        for load in &mut case.0.loads {
+            for value in &mut load.0.values {
+                let factor = if translation(value.0.dof) {
+                    kip
+                } else {
+                    moment
+                };
+                value.0.value = scale(value.0.value, factor)?;
+            }
+        }
+        for load in &mut case.0.member_loads {
+            for component in &mut load.0.force_per_length {
+                *component = scale(*component, per_length)?;
+            }
+            for component in &mut load.0.moment_per_length {
+                *component = scale(*component, kip)?;
+            }
+        }
+        for load in &mut case.0.temperature_loads {
+            load.0.alpha_per_kelvin = scale(load.0.alpha_per_kelvin, per_fahrenheit)?;
+            load.0.delta_t_kelvin = scale(load.0.delta_t_kelvin, delta_fahrenheit)?;
+        }
+    }
+    for analysis in &mut input.analyses {
+        convert_analysis(&mut analysis.0, inch, kip, moment)?;
+    }
+    Ok(())
 }

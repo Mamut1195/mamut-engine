@@ -29,9 +29,11 @@ en la versión 1 sigue validando y produce el mismo resultado.
 3. Con `"SI"`, los números significan lo mismo que en la versión 1:
    m, N, N·m, Pa, kg, kg/m³, 1/K y K en los incrementos de temperatura.
    Los giros siguen en radianes.
-4. Con `"US"`, los números del conjunto estructural están en kip-in y la
-   fachada los convierte a SI antes del cálculo. El núcleo y `results/1`
-   siguen en SI.
+4. Con `"US"`, esta fase acepta solo kip-in. kip-ft, lb-in, lb-ft y el
+   resto de presets quedan para otro ticket. La fachada convierte a SI
+   antes del cálculo. El núcleo y `results/1` siguen en SI. Un resultado
+   `"US"` y el mismo modelo en SI se comparan con tolerancia relativa
+   1e-12. La igualdad de bits no es el contrato.
 
 No hace falta migrar un archivo que deba seguir igual. Se queda en
 `engine-input/1` con `units` igual a `"SI"`.

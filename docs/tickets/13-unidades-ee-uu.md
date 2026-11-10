@@ -77,11 +77,37 @@ hoy es `ENG-E-0001` pasaría a ser válido, y quien solo comprueba
 pide versión mayor para eso. El contrato nuevo es `engine-input/2`.
 `engine-input/1` no se reescribe.
 
-`"US"` es el conjunto kip-in de la tabla: longitud en in, fuerza en kip,
-momento en kip·in, tensión en ksi, masa en kip·s²/in. La conversión a SI
-es exacta y ocurre en la frontera, antes del núcleo. Los giros siguen en
-radianes. La migración está en
+`"US"` en esta fase es solo kip-in: longitud en in, fuerza en kip,
+momento en kip·in, tensión en ksi, masa en kip·s²/in. kip-ft, lb-in, lb-ft
+y el resto de presets quedan fuera; son alcance de otro ticket. La
+conversión a SI ocurre en la frontera, antes del núcleo. Los giros siguen
+en radianes. Si `units` falta, el rechazo nombra el campo `units`.
+`engine-input/1` sigue validando como hasta ahora.
+
+La equivalencia de un resultado `"US"` frente al mismo modelo escrito en
+SI no es igualdad de bits. La prueba fija tolerancia relativa 1e-12, porque
+la frontera redondea en binario de 64 bits. Si un caso coincide bit a bit,
+eso es una observación, no el contrato. En la cercha de
+`crates/engine-api/tests/us_input.rs`, los resultados coincidieron salvo
+`input_sha256`; se anota solo como observación.
+
+La migración está en
 [docs/migration/engine-input-2.md](../migration/engine-input-2.md).
+
+### Digesto de describe
+
+`crates/engine-cli/tests/snapshots/describe-1.stdout.sha256` pasa de
+`7a76a5bbfe58cb284e4cf6c9f64e8da4eb3c3854e1e582a6d7bfded3c358d049` a
+`201d3d0ba755bd39bccc5ebba5bfbdc268ca3af5de018a57ad5862588f7cd0c8`.
+
+La causa es que entra `engine-input/2` en el catálogo de esquemas y en
+`capabilities`. Los 16 digestos de determinismo no cambian.
+`schemas/engine-input/1.json` no cambia.
+
+Este digesto es «provisional, se regenera tras #28». #28 (MAM-1045) también
+cambia la misma instantánea y se fusiona antes. Después este PR integra
+main y regenera la instantánea. El que se fusione segundo tiene que
+regenerarla. Este corte no lo resuelve.
 
 ### F3 · `units_out` en resultados e informes
 
@@ -125,10 +151,11 @@ F1:
 
 F2:
 
-- `engine-input/2` exige `units` igual a `"SI"` o `"US"`, sin valor por omisión.
-- `"US"` se convierte a SI en la frontera con los factores de `units-table/1`.
-- La ida y vuelta de esa frontera queda dentro de 1e-15.
-- `engine-input/1` y los goldens de documentos SI no cambian.
+- `engine-input/1` sigue validando. En `engine-input/2`, si falta `units`, el error nombra ese campo.
+- `"US"` es solo kip-in. kip-ft, lb-in y lb-ft quedan para otro ticket.
+- Un resultado `"US"` frente al SI del mismo modelo queda dentro de la tolerancia relativa 1e-12. La igualdad de bits no es el contrato.
+- Los 16 digestos de determinismo y `schemas/engine-input/1.json` no cambian.
+- El digesto de `describe` queda en `201d3d0b…` como «provisional, se regenera tras #28».
 - La migración está escrita en `docs/migration/engine-input-2.md`.
 
 F3: resultados e informes publican la unidad de salida acordada.

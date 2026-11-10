@@ -169,7 +169,7 @@ def artifacts(args):
         raise ValueError("Wheel without tags")
     compatibility = {
         "package": project["name"], "binding_version": binding["version"], "engine_version": engine["version"],
-        "contracts": ["engine-input/1", "results/1"],
+        "contracts": ["engine-input/1", "engine-input/2", "results/1"],
         "contract_status": CONTRACT_STATUS,
         "wheel": wheel.name, "sha256": digest(wheel.read_bytes()), "requires_python": pkg["Requires-Python"],
         "tags": [{"python": t.split("-")[0], "abi": t.split("-")[1], "platform": t.split("-")[2]} for t in tags],

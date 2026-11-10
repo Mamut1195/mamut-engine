@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:mamut:engine-input:2",
+  "title": "engine-input/2 — MAM-1043 / ENG-CORE-012",
+  "description": "units is required and is SI or US. US is the kip-in set and is converted to SI at the boundary; there is no default. SI: m, kg, s, N, Pa, rad; moments N·m. D2 in XY, Z=0; D3 with Z up. run: linearStatic, pDelta, modal, responseSpectrum, buckling.linear and combinations. pDelta is Stable and enabled by default (ENG-BENCH-002 (PR #132), provenance/ENG-BENCH-002.md). nonlinearStatic, soilProfile and consolidation1d are Experimental pending ENG-VAL-006 and require options.allow_experimental=true at the job root (Jonathan's decision via J0 2026-10-20). buckling.linear is Experimental while provenance/ENG-ANL-006.md stays unsigned and the Timoshenko-Gere page stays unknown; it requires the same opt-in. One analysis per run; explicit dynamic options. Nodal masses or a mass source from loads, without implicit summation; no suction tolerance (#86). Optional extensions: Winkler, releases, springs, uniaxial laws, nonlinearStatic, soilProfile and consolidation1d. Geotechnics: units with explicit prefixes kPa and kN/m³.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "units", "model", "cases", "combinations", "analyses", "options"],
+  "properties": {
+    "schema": {"const": "engine-input/2"},
+    "units": {"enum": ["SI", "US"], "description": "Required. SI keeps the engine-input/1 magnitudes. US is kip-in and is converted to SI at the boundary. No default."},
+    "model": {"$ref": "#/$defs/model"},
+    "cases": {"type": "array", "maxItems": 64, "items": {"$ref": "#/$defs/case"}},
+    "combinations": {"type": "array", "maxItems": 128, "items": {"$ref": "#/$defs/combination"}},
+    "analyses": {"type": "array", "items": {"$ref": "#/$defs/analysis"}, "minItems": 1, "maxItems": 1},
+    "options": {"type": "object", "additionalProperties": false, "required": [], "properties": {"allow_experimental": {"type": "boolean", "default": false, "description": "Explicitly enables Experimental methods for this job."}}}
+  },
+  "$defs": {
+    "uniformLoad": {"type": "object", "additionalProperties": false, "required": ["member", "force_per_length", "moment_per_length"], "properties": {"member": {"$ref": "#/$defs/id"}, "force_per_length": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}, "moment_per_length": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}}},
+    "uniform_temperature": {
+      "type": "object", "additionalProperties": false,
+      "required": ["member", "alpha_per_kelvin", "delta_t_kelvin"],
+      "properties": {
+        "member": {"$ref": "#/$defs/id"},
+        "alpha_per_kelvin": {"type": "number", "description": "Linear expansion coefficient, 1/K."},
+        "delta_t_kelvin": {"type": "number", "description": "Uniform temperature change, K. No gradient."}
+      }
+    },
+    "prescribed": {"type": "object", "additionalProperties": false, "required": ["node", "dof", "value"], "properties": {"node": {"$ref": "#/$defs/id"}, "dof": {"$ref": "#/$defs/dof"}, "value": {"type": "number"}}},
+    "diaphragm": {"type": "object", "additionalProperties": false, "required": ["master", "slaves"], "properties": {"master": {"$ref": "#/$defs/id"}, "slaves": {"type": "array", "items": {"$ref": "#/$defs/id"}}}},
+    "id": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+    "dof": {"enum": ["Ux", "Uy", "Uz", "Rx", "Ry", "Rz"]},
+    "method": {"enum": ["linearStatic", "pDelta", "modal", "responseSpectrum", "nonlinearStatic", "soilProfile", "consolidation1d", "buckling.linear"]},
+    "node": {
+      "type": "object", "additionalProperties": false, "required": ["id", "dim", "coordinates", "dofs"], "allOf": [{"if": {"properties": {"dim": {"const": "D2"}}}, "then": {"properties": {"coordinates": {"prefixItems": [{}, {}, {"const": 0}]}}}}],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "dim": {"enum": ["D2", "D3"]},
+        "coordinates": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+        "dofs": {"type": "array", "items": {"$ref": "#/$defs/dof"}}
+      }
+    },
+    "member": {
+      "type": "object", "additionalProperties": false, "required": ["id", "nodes", "section", "law"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "nodes": {"type": "array", "items": {"$ref": "#/$defs/id"}, "minItems": 2, "maxItems": 2},
+        "section": {"type": "string"},
+        "law": {"type": "string"},
+        "element": {"type": "string", "description": "If absent: frame2d.euler_elastic for D2, frame3d.euler_elastic for D3. Unknown kind: Unsupported."},
+        "orientation": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+        "release_i": {"oneOf": [{"type": "boolean"}, {"type": "array", "items": {"type": "boolean"}, "minItems": 3, "maxItems": 3}], "description": "Local z moment in D2; local [T,My,Mz] in D3. Euler only."},
+        "release_j": {"oneOf": [{"type": "boolean"}, {"type": "array", "items": {"type": "boolean"}, "minItems": 3, "maxItems": 3}]},
+        "winkler": {"$ref": "#/$defs/winkler"}
+      }
+    },
+    "parameter": {
+      "type": "object", "additionalProperties": false, "required": ["name", "value"],
+      "properties": {
+        "name": {"type": "string"},
+        "value": {"type": "number"}
+      }
+    },
+    "section": {
+      "type": "object", "additionalProperties": false, "required": ["id", "properties"],
+      "properties": {
+        "id": {"type": "string"},
+        "properties": {"type": "array", "items": {"$ref": "#/$defs/parameter"}}
+      }
+    },
+    "law": {
+      "type": "object", "additionalProperties": false, "required": ["name", "parameters"],
+      "properties": {
+        "name": {"type": "string"},
+        "parameters": {"type": "array", "items": {"$ref": "#/$defs/parameter"}},
+        "kind": {"enum": ["elastic", "steel.bilinear_kinematic", "multilinear_elastic", "elastic.cubic"], "description": "If absent, preserves historical parameter handling. Nonlinear laws connect only to spring.nonlinear."},
+        "points": {"type": "array", "items": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}, "minItems": 2, "maxItems": 16384},
+        "mode": {"enum": ["both", "compression_only", "tension_only"]}
+      }
+    },
+    "support": {
+      "type": "object", "additionalProperties": false, "required": ["id", "node", "restrained"],
+      "properties": {
+        "id": {"type": "string"},
+        "node": {"$ref": "#/$defs/id"},
+        "restrained": {"type": "array", "items": {"$ref": "#/$defs/dof"}}
+      }
+    },
+    "dofValue": {
+      "type": "object", "additionalProperties": false, "required": ["dof", "value"],
+      "properties": {
+        "dof": {"$ref": "#/$defs/dof"},
+        "value": {"type": "number"}
+      }
+    },
+    "mass": {
+      "type": "object", "additionalProperties": false, "required": ["id", "node", "values"],
+      "properties": {
+        "id": {"type": "string"},
+        "node": {"$ref": "#/$defs/id"},
+        "values": {"type": "array", "items": {"$ref": "#/$defs/dofValue"}}
+      }
+    },
+    "load": {
+      "type": "object", "additionalProperties": false, "required": ["node", "values"],
+      "properties": {
+        "node": {"$ref": "#/$defs/id"},
+        "values": {"type": "array", "items": {"$ref": "#/$defs/dofValue"}}
+      }
+    },
+    "case": {
+      "type": "object", "additionalProperties": false, "required": ["name", "loads"],
+      "properties": {
+        "name": {"type": "string"},
+        "loads": {"type": "array", "maxItems": 16384, "description": "At most 16384 records across loads, member_loads, and temperature_loads in all cases.", "items": {"$ref": "#/$defs/load"}},
+        "member_loads": {"type": "array", "maxItems": 16384, "items": {"$ref": "#/$defs/uniformLoad"}},
+        "temperature_loads": {"type": "array", "maxItems": 16384, "description": "Uniform temperature on one member: linear expansion coefficient per kelvin and a temperature change in kelvin. No gradient. The 16384 total includes loads, member_loads, and temperature_loads. Only truss2d.linear and truss3d.linear accept a record; elastic beam-column kinds reject it.", "items": {"$ref": "#/$defs/uniform_temperature"}}
+      }
+    },
+    "combination": {
+      "type": "object", "additionalProperties": false, "required": ["id", "terms"],
+      "properties": {
+        "id": {"type": "string"},
+        "terms": {"type": "array", "items": {"$ref": "#/$defs/term"}}
+      }
+    },
+    "term": {
+      "type": "object", "additionalProperties": false, "required": ["case", "factor"],
+      "properties": {
+        "case": {"type": "string"},
+        "factor": {"type": "number"}
+      }
+    },
+    "analysis": {"oneOf": [{"type": "object", "additionalProperties": false, "required": ["method"], "properties": {"method": {"const": "linearStatic"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "pDelta"}, "options": {"$ref": "#/$defs/pDeltaOptions"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "modal"}, "options": {"$ref": "#/$defs/modalOptions"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "responseSpectrum"}, "options": {"$ref": "#/$defs/spectrumOptions"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "nonlinearStatic"}, "options": {"$ref": "#/$defs/newton_options"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "soilProfile"}, "options": {"$ref": "#/$defs/soil_options"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "consolidation1d"}, "options": {"$ref": "#/$defs/consolidation_options"}}}, {"type": "object", "additionalProperties": false, "required": ["method", "options"], "properties": {"method": {"const": "buckling.linear"}, "options": {"$ref": "#/$defs/buckling_options"}}}]},
+    "model": {
+      "type": "object", "additionalProperties": false, "required": ["axes", "nodes", "members", "sections", "laws", "supports", "masses"],
+      "properties": {
+        "axes": {"const": "Z-up"},
+        "nodes": {"type": "array", "maxItems": 256, "items": {"$ref": "#/$defs/node"}},
+        "members": {"type": "array", "maxItems": 1024, "items": {"$ref": "#/$defs/member"}},
+        "sections": {"type": "array", "items": {"$ref": "#/$defs/section"}},
+        "laws": {"type": "array", "items": {"$ref": "#/$defs/law"}},
+        "supports": {"type": "array", "items": {"$ref": "#/$defs/support"}},
+        "masses": {"type": "array", "items": {"$ref": "#/$defs/mass"}},
+        "prescribed": {"type": "array", "items": {"$ref": "#/$defs/prescribed"}},
+        "diaphragms": {"type": "array", "items": {"$ref": "#/$defs/diaphragm"}},
+        "springs": {"type": "array", "items": {"$ref": "#/$defs/spring"}, "minItems": 0, "maxItems": 1024}
+      }
+    },
+    "massSource": {
+      "type": "object", "additionalProperties": false, "required": ["method", "case", "factor", "direction", "gravity"],
+      "properties": {
+        "method": {"enum": ["masses_from_case", "system_case", "masses_from_system_case"]},
+        "case": {"type": "string"},
+        "factor": {"type": "number", "minimum": 0},
+        "direction": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+        "gravity": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "pDeltaOptions": {
+      "type": "object", "additionalProperties": false, "required": ["gravity", "lateral", "tolerance", "max_iterations", "displacement_scale", "rotation_scale"],
+      "properties": {
+        "gravity": {"$ref": "#/$defs/term"},
+        "lateral": {"$ref": "#/$defs/term"},
+        "tolerance": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1},
+        "max_iterations": {"type": "integer", "minimum": 1, "maximum": 16384},
+        "displacement_scale": {"type": "number", "exclusiveMinimum": 0},
+        "rotation_scale": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "modalOptions": {
+      "type": "object", "additionalProperties": false, "required": ["mode_count", "mass_kind", "directions"],
+      "properties": {
+        "mode_count": {"type": "integer", "minimum": 1, "maximum": 16384},
+        "mass_kind": {"enum": ["lumped", "consistent"]},
+        "directions": {"type": "array", "items": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}, "minItems": 1},
+        "mass_source": {"$ref": "#/$defs/massSource"}
+      }
+    },
+    "spectrumTable": {
+      "type": "object", "additionalProperties": false, "required": ["pairs", "units", "damping", "interpolation", "extrapolation"],
+      "properties": {
+        "pairs": {"type": "array", "items": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}, "minItems": 2},
+        "units": {"enum": ["periodSecondsAccelerationMetersPerSecondSquared", "frequencyHertzAccelerationMetersPerSecondSquared"]},
+        "damping": {"type": "number", "minimum": 0, "exclusiveMaximum": 1},
+        "interpolation": {"enum": ["linear", "logLog"]},
+        "extrapolation": {"enum": ["error", "plateau"]}
+      }
+    },
+    "spectrumDirection": {
+      "type": "object", "additionalProperties": false, "required": ["direction", "spectra"],
+      "properties": {
+        "direction": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+        "spectra": {"type": "array", "items": {"$ref": "#/$defs/spectrumTable"}, "minItems": 1}
+      }
+    },
+    "spectrumOptions": {
+      "type": "object", "additionalProperties": false, "required": ["mode_count", "mass_kind", "directions", "modal_combination", "directional_combination", "directional_factors"],
+      "properties": {
+        "mode_count": {"type": "integer", "minimum": 1, "maximum": 16384},
+        "mass_kind": {"enum": ["lumped", "consistent"]},
+        "directions": {"type": "array", "items": {"$ref": "#/$defs/spectrumDirection"}, "minItems": 1},
+        "modal_combination": {"enum": ["srss", "cqc"]},
+        "directional_combination": {"enum": ["srss", "weightedSum"]},
+        "directional_factors": {"type": "array", "items": {"type": "number", "minimum": 0}, "minItems": 1},
+        "mass_source": {"$ref": "#/$defs/massSource"}
+      }
+    },
+    "winkler": {"oneOf": [{"type": "object", "additionalProperties": false, "required": ["k"], "properties": {"k": {"type": "number", "minimum": 0}}}, {"type": "object", "additionalProperties": false, "required": ["ky", "kz"], "properties": {"ky": {"type": "number", "minimum": 0}, "kz": {"type": "number", "minimum": 0}}}], "description": "D2 requires k; D3 ky and kz. N/m² (force per unit length per unit deflection), local transverse axes; releases are not supported."},
+    "spring": {"type": "object", "additionalProperties": false, "required": ["id", "nodes", "kind", "dof"], "properties": {"id": {"$ref": "#/$defs/id"}, "nodes": {"type": "array", "items": {"$ref": "#/$defs/id"}, "minItems": 1, "maxItems": 2}, "kind": {"enum": ["spring.linear", "spring.nonlinear"]}, "dof": {"$ref": "#/$defs/dof"}, "k": {"type": "number", "minimum": 0}, "law": {"type": "string"}, "direction": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}, "rotation": {"type": "array", "items": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3}, "minItems": 3, "maxItems": 3}}, "description": "One node to ground, two between distinct nodes; id shares the members namespace. One local DOF per spring. direction/rotation are mutually exclusive. spring.linear requires k without law; spring.nonlinear requires law without k, and also requires the nonlinearStatic method. The law is interpreted as F(δ) or M(θ), without material or geometry conversion."},
+    "newton_options": {"type": "object", "additionalProperties": false, "required": ["case", "load_factors", "tolerance", "max_iterations", "force_scale"], "properties": {"case": {"type": "string"}, "load_factors": {"type": "array", "items": {"type": "number"}, "minItems": 1, "maxItems": 16384}, "tolerance": {"type": "number", "exclusiveMinimum": 0}, "max_iterations": {"type": "integer", "minimum": 1, "maximum": 16384}, "force_scale": {"type": "number", "exclusiveMinimum": 0}, "displacement_tolerance": {"type": "number", "exclusiveMinimum": 0}, "energy_tolerance": {"type": "number", "exclusiveMinimum": 0}, "displacement_scale": {"type": "number", "exclusiveMinimum": 0}, "energy_scale": {"type": "number", "exclusiveMinimum": 0}}, "description": "Absolute factors, allowing unloading/repetitions. tolerance measures the residual infinity norm/force_scale. Each additional criterion requires its positive scale; all active criteria must be satisfied. Diaphragms and combinations are not supported."},
+    "geo_parameter": {"type": "object", "additionalProperties": false, "required": ["value", "provenance"], "properties": {"value": {"type": "number"}, "provenance": {"enum": ["measured", "assumed"]}}},
+    "soil_layer": {"type": "object", "additionalProperties": false, "required": ["thickness_m"], "properties": {"thickness_m": {"type": "number", "exclusiveMinimum": 0}, "gamma_kn_m3": {"$ref": "#/$defs/geo_parameter"}, "gamma_sat_kn_m3": {"$ref": "#/$defs/geo_parameter"}}},
+    "soil_options": {"type": "object", "additionalProperties": false, "required": ["layers", "depths_m"], "properties": {"layers": {"type": "array", "items": {"$ref": "#/$defs/soil_layer"}, "minItems": 1, "maxItems": 16384}, "groundwater_depth_m": {"$ref": "#/$defs/geo_parameter"}, "water_unit_weight_kn_m3": {"$ref": "#/$defs/geo_parameter"}, "depths_m": {"type": "array", "items": {"type": "number", "minimum": 0}, "minItems": 1, "maxItems": 16384}}, "description": "γ required in each layer; γsat required below zw; zw and γw required even in dry conditions. Missing data produces ENG-E-0003. The structural model, cases, and combinations must be empty. Depth positive downward; stresses in kPa with compression positive."},
+    "consolidation_layer": {"type": "object", "additionalProperties": false, "required": ["thickness_m", "elements"], "properties": {"thickness_m": {"$ref": "#/$defs/geo_parameter"}, "cv_m2_s": {"$ref": "#/$defs/geo_parameter"}, "mv_per_kpa": {"$ref": "#/$defs/geo_parameter"}, "k_m_s": {"$ref": "#/$defs/geo_parameter"}, "elements": {"type": "integer", "minimum": 1, "maximum": 2048}}},
+    "consolidation_load": {"type": "object", "additionalProperties": false, "required": ["time_s"], "properties": {"time_s": {"type": "number", "minimum": 0}, "delta_stress_kpa": {"$ref": "#/$defs/geo_parameter"}}},
+    "consolidation_options": {"type": "object", "additionalProperties": false, "required": ["layers", "drainage", "history", "output_times_s", "theta", "max_step_s"], "properties": {"layers": {"type": "array", "items": {"$ref": "#/$defs/consolidation_layer"}, "minItems": 1, "maxItems": 2048}, "water_unit_weight_kn_m3": {"$ref": "#/$defs/geo_parameter"}, "drainage": {"enum": ["top", "bottom", "double"]}, "history": {"type": "array", "items": {"$ref": "#/$defs/consolidation_load"}, "minItems": 2, "maxItems": 257}, "output_times_s": {"type": "array", "items": {"type": "number", "minimum": 0}, "minItems": 1, "maxItems": 16384}, "theta": {"type": "number", "minimum": 0, "maximum": 1}, "max_step_s": {"type": "number", "exclusiveMinimum": 0}}, "description": "Explicit cv,k,mv and γw with provenance; cv=k/(mv γw). The domain limits are 2048 elements and 8000000 nodal values; the dense budget at this boundary further restricts the effective mesh. Increasing history starting at 0; increasing outputs without extrapolation. The structural model, cases, and combinations must be empty. Maximum total work MAX_CONSOLIDATION_WORK=50000000: sum of substeps across the entire history (load breakpoints and outputs) multiplied by the total element count; exceeding the bound is rejected during validation with API-E-CONSOLIDATION-WORK. Also MAX_CONSOLIDATION_COST=500000000: Σ intervals n³ + Σ substeps n², n free nodes (elements for single drainage, elements−1 for double drainage). Saturating u128 arithmetic, without deducting reused factors; MAX_CONSOLIDATION_SEGMENTS=256 when joining breakpoints and outputs across the entire history (at most 257 load points), MAX_CONSOLIDATION_SUBSTEPS=100000. Exceeding any of these three limits produces API-E-CONSOLIDATION-COST (invalid / exit 2) before integration. This implies at most 793 elements for single drainage or 794 for double drainage. Cancellation before combine/factorize for each interval, between blocks of up to 16 columns in the reference backend and at each substep (API-I-CANCELLED)."},
+    "buckling_options": {"type": "object", "additionalProperties": false, "required": ["mode_count", "reference"], "properties": {"mode_count": {"type": "integer", "minimum": 0, "maximum": 16384}, "reference": {"$ref": "#/$defs/term"}}, "description": "mode_count is the number of lowest finite factors of K + lambda Kg = 0. Zero returns an empty spectrum and does not require a compression metric. reference is an existing case and factor; its linear solution is the geometric reference and lambda multiplies that Kg. Axial force is positive in tension. The Timoshenko-Gere page and table are unknown; see provenance/ENG-ANL-006.md."}
+  }
+}

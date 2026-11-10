@@ -171,7 +171,7 @@ fn invalid_nonfinite_schema_and_missing_references_exit_two() {
         assert!(d["input_sha256"].is_null());
     }
     for (pointer, replacement) in [
-        ("/schema", json!("engine-input/2")),
+        ("/schema", json!("engine-input/9")),
         ("/model/members/0/nodes", json!([1, 99])),
         (
             "/combinations",

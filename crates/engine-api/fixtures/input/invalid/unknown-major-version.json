@@ -1,5 +1,5 @@
 {
-  "schema": "engine-input/2",
+  "schema": "engine-input/9",
   "units": "SI",
   "model": {
     "axes": "Z-up",
