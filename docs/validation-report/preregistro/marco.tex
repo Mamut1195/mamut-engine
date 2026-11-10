@@ -40,15 +40,21 @@ Para un caso nuevo, sin número previo en el repositorio, la tolerancia se elige
 Si la formulación del segundo programa es distinta, hay que explicarlo. En esta sesión esa coincidencia es DESCONOCIDO donde la fila lo dice, y entonces no se usa la banda de \(1\mathrm{e}{-6}\).
 
 \section{Qué consolida y qué preregistra}
-Los casos que ya tenían tolerancia escrita se consolidan. La tabla no los preregistra y no cambia el número. El ticket pide declarar que ya se ejecutaron antes de esta tabla. Se declara así el carácter de la fila: consolidación, no preregistro. El orden real de esas ejecuciones es DESCONOCIDO. La historia de git que sí se puede mostrar es la de introducción del archivo que contiene la tolerancia, en la columna \texttt{introduccion\_git}, con la fecha \texttt{\%cI} del commit. Esa fecha no es una fecha de corrida. Los CSV de datos del informe, de VAL-001 a VAL-030, siguen en el marcador de dos líneas; no se abrió ninguna serie para rellenar esta tabla.
-
-Los casos sin tolerancia previa y con fuente definida quedan en preregistro. No se ejecutó nada para elegir el número. VAL-031 no tiene fuente definida: la tolerancia queda DESCONOCIDO, por fijar antes de ejecutar, y no cuenta como preregistro. VAL-037 es consolidación. La cota ya escrita en main es \(\lvert B_2^{\mathrm{motor}}-50/47\rvert\le 10^{-6}\), en \texttt{docs/validation-report/casos/deriv/VAL-037.tex} y en la constante \texttt{B2\_TOLERANCE} de la prueba. La procedencia es MAM-850 (\#23): ese preregistro se hizo en el PR, en el commit \texttt{5696f82a806b05ab9745e2557dfac2d2b0e04cd4}, y la banda se fijó después de la revisión r1. Esta tabla no lo preregistra otra vez.
+Las clases son estas. La tabla no cambia ningún número ya escrito.
+\begin{itemize}
+\item Consolidada: VAL-001 a VAL-030, VAL-037, VAL-038, VAL-039 y VAL-040. El orden de ejecución es DESCONOCIDO. La columna \texttt{introduccion\_git} trae la fecha de committer del archivo que contiene la tolerancia. Esa fecha no es una fecha de corrida. Los CSV de datos del informe, de VAL-001 a VAL-030, siguen en el marcador de dos líneas.
+\item Preregistrada: VAL-033, VAL-034, VAL-035, VAL-036 y VAL-041. No se ejecutó nada para elegir el número.
+\item DESCONOCIDO: VAL-031, por fijar antes de ejecutar.
+\item VAL-037, dentro de las consolidadas: la cota \(\lvert B_2^{\mathrm{motor}}-50/47\rvert\le 10^{-6}\) se fijó después de la revisión r1 de \#23. Está en \texttt{docs/validation-report/casos/deriv/VAL-037.tex} y en \texttt{B2\_TOLERANCE}. El preregistro de MAM-850 está en el commit \texttt{5696f82a806b05ab9745e2557dfac2d2b0e04cd4} de la rama de ese PR. Por el squash no es accesible desde main. El squash en main es \texttt{9aeebcc000ca42c0f94b5aa41507b1da1e378743}.
+\item VAL-032: pendiente de congelación (Q2). El README no declara un SHA de congelación, Q2 debe verificar antes de congelar y una parte es solo diagnóstico. La fila cita el campo \texttt{tolerances\_preregistered} y no copia sus valores.
+\end{itemize}
 
 Conteo de las 41 filas, por la columna \texttt{clase}:
 \begin{itemize}
-\item consolidación: 35 (VAL-001 a VAL-030, VAL-032, VAL-037, VAL-038, VAL-039 y VAL-040);
+\item consolidación: 34 (VAL-001 a VAL-030, VAL-037, VAL-038, VAL-039 y VAL-040);
 \item preregistro: 5 (VAL-033, VAL-034, VAL-035, VAL-036 y VAL-041);
 \item DESCONOCIDO: 1 (VAL-031);
+\item pendiente de congelación (Q2): 1 (VAL-032);
 \item en revisión: 0.
 \end{itemize}
 
@@ -97,7 +103,7 @@ VAL-028 & consolidado & A=0, R=1e-6 & sec:VAL-028 & DESCONOCIDO & DESCONOCIDO \\
 VAL-029 & consolidado & A=0, R=0 & sec:VAL-029 & DESCONOCIDO & DESCONOCIDO \\
 VAL-030 & consolidado & A=0, R=0 & sec:VAL-030 & DESCONOCIDO & DESCONOCIDO \\
 VAL-031 & DESCONOCIDO & DESCONOCIDO & sin sección en el informe & DESCONOCIDO & DESCONOCIDO \\
-VAL-032 & consolidado & campo tolerances\_preregistered & sin sección en informe.tex & DESCONOCIDO & DESCONOCIDO \\
+VAL-032 & pendiente de congelación (Q2) & campo tolerances\_preregistered & sin sección en informe.tex & DESCONOCIDO & DESCONOCIDO \\
 VAL-033 & preregistro & R=1e-3 (libro) & sin sección en el informe & DESCONOCIDO & DESCONOCIDO \\
 VAL-034 & preregistro & R=1e-3 (libro) & sin sección en el informe & DESCONOCIDO & DESCONOCIDO \\
 VAL-035 & preregistro & M 3 por ciento; Delta 5 por ciento & sin sección en el informe & DESCONOCIDO & DESCONOCIDO \\
