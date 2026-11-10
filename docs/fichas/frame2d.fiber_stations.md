@@ -351,10 +351,9 @@ reducciones de abajo se hicieron antes de ejecutar el ensayo.
     Ux_j = ε0 L. Si N y Mz son constantes, (13) da la fuerza nodal
     [−N, 0, −Mz, N, 0, Mz]. El nudo libre exige N = 0 y Mz = M, y el
     equilibrio de sólido rígido pone en i la fuerza [0, 0, −M]. El
-    corte recuperado es −f_v,i = 0. Ese par (ε0, κ) no se despeja en
-    forma cerrada: la parábola y las franjas en tracción mueven el eje
-    neutro, y Ux, Uy y θ quedan definidos por N(ε0, κ) = 0 junto con
-    Mz(ε0, κ) = M. No se fija su magnitud.
+    corte recuperado es −f_v,i = 0. N(ε0, κ) = 0 y Mz(ε0, κ) = M fijan
+    el eje neutro. El apartado 16 resuelve ese par con las fibras y
+    deja Ux_j = ε0 L y θ_j = κ L.
 
     Signo. Con κ > 0 y ε0 = 0 el hormigón de y > 0 está comprimido y
     aporta N < 0, mientras el acero simétrico aporta
@@ -374,13 +373,157 @@ reducciones de abajo se hicieron antes de ejecutar el ensayo.
     tengan a la vez tracción y compresión, la deformación de tracción
     del acero queda por debajo de κ · 3/8, o sea de
     M · 131072 / (24 E). Con M = 1000 N·m y este E esa cota es
-    256/9375000, menor que 3×10⁻⁵ y menor que fy/E = 1/400. M = 1000 N·m
+    256/9375000, menor que 3×10⁻⁵ y menor que fy/E = 1/400. El apartado
+    15 repite la misma cota con cada división escrita. M = 1000 N·m
     es una carga redonda elegida para dejar esa separación; no se movió
     para parecerse a otro programa. La historia aceptada es doce ceros.
     La igualdad de Mz en las tres estaciones es la huella del campo
     constante del que sale la cota. La comparación usa 1×10⁻⁴ N o N·m,
     diez veces el techo 1×10⁻⁸ M del residuo de Newton y muy por debajo
     del momento aplicado.
+
+## Seguimiento MAM-1038
+
+Autor de estos dos apartados: agente cloud de Cursor (Cursor Agent),
+modelo: DESCONOCIDO, 2026-11-09 (America/Guayaquil, ECT, UTC−5). Rol:
+especificador de los esperados. La barra y la sección no cambian de
+código. Esta reducción se escribió antes del ensayo que la lee. No sale
+de ejecutar el código bajo prueba ni de otro programa. No se copió un
+listado. Página de libro: cita desconocida.
+
+15. Cota elástica de tracción del acero, paso a paso. Los datos son los
+    del apartado 14: L = 4 m, M = 1000 N·m, E = 200000000000 Pa,
+    fy = 500000000 Pa, dos barras de área A_s = 1/1024 m² en
+    y = ±3/16 m, historia nula. El hormigón en tracción no aporta
+    tensión. En compresión la tensión del motor es −f_c, con f_c ≥ 0 en
+    las tres ramas ya escritas de `concrete.kent_park`.
+
+    1. Rigidez de las dos barras, sin hormigón. y² = 9/256, así que
+       EI_s = 2 E A_s y² = 2 E (1/1024) (9/256) = 18 E / 262144
+       = 9 E / 131072.
+    2. Mientras las dos barras sigan elásticas, σ = E ε y el axil del
+       acero es 2 E A_s ε0. El momento del acero no depende de ε0:
+       cada barra aporta E A_s y² κ, y M_s = EI_s κ.
+    3. Con κ > 0 y ε0 > 0 el signo del apartado 14 pone la compresión
+       en y > 0. Ahí σ ≤ 0, así que cada fibra comprimida aporta
+       (−y) σ A ≥ 0. El hormigón en tracción aporta 0. Por tanto
+       M_c ≥ 0 y, en la rama elástica, M = EI_s κ + M_c ≥ EI_s κ.
+       Despejando, κ ≤ M / EI_s.
+    4. La franja y = −3/16 tiene ε = ε0 + κ · 3/16 > 0: está en
+       tracción. Si la franja y = +3/16 también lo estuviera, las
+       cuatro franjas lo estarían, el hormigón no aportaría axil y
+       N = 2 E A_s ε0 = 0 exigiría ε0 = 0. Eso contradice ε0 > 0.
+       La franja superior está comprimida y el eje neutro
+       y_na = ε0/κ cumple 0 < y_na < 3/16.
+    5. La deformación de tracción del acero, en y = −3/16, es
+       ε_t = κ (y_na + 3/16) < κ · 3/8. Con el paso 3,
+       ε_t < (M / EI_s) · 3/8 = M · 131072 / (9 E) · 3/8
+       = M · 131072 / (24 E).
+    6. Sustituir M = 1000 y E = 2×10¹¹:
+       1000 · 131072 / (24 · 2×10¹¹) = 131072 / 4.8×10⁹.
+       131072 ÷ 512 = 256 y 4.8×10⁹ ÷ 512 = 9375000, porque
+       512 · 9375 = 4 800 000 y el factor 1000 cierra el denominador.
+       La cota es 256/9375000.
+    7. fy/E = 500000000 / 200000000000 = 1/400. El producto cruzado
+       256 · 400 = 102400 es menor que 9375000, así que
+       256/9375000 < 1/400. También 9375000 · 3×10⁻⁵ = 281.25 > 256,
+       así que la cota es menor que 3×10⁻⁵.
+    8. La barra comprimida, en y = +3/16, tiene
+       |ε| = κ (3/16 − y_na) < ε_t. Las dos quedan por debajo de fy/E.
+       Con historia nula, |ξ| = |E ε| < fy y la rama ya escrita de
+       `steel.bilinear_kinematic` devuelve σ = E ε. El coeficiente b
+       no entra. La historia de prueba de las dos barras sigue siendo
+       el par aceptado. M = 1000 N·m queda por debajo de esa fluencia
+       sin usar el valor resuelto de κ.
+
+16. Equilibrio de las fibras con M uniforme, y la integral de la
+    directriz. El apartado 15 deja el acero elástico. La sección tiene
+    cuatro franjas de área A_c = 1/32 m² en y = −3/16, −1/16, +1/16 y
+    +3/16, la parábola (A.9) en compresión y tensión nula en tracción.
+    f′_c es 3000 veces 4.4482216152605 / 0.0254², el mismo factor del
+    apartado 12. φ = f′_c / E. En binary64 ese cociente es
+    1.0342135939752541×10⁻⁴. Sea x = ε_c / 0.002 y z = x (2 − x), con
+    la parábola solo para 0 ≤ x ≤ 1.
+
+    Hipótesis, que se cierra sola: en el axil nulo solo trabaja la
+    franja y = +3/16. Entonces ε_c = κ · 3/16 − ε0 y el axil del acero
+    más el de esa franja dan
+
+    E ε0 / 512 = f′_c z / 32,
+
+    o sea ε0 = 16 φ z. La cinemática ε(3/16) = −0.002 x despeja
+
+    κ = (16/3) (0.002 x + ε0).
+
+    El eje neutro de cualquier x ∈ (0, 1) en esta hipótesis es
+
+    y_na = 3 φ t / (0.002 + 16 φ t), t = z/x = 2 − x ∈ (1, 2).
+
+    y_na crece con t. En los extremos, con el φ de arriba,
+    t = 1 da y_na = 0.0849 m y t = 2 da y_na = 0.1169 m. Los dos
+    caen entre 1/16 = 0.0625 m y 3/16 = 0.1875 m, así que las otras
+    tres franjas están en tracción y la hipótesis se cumple en toda
+    la parábola. El mismo techo κ ≤ M/EI_s del apartado 15 deja, en
+    la frontera y_na = 1/16, un axil todavía de compresión: ahí
+    z/κ ≥ 124.7 y el equilibrio de axil nulo pediría z/κ = 1/(256 φ)
+    ≈ 37.8. La raíz N = 0 está por encima de esa frontera.
+
+    El momento de la hipótesis es M_s + M_c = 1000:
+
+    9 E κ / 131072 + 3 f′_c z / 512 = 1000.
+
+    Dividir por E deja 9 κ / 131072 + 3 φ z / 512 = 5×10⁻⁹, porque
+    1000/E = 5×10⁻⁹. El factor de κ es 9/131072 · 16/3 = 3/8192, y
+    (3/8192) · 0.002 = 3/4096000. Los dos términos en φ z suman
+    3 φ z / 256. Dividir esa línea por 3 da
+
+    x / 4096000 + φ z / 256 = 1/600000000.
+
+    Multiplicar por 4096000 da x + 16000 φ z = 64/9375. Con
+    z = 2x − x² y un factor 9375, la cuadrática es
+
+    150000000 φ x² − (9375 + 300000000 φ) x + 64 = 0.
+
+    El producto de las raíces es positivo y la de (A.9) es la menor.
+    La evaluación en binary64 de la fórmula cuadrática da
+
+    x = 1.5850679334246469×10⁻³,
+
+    que es menor que 1. La otra raíz queda por encima de 1 y no
+    pertenece a esta rama. Con ese x,
+
+    ε0 = 5.2415987332421611×10⁻⁶,
+    κ = 4.4862584533821091×10⁻⁵ m⁻¹.
+
+    La integral del apartado 14, con el empotramiento en i, es
+
+    Ux_j = ε0 L = 2.0966394932968644×10⁻⁵ m,
+    θ_j = κ L = 1.7945033813528436×10⁻⁴ rad,
+    v_j = κ L² / 2 = θ_j L / 2 = 3.5890067627056873×10⁻⁴ m.
+
+    Rehacer N y Mz sumando las cuatro franjas y las dos barras en este
+    par devuelve N = 0 y Mz = 1000 N·m, salvo un resto de redondeo de
+    unos 2×10⁻¹¹ N·m. Las tres franjas inferiores salen en tracción,
+    la superior en compresión con x < 1, y |E ε| de cada barra queda
+    muy por debajo de fy. Esos son los esperados del ensayo. No se
+    movieron después de una corrida.
+
+    Holgura. `StaticNewton` acepta el paso cuando la norma infinito
+    del residuo libre, partida por la escala de fuerza, no pasa de
+    1×10⁻⁸. Aquí la escala es M, así que cada componente libre cabe
+    en 1×10⁻⁵ N o N·m. En la raíz, la tangente de las fibras activas
+    tiene ∂N/∂ε0 = 1.0359839344819576×10⁹ N,
+    ∂N/∂κ = ∂Mz/∂ε0 = −1.2100480021536705×10⁸ N·m y
+    ∂Mz/∂κ = 3.642131019663132×10⁷ N·m². La suma por filas de la
+    inversa, por 1×10⁻⁵, acota el peor reparto de ese techo entre
+    N y Mz: 2.8×10⁻¹³ m en Ux y 2.1×10⁻¹² rad en θ, ya multiplicado
+    por L. Un residuo de corte del mismo techo, llevado con
+    θ = P L² / (2 ∂Mz/∂κ), suma 2.2×10⁻¹² rad; el mismo corte partido
+    por 12 (∂Mz/∂κ) / L³ mueve v en 1.5×10⁻¹² m. Diez veces el mayor
+    de esos techos es 2.8×10⁻¹² m en Ux, 2.2×10⁻¹¹ rad en θ y
+    4×10⁻¹¹ m en v. La comparación usa 1×10⁻¹¹ m, 3×10⁻¹¹ rad y
+    1×10⁻¹⁰ m. Esas tres cotas quedan por encima del producto y del
+    último bit de los decimales publicados. No salen de una corrida.
 
 ## Casos fijados antes de ejecutar
 
@@ -391,7 +534,7 @@ reducciones de abajo se hicieron antes de ejecutar el ensayo.
 | Curvatura lineal. Ecuación (15). Integral de Boole, independiente de (2)–(4). | Sección simétrica de control. | q de (15). Historia nula. | La integral de Boole de (8). | Holgura de redondeo f64 de esa integral, piso 1×10⁻⁶ N o N·m, por encima del último bit de sumas del orden de 1×10⁶. |
 | Historia solo en la estación izquierda. Apartado 11. | Igual. | ε_p = 1/10000 en la barra superior izquierda. | Cuadratura (2)–(4) con esa historia en la primera estación. | La misma holgura de 1×10⁻⁶. |
 | Voladizo axial con `StaticNewton`. Apartado 13. Acero `steel.bilinear_kinematic`, b = 1/20. | Sección de control con b = 1/20. L = 4 m. P = (3/2) fy / 512. | Factores absolutos 1/4, 1/2, 3/4 y 1. Historia inicial de 12 ceros. | Ux_j = 11/100 m, v_j = 0, θ_j = 0. En las dos barras y las tres estaciones, ε_p = 19/800 y α = fy/2. El axil recuperado es P. | Ux a 3×10⁻⁹ m. ε_p a 1×10⁻⁹. α a 10 Pa. v_j y θ_j a 1×10⁻⁹. Axil: el mayor entre 1×10⁻⁶ relativo y el residuo de Newton. |
-| Voladizo con momento de punta. Apartado 14. | La misma sección del apartado 13. M = 1000 N·m. | Los mismos factores. Historia inicial nula. | Fuerza nodal [0, 0, −M, 0, 0, M]. En x/L = 0, 1/2 y 1: N = 0, Vy = 0 y Mz = M. Historia de doce ceros. Ux_j > 0, v_j > 0 y θ_j > 0. | Equilibrio a 1×10⁻⁴ N o N·m. La magnitud de Ux, v y θ no tiene forma cerrada. |
+| Voladizo con momento de punta. Apartados 14 a 16. Cota 256/9375000 < fy/E y cuadrática del apartado 16. | La misma sección del apartado 13. M = 1000 N·m. | Los mismos factores. Historia inicial nula. | Fuerza nodal [0, 0, −M, 0, 0, M]. En x/L = 0, 1/2 y 1: N = 0, Vy = 0 y Mz = M. Historia de doce ceros. Ux_j = 2.0966394932968644×10⁻⁵ m, θ_j = 1.7945033813528436×10⁻⁴ rad y v_j = 3.5890067627056873×10⁻⁴ m. | Equilibrio a 1×10⁻⁴ N o N·m. Ux a 1×10⁻¹¹ m, θ a 3×10⁻¹¹ rad y v a 1×10⁻¹⁰ m, por el apartado 16. |
 
 Muestra lisa para la diferencia finita del kit: solo el desplazamiento de
 la ecuación (10), h = 1×10⁻⁶. El origen no entra en esa muestra.
