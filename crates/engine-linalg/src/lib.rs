@@ -7,6 +7,9 @@
 //! 0.24.4 package license notices; see this crate's README.md.
 //! Quantities retain the SI units of their rows and columns; this crate
 //! does not convert units or know the mapping between global indices and nodes.
+//! [`SymCscMatrix`] guarda solo el triángulo superior en CSC y rechaza, antes
+//! de reservar, un orden o una estimación de memoria por encima del límite
+//! que pasa el llamador. No elige el corte entre la ruta densa y la dispersa.
 //! V1 uses the sequential reference, without explicit SIMD or implicit FMA.
 //! Reduction order and the explicit Sturm FMA exception are documented
 //! in `docs/DETERMINISM.md` (ENG-CORE-010). Scalar functions go through
@@ -30,12 +33,14 @@ mod matrix;
 mod modes;
 mod reference;
 mod sparse;
+mod sym_csc;
 pub use budget::{dense_bytes, eigen_working_bytes, factor_bytes, sparse_bytes, MemoryBudget};
 pub use guyan::{guyan_condense, guyan_condense_with_check, GuyanReduction};
 pub use matrix::{DMat, SparsityPattern, SymMatrix};
 pub use modes::{lowest_modes, sturm_count, LowestModes};
 pub use reference::ReferenceBackend;
 pub use sparse::{SparseMatrix, Triplet};
+pub use sym_csc::{sym_csc_bytes, SymCscLimits, SymCscMatrix};
 #[cfg(feature = "faer")]
 mod faer_backend;
 #[cfg(feature = "faer")]

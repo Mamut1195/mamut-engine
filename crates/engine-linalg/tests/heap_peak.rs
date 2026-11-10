@@ -3,7 +3,8 @@
 //! The counter measures Layout sizes, without System internal metadata.
 //! Only counts the measuring thread; activity of other libtest threads is ignored.
 use engine_linalg::{
-    dense_bytes, eigen_working_bytes, factor_bytes, DMat, MemoryBudget, ReferenceBackend, SymMatrix,
+    dense_bytes, eigen_working_bytes, factor_bytes, sym_csc_bytes, DMat, MemoryBudget,
+    ReferenceBackend, SymCscLimits, SymCscMatrix, SymMatrix, Triplet,
 };
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
@@ -262,4 +263,108 @@ fn charged_bounds_cover_actual_factorize_and_eigen_heap_peaks() {
         }
         drop(result);
     }
+}
+
+fn rechazo_disperso_sin_matriz(n: usize, limites: SymCscLimits) {
+    let estimado = sym_csc_bytes(n, 0);
+    let (_error, peak, retained) = measure(|| {
+        let err = SymCscMatrix::from_triplets(n, &[], limites).unwrap_err();
+        assert_eq!(err.code, "ENG-E-0013");
+        assert!(err.message.contains("No se reserva"));
+        drop(err);
+    });
+    assert_eq!(retained, 0, "el rechazo no deja la matriz viva");
+    assert!(
+        peak < 4096,
+        "pico {peak}: se reservó algo más que el mensaje"
+    );
+    if let Some(bytes) = estimado {
+        assert!(
+            peak < bytes,
+            "pico {peak} no está por debajo de la cota {bytes}"
+        );
+    }
+}
+
+#[test]
+fn sparse_order_rejection_reserves_nothing() {
+    let _serial = MEASUREMENT.lock().unwrap();
+    let _counting = CountingThread::enter();
+    rechazo_disperso_sin_matriz(
+        50_000,
+        SymCscLimits {
+            max_order: 10,
+            max_bytes: usize::MAX,
+        },
+    );
+}
+
+#[test]
+fn sparse_memory_rejection_reserves_nothing() {
+    let _serial = MEASUREMENT.lock().unwrap();
+    let _counting = CountingThread::enter();
+    let n = 50_000usize;
+    let estimado = sym_csc_bytes(n, 0).unwrap();
+    assert!(estimado > 4096);
+    rechazo_disperso_sin_matriz(
+        n,
+        SymCscLimits {
+            max_order: n,
+            max_bytes: 1,
+        },
+    );
+}
+
+#[test]
+fn sparse_byte_overflow_reserves_nothing() {
+    let _serial = MEASUREMENT.lock().unwrap();
+    let _counting = CountingThread::enter();
+    rechazo_disperso_sin_matriz(
+        usize::MAX,
+        SymCscLimits {
+            max_order: usize::MAX,
+            max_bytes: usize::MAX,
+        },
+    );
+}
+
+#[test]
+fn small_sparse_matrix_reserves_within_the_byte_bound() {
+    let _serial = MEASUREMENT.lock().unwrap();
+    let _counting = CountingThread::enter();
+    let entradas = [
+        Triplet {
+            row: 1,
+            col: 0,
+            value: 4.0,
+        },
+        Triplet {
+            row: 0,
+            col: 0,
+            value: 1.0,
+        },
+    ];
+    let estimado = sym_csc_bytes(2, entradas.len()).unwrap();
+    let (_, peak, retained) = measure(|| {
+        let a = SymCscMatrix::from_triplets(
+            2,
+            &entradas,
+            SymCscLimits {
+                max_order: 2,
+                max_bytes: estimado,
+            },
+        )
+        .unwrap();
+        assert_eq!(a.column_pointers(), &[0, 1, 3]);
+        assert_eq!(a.get(0, 0), Some(1.0));
+        assert_eq!(a.get(0, 1), Some(4.0));
+        assert_eq!(a.get(1, 1), Some(0.0));
+        drop(a);
+    });
+    assert!(peak > 0, "el contador tiene que ver la reserva real");
+    assert!(
+        peak <= estimado,
+        "pico {peak} por encima de la cota {estimado}"
+    );
+    assert_eq!(retained, 0);
 }
