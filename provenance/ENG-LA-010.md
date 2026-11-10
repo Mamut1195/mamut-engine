@@ -16,7 +16,7 @@
 
 La opción A ya estaba tomada: implementación propia, sin crates nuevas. El rechazo usa ENG-E-0013. `docs/contracts/error-codes-1.json` no se editó y sigue con 32 entradas. El tipo no convierte unidades. El corte entre la ruta densa y la dispersa no se elige aquí.
 
-El diseño guarda la triangular inferior. El encargo de esta fase pide el triángulo superior. Se guarda ese: en la columna `j`, filas `i ≤ j`, diagonal incluida. La otra mitad no se materializa.
+El diseño queda alineado con esta fase: triángulo superior, en la columna `j`, filas `i ≤ j`, diagonal incluida. La otra mitad no se materializa.
 
 `SparseMatrix` suma duplicados en el orden de entrada. Aquí la suma es canónica: dentro de cada lado, de menor a mayor según `f64::total_cmp`. Dos órdenes de inserción dejan los mismos bits. No hay `HashMap`. Si las dos mitades vienen informadas, cada una se suma por su lado y las sumas tienen que ser iguales; se guarda la superior. No se suman entre sí.
 
@@ -39,6 +39,18 @@ Matriz de ensayo, con las dos mitades ya iguales a `0.5` en la posición `(0, 1)
 Con `x = (1, 2, -1)` el producto es `(3, 7.5, -6)`, porque `2·1 + 0.5·2 = 3`, `0.5·1 + 3·2 + 1 = 7.5` y `-1·2 + 4·(-1) = -6`. La densa se escribe a mano y se multiplica por filas. Coincide con el producto disperso.
 
 Una sola tripleta inferior `(1, 0, 5)` en orden 2 guarda punteros `(0, 1, 3)`, filas `(0, 0, 1)` y valores `(0, 5, 0)`: diagonal explícita donde nadie aportó, y el 5 una sola vez.
+
+## Alineación del diseño
+
+Estos cambios de documentación vienen de la r2 de J4 sobre #27 y de la decisión de J2. El almacenamiento de esta fase se queda como está implementado.
+
+- Triángulo superior, filas `i ≤ j`, y suma canónica con `f64::total_cmp`. Motivo de J2: dos órdenes de inserción dejan los mismos bits.
+- La fuente de las metas de velocidad es la Cursor Page «MAMUT Engine: camino a superar a OpenSees». Esa Page no nombra a Q3: cita desconocida.
+- El pórtico de 250 nudos queda en 1.350 GDL, que es la cifra de esa Page.
+
+Lo mismo quedó escrito en `docs/design/MAM-67-solver-disperso.md`, en la ficha 11 y en `provenance/ENG-LA-008-DISENO.md`. La frase que sigue describiendo el CSR general suma en el orden de entrada: ese tipo no cambió.
+
+En esta ronda, después de integrar `main`: `cargo fmt --all -- --check` exit 0; `cargo clippy --offline --locked --workspace --all-targets -- -D warnings` exit 0; `cargo test --offline --locked --workspace` exit 0; `bash clean-room/check.sh origin/main` Clean-room OK. El script de fragmentos se corre sobre HEAD al cerrar el commit.
 
 ## Verificación
 

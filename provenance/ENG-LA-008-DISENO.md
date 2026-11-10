@@ -1,5 +1,13 @@
 # Bitácora clean-room · ENG-LA-008-DISENO
 
+## Alineación en MAM-1055
+
+Estos ajustes vienen de la r2 de J4 sobre #27 y de la decisión de J2. El detalle está en `provenance/ENG-LA-010.md`.
+
+- La fuente de las metas es la Cursor Page «MAMUT Engine: camino a superar a OpenSees». Esa Page no nombra a Q3: cita desconocida.
+- El pórtico de 250 nudos queda en 1.350 GDL.
+- La matriz de la fase 2 guarda el triángulo superior y suma los duplicados con `f64::total_cmp`.
+
 ## Decisiones registradas
 
 - Estado: decidido por J0 el 2026-11-10 01:17 ECT, con delegación escrita de Jonathan a J0 (2026-11-10 01:13 ECT), registrada en el comentario de Linear MAM-67.
@@ -8,11 +16,11 @@
 - Session: continuación del 2026-11-10 (America/Guayaquil, ECT, UTC-5). Esta continuación no vio código fuente ni salidas de OpenSees, Frame3DD, Stabileo, CalculiX ni LAPACK, ni de sus derivados. No se abrió el código de SuiteSparse, CSparse, CHOLMOD, AMD de Davis, MUMPS, PARDISO ni de un derivado.
 - Qué se registra, ya escrito en `docs/design/MAM-67-solver-disperso.md`, apartado 11, y en `docs/tickets/11-solver-disperso.md`:
   1. Opción A aprobada: implementación propia en sala limpia, sin crates nuevas. El criterio de salida incluye el pórtico 3D de 250 nudos: estático en 54 ms o menos, modal en 0,58 s o menos y P-Delta en 88 ms o menos. Si la fase 10 no llega, se reabren B y C con números medidos.
-     La fuente de esas tres metas es la página de J2 «Ruta para superar a OpenSees», https://cursor.com/canvas/store-2a8ecc30-58b0-4b46-8a05-3be45ddfeb2e/19df7ff1-4c3f-440d-af09-e4dfbeec48ec, con mediciones de rendimiento de Q3 en caja negra.
+     La fuente de esas tres metas es la Cursor Page «MAMUT Engine: camino a superar a OpenSees», https://cursor.com/canvas/store-2a8ecc30-58b0-4b46-8a05-3be45ddfeb2e/19df7ff1-4c3f-440d-af09-e4dfbeec48ec. Quién tomó las mediciones de rendimiento en caja negra: cita desconocida.
   2. Con A, la pregunta de B sobre avisos de licencia e igualdad de bits ya no aplica.
   3. Se reutiliza ENG-E-0013. No hay ENG-E-0015. El catálogo sigue en 32 entradas.
   4. El solver trabaja en unidades coherentes y no convierte. La conversión vive en la frontera, MAM-1043.
-  5. Se retira el corte de 2048 GDL. El umbral se mide en la fase 10. Si los hashes publicados cambian, se documentan y J4 los audita. MAM-1056 pregunta por qué unos 1 500 GDL tardan 6,48 s en la ruta densa.
+  5. Se retira el corte de 2048 GDL. El umbral se mide en la fase 10. Si los hashes publicados cambian, se documentan y J4 los audita. MAM-1056 pregunta por qué 1.350 GDL tardan 6,48 s en la ruta densa.
   6. El objeto opcional en `results/1` queda aprobado.
   7. Los límites de 60 s y 2 GiB valen solo para MAM-67 y no cierran MAM-107.
 - La fase 2 se lleva en MAM-1055, con su propio PR.
@@ -63,7 +71,7 @@ No se abrió `provenance/ENG-BENCH-001-SMOKE-VPS.md`.
 
 Medición del propio motor citada en el diseño (250 nudos 3D, 6,48 s en estático): dato entregado en el encargo. El informe de origen no se abrió. Cita desconocida.
 
-Página de J2, «Ruta para superar a OpenSees», https://cursor.com/canvas/store-2a8ecc30-58b0-4b46-8a05-3be45ddfeb2e/19df7ff1-4c3f-440d-af09-e4dfbeec48ec. Es la fuente de las tres metas de velocidad del pórtico de 250 nudos. Mediciones de rendimiento de Q3 en caja negra. No se copió ninguna otra cifra de esa página.
+Cursor Page «MAMUT Engine: camino a superar a OpenSees», https://cursor.com/canvas/store-2a8ecc30-58b0-4b46-8a05-3be45ddfeb2e/19df7ff1-4c3f-440d-af09-e4dfbeec48ec. Es la fuente de las tres metas de velocidad del pórtico de 250 nudos. Quién tomó las mediciones de rendimiento en caja negra: cita desconocida. No se copió ninguna otra cifra de esa página.
 
 Citas bibliográficas. El artículo o el libro no se abrió. Volumen, número y páginas: cita desconocida, salvo el año cuando forma parte del título recordado:
 

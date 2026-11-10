@@ -46,20 +46,20 @@ La matriz de un elemento es pequeña: 6×6 en una barra plana, 12×12 en una bar
 
 Tipo nuevo del motor, dueño de sus datos, sin tipos de una crate:
 
-`SimetricaDispersa`, CSC de la triangular inferior, diagonal incluida.
+`SimetricaDispersa`, CSC del triángulo superior, diagonal incluida. En la fase 2 el tipo se llama `SymCscMatrix`.
 
 - `orden: usize`.
 - `punteros: Vec<usize>` de longitud `orden + 1`.
-- `filas: Vec<usize>`, índices de fila `i ≥ j`, crecientes dentro de la columna.
+- `filas: Vec<usize>`, índices de fila `i ≤ j`, crecientes dentro de la columna.
 - `valores: Vec<Real>`, paralelos a `filas`.
 - La diagonal de cada columna está presente. Si nadie aportó ese término, el valor es cero explícito. Hace falta para nombrar el pivote.
 - Un cero explícito se conserva, igual que en el CSR actual.
-- Solo se guarda una mitad. La otra no se materializa y no se compara byte a byte contra sí misma: la simetría es de construcción.
-- Duplicados: suma en orden de entrada, con `BTreeMap` o con un acumulador que recorra claves ordenadas. Sin `HashMap`. Es la misma regla que `SparseMatrix::from_triplets`.
+- Solo se guarda una mitad. Si llegan las dos, cada lado se suma por su cuenta y las sumas tienen que ser iguales; se guarda la superior. Si llega una sola, esa es la entrada.
+- Duplicados de un mismo lado: suma canónica con `f64::total_cmp`, de menor a mayor, sin `HashMap`. Motivo: dos órdenes de inserción dejan los mismos bits.
 
 `nnz` de esta matriz cuenta las entradas almacenadas, diagonal incluida. El informe lo publica como entradas almacenadas de K, no como el recuento de las dos mitades.
 
-La conversión desde el CSR global es un filtro: de cada entrada `(i, j, a)` se conserva la de `i ≥ j`. No es una factorización.
+La conversión desde el CSR global es un filtro: de cada entrada `(i, j, a)` se conserva la de `i ≤ j`. No es una factorización.
 
 ### 3.3. Mapa de GDL y restricciones
 
@@ -73,11 +73,11 @@ No se inventa otro mapa.
 La reducción dispersa de una matriz global `A`:
 
 1. Recorre las entradas de `A` en el orden ya definido del CSR.
-2. Para cada entrada y para cada par de coeficientes `(r, a)` y `(c, b)`, si `r ≥ c`, acumula `a * valor * b` en la clave `(r, c)`.
-3. Suma los duplicados en ese orden de recorrido.
+2. Para cada entrada y para cada par de coeficientes `(r, a)` y `(c, b)`, si `r ≤ c`, acumula `a * valor * b` en la clave `(r, c)`.
+3. Suma los duplicados de cada clave con `f64::total_cmp`, igual que la construcción.
 4. Construye `SimetricaDispersa`. No llama a `to_dense`.
 
-Hoy `reduced()` acumula una sola mitad y luego copia la otra sobre la densa, para que el redondeo no rompa la simetría exacta de `SymMatrix`. En la triangular no hay segunda mitad que redondear. El orden de la suma queda fijo por el recorrido del CSR y por la clave ordenada.
+Hoy `reduced()` acumula una sola mitad y luego copia la otra sobre la densa, para que el redondeo no rompa la simetría exacta de `SymMatrix`. En la triangular no hay segunda mitad que redondear. El orden de la suma queda fijo por `f64::total_cmp`.
 
 K, M concentrada, M consistente y Kg usan el mismo procedimiento. El patrón estructural reducido es la unión de sus claves, construida con `SparsityPattern::from_coordinates`, que ya existe y no necesita la máscara densa. `SparsityPattern::new` y `try_entries`, que piden `orden²` booleanos, no se usan en esta ruta.
 
@@ -97,7 +97,7 @@ Esas cuentas son aritmética de este diseño. No son mediciones de un ensayo.
 
 La ruta dispersa no implementa `SystemView` escribiendo una `SymMatrix`. Añade operaciones que prestan la `SimetricaDispersa` o que factorizan directo. La vista densa solo se ofrece cuando el llamador está en la ruta densa y `dense_bytes(n, n)` cabe en el presupuesto. Pedir la densa por encima de ese tamaño devuelve ENG-E-0013, que es el código que `MemoryBudget` ya usa, y no reserva.
 
-Decidido por J0 el 2026-11-10 01:17 ECT, con delegación escrita de Jonathan a J0 (2026-11-10 01:13 ECT), registrada en el comentario de Linear MAM-67: se retira el corte `n ≤ 2048`. El pórtico 3D de 250 nudos tiene unos 1 500 GDL libres y en la ruta densa tarda 6,48 s; ese corte no lo saca de la ruta densa y no mejora el tiempo. El umbral entre las dos rutas se fija midiendo en la fase 10. Conservar los hashes de `docs/DETERMINISM.md` no es criterio para fijarlo. Si cambian, se documentan y J4 los audita. Por qué unos 1 500 GDL tardan 6,48 s es la pregunta de MAM-1056, el perfil de la ruta densa. Este diseño no la responde. Si la ruta dispersa rechaza, el error se propaga. No hay segundo intento denso.
+Decidido por J0 el 2026-11-10 01:17 ECT, con delegación escrita de Jonathan a J0 (2026-11-10 01:13 ECT), registrada en el comentario de Linear MAM-67: se retira el corte `n ≤ 2048`. El pórtico 3D de 250 nudos tiene 1.350 GDL libres y en la ruta densa tarda 6,48 s; ese corte no lo saca de la ruta densa y no mejora el tiempo. El umbral entre las dos rutas se fija midiendo en la fase 10. Conservar los hashes de `docs/DETERMINISM.md` no es criterio para fijarlo. Si cambian, se documentan y J4 los audita. Por qué 1.350 GDL tardan 6,48 s es la pregunta de MAM-1056, el perfil de la ruta densa. Este diseño no la responde. Si la ruta dispersa rechaza, el error se propaga. No hay segundo intento denso.
 
 ## 4. Ordenamiento, factorización e inercia
 
@@ -338,7 +338,7 @@ No apareció otra crate de Rust puro, en esta consulta del registro, que documen
 
 Condición de salida de A, medida en la fase 10 sobre el pórtico 3D de 250 nudos: estático en 54 ms o menos, modal en 0,58 s o menos y P-Delta en 88 ms o menos. Si la fase 10 no llega a esas metas, o a las de 60 s y 2 GiB del modelo de 10 pisos, se reabren B y C con los números medidos por nosotros. No se cambia de crate dentro del mismo PR.
 
-La fuente de esas tres metas es la página de J2 «Ruta para superar a OpenSees», https://cursor.com/canvas/store-2a8ecc30-58b0-4b46-8a05-3be45ddfeb2e/19df7ff1-4c3f-440d-af09-e4dfbeec48ec, con mediciones de rendimiento de Q3 en caja negra.
+La fuente de esas tres metas es la Cursor Page «MAMUT Engine: camino a superar a OpenSees», https://cursor.com/canvas/store-2a8ecc30-58b0-4b46-8a05-3be45ddfeb2e/19df7ff1-4c3f-440d-af09-e4dfbeec48ec. Quién tomó las mediciones de rendimiento en caja negra: cita desconocida.
 
 Con A aprobada, la pregunta de B sobre avisos de licencia e igualdad de bits ya no aplica. Esas preguntas vuelven solo si B se reabre.
 
@@ -387,9 +387,9 @@ El modelo de aceptación de memoria es el de 10 pisos con losas y 26 460 GDL lib
 
 El tope de ese ensayo es 60 s de reloj de pared, de la entrada al ensamblaje hasta los desplazamientos, y 2 GiB de pico de proceso. Decidido por J0 el 2026-11-10 01:17 ECT, con delegación escrita de Jonathan a J0 (2026-11-10 01:13 ECT), registrada en el comentario de Linear MAM-67: esas dos cotas valen solo para MAM-67. No cierran MAM-107.
 
-La misma fase 10 mide el pórtico 3D de 250 nudos, el de unos 1 500 GDL libres que en la ruta densa tarda 6,48 s en estático. El criterio de salida de la opción A en ese pórtico es: estático en 54 ms o menos, modal en 0,58 s o menos y P-Delta en 88 ms o menos. El perfil de por qué la ruta densa tarda 6,48 s es MAM-1056. Si la fase 10 no cumple las metas, se reabren B y C con los tiempos y la memoria medidos.
+La misma fase 10 mide el pórtico 3D de 250 nudos, el de 1.350 GDL libres que en la ruta densa tarda 6,48 s en estático. El criterio de salida de la opción A en ese pórtico es: estático en 54 ms o menos, modal en 0,58 s o menos y P-Delta en 88 ms o menos. El perfil de por qué la ruta densa tarda 6,48 s es MAM-1056. Si la fase 10 no cumple las metas, se reabren B y C con los tiempos y la memoria medidos.
 
-La fuente de esas tres metas es la página de J2 «Ruta para superar a OpenSees», https://cursor.com/canvas/store-2a8ecc30-58b0-4b46-8a05-3be45ddfeb2e/19df7ff1-4c3f-440d-af09-e4dfbeec48ec, con mediciones de rendimiento de Q3 en caja negra.
+La fuente de esas tres metas es la Cursor Page «MAMUT Engine: camino a superar a OpenSees», https://cursor.com/canvas/store-2a8ecc30-58b0-4b46-8a05-3be45ddfeb2e/19df7ff1-4c3f-440d-af09-e4dfbeec48ec. Quién tomó las mediciones de rendimiento en caja negra: cita desconocida.
 
 No se publican cifras de otro programa.
 
@@ -539,11 +539,11 @@ El rechazo de capacidad, cuando llegue a Python, es una `EngineError` con ENG-E-
 Estado: decidido por J0 el 2026-11-10 01:17 ECT, con delegación escrita de Jonathan a J0 (2026-11-10 01:13 ECT), registrada en el comentario de Linear MAM-67. Este PR no añade crates ni códigos de error.
 
 1. Opción A aprobada: implementación propia en sala limpia, sin crates nuevas. Condición: el criterio de salida incluye las metas de velocidad en el pórtico 3D de 250 nudos, con estático en 54 ms o menos, modal en 0,58 s o menos y P-Delta en 88 ms o menos. Si la fase 10 no llega, se reabren B y C con números medidos.
-   La fuente de esas tres metas es la página de J2 «Ruta para superar a OpenSees», https://cursor.com/canvas/store-2a8ecc30-58b0-4b46-8a05-3be45ddfeb2e/19df7ff1-4c3f-440d-af09-e4dfbeec48ec, con mediciones de rendimiento de Q3 en caja negra.
+   La fuente de esas tres metas es la Cursor Page «MAMUT Engine: camino a superar a OpenSees», https://cursor.com/canvas/store-2a8ecc30-58b0-4b46-8a05-3be45ddfeb2e/19df7ff1-4c3f-440d-af09-e4dfbeec48ec. Quién tomó las mediciones de rendimiento en caja negra: cita desconocida.
 2. Con A, la pregunta de B sobre avisos de licencia e igualdad de bits ya no aplica.
 3. Se reutiliza ENG-E-0013. No hay ENG-E-0015. El catálogo se queda en 32 entradas.
 4. Unidades aprobadas: el solver trabaja en unidades coherentes y no convierte nada. La conversión vive en la frontera (MAM-1043).
-5. Se retira el corte `n ≤ 2048`. El pórtico de 250 nudos tiene unos 1 500 GDL y en la ruta densa tarda 6,48 s, así que ese corte no mejora nada. El umbral se fija midiendo en la fase 10. Conservar los hashes publicados no es criterio para fijarlo: si cambian, se documenta y J4 lo audita. MAM-1056 es el perfil de la ruta densa: por qué 1 500 GDL tardan 6,48 s.
+5. Se retira el corte `n ≤ 2048`. El pórtico de 250 nudos tiene 1.350 GDL y en la ruta densa tarda 6,48 s, así que ese corte no mejora nada. El umbral se fija midiendo en la fase 10. Conservar los hashes publicados no es criterio para fijarlo: si cambian, se documenta y J4 lo audita. MAM-1056 es el perfil de la ruta densa: por qué 1.350 GDL tardan 6,48 s.
 6. El objeto opcional en `results/1` queda aprobado.
 7. Los límites de 60 s y 2 GiB valen solo para MAM-67 y no cierran MAM-107. Aprobado.
 

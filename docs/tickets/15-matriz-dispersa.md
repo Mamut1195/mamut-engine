@@ -30,8 +30,8 @@ los da por ocupados. Esta ficha usa el siguiente número libre, el 15.
 
 Un tipo de matriz simétrica que guarda solo el triángulo superior en CSC,
 diagonal incluida. En la columna `j` se almacenan filas `i ≤ j`, crecientes.
-El diseño propone la triangular inferior. Esta fase sigue el encargo y
-guarda la superior. La otra mitad no se materializa.
+El diseño queda alineado con esta fase: triángulo superior y suma
+canónica. La otra mitad no se materializa.
 
 La construcción parte de tripletas.
 
