@@ -42,14 +42,14 @@ Si la formulación del segundo programa es distinta, hay que explicarlo. En esta
 \section{Qué consolida y qué preregistra}
 Los casos que ya tenían tolerancia escrita se consolidan. La tabla no los preregistra y no cambia el número. El ticket pide declarar que ya se ejecutaron antes de esta tabla. Se declara así el carácter de la fila: consolidación, no preregistro. El orden real de esas ejecuciones es DESCONOCIDO. La historia de git que sí se puede mostrar es la de introducción del archivo que contiene la tolerancia, en la columna \texttt{introduccion\_git}, con la fecha \texttt{\%cI} del commit. Esa fecha no es una fecha de corrida. Los CSV de datos del informe, de VAL-001 a VAL-030, siguen en el marcador de dos líneas; no se abrió ninguna serie para rellenar esta tabla.
 
-Los casos sin tolerancia previa y con fuente definida quedan en preregistro. No se ejecutó nada para elegir el número. VAL-031 no tiene fuente definida: la tolerancia queda DESCONOCIDO, por fijar antes de ejecutar, y no cuenta como preregistro. VAL-037 queda «en revisión en \#23», sin valor fijo. No se abrieron los archivos de ese PR.
+Los casos sin tolerancia previa y con fuente definida quedan en preregistro. No se ejecutó nada para elegir el número. VAL-031 no tiene fuente definida: la tolerancia queda DESCONOCIDO, por fijar antes de ejecutar, y no cuenta como preregistro. VAL-037 es consolidación. La cota ya escrita en main es \(\lvert B_2^{\mathrm{motor}}-50/47\rvert\le 10^{-6}\), en \texttt{docs/validation-report/casos/deriv/VAL-037.tex} y en la constante \texttt{B2\_TOLERANCE} de la prueba. La procedencia es MAM-850 (\#23): ese preregistro se hizo en el PR, en el commit \texttt{5696f82a806b05ab9745e2557dfac2d2b0e04cd4}, y la banda se fijó después de la revisión r1. Esta tabla no lo preregistra otra vez.
 
 Conteo de las 41 filas, por la columna \texttt{clase}:
 \begin{itemize}
-\item consolidación: 34 (VAL-001 a VAL-030, VAL-032, VAL-038, VAL-039 y VAL-040);
+\item consolidación: 35 (VAL-001 a VAL-030, VAL-032, VAL-037, VAL-038, VAL-039 y VAL-040);
 \item preregistro: 5 (VAL-033, VAL-034, VAL-035, VAL-036 y VAL-041);
 \item DESCONOCIDO: 1 (VAL-031);
-\item en revisión, sin valor fijo: 1 (VAL-037).
+\item en revisión: 0.
 \end{itemize}
 
 \section{Error máximo y número de magnitudes}
@@ -102,8 +102,8 @@ VAL-033 & preregistro & R=1e-3 (libro) & sin sección en el informe & DESCONOCID
 VAL-034 & preregistro & R=1e-3 (libro) & sin sección en el informe & DESCONOCIDO & DESCONOCIDO \\
 VAL-035 & preregistro & M 3 por ciento; Delta 5 por ciento & sin sección en el informe & DESCONOCIDO & DESCONOCIDO \\
 VAL-036 & preregistro & R=1e-6 (banda 1e-6 a 1e-10) & sin sección en el informe & DESCONOCIDO & DESCONOCIDO \\
-VAL-037 & en revisión en \#23 & en revisión en \#23, sin valor fijo & sin sección en este árbol & DESCONOCIDO & DESCONOCIDO \\
-VAL-038 & consolidado & relativa 1e-3; absoluta 1e-8 & sin sección en informe.tex & DESCONOCIDO & DESCONOCIDO \\
+VAL-037 & consolidado & \(\lvert B_2^{\mathrm{motor}}-50/47\rvert\le 10^{-6}\) & sec:VAL-037 & DESCONOCIDO & DESCONOCIDO \\
+VAL-038 & consolidado & \(\lvert\lambda-P_{cr}\rvert\le 0+10^{-3}\lvert P_{cr}\rvert\) & sec:VAL-038 & DESCONOCIDO & DESCONOCIDO \\
 VAL-039 & consolidado & relativa 1e-10 & sin sección en informe.tex & DESCONOCIDO & DESCONOCIDO \\
 VAL-040 & consolidado & relativa 1e-10 & sin sección en informe.tex & DESCONOCIDO & DESCONOCIDO \\
 VAL-041 & preregistro & R=1e-3 (libro) & sin sección en el informe & DESCONOCIDO & DESCONOCIDO \\
