@@ -23,17 +23,35 @@ _T = TypeVar("_T")
 
 
 def _translate(err: Any) -> EngineError:
+    document: str | None = getattr(err, "document", None)
+    diagnostics: list[ResultDiagnostic] = getattr(err, "diagnostics", [])
     code: str = getattr(err, "code", "ENG-E-0012")
+    cause: str = getattr(err, "cause", str(err))
+    entities = getattr(err, "entities", [])
+    # A model error can sit ahead of ENG-E-0013. The capability rejection
+    # still selects Unsupported, matching the run status.
+    promoted = next(
+        (
+            item
+            for item in diagnostics
+            if item.get("code") == "ENG-E-0013" and item.get("severity") == "error"
+        ),
+        None,
+    )
+    if promoted is not None and code != "ENG-E-0013":
+        code = "ENG-E-0013"
+        cause = str(promoted.get("cause", cause))
+        entities = promoted.get("entities", [])
     cls = {"ENG-E-0006": Unstable, "ENG-E-0007": NotConverged,
            "ENG-E-0013": Unsupported, "ENG-E-0009": Unsupported,
            "API-I-CANCELLED": Cancelled, "ENG-E-0012": InternalEngineError}.get(code)
     if cls is None:
         cls = AnalysisError if isinstance(err, _native.AnalysisError) else InvalidInputError
-    document: str | None = getattr(err, "document", None)
-    diagnostics: list[ResultDiagnostic] = getattr(err, "diagnostics", [])
     first = next((d for d in diagnostics if d["severity"] == "error"), None)
-    result = cls(getattr(err, "cause", str(err)), code=code,
-                 entities=deepcopy(getattr(err, "entities", [])),
+    if promoted is not None and code == "ENG-E-0013":
+        first = promoted
+    result = cls(cause, code=code,
+                 entities=deepcopy(entities),
                  severity=first["severity"] if first else "error",
                  details=cast(JSONDocument, deepcopy(first)) if first else {})
     result.document = document
@@ -304,9 +322,13 @@ def validate(model: ModelLike, *, lang: str = "en") -> ValidationReport:
 
     Los defectos topológicos se devuelven como diagnósticos, igual que engine-api.
     No comprueba estabilidad ni ejecuta análisis. Si buckling.linear trae
-    temperature_loads en su caso de referencia, o pDelta en el de gravedad,
-    el diagnóstico es ENG-E-0013. El caso lateral y un caso que no es la
-    referencia no se rechazan aquí.
+    temperature_loads o member_loads en su caso de referencia, o pDelta en el
+    de gravedad, el diagnóstico es ENG-E-0013. Si el modelo ya tiene otro
+    error y esa referencia trae temperatura, ENG-E-0013 sigue en la lista y
+    run queda unsupported. El caso lateral y un caso que no es la referencia
+    no se rechazan aquí. Rust rechaza un documento que no trae exactamente un
+    análisis con API-E-INPUT y el mismo texto que run. Esta fachada ya exige
+    un solo análisis en el esquema antes de esa llamada.
     """
     _language(lang)
     return cast(ValidationReport, _call(_native.validate, _input(model), lang=lang))

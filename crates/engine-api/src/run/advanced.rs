@@ -118,25 +118,25 @@ fn case_has_temperature(execution: &input::Execution, case: &str) -> bool {
         .any(|(item, loads)| item.name == case && !loads.is_empty())
 }
 
-/// ENG-E-0013 when the geometric reference carries uniform temperature.
+/// Case name plus the two ENG-E-0013 messages `run` already emits.
 ///
-/// pDelta uses the gravity case. `buckling.linear` uses `reference`. A lateral
-/// case, or any case that is not that reference, is not this rejection.
-/// `validate` and `run` share this check.
-pub(crate) fn geometric_temperature_rejection(execution: &input::Execution) -> Option<EngineError> {
-    let analysis = execution.analyses.first()?;
-    let (case, message) = match analysis {
+/// pDelta uses the gravity case. `buckling.linear` uses `reference`. Other
+/// analyses are not this rejection. `validate` and `run` share the result.
+fn geometric_reference(analysis: &Analysis) -> Option<(&str, &'static str, &'static str)> {
+    let (case, temperature, member_loads) = match analysis {
         Analysis::PDelta {
             options: input::Object(options),
         } => (
             options.gravity.0.case.as_str(),
             "P-Delta: the gravity case has uniform temperature; Kg does not include the thermal axial",
+            "P-Delta: gravity requires nodal loads; Kg does not support member load correction",
         ),
         Analysis::Buckling {
             options: input::Object(options),
         } => (
             options.reference.0.case.as_str(),
             "Buckling: the reference case has uniform temperature; Kg does not include the thermal axial",
+            "Buckling: the reference case requires nodal loads; Kg does not include member-load correction",
         ),
         Analysis::LinearStatic {}
         | Analysis::Nonlinear { .. }
@@ -145,11 +145,52 @@ pub(crate) fn geometric_temperature_rejection(execution: &input::Execution) -> O
         | Analysis::Modal { .. }
         | Analysis::Spectrum { .. } => return None,
     };
+    Some((case, temperature, member_loads))
+}
+
+/// ENG-E-0013 when the geometric reference carries uniform temperature.
+///
+/// A lateral case, or any case that is not that reference, is not this rejection.
+pub(crate) fn geometric_temperature_rejection(execution: &input::Execution) -> Option<EngineError> {
+    let analysis = execution.analyses.first()?;
+    let (case, message, _) = geometric_reference(analysis)?;
     if case_has_temperature(execution, case) {
         Some(EngineError::new("ENG-E-0013", message))
     } else {
         None
     }
+}
+
+/// ENG-E-0013 when the geometric reference carries member loads.
+///
+/// `geometric_producer` recovers the axial from displacement and does not
+/// receive the end-action correction. `validate` and `run` share this check.
+pub(crate) fn member_load_rejection(execution: &input::Execution) -> Option<EngineError> {
+    let analysis = execution.analyses.first()?;
+    let (case, _, message) = geometric_reference(analysis)?;
+    let present = execution
+        .model
+        .cases
+        .iter()
+        .zip(&execution.loads)
+        .any(|(item, loads)| item.name == case && !loads.is_empty());
+    if present {
+        Some(EngineError::new("ENG-E-0013", message))
+    } else {
+        None
+    }
+}
+
+/// Same `API-E-INPUT` diagnostic `run` returns unless the job has one analysis.
+pub(crate) fn single_analysis_diagnostic(execution: &input::Execution) -> Option<Diagnostic> {
+    if execution.methods.len() == 1 {
+        return None;
+    }
+    Some(super::diagnostic(
+        "API-E-INPUT",
+        "error",
+        ApiError::InvalidInput("Exactly one analysis is required".into()).to_string(),
+    ))
 }
 
 pub(crate) fn pdelta_budget(execution: &input::Execution) -> usize {
@@ -218,18 +259,8 @@ pub(crate) fn pdelta(context: MethodContext<'_>) -> Result<(), Failure> {
     bounded_steps(o.max_iterations)?;
     // geometric_producer recovers N from deformations; it does not receive member
     // loads to correct end actions for the gravity case.
-    if execution
-        .model
-        .cases
-        .iter()
-        .zip(&execution.loads)
-        .any(|(c, loads)| c.name == o.gravity.0.case && !loads.is_empty())
-    {
-        return Err(EngineError::new(
-            "ENG-E-0013",
-            "P-Delta: gravity requires nodal loads; Kg does not support member load correction",
-        )
-        .into());
+    if let Some(error) = member_load_rejection(execution) {
+        return Err(error.into());
     }
     if let Some(error) = geometric_temperature_rejection(execution) {
         return Err(error.into());
@@ -347,18 +378,8 @@ pub(crate) fn buckling(context: MethodContext<'_>) -> Result<(), Failure> {
     }
     // geometric_producer recovers N from the reference displacement. A member
     // load would change the end actions without appearing in that displacement.
-    if execution
-        .model
-        .cases
-        .iter()
-        .zip(&execution.loads)
-        .any(|(c, loads)| c.name == o.reference.0.case && !loads.is_empty())
-    {
-        return Err(EngineError::new(
-            "ENG-E-0013",
-            "Buckling: the reference case requires nodal loads; Kg does not include member-load correction",
-        )
-        .into());
+    if let Some(error) = member_load_rejection(execution) {
+        return Err(error.into());
     }
     if let Some(error) = geometric_temperature_rejection(execution) {
         return Err(error.into());

@@ -272,6 +272,9 @@ fn fingerprint_value(value: &Value) -> Result<String, ApiError> {
 
 /// Validates the contract, conventions, and topology; does not check stability.
 /// Parsing/contract failures are `Err`; model defects are `Ok` diagnostics.
+/// A job that does not carry exactly one analysis, and a geometric reference
+/// with member loads or uniform temperature, are `Ok` diagnostics with the
+/// same code and text `run` puts in its document.
 pub fn validate(input_json: &str) -> Result<Vec<Diagnostic>, ApiError> {
     validate_with(input_json, &CancelToken::new(), |_| {})
 }
