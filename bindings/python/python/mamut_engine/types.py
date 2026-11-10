@@ -305,13 +305,24 @@ class ResultEntity(TypedDict):
     kind: Literal['node', 'member', 'dof', 'case', 'law']
     id: int | str
 
-class ResultDiagnostic(TypedDict):
+class ResultDiagnosticRequired(TypedDict):
     """Campos requeridos del contrato ResultDiagnostic."""
     code: str
     severity: Literal['info', 'warning', 'error']
     entities: list[ResultEntity]
     cause: str
     hint: str | None
+
+class ResultDiagnostic(ResultDiagnosticRequired, total=False):
+    """Contexto opcional de una referencia ausente.
+
+    Estas claves no están en los diagnósticos de otro código. Un documento
+    anterior, sin ellas, sigue siendo válido.
+    """
+    entity_kind: str
+    missing_id: int | str
+    referenced_by: str
+    suggestions: list[str]
 
 class ResultParticipation(TypedDict):
     """Campos requeridos del contrato ResultParticipation."""

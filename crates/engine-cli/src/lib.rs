@@ -367,6 +367,10 @@ impl EngineCli {
                     entities: Vec::new(),
                     cause: error.to_string(),
                     hint: None,
+                    entity_kind: None,
+                    missing_id: None,
+                    referenced_by: None,
+                    suggestions: None,
                 }]
             }
             Err(error) => return report_failure(api_failure(error), "validate", None, stderr),
@@ -843,6 +847,10 @@ mod tests {
             entities: Vec::new(),
             cause: "Aviso sintético: validate_with no genera avisos actualmente".into(),
             hint: None,
+            entity_kind: None,
+            missing_id: None,
+            referenced_by: None,
+            suggestions: None,
         }];
         let (code, report) = validation_report(&diagnostics);
         assert_eq!(code, 1);
@@ -957,6 +965,10 @@ mod tests {
             entities: Vec::new(),
             cause: "Rigidez sin masa no positiva".into(),
             hint: None,
+            entity_kind: None,
+            missing_id: None,
+            referenced_by: None,
+            suggestions: None,
         }];
         let status = diagnostic_status(&diagnostics);
         assert_eq!(status, Status::Unstable);
@@ -973,6 +985,10 @@ mod tests {
             entities: Vec::new(),
             cause: "Capacidad no soportada".into(),
             hint: None,
+            entity_kind: None,
+            missing_id: None,
+            referenced_by: None,
+            suggestions: None,
         }];
         let status = diagnostic_status(&diagnostics);
         let kind = failure_kind(status);

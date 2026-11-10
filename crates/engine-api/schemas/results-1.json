@@ -96,7 +96,11 @@
         "severity": {"enum": ["info", "warning", "error"]},
         "entities": {"type": "array", "items": {"$ref": "#/$defs/entity"}},
         "cause": {"type": "string"},
-        "hint": {"type": ["string", "null"]}
+        "hint": {"type": ["string", "null"]},
+        "entity_kind": {"type": "string", "description": "Kind of the missing entity on a broken reference. Absent on every other diagnostic."},
+        "missing_id": {"type": ["integer", "string"], "description": "Id that was sought. Absent when entity_kind is absent."},
+        "referenced_by": {"type": "string", "description": "Path of the citation, for example members[3].nodes[1]. Each index is the 0-based position in that model collection."},
+        "suggestions": {"type": "array", "items": {"type": "string"}, "maxItems": 3, "description": "Nearby ids of the same kind, ordered by the documented Levenshtein rule. Absent when none qualify."}
       }
     },
     "participation": {

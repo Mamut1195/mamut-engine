@@ -170,11 +170,13 @@ mamut-engine validate --input crates/engine-api/fixtures/input/invalid/missing-r
 ```
 
 ```text agent-output id=validate-invalid
-{"diagnostics":[{"cause":"The node is not connected to any member.","code":"ENG-E-0004","entities":[{"id":2,"kind":"node"}],"hint":"Node 2","severity":"error"},{"cause":"The referenced entity does not exist.","code":"ENG-E-0003","entities":[{"id":7,"kind":"member"}],"hint":"Member 7, end j: missing node 99","severity":"error"}],"operation":"validate","schema":"validate-report/1","status":"invalid"}
+{"diagnostics":[{"cause":"The node is not connected to any member.","code":"ENG-E-0004","entities":[{"id":2,"kind":"node"}],"hint":"Node 2","severity":"error"},{"cause":"The referenced entity does not exist. Missing node 99, referenced by member 7 at end 1 (members[0].nodes[1]).","code":"ENG-E-0003","entities":[{"id":7,"kind":"member"}],"entity_kind":"node","hint":"Member 7, end j: missing node 99","missing_id":99,"referenced_by":"members[0].nodes[1]","severity":"error"}],"operation":"validate","schema":"validate-report/1","status":"invalid"}
 ```
 
 Each diagnostic has `code`, `severity` (`info`, `warning`, `error`), `entities`
-(what it points to), `cause` and `hint`.
+(what it points to), `cause` and `hint`. A broken reference keeps `ENG-E-0003`
+and adds `entity_kind`, `missing_id` and `referenced_by`. `suggestions` is
+present only when a nearby id of the same kind exists.
 
 **Step 2: run.** Redirect stdout to a file and keep the exit code. The default
 `run` needs no catalog or workflow: it uses the embedded ones.

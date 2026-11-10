@@ -38,6 +38,7 @@ def _translate(err: Any) -> EngineError:
                  details=cast(JSONDocument, deepcopy(first)) if first else {})
     result.document = document
     result.diagnostics = deepcopy(diagnostics)
+    result.apply_reference(first)
     if document is not None:
         try:
             result.results = Results.from_json(document)

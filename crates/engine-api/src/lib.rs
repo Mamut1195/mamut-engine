@@ -130,6 +130,18 @@ pub struct Diagnostic {
     pub cause: String,
     /// Original context or hint.
     pub hint: Option<String>,
+    /// Kind of the missing entity. Absent unless this is a broken reference.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub entity_kind: Option<String>,
+    /// Id that was sought. Integer or text. Absent unless `entity_kind` is set.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub missing_id: Option<Value>,
+    /// Path of the citation, for example `members[3].nodes[1]`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub referenced_by: Option<String>,
+    /// Up to three similar ids. Absent when none qualify.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub suggestions: Option<Vec<String>>,
 }
 
 impl From<engine_core::Diagnostic> for Diagnostic {
@@ -145,6 +157,27 @@ impl From<engine_core::Diagnostic> for Diagnostic {
                 EntityRef::Law(id) => json!({"kind": "law", "id": id}),
             })
             .collect();
+        let reference = d.reference.map(|item| *item);
+        let (entity_kind, missing_id, referenced_by, suggestions) = match reference {
+            Some(reference) => {
+                let missing_id = match reference.missing_id {
+                    engine_core::MissingId::Number(id) => json!(id),
+                    engine_core::MissingId::Name(id) => json!(id),
+                };
+                let suggestions = if reference.suggestions.is_empty() {
+                    None
+                } else {
+                    Some(reference.suggestions)
+                };
+                (
+                    Some(reference.entity_kind.to_owned()),
+                    Some(missing_id),
+                    Some(reference.referenced_by),
+                    suggestions,
+                )
+            }
+            None => (None, None, None, None),
+        };
         Self {
             code: d.code,
             severity: match d.severity {
@@ -155,6 +188,10 @@ impl From<engine_core::Diagnostic> for Diagnostic {
             entities,
             cause: d.message,
             hint: d.hint,
+            entity_kind,
+            missing_id,
+            referenced_by,
+            suggestions,
         }
     }
 }

@@ -116,6 +116,7 @@ impl From<EngineError> for Failure {
                 entities: e.entities,
                 message: e.message,
                 hint: None,
+                reference: None,
             })],
         )
     }
@@ -139,6 +140,10 @@ fn diagnostic(code: &'static str, severity: &'static str, cause: String) -> Diag
         entities: vec![],
         cause,
         hint: None,
+        entity_kind: None,
+        missing_id: None,
+        referenced_by: None,
+        suggestions: None,
     }
 }
 

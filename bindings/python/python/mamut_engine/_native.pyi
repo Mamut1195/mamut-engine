@@ -4,6 +4,10 @@ class EngineError(Exception):
     code: str
     entities: list[dict[str, Any]]
     cause: str
+    entity_kind: str | None
+    missing_id: int | str | None
+    referenced_by: str | None
+    suggestions: list[str]
     # Disponibles para fallos de run, incluido cancelled:
     document: str
     diagnostics: list[dict[str, Any]]

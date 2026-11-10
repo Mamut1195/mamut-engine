@@ -22,7 +22,10 @@ use std::fmt;
 
 pub mod catalog;
 pub mod math;
+mod reference;
 pub mod units;
+
+pub use reference::{similar_ids, MissingId, ReferenceContext};
 
 /// Engine core version, derived from the `engine-core` manifest.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -250,6 +253,9 @@ pub struct Diagnostic {
     pub entities: Vec<EntityRef>,
     /// Optional suggestion for resolving or investigating the situation.
     pub hint: Option<String>,
+    /// Present only for a broken reference. Boxed so other diagnostics stay small.
+    /// The stable code stays `ENG-E-0003`.
+    pub reference: Option<Box<ReferenceContext>>,
 }
 
 impl Diagnostic {
@@ -264,6 +270,7 @@ impl Diagnostic {
             message: message.into(),
             entities: Vec::new(),
             hint: None,
+            reference: None,
         }
     }
 
@@ -375,6 +382,7 @@ mod tests {
         assert_eq!(diagnostic.message, "Revisar unidad.");
         assert!(diagnostic.entities.is_empty());
         assert!(diagnostic.hint.is_none());
+        assert!(diagnostic.reference.is_none());
         let error = EngineError::new("ENG-E-0012", "Fallo interno.");
         assert_eq!(error.to_string(), "ENG-E-0012: Fallo interno.");
         assert!(error.entities.is_empty());
