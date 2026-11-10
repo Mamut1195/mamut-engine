@@ -3,7 +3,7 @@
 - Ticket / PR: MAM-1033. Tests de los casos de temperatura que sí se permiten,
   y `validate` anticipa el rechazo ENG-E-0013. No cierra MAM-1033 ni MAM-107.
   No aprueba presupuestos.
-- Autor: agente cloud de Cursor (Cursor Agent), modelo: DESCONOCIDO, 2026-11-10
+- Autor: agente cloud de Cursor (Cursor Agent), modelo: DESCONOCIDO, 2026-11-09
   (América/Guayaquil).
 - Rol: implementador. Sesión limpia. Sin operador de oráculo.
 - Contrato implementado: el mismo `validate` de engine-api. No hay kind nuevo

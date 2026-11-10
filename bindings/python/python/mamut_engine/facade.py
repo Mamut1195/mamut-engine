@@ -303,10 +303,15 @@ def validate(model: ModelLike, *, lang: str = "en") -> ValidationReport:
     """Valida argumentos antes del FFI y delega la topología en Rust.
 
     Los defectos topológicos se devuelven como diagnósticos, igual que engine-api.
-    No comprueba estabilidad ni ejecuta análisis. Si buckling.linear trae
-    temperature_loads en su caso de referencia, o pDelta en el de gravedad,
-    el diagnóstico es ENG-E-0013. El caso lateral y un caso que no es la
-    referencia no se rechazan aquí.
+    No comprueba estabilidad ni ejecuta el solver. Cuando `run` ya rechaza
+    antes del solver, los diagnósticos coinciden en código, texto y orden:
+    temperatura o `member_loads` en la referencia geométrica, un documento
+    sin exactamente un análisis, y la precedencia que `run` ya tenía
+    (método experimental, elemento, ensamblado, combinaciones y pasos).
+    Un modelo inválido con temperatura en la referencia sigue en invalid.
+    `run` no cambia. El caso lateral y un caso que no es la referencia no
+    se rechazan aquí. Esta fachada ya exige un solo análisis en el esquema
+    antes de la llamada Rust.
     """
     _language(lang)
     return cast(ValidationReport, _call(_native.validate, _input(model), lang=lang))

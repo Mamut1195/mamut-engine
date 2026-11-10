@@ -265,8 +265,8 @@ fn execute(
         return Err(ApiError::UnsupportedSchema(schema.into()).into());
     }
     let execution = input::decode(value)?;
-    if execution.methods.len() != 1 {
-        return Err(ApiError::InvalidInput("Exactly one analysis is required".into()).into());
+    if let Some(found) = advanced::single_analysis_diagnostic(&execution) {
+        return Err(Failure(Status::Invalid, vec![found]));
     }
     let method = crate::methods::resolve(
         execution.methods[0],
@@ -583,20 +583,123 @@ pub(crate) fn explain(code: &str) -> Option<&'static str> {
 }
 
 /// Integrates model validation and extensions without changing the domain.
+fn has_error(diagnostics: &[Diagnostic]) -> bool {
+    diagnostics.iter().any(|d| d.severity == "error")
+}
+
+fn append_extension_error(diagnostics: &mut Vec<Diagnostic>, error: EngineError) {
+    // `run` stops at this error. A reference temperature is not added after it.
+    diagnostics.extend(Failure::from(error).1);
+}
+
+fn append_geo_input_error(diagnostics: &mut Vec<Diagnostic>, error: impl Into<Diagnostic>) {
+    // `run` stops at this error. A reference temperature is not added after it.
+    diagnostics.push(error.into());
+}
+
+/// Same diagnostic `run` returns for an experimental method without opt-in.
+///
+/// `run` resolves the method before model validation. Consolidation and soil
+/// fixtures that already set `allow_experimental` are unchanged.
+fn experimental_diagnostics(e: &input::Execution) -> Option<Vec<Diagnostic>> {
+    if e.allow_experimental || e.methods.len() != 1 {
+        return None;
+    }
+    let method = e.methods[0];
+    if !matches!(
+        method,
+        "buckling.linear" | "nonlinearStatic" | "soilProfile" | "consolidation1d"
+    ) {
+        return None;
+    }
+    match crate::methods::resolve(method, crate::methods::INPUT_CONTRACT, false) {
+        Ok(_) => None,
+        Err(error) => Some(Failure::from(error).1),
+    }
+}
+
+/// Member-load rejection in the order `run` reaches it.
+///
+/// Absent when the reference has no member loads. The steps before the method
+/// are `build_members`, `model_for_system`, `assemble_members`, and
+/// `LinearSystem::from_model_with_diaphragms`. A prescribed node or a diaphragm
+/// that fails there is returned instead of the member-load diagnostic. A valid
+/// diaphragm keeps the same recovery warning `run` records before the method.
+fn anticipate_reference_member_loads(e: &input::Execution) -> Option<Vec<Diagnostic>> {
+    advanced::member_load_rejection(e)?;
+    let members = match build_members(e) {
+        Err(failure) => return Some(failure.1),
+        Ok(members) => members,
+    };
+    let model_for_system = match temperature::model_for_system(&e.model, &members, &e.temperature) {
+        Err(error) => return Some(Failure::from(error).1),
+        Ok(model) => model,
+    };
+    let contributions = match assemble_members(&e.model, &members) {
+        Err(failure) => return Some(failure.1),
+        Ok(contributions) => contributions,
+    };
+    if let Err(error) = LinearSystem::from_model_with_diaphragms(
+        ReferenceBackend,
+        model_for_system.as_ref(),
+        &contributions,
+        &e.prescribed,
+        &e.diaphragms,
+    ) {
+        return Some(Failure::from(error).1);
+    }
+    let mut diagnostics = Vec::new();
+    if !e.diaphragms.is_empty() {
+        diagnostics.push(diagnostic(
+            "API-W-DIAPHRAGM-RECOVERY",
+            "warning",
+            "#84: recuperación con diafragmas sin cobertura de pruebas del dominio; revisar equilibrio y resultados.".into(),
+        ));
+    }
+    match advanced::geometric_gate(e) {
+        Ok(()) => (!diagnostics.is_empty()).then_some(diagnostics),
+        Err(failure) => {
+            diagnostics.extend(failure.1);
+            Some(diagnostics)
+        }
+    }
+}
+
+/// Diagnostics `validate` returns. `run` keeps its own order and is not called.
+pub(crate) fn diagnostics_for_validate(e: &input::Execution) -> Vec<Diagnostic> {
+    if let Some(found) = advanced::single_analysis_diagnostic(e) {
+        return vec![found];
+    }
+    if let Some(found) = experimental_diagnostics(e) {
+        return found;
+    }
+    let mut diagnostics = validation(e);
+    // A model, extension, or geo error blocks member loads and a second
+    // temperature diagnostic. That is the guard `run` already has by stopping.
+    let blocked = has_error(&diagnostics);
+    if blocked {
+        return diagnostics;
+    }
+    if let Some(more) = anticipate_reference_member_loads(e) {
+        diagnostics.extend(more);
+    }
+    diagnostics
+}
+
 pub(crate) fn validation(e: &input::Execution) -> Vec<Diagnostic> {
     let mut diagnostics: Vec<_> = engine_model::validate(&e.model).into_iter().filter(|d| {
         // A node attached to a spring already has boundary connectivity.
         !(d.code == "ENG-E-0004" && d.entities.iter().any(|entity| matches!(entity, EntityRef::Node(id) if e.springs.iter().any(|s| s.nodes.contains(&id.0)))))
     }).map(Diagnostic::from).collect();
-    if diagnostics.iter().any(|d| d.severity == "error") {
+    if has_error(&diagnostics) {
         return diagnostics;
     }
     if let Err(error) = crate::extensions::validate(e) {
-        diagnostics.extend(Failure::from(error).1);
+        append_extension_error(&mut diagnostics, error);
         return diagnostics;
     }
     if let Err(error) = crate::geo_input::validate(e) {
-        diagnostics.push(error.into());
+        append_geo_input_error(&mut diagnostics, error);
         return diagnostics;
     }
     let has_temperature = e.temperature.iter().any(|case| !case.is_empty());
@@ -618,7 +721,7 @@ pub(crate) fn validation(e: &input::Execution) -> Vec<Diagnostic> {
             Ok(_) => {}
         }
     }
-    if !diagnostics.iter().any(|d| d.severity == "error") {
+    if !has_error(&diagnostics) {
         if let Some(error) = advanced::geometric_temperature_rejection(e) {
             diagnostics.extend(Failure::from(error).1);
         }

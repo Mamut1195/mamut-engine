@@ -11,6 +11,7 @@ no cambia ese factor.
 validate devuelve diagnósticos y no un código de salida. ENG-E-0013 es el
 código ya usado para una capacidad no soportada.
 """
+import json
 import unittest
 
 import mamut_engine as engine
@@ -185,6 +186,51 @@ class TemperaturePermittedTest(unittest.TestCase):
     def test_validate_rejects_reference_and_gravity_temperature(self):
         self.assert_validate(pdelta(True, False), "ENG-E-0013")
         self.assert_validate(buckling(True, False), "ENG-E-0013")
+
+    def test_invalid_model_with_reference_temperature_stays_invalid(self):
+        for model in (pdelta(True, False), buckling(True, False)):
+            model["model"]["nodes"].append({
+                "id": 9,
+                "dim": "D2",
+                "coordinates": [0.0, 1.0, 0.0],
+                "dofs": ["Ux", "Uy"],
+            })
+            with self.assertRaises(engine.InvalidInputError) as caught:
+                engine.run(model)
+            self.assertEqual(caught.exception.code, "ENG-E-0004")
+            validated = engine.validate(model)["diagnostics"]
+            self.assertTrue(any(item["code"] == "ENG-E-0004" for item in validated))
+            self.assertFalse(any(item["code"] == "ENG-E-0013" for item in validated))
+            document = json.loads(caught.exception.document)
+            self.assertEqual(document["status"], "invalid")
+            self.assertEqual(
+                json.dumps(validated, sort_keys=True, separators=(",", ":")),
+                json.dumps(document["diagnostics"], sort_keys=True, separators=(",", ":")),
+            )
+
+    def test_axial_member_loads_on_the_reference_match_run(self):
+        gravity = pdelta(False, False)
+        gravity["cases"][0]["member_loads"] = [{
+            "member": 1,
+            "force_per_length": [-1.0, 0.0, 0.0],
+            "moment_per_length": [0.0, 0.0, 0.0],
+        }]
+        reference = buckling(False, False)
+        reference["cases"][0]["member_loads"] = [{
+            "member": 1,
+            "force_per_length": [-1.0, 0.0, 0.0],
+            "moment_per_length": [0.0, 0.0, 0.0],
+        }]
+        for model in (gravity, reference):
+            with self.assertRaises(engine.Unsupported) as caught:
+                engine.run(model)
+            self.assertEqual(caught.exception.code, "ENG-E-0013")
+            validated = engine.validate(model)["diagnostics"]
+            document = json.loads(caught.exception.document)
+            self.assertEqual(
+                json.dumps(validated, sort_keys=True, separators=(",", ":")),
+                json.dumps(document["diagnostics"], sort_keys=True, separators=(",", ":")),
+            )
 
 
 if __name__ == "__main__":

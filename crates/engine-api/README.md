@@ -250,9 +250,17 @@ mecánico y no incluye αΔT. `buckling.linear` rechaza con `ENG-E-0013` un caso
 de referencia con `temperature_loads` no vacío. pDelta rechaza igual el caso
 de gravedad. `validate` anticipa ese diagnóstico en el `Ok` de diagnósticos:
 no tiene código de salida; `run` lo traduce a `unsupported` y salida 3.
-No se publica factor ni desplazamiento. La temperatura solo en el caso
-lateral de pDelta, o en un caso que no es la referencia de `buckling.linear`,
-sigue permitida.
+`run` no cambia de precedencia. Si el modelo ya es inválido, el estado sigue
+siendo `invalid` y no se añade otro ENG-E-0013. `validate` también repite,
+con el mismo código y el mismo texto, el rechazo por `member_loads` en ese
+caso y el de un documento que no trae exactamente un análisis (`ENG-E-0013`
+y `API-E-INPUT`). Si `run` rechaza antes por el método experimental, el
+elemento, el ensamblado, el sistema con prescritos o diafragmas, las
+combinaciones o el número de pasos, `validate` devuelve ese diagnóstico y no
+el de `member_loads`. No se publica factor ni
+desplazamiento. La temperatura solo
+en el caso lateral de pDelta, o en un caso que no es la referencia de
+`buckling.linear`, sigue permitida.
 
 `model.prescribed` opcional: `[{node,dof,value}]`, constante para todos los casos,
 sin factor de carga. `model.diaphragms` opcional: `[{master,slaves:[ids]}]`, diafragma
@@ -461,9 +469,12 @@ carga lateral. El caso lateral es independiente: no incluye desplazamientos ni
 reacciones de gravedad. Los prescritos no se escalan. La gravedad requiere
 cargas nodales: con cargas de miembro se devuelve unsupported/3, porque el
 productor no recibe la corrección de acciones de extremo para recuperar N.
+`validate` devuelve ese mismo diagnóstico, sin adelantarlo dentro de `run`.
 El mismo estado y el código `ENG-E-0013` se devuelven si el caso de gravedad
 trae `temperature_loads` no vacío: Kg no incluye el axil térmico. `validate`
-informa ese diagnóstico antes de ejecutar. El caso lateral puede llevar
+informa ese diagnóstico. Un modelo que ya es inválido permanece en `invalid`.
+Un documento que no trae exactamente un análisis se rechaza en `validate` y
+en `run` con `API-E-INPUT` y el mismo texto. El caso lateral puede llevar
 temperatura: su efecto axial en una barra alineada y libre es α·ΔT·L, porque
 Kg de la cercha no entra en el grado axial.
 `convergence` publica casos/factores, opciones, inercia y métricas ordenadas por

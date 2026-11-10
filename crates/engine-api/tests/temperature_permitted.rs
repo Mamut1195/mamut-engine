@@ -18,7 +18,7 @@
 //!
 //! Con E = 8 Pa, A = 4 m², L = 2 m, Lv = 1 m y P = 16 N, λ = 32·2/(1·16) = 4.
 //! Una temperatura en un caso que no es la referencia no entra en ese Kg.
-use engine_api::{run, validate, CancelToken, Status};
+use engine_api::{canonical_json, run, validate, CancelToken, Status};
 use serde_json::{json, Value};
 
 const ALPHA_PER_KELVIN: f64 = 0.5;
@@ -261,4 +261,41 @@ fn buckling_temperature_outside_the_reference_keeps_the_factor() {
 fn validate_rejects_reference_and_gravity_temperature() {
     assert_validate_code(&pdelta(true, false), Some("ENG-E-0013"));
     assert_validate_code(&buckling(true, false), Some("ENG-E-0013"));
+}
+
+fn disconnect(mut model: Value) -> Value {
+    model["model"]["nodes"].as_array_mut().unwrap().push(json!({
+        "id": 9,
+        "dim": "D2",
+        "coordinates": [0.0, 1.0, 0.0],
+        "dofs": ["Ux", "Uy"]
+    }));
+    model
+}
+
+fn diagnostics_bytes(value: &Value) -> String {
+    canonical_json(&value.to_string()).unwrap()
+}
+
+/// A disconnected node is invalid/2. Temperature on the reference does not
+/// change that status and does not add ENG-E-0013.
+fn assert_invalid_model_with_temperature(model: &Value) {
+    let input = model.to_string();
+    let validated = validate(&input).unwrap();
+    assert!(validated.iter().any(|item| item.code == "ENG-E-0004"));
+    assert!(validated.iter().all(|item| item.code != "ENG-E-0013"));
+    let outcome = run(&input, &CancelToken::new(), |_| {});
+    assert_eq!(outcome.status, Status::Invalid, "{}", outcome.document);
+    assert_eq!(outcome.exit_code(), 2);
+    let document: Value = serde_json::from_str(&outcome.document).unwrap();
+    assert_eq!(document["status"], "invalid");
+    let from_validate = diagnostics_bytes(&serde_json::to_value(&validated).unwrap());
+    let from_run = diagnostics_bytes(&document["diagnostics"]);
+    assert_eq!(from_validate, from_run, "{}", outcome.document);
+}
+
+#[test]
+fn invalid_model_with_gravity_or_reference_temperature_stays_invalid() {
+    assert_invalid_model_with_temperature(&disconnect(pdelta(true, false)));
+    assert_invalid_model_with_temperature(&disconnect(buckling(true, false)));
 }
