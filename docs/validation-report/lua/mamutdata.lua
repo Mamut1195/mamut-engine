@@ -66,4 +66,33 @@ function M.estado(caso)
   end
   tex.print(table.concat(s, "; "))
 end
+-- Solo referencia analítica y serie del motor. No lee ni imprime otra columna.
+function M.estado_par(caso)
+  local s = {}
+  for _, n in ipairs({"referencia", "engine"}) do
+    s[#s+1] = n .. ": " .. (has(readcsv(file(caso, n))) and "con datos" or "vacío")
+  end
+  tex.print(table.concat(s, "; "))
+end
+function M.tabla_par(caso, xk, yk, A, R)
+  local ref = readcsv(file(caso, "referencia"))
+  local eng = readcsv(file(caso, "engine"))
+  if not has(ref) then
+    tex.print("\\multicolumn{6}{c}{\\textit{Referencia analítica pendiente de derivar}}\\\\"); return
+  end
+  for _, r in ipairs(ref) do
+    local x, y = r[xk], r[yk]
+    local e = near(eng, xk, x)
+    local ev = e and e[yk]
+    local tol = A + R * math.abs(y)
+    local err, ver = "---", "\\textit{pendiente}"
+    if ev then
+      local d = math.abs(ev - y)
+      err = string.format("%.2e", d / math.max(math.abs(y), 1e-300))
+      ver = (d <= tol) and "\\textcolor{ok}{CUMPLE}" or "\\textcolor{red}{NO CUMPLE}"
+    end
+    tex.print(fmt(x) .. " & " .. fmt(y) .. " & " .. fmt(ev) ..
+      " & " .. err .. " & " .. string.format("%.1e", tol) .. " & " .. ver .. "\\\\")
+  end
+end
 return M

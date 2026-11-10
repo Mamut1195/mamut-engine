@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Genera casos/VAL-xxx.tex y los CSV vacíos de engine/opensees. Uso: python3 herramientas/gen_casos.py"""
+"""Genera casos/VAL-xxx.tex y los CSV vacíos de engine/opensees. Uso: python3 herramientas/gen_casos.py
+
+VAL-037 y VAL-038 no entran en la lista C. Su texto se escribe a mano.
+Al rehacer secciones/casos.tex, PRESERVADOS y COLA solo agregan \\input.
+No se lee ningún CSV ni un directorio de resultados, y no se toca la plantilla
+que emite la columna de un tercer programa.
+"""
 import os
 B=os.path.join(os.path.dirname(__file__),'..')
 # id, familia, título, diagrama, fuente, q2, tolerancia(A,R), ticket, x, y, xlabel, ylabel
@@ -94,6 +100,14 @@ for (i,*_) in C:
     p=f'{B}/casos/deriv/{i}.tex'
     if not os.path.exists(p): open(p,'w').write("Derivación propia pendiente de redactar a partir del fixture del caso (provenance del Engine). % DERIV-PENDIENTE\n")
 nom={"est":"Estática lineal","mod":"Análisis modal","pd":"Segundo orden (P-Delta)","esp":"Espectro de respuesta","geo":"Geotecnia","nl":"Leyes no lineales, solucionador y determinismo"}
+# Solo \\input. No generan ficha ni columna.
+PRESERVADOS={"pd":["VAL-037"]}
+# Capítulo propio, inmediatamente después de P-Delta. Tampoco usa la plantilla.
+DESPUES={"pd":[("Pandeo lineal",["VAL-038"])]}
 with open(f'{B}/secciones/casos.tex','w') as g:
     for f,ids in fam.items():
         g.write(f"\\chapter{{{nom[f]}}}\n"+"".join(f"\\input{{casos/{i}}}\n" for i in ids))
+        for extra in PRESERVADOS.get(f,[]):
+            g.write(f"\\input{{casos/{extra}}}\n")
+        for titulo,extras in DESPUES.get(f,[]):
+            g.write(f"\\chapter{{{titulo}}}\n"+"".join(f"\\input{{casos/{i}}}\n" for i in extras))
