@@ -5,7 +5,7 @@
 - Base leída: `9aeebcc000ca42c0f94b5aa41507b1da1e378743`.
 - Ficha: [11-solver-disperso.md](../tickets/11-solver-disperso.md).
 - Bitácora: [ENG-LA-008-DISENO.md](../../provenance/ENG-LA-008-DISENO.md).
-- Dependencias: decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT. Opción A. Este texto no incorpora crates.
+- Dependencias: decidido por J0 el 2026-11-10 01:17 ECT, con delegación escrita de Jonathan a J0 (2026-11-10 01:13 ECT), registrada en el comentario de Linear MAM-67. Opción A. Este texto no incorpora crates.
 
 ## 1. Para qué es este diseño
 
@@ -97,7 +97,7 @@ Esas cuentas son aritmética de este diseño. No son mediciones de un ensayo.
 
 La ruta dispersa no implementa `SystemView` escribiendo una `SymMatrix`. Añade operaciones que prestan la `SimetricaDispersa` o que factorizan directo. La vista densa solo se ofrece cuando el llamador está en la ruta densa y `dense_bytes(n, n)` cabe en el presupuesto. Pedir la densa por encima de ese tamaño devuelve ENG-E-0013, que es el código que `MemoryBudget` ya usa, y no reserva.
 
-Decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT: se retira el corte `n ≤ 2048`. El pórtico 3D de 250 nudos tiene unos 1 500 GDL libres y en la ruta densa tarda 6,48 s; ese corte no lo saca de la ruta densa y no mejora el tiempo. El umbral entre las dos rutas se fija midiendo en la fase 10. Conservar los hashes de `docs/DETERMINISM.md` no es criterio para fijarlo. Si cambian, se documentan y J4 los audita. Por qué unos 1 500 GDL tardan 6,48 s es la pregunta de MAM-1056, el perfil de la ruta densa. Este diseño no la responde. Si la ruta dispersa rechaza, el error se propaga. No hay segundo intento denso.
+Decidido por J0 el 2026-11-10 01:17 ECT, con delegación escrita de Jonathan a J0 (2026-11-10 01:13 ECT), registrada en el comentario de Linear MAM-67: se retira el corte `n ≤ 2048`. El pórtico 3D de 250 nudos tiene unos 1 500 GDL libres y en la ruta densa tarda 6,48 s; ese corte no lo saca de la ruta densa y no mejora el tiempo. El umbral entre las dos rutas se fija midiendo en la fase 10. Conservar los hashes de `docs/DETERMINISM.md` no es criterio para fijarlo. Si cambian, se documentan y J4 los audita. Por qué unos 1 500 GDL tardan 6,48 s es la pregunta de MAM-1056, el perfil de la ruta densa. Este diseño no la responde. Si la ruta dispersa rechaza, el error se propaga. No hay segundo intento denso.
 
 ## 4. Ordenamiento, factorización e inercia
 
@@ -244,7 +244,7 @@ ENG-E-0010 se reserva para un tamaño incoherente o para un `try_reserve` que fa
 
 ENG-E-0013 hoy también significa otras cosas: inercia no disponible, máscara densa imposible, esclavo con apoyo, Kg estática sin productor. El mensaje tiene que distinguir el rechazo de capacidad por el texto, con `n`, la cota y el límite.
 
-Decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT: se reutiliza ENG-E-0013. No hay ENG-E-0015. `docs/contracts/error-codes-1.json` permanece en 32 entradas. No se toca `catalog.rs`.
+Decidido por J0 el 2026-11-10 01:17 ECT, con delegación escrita de Jonathan a J0 (2026-11-10 01:13 ECT), registrada en el comentario de Linear MAM-67: se reutiliza ENG-E-0013. No hay ENG-E-0015. `docs/contracts/error-codes-1.json` permanece en 32 entradas. No se toca `catalog.rs`.
 
 ### 5.4. wasm32
 
@@ -334,11 +334,11 @@ No apareció otra crate de Rust puro, en esta consulta del registro, que documen
 
 ### 7.4. Decisión
 
-**Decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT: (A).** Implementación propia, en sala limpia, simplicial, sin crates nuevas.
-
-La delegación escrita es del 2026-11-10, 01:13 ECT. El registro de la decisión es 01:17 ECT.
+**Decidido por J0 el 2026-11-10 01:17 ECT, con delegación escrita de Jonathan a J0 (2026-11-10 01:13 ECT), registrada en el comentario de Linear MAM-67: (A).** Implementación propia, en sala limpia, simplicial, sin crates nuevas.
 
 Condición de salida de A, medida en la fase 10 sobre el pórtico 3D de 250 nudos: estático en 54 ms o menos, modal en 0,58 s o menos y P-Delta en 88 ms o menos. Si la fase 10 no llega a esas metas, o a las de 60 s y 2 GiB del modelo de 10 pisos, se reabren B y C con los números medidos por nosotros. No se cambia de crate dentro del mismo PR.
+
+La fuente de esas tres metas es la página de J2 «Ruta para superar a OpenSees», https://cursor.com/canvas/store-2a8ecc30-58b0-4b46-8a05-3be45ddfeb2e/19df7ff1-4c3f-440d-af09-e4dfbeec48ec, con mediciones de rendimiento de Q3 en caja negra.
 
 Con A aprobada, la pregunta de B sobre avisos de licencia e igualdad de bits ya no aplica. Esas preguntas vuelven solo si B se reabre.
 
@@ -385,9 +385,11 @@ Familias generadas por nosotros, antes del modelo grande, para ver que la cota c
 
 El modelo de aceptación de memoria es el de 10 pisos con losas y 26 460 GDL libres. Su malla no está en este diseño y no se inventa aquí. La fase 10 lo construye o lo toma del modelo que el proyecto fije, y registra `n` real. Si ese `n` no es 26 460, el criterio no se da por medido.
 
-El tope de ese ensayo es 60 s de reloj de pared, de la entrada al ensamblaje hasta los desplazamientos, y 2 GiB de pico de proceso. Decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT: esas dos cotas valen solo para MAM-67. No cierran MAM-107.
+El tope de ese ensayo es 60 s de reloj de pared, de la entrada al ensamblaje hasta los desplazamientos, y 2 GiB de pico de proceso. Decidido por J0 el 2026-11-10 01:17 ECT, con delegación escrita de Jonathan a J0 (2026-11-10 01:13 ECT), registrada en el comentario de Linear MAM-67: esas dos cotas valen solo para MAM-67. No cierran MAM-107.
 
 La misma fase 10 mide el pórtico 3D de 250 nudos, el de unos 1 500 GDL libres que en la ruta densa tarda 6,48 s en estático. El criterio de salida de la opción A en ese pórtico es: estático en 54 ms o menos, modal en 0,58 s o menos y P-Delta en 88 ms o menos. El perfil de por qué la ruta densa tarda 6,48 s es MAM-1056. Si la fase 10 no cumple las metas, se reabren B y C con los tiempos y la memoria medidos.
+
+La fuente de esas tres metas es la página de J2 «Ruta para superar a OpenSees», https://cursor.com/canvas/store-2a8ecc30-58b0-4b46-8a05-3be45ddfeb2e/19df7ff1-4c3f-440d-af09-e4dfbeec48ec, con mediciones de rendimiento de Q3 en caja negra.
 
 No se publican cifras de otro programa.
 
@@ -399,7 +401,7 @@ Jonathan fija dos sistemas de primera clase: SI y el sistema de Estados Unidos. 
 
 Hoy el código no cumple esa regla. `crates/engine-core/src/units.rs` dice que el cálculo interno es SI y convierte con `to_si` y `from_si`. El catálogo tiene metro, centímetro, milímetro, newton y sus múltiplos, pascal y sus múltiplos, radián, grado y la unidad adimensional. No tiene pulgada, pie, kip, libra ni ksi. `SystemView` documenta metros, radianes, newtons y kilogramos.
 
-Este diseño no cambia `units.rs`. Decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT: el solver trabaja en unidades coherentes y no convierte nada. La conversión vive en la frontera, en MAM-1043.
+Este diseño no cambia `units.rs`. Decidido por J0 el 2026-11-10 01:17 ECT, con delegación escrita de Jonathan a J0 (2026-11-10 01:13 ECT), registrada en el comentario de Linear MAM-67: el solver trabaja en unidades coherentes y no convierte nada. La conversión vive en la frontera, en MAM-1043.
 
 ### 9.2. Dónde se convierte
 
@@ -435,7 +437,7 @@ Cuando el ticket de unidades cambie los comentarios que hoy dicen «metros» y �
 
 No se añade API en este corte. Cuando se publique, va entera en tipos, con nombres legibles. El cálculo sigue en Rust. Python no factoriza y no convierte unidades por su cuenta.
 
-Decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT: el objeto opcional en `results/1` queda aprobado. El PR que actualice el esquema lo publica con la forma de abajo. Un lector viejo no tiene que romperse: el objeto es opcional y el major no cambia por añadirlo.
+Decidido por J0 el 2026-11-10 01:17 ECT, con delegación escrita de Jonathan a J0 (2026-11-10 01:13 ECT), registrada en el comentario de Linear MAM-67: el objeto opcional en `results/1` queda aprobado. El PR que actualice el esquema lo publica con la forma de abajo. Un lector viejo no tiene que romperse: el objeto es opcional y el major no cambia por añadirlo.
 
 ```python
 from enum import Enum
@@ -534,9 +536,10 @@ El rechazo de capacidad, cuando llegue a Python, es una `EngineError` con ENG-E-
 
 ## 11. Decisiones
 
-Estado: decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT. La delegación escrita es del 2026-11-10, 01:13 ECT. Este PR no añade crates ni códigos de error.
+Estado: decidido por J0 el 2026-11-10 01:17 ECT, con delegación escrita de Jonathan a J0 (2026-11-10 01:13 ECT), registrada en el comentario de Linear MAM-67. Este PR no añade crates ni códigos de error.
 
 1. Opción A aprobada: implementación propia en sala limpia, sin crates nuevas. Condición: el criterio de salida incluye las metas de velocidad en el pórtico 3D de 250 nudos, con estático en 54 ms o menos, modal en 0,58 s o menos y P-Delta en 88 ms o menos. Si la fase 10 no llega, se reabren B y C con números medidos.
+   La fuente de esas tres metas es la página de J2 «Ruta para superar a OpenSees», https://cursor.com/canvas/store-2a8ecc30-58b0-4b46-8a05-3be45ddfeb2e/19df7ff1-4c3f-440d-af09-e4dfbeec48ec, con mediciones de rendimiento de Q3 en caja negra.
 2. Con A, la pregunta de B sobre avisos de licencia e igualdad de bits ya no aplica.
 3. Se reutiliza ENG-E-0013. No hay ENG-E-0015. El catálogo se queda en 32 entradas.
 4. Unidades aprobadas: el solver trabaja en unidades coherentes y no convierte nada. La conversión vive en la frontera (MAM-1043).

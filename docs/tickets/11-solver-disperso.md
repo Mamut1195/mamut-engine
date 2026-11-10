@@ -19,13 +19,14 @@ En el commit `9aeebcc000ca42c0f94b5aa41507b1da1e378743`:
 
 Solo el diseño, en este corte. El diseño fija la ruta dispersa de principio a fin: ensamblaje, restricciones, K, M y Kg reducidas, análisis simbólico y factorización numérica. Esa ruta no se convierte en silencio a la ruta densa.
 
-La implementación vendrá en los PR de abajo. Decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT: la opción A, implementación propia en sala limpia, sin crates nuevas. Lanczos, MAM-965 y MAM-995 no se implementan aquí. El diseño deja el factor de `K − σM` reusable para los dos primeros usos: varias sustituciones y el conteo de Sturm. La fase 2 es MAM-1055, con su propio PR.
+La implementación vendrá en los PR de abajo. Decidido por J0 el 2026-11-10 01:17 ECT, con delegación escrita de Jonathan a J0 (2026-11-10 01:13 ECT), registrada en el comentario de Linear MAM-67: la opción A, implementación propia en sala limpia, sin crates nuevas. Lanczos, MAM-965 y MAM-995 no se implementan aquí. El diseño deja el factor de `K − σM` reusable para los dos primeros usos: varias sustituciones y el conteo de Sturm. La fase 2 es MAM-1055, con su propio PR.
 
 ## Criterios medibles
 
 - Perfil V2b: hasta 60 000 GDL libres. Por encima, rechazo antes de reservar.
-- El modelo de 10 pisos con losas, de 26 460 GDL libres, se resuelve en el ensayo nativo en 60 s o menos, con pico de proceso de 2 GiB o menos. Decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT: esas dos cotas valen solo para MAM-67 y no cierran MAM-107.
+- El modelo de 10 pisos con losas, de 26 460 GDL libres, se resuelve en el ensayo nativo en 60 s o menos, con pico de proceso de 2 GiB o menos. Decidido por J0 el 2026-11-10 01:17 ECT, con delegación escrita de Jonathan a J0 (2026-11-10 01:13 ECT), registrada en el comentario de Linear MAM-67: esas dos cotas valen solo para MAM-67 y no cierran MAM-107.
 - El pórtico 3D de 250 nudos, unos 1 500 GDL libres, entra en el criterio de salida de la opción A: estático en 54 ms o menos, modal en 0,58 s o menos y P-Delta en 88 ms o menos. Si la fase 10 no llega, se reabren B y C con números medidos. Por qué la ruta densa tarda 6,48 s en ese pórtico es MAM-1056.
+- La fuente de esas tres metas es la página de J2 «Ruta para superar a OpenSees», https://cursor.com/canvas/store-2a8ecc30-58b0-4b46-8a05-3be45ddfeb2e/19df7ff1-4c3f-440d-af09-e4dfbeec48ec, con mediciones de rendimiento de Q3 en caja negra.
 - El informe del ensayo publica `n`, el número de entradas almacenadas de K, el de L, el ordenamiento, el tiempo de cada fase y la memoria.
 - El residual relativo de los casos bien condicionados queda por debajo de 1e-12, con la norma escrita en el diseño.
 - Varias cargas usan una sola factorización.

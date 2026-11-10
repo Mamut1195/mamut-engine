@@ -2,12 +2,13 @@
 
 ## Decisiones registradas
 
-- Estado: decidido por J0 con la delegación de Jonathan, 2026-11-10 01:17 ECT. La delegación escrita es del 2026-11-10, 01:13 ECT.
+- Estado: decidido por J0 el 2026-11-10 01:17 ECT, con delegación escrita de Jonathan a J0 (2026-11-10 01:13 ECT), registrada en el comentario de Linear MAM-67.
 - Autor de este apartado: agente cloud de Cursor (Cursor Agent), modelo: DESCONOCIDO, 2026-11-10 01:18 (America/Guayaquil, ECT, UTC-5).
 - Rol: especificador. Sigue sin haber código de producción en el corte de MAM-67.
 - Session: continuación del 2026-11-10 (America/Guayaquil, ECT, UTC-5). Esta continuación no vio código fuente ni salidas de OpenSees, Frame3DD, Stabileo, CalculiX ni LAPACK, ni de sus derivados. No se abrió el código de SuiteSparse, CSparse, CHOLMOD, AMD de Davis, MUMPS, PARDISO ni de un derivado.
 - Qué se registra, ya escrito en `docs/design/MAM-67-solver-disperso.md`, apartado 11, y en `docs/tickets/11-solver-disperso.md`:
   1. Opción A aprobada: implementación propia en sala limpia, sin crates nuevas. El criterio de salida incluye el pórtico 3D de 250 nudos: estático en 54 ms o menos, modal en 0,58 s o menos y P-Delta en 88 ms o menos. Si la fase 10 no llega, se reabren B y C con números medidos.
+     La fuente de esas tres metas es la página de J2 «Ruta para superar a OpenSees», https://cursor.com/canvas/store-2a8ecc30-58b0-4b46-8a05-3be45ddfeb2e/19df7ff1-4c3f-440d-af09-e4dfbeec48ec, con mediciones de rendimiento de Q3 en caja negra.
   2. Con A, la pregunta de B sobre avisos de licencia e igualdad de bits ya no aplica.
   3. Se reutiliza ENG-E-0013. No hay ENG-E-0015. El catálogo sigue en 32 entradas.
   4. El solver trabaja en unidades coherentes y no convierte. La conversión vive en la frontera, MAM-1043.
@@ -60,7 +61,9 @@ Código y documentos del propio repositorio, en el commit de base:
 
 No se abrió `provenance/ENG-BENCH-001-SMOKE-VPS.md`.
 
-Medición del propio motor citada en el diseño (250 nudos 3D): dato entregado en el encargo. El informe de origen no se abrió. Cita desconocida.
+Medición del propio motor citada en el diseño (250 nudos 3D, 6,48 s en estático): dato entregado en el encargo. El informe de origen no se abrió. Cita desconocida.
+
+Página de J2, «Ruta para superar a OpenSees», https://cursor.com/canvas/store-2a8ecc30-58b0-4b46-8a05-3be45ddfeb2e/19df7ff1-4c3f-440d-af09-e4dfbeec48ec. Es la fuente de las tres metas de velocidad del pórtico de 250 nudos. Mediciones de rendimiento de Q3 en caja negra. No se copió ninguna otra cifra de esa página.
 
 Citas bibliográficas. El artículo o el libro no se abrió. Volumen, número y páginas: cita desconocida, salvo el año cuando forma parte del título recordado:
 
@@ -91,4 +94,5 @@ El recorrido manual del grafo de `faer` por la API de crates.io, sin `cargo tree
 
 - No hay implementación, ni reserva de matrices, ni ensayo de tiempo o de memoria.
 - `docs/contracts/error-codes-1.json` no gana entradas. ENG-E-0015 queda como propuesta en el diseño.
+- La propuesta de ENG-E-0015 quedó descartada a las 01:17 ECT del 2026-11-10 y se reutiliza ENG-E-0013.
 - El revisor clean-room no está firmado.
