@@ -507,6 +507,114 @@ fn system_construction_precedes_member_loads() {
     }
 }
 
+fn spatial_diaphragm() -> Value {
+    json!({
+        "schema": "engine-input/1",
+        "units": "SI",
+        "options": {"allow_experimental": true},
+        "model": {
+            "axes": "Z-up",
+            "nodes": [
+                {
+                    "id": 1,
+                    "dim": "D3",
+                    "coordinates": [0.0, 0.0, 0.0],
+                    "dofs": ["Ux", "Uy", "Uz", "Rx", "Ry", "Rz"]
+                },
+                {
+                    "id": 2,
+                    "dim": "D3",
+                    "coordinates": [4.0, 0.0, 0.0],
+                    "dofs": ["Ux", "Uy", "Uz", "Rx", "Ry", "Rz"]
+                }
+            ],
+            "members": [{
+                "id": 1,
+                "nodes": [1, 2],
+                "section": "s",
+                "law": "elastic",
+                "element": "frame3d.euler_elastic",
+                "orientation": [0.0, 0.0, 1.0]
+            }],
+            "sections": [{"id": "s", "properties": [
+                {"name": "A", "value": 2.0},
+                {"name": "J", "value": 3.0},
+                {"name": "Iy", "value": 3.0},
+                {"name": "Iz", "value": 5.0}
+            ]}],
+            "laws": [{"name": "elastic", "parameters": [
+                {"name": "E", "value": 200.0},
+                {"name": "G", "value": 80.0},
+                {"name": "rho", "value": 0.0}
+            ]}],
+            "supports": [{
+                "id": "a",
+                "node": 1,
+                "restrained": ["Ux", "Uy", "Uz", "Rx", "Ry", "Rz"]
+            }],
+            "diaphragms": [{"master": 1, "slaves": [2]}],
+            "masses": []
+        },
+        "cases": [
+            {
+                "name": "G",
+                "loads": [{"node": 2, "values": [{"dof": "Ux", "value": -1.0}]}],
+                "member_loads": [{
+                    "member": 1,
+                    "force_per_length": [0.0, -1.0, 0.0],
+                    "moment_per_length": [0.0, 0.0, 0.0]
+                }]
+            },
+            {"name": "H", "loads": []}
+        ],
+        "combinations": [],
+        "analyses": [pdelta()]
+    })
+}
+
+fn run_diagnostic_rows(model: &Value) -> (Status, Vec<(String, String)>) {
+    let outcome = run(&model.to_string(), &CancelToken::new(), |_| {});
+    let document: Value = serde_json::from_str(&outcome.document).expect("results json");
+    let rows = document["diagnostics"]
+        .as_array()
+        .expect("diagnostics")
+        .iter()
+        .map(|item| {
+            (
+                item["code"].as_str().expect("code").to_string(),
+                item["cause"].as_str().expect("cause").to_string(),
+            )
+        })
+        .collect();
+    (outcome.status, rows)
+}
+
+#[test]
+fn valid_diaphragm_warning_precedes_reference_member_loads() {
+    let model = spatial_diaphragm();
+    let (status, rows) = run_diagnostic_rows(&model);
+    assert_eq!(status, Status::Unsupported, "{rows:?}");
+    let warnings: Vec<usize> = rows
+        .iter()
+        .enumerate()
+        .filter(|(_, (code, _))| code == "API-W-DIAPHRAGM-RECOVERY")
+        .map(|(index, _)| index)
+        .collect();
+    let error = rows
+        .iter()
+        .position(|(code, cause)| code == "ENG-E-0013" && cause.contains("member load"))
+        .expect("error de member_loads");
+    assert!(
+        !warnings.is_empty(),
+        "el aviso falta en el documento de run: {rows:?}"
+    );
+    assert!(
+        warnings.iter().all(|index| *index < error),
+        "el aviso quedó detrás del error: {rows:?}"
+    );
+    assert_same_diagnostics(&model, Status::Unsupported);
+}
+
 #[test]
 fn plain_member_loads_still_report_model_and_assembly_progress() {
     let input = frame().to_string();
