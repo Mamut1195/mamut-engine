@@ -1,0 +1,33 @@
+Los cuatro casos ya están demostrados en \texttt{provenance/ENG-ANL-006.md} y comprobados en \texttt{crates/engine-analysis/tests/buckling.rs} (\texttt{four\_euler\_cases\_converge\_to\_the\_beam\_equation}) y en \texttt{crates/engine-api/tests/buckling.rs}. Esta página no cambia el código de producción ni la tolerancia de aquellos ensayos. Timoshenko y Gere, \emph{Theory of Elastic Stability}: la página, la sección, la tabla y el número de ecuación son cita desconocida. No se inventan.
+
+Compresión \(P>0\), rigidez \(EI\), flecha transversal \(w\). El equilibrio linealizado del eje es
+\begin{equation}
+EI\,w''''+P\,w''=0.
+\label{eq:val038-viga}
+\end{equation}
+Con \(k^2=P/EI\) y \(k\neq 0\),
+\[
+w(x)=A+Bx+C\sin(kx)+D\cos(kx),
+\]
+y \(P_{cr}=C\,\pi^2 EI/L^2\). Las cuatro constantes salen de las condiciones de borde, sin tabla auxiliar.
+
+\paragraph{Articulada--articulada.}
+\(w(0)=w''(0)=w(L)=w''(L)=0\) obliga \(A=D=B=0\) y \(\sin(kL)=0\). La menor raíz positiva es \(kL=\pi\), así \(C=1\).
+
+\paragraph{Empotrada--libre.}
+Empotrada en \(x=0\): \(w=w'=0\). Libre en \(x=L\), sin cortante aplicado: \(w''=0\) y \(w'''+k^2 w'=0\). La segunda condición libre reduce a \(B=0\), \(w'(0)=0\) anula el seno y \(w''(L)=0\) da \(\cos(kL)=0\). La menor raíz es \(kL=\pi/2\), así \(C=1/4\).
+
+\paragraph{Empotrada--empotrada.}
+\(w(0)=w'(0)=w(L)=w'(L)=0\). Con \(\theta=kL\) queda
+\[
+\sin(\theta/2)\,\bigl(\sin(\theta/2)-(\theta/2)\cos(\theta/2)\bigr)=0.
+\]
+La menor raíz positiva del primer factor es \(\theta=2\pi\), así \(C=4\). La otra familia es la del caso articulado en un extremo y cae por encima de \(2\pi\).
+
+\paragraph{Empotrada--articulada.}
+\(w(0)=w'(0)=w(L)=w''(L)=0\) deja \(\tan\theta=\theta\), o \(f(\theta)=\sin\theta-\theta\cos\theta=0\), con \(\theta=kL\). En \((0,\pi]\) no hay raíz positiva: \(f\) no cambia de signo y \(\theta=0\) es el campo trivial. En \((\pi,3\pi/2)\), \(f(\pi)=\pi>0\), \(f(3\pi/2)=-1<0\) y \(f'(\theta)=\theta\sin\theta<0\), así que hay una sola raíz. El ensayo la aísla con ochenta bisecciones y las funciones de \texttt{engine\_core::math}. Entonces \(C=(\theta/\pi)^2\). Ese valor no se toma de un libro.
+
+\paragraph{Discretización y tolerancia ya escrita.}
+La barra de ensayo mide \(L=4~\mathrm{m}\), con \(E=200~\mathrm{Pa}\), \(A=2~\mathrm{m}^2\) e \(I=3~\mathrm{m}^4\). Son escalas de ensayo, no un material. Ocho elementos iguales de Euler--Bernoulli guardan \(K_g\) a \(N=-1~\mathrm{N}\) (tracción positiva), de modo que el autovalor \(\lambda\) de \(K+\lambda K_g=0\) es \(P_{cr}\) en newton. La tolerancia relativa del factor de ocho elementos frente a \(C\,\pi^2 EI/L^2\) es \(10^{-3}\). Ya estaba en el ensayo y en la bitácora: aquí no se reajusta. Un entero equivocado, por ejemplo \(2\) en lugar de la raíz empotrada--articulada, queda fuera. Cuatro elementos deben quedar por encima de la raíz continua y por encima del modelo de ocho, porque el espacio cúbico grueso está contenido en el fino y la energía geométrica es \(N\int (w')^2\,\mathrm{d}x\).
+
+El método \texttt{buckling.linear} es Experimental. La fachada exige \texttt{options.allow\_experimental}. \texttt{pdelta} no interviene en este caso; su estado en el registro es Stable y no se modifica.

@@ -1,0 +1,40 @@
+% VAL-037. Escrito a mano: la herramienta gen_casos.py deja una columna de un tercer programa, y este informe no la lleva.
+\section{VAL-037: \(B_2\) de un pórtico de tres pisos}\label{sec:VAL-037}
+\begin{ficha}
+Fuente & Derivación propia de este caso, ecuaciones~\eqref{eq:val037-equilibrio}--\eqref{eq:val037-tol}. Norma de acero con un amplificador parecido: cita desconocida.\\
+Ticket & MAM-850\\
+Engine & commit \texttt{\EngineCommit}\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-037}}\\
+Tolerancia & \(\lvert B_2^{\mathrm{motor}}-B_2^{\mathrm{piso}}\rvert\le 0{,}35\,(B_2^{\mathrm{piso}}-1)+0{,}005\), escrita antes de ejecutar el motor. Régimen: \(B_2^{\mathrm{piso}}-1>0{,}02\) y \(0<\Sigma P/P_{e,\mathrm{piso}}<0{,}25\).\\
+Estado de datos & \directlua{mamut.estado_par('VAL-037')}\\
+\end{ficha}
+
+\paragraph{Modelo.}
+\begin{center}\diag{portico3}\end{center}
+Tres pisos, un vano, un elemento por barra. Los datos numéricos y el significado de \(B_2\) están en la derivación. \texttt{linearStatic} resuelve solo el caso lateral. \texttt{pdelta} usa el caso vertical como gravedad y el mismo caso lateral, con \(K_g\) congelada. Los dos métodos se describen al final de la derivación: \texttt{pdelta} figura como Stable en la fachada; la comparación sigue siendo la aproximación de piso.
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-037}
+
+\paragraph{Reproducción.}
+\begin{enumerate}\small
+\item Resolver el documento lateral con \texttt{linearStatic} y el documento de gravedad más lateral con \texttt{pdelta}, con los controles de Picard escritos en la derivación.
+\item En cada piso, \(P_{e,\mathrm{piso}}=H\,h/\Delta_1\) y \(B_2^{\mathrm{piso}}=1/(1-\Sigma P/P_{e,\mathrm{piso}})\). \(B_2^{\mathrm{motor}}=\Delta_2/\Delta_1\).
+\item La serie analítica es \(B_2^{\mathrm{piso}}\) y la serie del motor es \(B_2^{\mathrm{motor}}\). No hay una tercera serie.
+\end{enumerate}
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={piso}, ylabel={$B_2$}]
+\directlua{mamut.serie('VAL-037','referencia','piso','b2','ref','Forma cerrada del piso')}
+\directlua{mamut.serie('VAL-037','engine','piso','b2','eng','MAMUT Engine')}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrl}\toprule
+piso & \(B_2\) piso & Motor & Error rel. & Banda & Veredicto\\\midrule
+\directlua{mamut.tabla_b2('VAL-037','piso','b2',0.35,0.005)}
+\bottomrule\end{tabular}
+\end{center}

@@ -1,0 +1,40 @@
+% VAL-038. Escrito a mano: la herramienta gen_casos.py deja una columna de un tercer programa, y este informe no la lleva.
+\section{VAL-038: cuatro cargas críticas de Euler}\label{sec:VAL-038}
+\begin{ficha}
+Fuente & Derivación propia, ecuación~\eqref{eq:val038-viga}, ya archivada en \texttt{provenance/ENG-ANL-006.md}. Timoshenko y Gere: cita desconocida.\\
+Ticket & MAM-850\\
+Engine & commit \texttt{\EngineCommit}\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-038}}\\
+Tolerancia & \(\lvert\lambda-P_{cr}\rvert\le 0+10^{-3}\lvert P_{cr}\rvert\), la misma ya escrita en el ensayo de ocho elementos. No se reajusta en este ticket.\\
+Estado de datos & \directlua{mamut.estado_par('VAL-038')}\\
+\end{ficha}
+
+\paragraph{Modelo.}
+\begin{center}\diag{euler4}\end{center}
+Una barra recta sobre \(X\), cuatro condiciones de borde y ocho elementos. \texttt{buckling.linear} es Experimental. La serie del informe es el menor autovalor de cada caso.
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-038}
+
+\paragraph{Reproducción.}
+\begin{enumerate}\small
+\item Integrar \(EI\,w''''+P\,w''=0\) con las cuatro condiciones de borde y evaluar \(P_{cr}=C\,\pi^2 EI/L^2\).
+\item Ejecutar \texttt{buckling.linear} con ocho elementos, referencia de compresión unitaria y \texttt{allow\_experimental}.
+\item Comparar \(\lambda\) con \(P_{cr}\) dentro de la tolerancia relativa \(10^{-3}\). La referencia analítica y la serie del motor son las dos únicas columnas.
+\end{enumerate}
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={$C$}, ylabel={$P_{cr}$ [N]}]
+\directlua{mamut.serie('VAL-038','referencia','c','pcr','ref','Forma cerrada')}
+\directlua{mamut.serie('VAL-038','engine','c','pcr','eng','MAMUT Engine')}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrl}\toprule
+\(C\) & \(P_{cr}\) & Motor & Error rel. & Tol. & Veredicto\\\midrule
+\directlua{mamut.tabla_par('VAL-038','c','pcr',0,0.001)}
+\bottomrule\end{tabular}
+\end{center}

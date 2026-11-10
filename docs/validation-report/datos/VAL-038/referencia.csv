@@ -1,0 +1,8 @@
+# Pcr = C * pi^2 * E * I / L^2. E=200 Pa, I=3 m4, L=4 m.
+# Empotrada-articulada: 80 bisecciones de sin(theta)-theta*cos(theta) en (pi, 3*pi/2).
+# No es una salida del motor.
+c,pcr
+0.25,92.527541260212729
+1,370.11016504085092
+2.0457485159382953,757.15232086599826
+4,1480.4406601634037
