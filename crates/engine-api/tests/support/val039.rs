@@ -79,7 +79,7 @@ pub fn topology_errors() -> Vec<(String, Value, &'static str)> {
     input["model"]["nodes"][1]["coordinates"] = json!([0.0, 0.0, 0.0]);
     cases.push(("zero length".into(), input, "ENG-E-0005"));
     let mut input = cantilever();
-    input["schema"] = json!("engine-input/2");
+    input["schema"] = json!("engine-input/9");
     cases.push(("incompatible major".into(), input, "ENG-E-0009"));
     cases
 }

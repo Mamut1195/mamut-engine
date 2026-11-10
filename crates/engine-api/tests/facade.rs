@@ -41,7 +41,7 @@ fn valid_domain_and_all_declared_methods() {
     assert_eq!(version()["engine_version"], "0.1.0");
     assert_eq!(
         version()["contracts"],
-        json!(["engine-input/1", "results/1"])
+        json!(["engine-input/1", "engine-input/2", "results/1"])
     );
 }
 
@@ -50,7 +50,7 @@ fn required_schema_and_unknown_contract_or_major() {
     let mut v = input();
     for contract in [
         "other/1",
-        "engine-input/2",
+        "engine-input/9",
         "engine-input/999",
         "engine-input/1.1",
         "results/1",

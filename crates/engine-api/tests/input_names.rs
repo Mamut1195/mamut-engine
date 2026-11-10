@@ -40,13 +40,25 @@ const SCHEMA_KEYWORDS: &[&str] = &[
     "examples",
 ];
 
-// Frozen by MAM-480 until a major contract change (results/2, engine-input/2 or
-// aliases): these $defs names published in #88 and referenced by $ref must not grow.
+// Frozen by MAM-480. engine-input/2 repeats the same $defs names and adds none.
 // They authorize neither camelCase fields nor new definitions and apply only
 // directly under $defs of the indicated $id.
 const LEGACY_DEFS: &[(&str, &[&str])] = &[
     (
         "urn:mamut:engine-input:1",
+        &[
+            "uniformLoad",
+            "dofValue",
+            "massSource",
+            "pDeltaOptions",
+            "modalOptions",
+            "spectrumTable",
+            "spectrumDirection",
+            "spectrumOptions",
+        ],
+    ),
+    (
+        "urn:mamut:engine-input:2",
         &[
             "uniformLoad",
             "dofValue",
@@ -240,7 +252,8 @@ fn element_allowed(path: &[&str], context: Context, schema_id: &str) -> bool {
     match context {
         Context::Data => path == ["model", "members", "[]"],
         Context::Names => {
-            (schema_id == "urn:mamut:engine-input:1"
+            ((schema_id == "urn:mamut:engine-input:1"
+                || schema_id == "urn:mamut:engine-input:2")
                 && path == ["$defs", "member", "properties"])
                 // Contract exception PENDING: #88 also publishes the member kind
                 // in results/1. Only this property, without extension.
@@ -374,7 +387,7 @@ fn schemas_fixtures_and_public_input_field_names_are_clean() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     check_tree(&root.join("schemas"), true);
     check_tree(&root.join("fixtures"), false);
-    for kind in ["engine-input/1", "results/1"] {
+    for kind in ["engine-input/1", "engine-input/2", "results/1"] {
         let schema = engine_api::schema(kind).unwrap();
         assert_eq!(violation(schema, true), None, "{kind}");
         let _: serde_json::Value = serde_json::from_str(schema).unwrap();
@@ -386,6 +399,19 @@ fn legacy_definitions_are_frozen_by_mam_480() {
     let expected: &[(&str, &[&str])] = &[
         (
             "urn:mamut:engine-input:1",
+            &[
+                "uniformLoad",
+                "dofValue",
+                "massSource",
+                "pDeltaOptions",
+                "modalOptions",
+                "spectrumTable",
+                "spectrumDirection",
+                "spectrumOptions",
+            ],
+        ),
+        (
+            "urn:mamut:engine-input:2",
             &[
                 "uniformLoad",
                 "dofValue",
@@ -415,17 +441,20 @@ fn legacy_definitions_are_frozen_by_mam_480() {
         "frozen contract IDs, order and names"
     );
     let names: Vec<_> = LEGACY_DEFS.iter().flat_map(|(_, defs)| *defs).collect();
-    assert_eq!(names.len(), 15);
+    assert_eq!(names.len(), 23);
     assert_eq!(
         names.iter().collect::<BTreeSet<_>>().len(),
         15,
-        "no duplicate legacy names"
+        "engine-input/2 repeats the existing names and adds none"
     );
 }
 
 #[test]
 fn frozen_legacy_definitions_exist_in_the_published_schemas() {
-    for (kind, &(id, names)) in ["engine-input/1", "results/1"].into_iter().zip(LEGACY_DEFS) {
+    for (kind, &(id, names)) in ["engine-input/1", "engine-input/2", "results/1"]
+        .into_iter()
+        .zip(LEGACY_DEFS)
+    {
         let schema: serde_json::Value =
             serde_json::from_str(engine_api::schema(kind).unwrap()).unwrap();
         assert_eq!(schema["$id"], id, "{kind}");
@@ -590,6 +619,7 @@ fn element_is_rejected_outside_the_member_paths() {
     }
     for (id, member) in [
         ("urn:mamut:engine-input:1", "member"),
+        ("urn:mamut:engine-input:2", "member"),
         ("urn:mamut:results:1", "memberIdentity"),
     ] {
         let schema = serde_json::json!({"$id": id, "$defs": {member: {"properties": {"element": {"type": "string"}}}}});

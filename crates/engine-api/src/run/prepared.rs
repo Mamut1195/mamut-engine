@@ -113,7 +113,7 @@ impl PreparedLinear {
             .get("schema")
             .and_then(serde_json::Value::as_str)
             .ok_or_else(|| ApiError::InvalidInput("schema is required".into()))?;
-        if schema != "engine-input/1" {
+        if !crate::input::supported_input_schema(schema) {
             return Err(ApiError::UnsupportedSchema(schema.into()).into());
         }
         let execution = input::decode(value)?;
