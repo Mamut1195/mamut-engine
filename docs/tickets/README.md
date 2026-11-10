@@ -45,4 +45,5 @@ no implementa los tickets 01, 02 ni 03.
 | 7 | [07-toml-export-canonico.md](07-toml-export-canonico.md) | Ya, en paralelo | Decisión U9 ya escrita en `docs/V1.md`. |
 | 8 | [08-toml-linea-columna.md](08-toml-linea-columna.md) | Ya, en paralelo | Decisión U11 ya escrita en `docs/V1.md`. |
 | 9 | [09-pilote-reese-matlock.md](09-pilote-reese-matlock.md) | Solo con la fuente publicada en la sesión | MAM-49. |
+| 12 | [12-errores-de-referencia.md](12-errores-de-referencia.md) | Ya, en paralelo | `ENG-E-0003` ya existe. No se añade un código. |
 | — | [10-no-empezar.md](10-no-empezar.md) | No | Presupuestos, release y licencia comercial. |
