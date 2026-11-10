@@ -47,3 +47,4 @@ no implementa los tickets 01, 02 ni 03.
 | 9 | [09-pilote-reese-matlock.md](09-pilote-reese-matlock.md) | Solo con la fuente publicada en la sesión | MAM-49. |
 | — | [10-no-empezar.md](10-no-empezar.md) | No | Presupuestos, release y licencia comercial. |
 | 11 | [11-solver-disperso.md](11-solver-disperso.md) | El diseño, ya. La implementación es la opción A | MAM-67, ENG-LA-008. |
+| 14 | [14-generador-python-v1.md](14-generador-python-v1.md) | Ya. Jonathan confirmó la opción C el 2026-11-10. | MAM-925. No depende de una ley nueva. |
