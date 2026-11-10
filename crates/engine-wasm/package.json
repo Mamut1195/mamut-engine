@@ -1,6 +1,6 @@
 {
   "name": "mamut-engine-wasm",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Paquete ES experimental del motor Mamut en WebAssembly; no es producto.",
