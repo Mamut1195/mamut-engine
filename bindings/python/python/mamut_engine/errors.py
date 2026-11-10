@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import mamut_engine
 
-from .types import JSONDocument, ResultDiagnostic, ResultEntity
+from .types import JSONDocument, JSONValue, ResultDiagnostic, ResultEntity
 
 
 class EngineError(Exception):
