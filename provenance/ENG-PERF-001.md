@@ -16,6 +16,20 @@
 
 El generador es `portal_250`. El desglose de la factorización está en el ensayo ignorado de `engine-api`. `perf` y `flamegraph` no estaban disponibles: DESCONOCIDO. El espectro modal no terminó: el total queda DESCONOCIDO. El reparto interno de la reducción densa, del primer tramo de P-Delta y del término cuadrático de la factorización (búsqueda, actualización y escritura por columnas) queda DESCONOCIDO.
 
+## Comprobaciones
+
+Todas con `--offline --locked` cuando el comando es de Cargo. Salida 0:
+
+- `cargo fmt --all -- --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `cargo test --workspace` (los ensayos de tiempos siguen ignorados)
+- `cargo doc --workspace --no-deps`
+- `cargo check --workspace --target wasm32-unknown-unknown`
+- `bash clean-room/check.sh origin/main`
+- `bash scripts/changelog-check.sh origin/main`
+
+`docs/DETERMINISM.md` y los goldens no se tocaron.
+
 ## Pendiente
 
-Revisión de J4. La mejora del núcleo no entra en este cambio. Si esa mejora cambia hashes publicados, hay que documentarlo y auditarlo; conservarlos no es criterio. `docs/DETERMINISM.md` y los goldens no se tocaron.
+Revisión de J4. La mejora del núcleo no entra en este cambio. Si esa mejora cambia hashes publicados, hay que documentarlo y auditarlo; conservarlos no es criterio.
