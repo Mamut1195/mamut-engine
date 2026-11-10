@@ -54,7 +54,7 @@ dependencies = [
 
 [[package]]
 name = "engine-analysis"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-assembly",
  "engine-contracts",
@@ -71,7 +71,7 @@ dependencies = [
 
 [[package]]
 name = "engine-api"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-analysis",
  "engine-assembly",
@@ -94,7 +94,7 @@ dependencies = [
 
 [[package]]
 name = "engine-assembly"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-contracts",
  "engine-core",
@@ -105,7 +105,7 @@ dependencies = [
 
 [[package]]
 name = "engine-bench"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-api",
  "engine-core",
@@ -116,7 +116,7 @@ dependencies = [
 
 [[package]]
 name = "engine-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-api",
  "mamut-workflow",
@@ -128,7 +128,7 @@ dependencies = [
 
 [[package]]
 name = "engine-contracts"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-core",
  "engine-linalg",
@@ -136,14 +136,14 @@ dependencies = [
 
 [[package]]
 name = "engine-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "libm",
 ]
 
 [[package]]
 name = "engine-elements-frame"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-assembly",
  "engine-contracts",
@@ -156,7 +156,7 @@ dependencies = [
 
 [[package]]
 name = "engine-elements-frame3d"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-assembly",
  "engine-contracts",
@@ -169,7 +169,7 @@ dependencies = [
 
 [[package]]
 name = "engine-elements-spring"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-assembly",
  "engine-contracts",
@@ -181,7 +181,7 @@ dependencies = [
 
 [[package]]
 name = "engine-elements-truss"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-assembly",
  "engine-contracts",
@@ -193,7 +193,7 @@ dependencies = [
 
 [[package]]
 name = "engine-geo"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-core",
  "engine-linalg",
@@ -201,7 +201,7 @@ dependencies = [
 
 [[package]]
 name = "engine-laws"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-contracts",
  "engine-core",
@@ -209,14 +209,14 @@ dependencies = [
 
 [[package]]
 name = "engine-linalg"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-core",
 ]
 
 [[package]]
 name = "engine-loads"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-assembly",
  "engine-contracts",
@@ -229,14 +229,14 @@ dependencies = [
 
 [[package]]
 name = "engine-model"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-core",
 ]
 
 [[package]]
 name = "engine-validation"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-analysis",
  "engine-api",
@@ -256,7 +256,7 @@ dependencies = [
 
 [[package]]
 name = "engine-wasm"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-api",
  "js-sys",
@@ -389,7 +389,7 @@ dependencies = [
 
 [[package]]
 name = "mamut-engine-py"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "engine-api",
  "pyo3",

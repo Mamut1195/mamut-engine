@@ -1,10 +1,10 @@
 [package]
 name = "engine-laws"
-version = "0.1.0"
+version = "0.2.0"
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-engine-core = { version = "0.1.0", path = "../engine-core" }
-engine-contracts = { version = "0.1.0", path = "../engine-contracts" }
+engine-core = { version = "0.2.0", path = "../engine-core" }
+engine-contracts = { version = "0.2.0", path = "../engine-contracts" }

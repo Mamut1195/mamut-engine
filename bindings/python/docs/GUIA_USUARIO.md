@@ -77,6 +77,7 @@ print(results.version)
 
 En la ejecución local de esta tarea, `version()` informa
 `engine_version="0.1.0"` y contratos `engine-input/1`, `results/1`.
+Esa frase registra aquella ejecución. Los crates de esta release declaran `0.2.0`.
 Consulta siempre la versión instalada: una cadena de versión no sustituye la
 comprobación del contrato ni de las capacidades. Los mayores desconocidos se
 rechazan con `Unsupported` (`ENG-E-0009`). `schema()` publica también

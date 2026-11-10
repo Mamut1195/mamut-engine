@@ -38,7 +38,7 @@ fn valid_domain_and_all_declared_methods() {
         .as_array()
         .unwrap()
         .contains(&json!("run")));
-    assert_eq!(version()["engine_version"], "0.1.0");
+    assert_eq!(version()["engine_version"], "0.2.0");
     assert_eq!(
         version()["contracts"],
         json!(["engine-input/1", "results/1"])
