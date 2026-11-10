@@ -46,8 +46,8 @@ no implementa los tickets 01, 02 ni 03.
 | 8 | [08-toml-linea-columna.md](08-toml-linea-columna.md) | Ya, en paralelo | Decisión U11 ya escrita en `docs/V1.md`. |
 | 9 | [09-pilote-reese-matlock.md](09-pilote-reese-matlock.md) | Solo con la fuente publicada en la sesión | MAM-49. |
 | — | [10-no-empezar.md](10-no-empezar.md) | No | Presupuestos, release y licencia comercial. |
+| 11 | [11-solver-disperso.md](11-solver-disperso.md) | El diseño, ya. La implementación es la opción A | MAM-67, ENG-LA-008. |
 | 15 | [15-matriz-dispersa.md](15-matriz-dispersa.md) | Fase 2 de MAM-67 | MAM-1055. Sin factorización. |
 
-Los números 11, 12, 13 y 14 no están en este corte de `main`. El 11 es
-MAM-67, el 12 MAM-1045, el 13 MAM-1043 y el 14 MAM-925. El 15 es el
-siguiente libre en las ramas remotas `j2/*`.
+El 12 (MAM-1045), el 13 (MAM-1043) y el 14 (MAM-925) no tienen archivo
+en este corte. El 15 es el número que seguía libre al abrir MAM-1055.
