@@ -2,6 +2,8 @@
 \section{Alcance}
 Se cubren las capacidades V1: estática lineal, combinaciones, P-Delta elástico, análisis modal, espectro de respuesta y geotecnia (Winkler, perfil geostático, consolidación 1D y leyes no lineales con Newton), según su exposición por CLI (\texttt{engine-input/1}).
 \section{Convenciones}
-Unidades SI. Ejes globales con $Z$ hacia arriba. Compresión axial positiva en los casos P-Delta. Error relativo $e=|c-r|/|r|$, y criterio de aceptación $|c-r|\le A+R|r|$.
+Unidades SI. Ejes globales con $Z$ hacia arriba. Compresión axial positiva en los casos P-Delta. Error relativo $e=|c-r|/|r|$, y criterio de aceptación $|c-r|\le A+R|r|$. Si la referencia es aproximadamente cero, el denominador pasa a ser el máximo de la serie; el umbral de ese caso es DESCONOCIDO y queda declarado en el capítulo~\ref{sec:marco-vv10}.
+\section{Verificación y validación}
+Este informe verifica que el código resuelve las ecuaciones de la V1. La validación contra ensayos físicos queda fuera de la V1. El detalle del uso previsto, de las magnitudes y de la tabla de tolerancias está en el capítulo~\ref{sec:marco-vv10} y en la tabla~\ref{tab:tolerancias}.
 \section{Independencia de las referencias}
 Las referencias publicadas solo se citan: no se reproducen textos, figuras ni tablas protegidos. Las ecuaciones se re-derivan y se implementan con código propio, y su procedencia queda registrada en \texttt{provenance/}. Los modelos de OpenSees los construye y ejecuta exclusivamente un operador independiente (Q2), sin acceso al código del Engine. Sus resultados se integran a este informe en una contribución separada.

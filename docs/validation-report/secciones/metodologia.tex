@@ -6,7 +6,15 @@
 \item \textbf{OpenSees (contraste):} modelo independiente, preparado por Q2. OpenSees se cita como programa de terceros \cite{opensees}. Su uso no implica respaldo, certificación ni aval del Engine por parte de sus autores o de la Universidad de California.
 \end{enumerate}
 \section{Tolerancias}
-Cada caso fija $A$ y $R$ en su ficha antes de la ejecución. No se ajustan después de ver los resultados.
+La clase de cada tolerancia está en el capítulo~\ref{sec:marco-vv10}, no en una regla única anterior a la ejecución.
+\begin{itemize}
+\item Consolidada, con orden de ejecución DESCONOCIDO: VAL-001 a VAL-030, VAL-038, VAL-039 y VAL-040. El número ya estaba escrito y esta tabla no lo cambia.
+\item Preregistrada, sin campaña: VAL-033, VAL-034, VAL-035, VAL-036 y VAL-041.
+\item DESCONOCIDO, por fijar antes de ejecutar: VAL-031.
+\item VAL-037: fijada después de la revisión r1 de \#23. La cota escrita es $\lvert B_2^{\mathrm{motor}}-50/47\rvert\le 10^{-6}$.
+\item VAL-032: pendiente de congelación (Q2). El README del caso no declara un SHA de congelación.
+\end{itemize}
+El uso previsto, la separación entre verificación y validación y la métrica cuando la referencia es aproximadamente cero están en el mismo capítulo.
 \section{Construcción reproducible}\label{sec:build}
 \begin{verbatim}
 RUSTUP_TOOLCHAIN=1.99.0 MAMUT_ENGINE_GIT_COMMIT=<sha40> \
