@@ -5,7 +5,7 @@ exclusivamente mediante CLI. ENG-SFC-003 (MCP) queda fuera de V1; este trabajo
 no modifica ese transporte.
 
 La [ficha del programa](../../crates/engine-cli/harness/mamut-engine.cli-program.json)
-declara `program_id: mamut-engine`, versión `0.1.0` y el ejecutable Windows
+declara `program_id: mamut-engine`, versión `0.2.0` y el ejecutable Windows
 `bin/mamut-engine.exe`, relativo a la raíz del paquete distribuido, como
 suposición declarada. La ficha es **experimental**: Harness real todavía no
 la ha probado en Windows.

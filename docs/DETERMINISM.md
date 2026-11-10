@@ -372,22 +372,26 @@ checks `notConverged` with P/Pcr=0,2 when limiting `max_iterations=1`
 the iteration limit rather than a threshold near buckling.
 
 SHA-256 for comparison across targets (analyses without `target`; complete scalar bits), identical in
-native/wasm and debug/release:
+native/wasm and debug/release.
+
+Release 0.2.0 changes the eleven analysis digests because `engine_version` is now `0.2.0`.
+Putting that field back to `0.1.0` reproduces the previous digests. The five scalar digests
+do not include that field and stay the same.
 
 <!-- | Entrada / caso de bits | Hash | -->
 | Input / bit case | Hash |
 | --- | --- |
-| cantilever | `dc3e62defc8012b55ceba0108b76930bc73f9d805329f272631233d80a1ea153` |
-| inclined-cantilever | `d28509b76b283de84be528b593295c2fc735c62aa222c53d8374bcfb256a2492` |
-| modal-1dof | `bf52691f1eafd4c963e6f3947b141d8210faace668533b5673343d1926073da3` |
-| pdelta | `d0f5475fbd1123cb33699ae7f6fc41828907629c0bb0ac55fe29561e8b9b2b53` |
-| modal-coupled | `5e7f69005b39e8f4e93189aef46895770b5d1c1d4fe99d14d95b9a6ea9d8a86b` |
-| spectrum-log-cqc | `f68278ad240accbbc99bd58d0db43b161d74884af9d4cce05fab0b408c6f7dd2` |
-| pdelta-inclined | `8ca08c230d5f8888a46bd60d7e5acf988267dab57d3da86a6ea3763304c3df06` |
-| modal-inclined | `d0ba8d1aefa2287fa6f7c2361864958aba0b1db89d68ec6e39583bf0d20913d7` |
-| spectrum-inclined | `aac5433acbe9f3a22fa5b610b1aac1d7842508503b30c8bc369c81e03b7d8baf` |
-| frame3d-inclined-static | `44e60765807c2dd654fb3f018cc11993c510d61f86da737cc29387e96c2c8da1` |
-| frame3d-inclined-modal | `c74d3acbdd2299dc4a7b2ed99223e31f78d7bcf304057c1ae2400e1188816d53` |
+| cantilever | `56e3b7c1c41df0188e31281cbdba9f29385c8aac1a877e38e4f0876a2092ede7` |
+| inclined-cantilever | `4a8fd342c266a59d02454b63a1e0b333f84f8e91a143ea2e51d12c6f5d233f9c` |
+| modal-1dof | `cf68640de2b128f6fa3745db3b81f9bb32406c53fca0baf552093a9e4268734b` |
+| pdelta | `4439df8485a973963fed515302db8ae06ede0107c4e2cec949b3cb30e5af47a8` |
+| modal-coupled | `b2dbe68bae9ede6994a180e196a7af9c7ccd38a1fd443bc7dc58f50d0f21d8a2` |
+| spectrum-log-cqc | `5948e02cf2a0cfc45fdf2ea7169c4bf5bfdeb24b69cac7d6712ad6241e2aca07` |
+| pdelta-inclined | `fce14f19a2c5fab918cf5d3b405232abaefc19967e7cf154b24a91067d87e0e8` |
+| modal-inclined | `6cacf7724f2cdab41931d6e4e8d21345673b78b8fd65dbc5e9d9c814cc335d71` |
+| spectrum-inclined | `aa981a8adaa8a6131183f17c04696af91b391a060687c43a8eaa57be735e0308` |
+| frame3d-inclined-static | `0eed4a2870911b8b0ba82e22f77999512dbd05b31b10979d257c7fb5a7e92a0b` |
+| frame3d-inclined-modal | `bc9a8581462c531a0c92d7a6c780a00fb43661e21b92be5947d55d82d537f9eb` |
 | scalar-trig | `99dd07ae2d88c8d218ab3b7c029b87c23cb3c7b952164f1327ffe46c7b7a7667` |
 | scalar-exp-log | `aabcfc5827b7eb9c7ad318f728959f09f54ff44d20aa596d09ef41d2656e3ceb` |
 | scalar-powers-norm | `63ce475e83d8fdbf276556f7481f68f03e62026131ae83d349d4409a0cd52b2c` |

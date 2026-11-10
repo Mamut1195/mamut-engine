@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "program_id": "mamut-engine",
   "display_name": "Mamut Engine",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "launcher": {
     "platform": "windows",
     "kind": "executable",
