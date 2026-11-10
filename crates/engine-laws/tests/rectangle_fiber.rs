@@ -10,13 +10,13 @@
 //! textbook page: cita desconocida.
 
 use engine_contracts::conformance::check_section_law;
-use engine_contracts::SectionLaw;
+use engine_contracts::{SectionLaw, UniaxialLaw};
 use engine_core::{ContractId, Diagnostic, Dim, EResult, Real};
 use engine_laws::section::{
     RectangleFiberBending, RectangleFiberBendingFactory, RectangleFiberBendingParams,
     SectionFactory, SteelBar, RECTANGLE_FIBER_BENDING,
 };
-use engine_laws::uniaxial::{KentParkParams, SteelBilinearKinematicParams};
+use engine_laws::uniaxial::{KentPark, KentParkParams, SteelBilinearKinematicParams};
 
 const E_STEEL: Real = 200_000_000_000.0;
 const FY: Real = 500_000_000.0;
@@ -264,6 +264,10 @@ fn nonzero_steel_history_matches_the_hand_sums() -> EResult<()> {
 /// Source: analytical. Equations (17) and (18) of
 /// `docs/fichas/rectangle.fiber_bending.md`. Printed page of the concrete
 /// report: cita desconocida.
+///
+/// `SectionResponse` does not publish per-strip stress or tangent. The
+/// tension strips are therefore read on the public uniaxial concrete law,
+/// at the strains of equation (15). The section API is unchanged.
 #[test]
 fn cracked_bending_matches_the_hand_sums() -> EResult<()> {
     let fixture = hand_fixture();
@@ -289,6 +293,24 @@ fn cracked_bending_matches_the_hand_sums() -> EResult<()> {
 
     let fc = 3000.0 * psi_in_pa();
     let section = control_section(fc)?;
+    let concrete = section.params().concrete;
+    let law = KentPark::new(
+        concrete.fc,
+        concrete.rho_s,
+        concrete.b_double_prime,
+        concrete.s_h,
+    )?;
+    for (y, expected, tension) in stations {
+        if !tension {
+            continue;
+        }
+        let strain = -curvature * y;
+        assert_eq!(strain, expected);
+        assert!(strain > 0.0);
+        let fiber = law.respond(strain, &law.initial_state())?;
+        assert_eq!(fiber.stress, 0.0);
+        assert_eq!(fiber.tangent, 0.0);
+    }
     let committed = section.initial_state();
     let response = section.respond(&[0.0, curvature], &committed)?;
     let (axial, moment, d_axial, d_couple, d_bending) = cracking_closed(fc);
