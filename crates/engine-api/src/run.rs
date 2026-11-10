@@ -2,6 +2,8 @@
 pub(crate) mod advanced;
 pub(crate) mod geo;
 pub(crate) mod nonlinear;
+#[cfg(test)]
+mod perfil_mam_1056;
 mod prepared;
 pub(crate) mod static_linear;
 mod temperature;

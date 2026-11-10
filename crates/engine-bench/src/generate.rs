@@ -8,10 +8,10 @@ use engine_core::math;
 
 use crate::error::BenchError;
 use crate::model::{
-    Axis, BenchModel, Combination, Diaphragm, DirectionalCombination, Dof, DofValue, Grid,
-    LoadPatterns, Member, MemberKind, Modal, NodalAction, Node, Orientation, Restraint, SaTable,
-    Section, Source, Spectrum, SpectrumDirection, Story, StoryMass, ORIENTATION_KIND, SA_UNIT,
-    SCHEMA,
+    Axis, BenchModel, CaseFactor, Combination, Diaphragm, DirectionalCombination, Dof, DofValue,
+    Grid, LoadPatterns, Member, MemberKind, Modal, NamedPattern, NodalAction, NodalMass, Node,
+    Orientation, PDeltaSpec, Restraint, SaTable, Section, Source, Spectrum, SpectrumDirection,
+    Story, StoryMass, ORIENTATION_KIND, SA_UNIT, SCHEMA,
 };
 
 /// Vanos en X y en Y.
@@ -500,6 +500,276 @@ fn spectrum() -> Spectrum {
             pairs,
         },
     }
+}
+
+/// Líneas de la retícula del pórtico de 250 nudos, incluida la de borde.
+pub const PORTAL_250_LINES: usize = 5;
+/// Pisos sobre la base. Con la base son diez niveles y 250 nudos.
+pub const PORTAL_250_STORIES: usize = 9;
+/// Identificador estable del pórtico de 250 nudos.
+pub const PORTAL_250_ID: &str = "rc3d-250";
+/// Tolerancia de P-Delta. La misma cifra ya escrita en el fixture de capacidad.
+pub const PORTAL_250_PDELTA_TOLERANCE: f64 = 1e-8;
+/// Tope de iteraciones de P-Delta. La misma cifra ya escrita en el fixture de capacidad.
+pub const PORTAL_250_PDELTA_ITERATIONS: u32 = 30;
+/// Escala de desplazamientos de P-Delta, en m. La misma cifra del fixture de capacidad.
+pub const PORTAL_250_PDELTA_DISPLACEMENT_M: f64 = 0.01;
+/// Escala de giros de P-Delta, en rad. La misma cifra del fixture de capacidad.
+pub const PORTAL_250_PDELTA_ROTATION_RAD: f64 = 0.001;
+
+/// Nudos, barras y grados libres si la base está empotrada y no hay diafragma.
+#[must_use]
+pub fn portal_250_counts() -> (usize, usize, usize) {
+    let per_level = PORTAL_250_LINES * PORTAL_250_LINES;
+    let nodes = (PORTAL_250_STORIES + 1) * per_level;
+    let bays = PORTAL_250_LINES - 1;
+    let beams_per_level = PORTAL_250_LINES * bays * 2;
+    let members = PORTAL_250_STORIES * per_level + PORTAL_250_STORIES * beams_per_level;
+    let free = PORTAL_250_STORIES * per_level * 6;
+    (nodes, members, free)
+}
+
+/// Masa de un piso del pórtico de 250 nudos, en kg.
+///
+/// Misma expresión que los pórticos oficiales, con planta de cuatro vanos.
+#[must_use]
+pub fn portal_250_story_mass_kg() -> f64 {
+    let plan = (PORTAL_250_LINES - 1) as f64 * SPAN_M;
+    plan * plan * (SLAB_THICKNESS_M * CONCRETE_DENSITY_KG_M3 + SUPERIMPOSED_N_M2 / GRAVITY_M_S2)
+}
+
+/// Pórtico 3D de 250 nudos, sin diafragma y sin azar.
+///
+/// Retícula de cinco por cinco líneas, vanos de 6 m y nueve pisos de 3 m.
+/// La base está empotrada. Cada nudo libre lleva masa traslacional y una
+/// inercia de giro `m·luz²/(12·N)` para que el modal denso no condense
+/// filas nulas. Los casos son `G` y `EX`.
+#[must_use]
+pub fn portal_250() -> BenchModel {
+    let mass = portal_250_story_mass_kg();
+    let per_level = PORTAL_250_LINES * PORTAL_250_LINES;
+    let share = mass / per_level as f64;
+    let rotary = mass * SPAN_M * SPAN_M / (12.0 * per_level as f64);
+    let young = concrete_young_pa(FC_MPA);
+    let shear = shear_modulus_pa(young, POISSON);
+    let (column_a, column_iy, column_iz, column_j) =
+        rectangle_section(COLUMN_SIDE_M, COLUMN_SIDE_M);
+    let (beam_a, beam_iy, beam_iz, beam_j) = rectangle_section(BEAM_WIDTH_Y_M, BEAM_DEPTH_Z_M);
+    let nodes = portal_250_nodes();
+    let mut gravity = Vec::new();
+    let mut lateral = Vec::new();
+    let mut masses = Vec::new();
+    for node in nodes.iter().filter(|node| node.story > 0) {
+        gravity.push(NodalAction {
+            node: node.id,
+            values: vec![DofValue {
+                dof: Dof::Uz,
+                value: -share * GRAVITY_M_S2,
+            }],
+        });
+        lateral.push(NodalAction {
+            node: node.id,
+            values: vec![DofValue {
+                dof: Dof::Ux,
+                value: LATERAL_WEIGHT_FRACTION * share * GRAVITY_M_S2,
+            }],
+        });
+        masses.push(NodalMass {
+            node: node.id,
+            values: [Dof::Ux, Dof::Uy, Dof::Uz, Dof::Rx, Dof::Ry, Dof::Rz]
+                .into_iter()
+                .map(|dof| DofValue {
+                    dof,
+                    value: if dof.index() < 3 { share } else { rotary },
+                })
+                .collect(),
+        });
+    }
+    let plan = (PORTAL_250_LINES - 1) as f64 * SPAN_M;
+    BenchModel {
+        schema: SCHEMA.to_owned(),
+        id: PORTAL_250_ID.to_owned(),
+        units: "SI".to_owned(),
+        source: Source {
+            geometry: format!(
+                "Pórtico espacial sin diafragma, {PORTAL_250_LINES}×{PORTAL_250_LINES} líneas, \
+                 vanos de {SPAN_M} m, {PORTAL_250_STORIES} pisos de {STORY_HEIGHT_M} m, \
+                 250 nudos con la base empotrada. MAM-1056."
+            ),
+            material: format!(
+                "Hormigón f'c = {FC_MPA} MPa. E = 4700·sqrt(f'c) MPa (ACI 318-19 §19.2.2.1.a). \
+                 ν = {POISSON}. G = E / (2 (1 + ν)). Densidad {CONCRETE_DENSITY_KG_M3} kg/m³. \
+                 Columna cuadrada de {COLUMN_SIDE_M} m. Viga de {BEAM_WIDTH_Y_M} m por {BEAM_DEPTH_Z_M} m."
+            ),
+            torsion: "J de Saint-Venant del rectángulo: a·b³·(1/3 − 0.21·(b/a)·(1 − (b/a)⁴/12)), con a el lado mayor.".to_owned(),
+            mass: format!(
+                "m = área·(espesor·densidad + sobrecarga/g), planta {plan} m × {plan} m, \
+                 espesor {SLAB_THICKNESS_M} m, sobrecarga {SUPERIMPOSED_N_M2} N/m², g = {GRAVITY_M_S2} m/s². \
+                 Cada nudo de piso recibe m/N en Ux, Uy y Uz, y m·luz²/(12·N) en Rx, Ry y Rz. \
+                 La base no lleva masa. No hay diafragma: Izz de piso no se concentra en un maestro."
+            ),
+            spectrum: "La tabla Sa es la de los pórticos oficiales de este crate. El perfil no la ejecuta.".to_owned(),
+        },
+        stories: (1..=PORTAL_250_STORIES)
+            .map(|level| Story {
+                level: level as u32,
+                h: STORY_HEIGHT_M,
+                mass: StoryMass { m: 0.0, izz: 0.0 },
+            })
+            .collect(),
+        grid: portal_250_grid(),
+        nodes,
+        members: portal_250_members(),
+        sections: vec![
+            section(
+                "column", young, shear, column_a, column_iy, column_iz, column_j,
+            ),
+            section("beam", young, shear, beam_a, beam_iy, beam_iz, beam_j),
+        ],
+        diaphragms: Vec::<Diaphragm>::new(),
+        restraints: portal_250_restraints(),
+        load_patterns: LoadPatterns {
+            gravity: Vec::new(),
+            lateral: Vec::new(),
+            patterns: vec![
+                NamedPattern {
+                    name: "G".to_owned(),
+                    actions: gravity,
+                },
+                NamedPattern {
+                    name: "EX".to_owned(),
+                    actions: lateral,
+                },
+            ],
+        },
+        modal: Modal {
+            n: 1,
+            mass_kind: "lumped".to_owned(),
+            directions: vec![Axis::X.vector()],
+        },
+        spectrum: spectrum(),
+        combination: Combination {
+            method: "cqc".to_owned(),
+            zeta: ZETA,
+        },
+        nodal_masses: Some(masses),
+        p_delta: Some(PDeltaSpec {
+            gravity: CaseFactor {
+                case: "G".to_owned(),
+                factor: 1.0,
+            },
+            lateral: CaseFactor {
+                case: "EX".to_owned(),
+                factor: 1.0,
+            },
+            tolerance: PORTAL_250_PDELTA_TOLERANCE,
+            max_iterations: PORTAL_250_PDELTA_ITERATIONS,
+            displacement_scale: PORTAL_250_PDELTA_DISPLACEMENT_M,
+            rotation_scale: PORTAL_250_PDELTA_ROTATION_RAD,
+        }),
+        static_combinations: Vec::new(),
+    }
+}
+
+fn portal_250_grid() -> Grid {
+    let axis: Vec<f64> = (0..PORTAL_250_LINES).map(|i| i as f64 * SPAN_M).collect();
+    Grid {
+        x: axis.clone(),
+        y: axis,
+    }
+}
+
+fn portal_250_node_id(level: usize, ix: usize, iy: usize) -> u32 {
+    let per_level = PORTAL_250_LINES * PORTAL_250_LINES;
+    (level * per_level + iy * PORTAL_250_LINES + ix + 1) as u32
+}
+
+fn portal_250_nodes() -> Vec<Node> {
+    let mut nodes = Vec::new();
+    for level in 0..=PORTAL_250_STORIES {
+        let z = level as f64 * STORY_HEIGHT_M;
+        for iy in 0..PORTAL_250_LINES {
+            for ix in 0..PORTAL_250_LINES {
+                nodes.push(Node {
+                    id: portal_250_node_id(level, ix, iy),
+                    story: level as u32,
+                    ix: ix as u32,
+                    iy: iy as u32,
+                    coordinates: [ix as f64 * SPAN_M, iy as f64 * SPAN_M, z],
+                });
+            }
+        }
+    }
+    nodes
+}
+
+fn portal_250_members() -> Vec<Member> {
+    let mut members = Vec::new();
+    let mut id = 1_u32;
+    let bays = PORTAL_250_LINES - 1;
+    for level in 0..PORTAL_250_STORIES {
+        for iy in 0..PORTAL_250_LINES {
+            for ix in 0..PORTAL_250_LINES {
+                members.push(member(
+                    id,
+                    MemberKind::Column,
+                    [
+                        portal_250_node_id(level, ix, iy),
+                        portal_250_node_id(level + 1, ix, iy),
+                    ],
+                    "column",
+                    [1.0, 0.0, 0.0],
+                ));
+                id += 1;
+            }
+        }
+    }
+    for level in 1..=PORTAL_250_STORIES {
+        for iy in 0..PORTAL_250_LINES {
+            for ix in 0..bays {
+                members.push(member(
+                    id,
+                    MemberKind::Beam,
+                    [
+                        portal_250_node_id(level, ix, iy),
+                        portal_250_node_id(level, ix + 1, iy),
+                    ],
+                    "beam",
+                    [0.0, 0.0, 1.0],
+                ));
+                id += 1;
+            }
+        }
+        for ix in 0..PORTAL_250_LINES {
+            for iy in 0..bays {
+                members.push(member(
+                    id,
+                    MemberKind::Beam,
+                    [
+                        portal_250_node_id(level, ix, iy),
+                        portal_250_node_id(level, ix, iy + 1),
+                    ],
+                    "beam",
+                    [0.0, 0.0, 1.0],
+                ));
+                id += 1;
+            }
+        }
+    }
+    members
+}
+
+fn portal_250_restraints() -> Vec<Restraint> {
+    let mut restraints = Vec::new();
+    for iy in 0..PORTAL_250_LINES {
+        for ix in 0..PORTAL_250_LINES {
+            restraints.push(Restraint {
+                node: portal_250_node_id(0, ix, iy),
+                dofs: vec![Dof::Ux, Dof::Uy, Dof::Uz, Dof::Rx, Dof::Ry, Dof::Rz],
+            });
+        }
+    }
+    restraints
 }
 
 /// El maestro de la retícula oficial es la línea interior de menor índice.
