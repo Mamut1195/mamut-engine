@@ -1,13 +1,13 @@
 //! Voladizo de `frame2d.fiber_stations` con `StaticNewton`.
 //!
-//! Fuente: analítica. Apartados 13 y 14 de
+//! Fuente: analítica. Apartados 13 a 16 de
 //! `docs/fichas/frame2d.fiber_stations.md`. El axil de fluencia de las dos
 //! barras, con el hormigón en tracción y por tanto sin tensión, es
 //! N★ = fy (A1 + A2). La carga final axial es 3/2 de ese axil. Con b = 1/20
 //! la forma cerrada es Ux = 11/100 m, ε_p = 19/800 y α = fy/2. El momento
-//! de punta no despeja Ux, Uy ni θ; el ensayo fija el equilibrio, el signo,
-//! la simetría de las estaciones y la historia nula que sale de la cota
-//! elástica. Esos esperados se redujeron en la ficha antes de este archivo.
+//! de punta ancla Ux, v y θ con los apartados 15 y 16 de esa ficha, además
+//! del equilibrio, la simetría de las estaciones y la historia nula. Esos
+//! esperados se redujeron en la ficha antes de este archivo.
 
 use engine_analysis::newton::{
     NewtonElement, NewtonOptions, NewtonResults, NewtonSystem, StaticNewton,
@@ -204,14 +204,18 @@ fn static_newton_tip_moment_keeps_equilibrium_sign_and_symmetry() {
     let ux = at(&result.global_displacements, Dof::Ux);
     let uy = at(&result.global_displacements, Dof::Uy);
     let rotation = at(&result.global_displacements, Dof::Rz);
-    assert!(ux > 0.0, "el eje neutro debe alargar la directriz, Ux {ux}");
+    // Apartado 16: Ux = ε0 L, θ = κ L, v = κ L²/2.
     assert!(
-        uy > 0.0,
-        "la flecha debe seguir al momento positivo, Uy {uy}"
+        (ux - 2.0966394932968644e-5).abs() <= 1e-11,
+        "Ux {ux} frente a 2.0966394932968644e-5"
     );
     assert!(
-        rotation > 0.0,
-        "el giro de punta debe seguir al momento positivo, θ {rotation}"
+        (uy - 3.5890067627056873e-4).abs() <= 1e-10,
+        "Uy {uy} frente a 3.5890067627056873e-4"
+    );
+    assert!(
+        (rotation - 1.7945033813528436e-4).abs() <= 3e-11,
+        "θ {rotation} frente a 1.7945033813528436e-4"
     );
 
     let history = &result.element_states[0];
