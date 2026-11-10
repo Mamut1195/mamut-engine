@@ -394,10 +394,14 @@ DESCONOCIDO. Las marcas de tiempo de `22e009d36f93522646c90fc2f8bc90c96d1dc8ae`,
 `718115e679150810ce3e3ad7d8ace484fb78e3d7` se fijaron a mano. No
 reflejan cuándo se hizo el trabajo, no prueban el orden y no sirven
 como evidencia de nada. El orden real esperados → ensayos queda
-DESCONOCIDO, salvo por el orden de los commits en la rama. Que la
-reducción se haya escrito sin ejecutar el código bajo prueba queda
-DESCONOCIDO. No sale de otro programa. No se copió un listado.
-Página de libro: cita desconocida.
+DESCONOCIDO, salvo por el orden de los commits en la rama. Los 17
+dígitos de Ux, θ y v no son una derivación propia de esta sesión sin
+más: vienen de la solución independiente de J4 (revisor) en la r1 de
+#21, que J2 pasó a esta sesión. Esa solución no ejecutó el motor.
+Salen de resolver la cuadrática del apartado 16 en binary64. No vienen
+de un programa de análisis estructural externo; vienen de la solución
+analítica de J4. No se copió un listado. Página de libro: cita
+desconocida.
 
 15. Cota elástica de tracción del acero, paso a paso. Los datos son los
     del apartado 14: L = 4 m, M = 1000 N·m, E = 200000000000 Pa,
@@ -493,7 +497,11 @@ Página de libro: cita desconocida.
     150000000 φ x² − (9375 + 300000000 φ) x + 64 = 0.
 
     El producto de las raíces es positivo y la de (A.9) es la menor.
-    La evaluación en binary64 de la fórmula cuadrática da
+    Los 17 dígitos vienen de la solución independiente de J4 (revisor)
+    en la r1 de #21. J2 los pasó a esta sesión. Esa solución no ejecutó
+    el motor. Salen de resolver esta cuadrática en binary64. No vienen
+    de un programa de análisis estructural externo; vienen de la
+    solución analítica de J4. La raíz de (A.9) es
 
     x = 1.5850679334246469×10⁻³,
 
@@ -513,8 +521,8 @@ Página de libro: cita desconocida.
     par devuelve N = 0 y Mz = 1000 N·m, salvo un resto de redondeo de
     unos 2×10⁻¹¹ N·m. Las tres franjas inferiores salen en tracción,
     la superior en compresión con x < 1, y |E ε| de cada barra queda
-    muy por debajo de fy. Esos son los esperados escritos en este
-    apartado. Que no se hayan movido después de una corrida queda
+    muy por debajo de fy. Esos son los esperados del apartado 16, con
+    la procedencia dicha arriba. El orden esperados → ensayos sigue
     DESCONOCIDO.
 
     Holgura. `StaticNewton` acepta el paso cuando la norma infinito
@@ -532,8 +540,8 @@ Página de libro: cita desconocida.
     de esos techos es 2.8×10⁻¹² m en Ux, 2.2×10⁻¹¹ rad en θ y
     4×10⁻¹¹ m en v. La comparación usa 1×10⁻¹¹ m, 3×10⁻¹¹ rad y
     1×10⁻¹⁰ m. Esas tres cotas quedan por encima del producto y del
-    último bit de los decimales publicados. Que no salgan de una
-    corrida queda DESCONOCIDO.
+    último bit de los decimales publicados. El orden entre esta holgura
+    y el ensayo sigue DESCONOCIDO.
 
 ## Casos fijados antes de ejecutar
 
@@ -544,7 +552,19 @@ Página de libro: cita desconocida.
 | Curvatura lineal. Ecuación (15). Integral de Boole, independiente de (2)–(4). | Sección simétrica de control. | q de (15). Historia nula. | La integral de Boole de (8). | Holgura de redondeo f64 de esa integral, piso 1×10⁻⁶ N o N·m, por encima del último bit de sumas del orden de 1×10⁶. |
 | Historia solo en la estación izquierda. Apartado 11. | Igual. | ε_p = 1/10000 en la barra superior izquierda. | Cuadratura (2)–(4) con esa historia en la primera estación. | La misma holgura de 1×10⁻⁶. |
 | Voladizo axial con `StaticNewton`. Apartado 13. Acero `steel.bilinear_kinematic`, b = 1/20. | Sección de control con b = 1/20. L = 4 m. P = (3/2) fy / 512. | Factores absolutos 1/4, 1/2, 3/4 y 1. Historia inicial de 12 ceros. | Ux_j = 11/100 m, v_j = 0, θ_j = 0. En las dos barras y las tres estaciones, ε_p = 19/800 y α = fy/2. El axil recuperado es P. | Ux a 3×10⁻⁹ m. ε_p a 1×10⁻⁹. α a 10 Pa. v_j y θ_j a 1×10⁻⁹. Axil: el mayor entre 1×10⁻⁶ relativo y el residuo de Newton. |
-| Voladizo con momento de punta. Apartados 14 a 16. Cota 256/9375000 < fy/E y cuadrática del apartado 16. | La misma sección del apartado 13. M = 1000 N·m. | Los mismos factores. Historia inicial nula. | Fuerza nodal [0, 0, −M, 0, 0, M]. En x/L = 0, 1/2 y 1: N = 0, Vy = 0 y Mz = M. Historia de doce ceros. Ux_j = 2.0966394932968644×10⁻⁵ m, θ_j = 1.7945033813528436×10⁻⁴ rad y v_j = 3.5890067627056873×10⁻⁴ m. | Equilibrio a 1×10⁻⁴ N o N·m. Ux a 1×10⁻¹¹ m, θ a 3×10⁻¹¹ rad y v a 1×10⁻¹⁰ m, por el apartado 16. |
+
+## Caso del momento de punta
+
+Esta fila no está entre los casos fijados antes de ejecutar. El orden
+esperados → ensayos sigue DESCONOCIDO. Los 17 dígitos vienen de la
+solución independiente de J4 (revisor) en la r1 de #21, que J2 pasó a
+esta sesión. Esa solución no ejecutó el motor. Salen de resolver la
+cuadrática del apartado 16 en binary64. No vienen de un programa de
+análisis estructural externo; vienen de la solución analítica de J4.
+
+| Caso / fuente / cita | Parámetros SI | Entrada e historia | Esperado analítico | Tolerancia y justificación |
+| --- | --- | --- | --- | --- |
+| Voladizo con momento de punta. Apartados 14 a 16. Solución independiente de J4 (revisor) en la r1 de #21, pasada por J2. Cuadrática del apartado 16 en binary64. | La misma sección del apartado 13. M = 1000 N·m. | Los mismos factores. Historia inicial nula. | Fuerza nodal [0, 0, −M, 0, 0, M]. En x/L = 0, 1/2 y 1: N = 0, Vy = 0 y Mz = M. Historia de doce ceros. Ux_j = 2.0966394932968644×10⁻⁵ m, θ_j = 1.7945033813528436×10⁻⁴ rad y v_j = 3.5890067627056873×10⁻⁴ m. | Equilibrio a 1×10⁻⁴ N o N·m. Ux a 1×10⁻¹¹ m, θ a 3×10⁻¹¹ rad y v a 1×10⁻¹⁰ m, por el apartado 16. |
 
 Muestra lisa para la diferencia finita del kit: solo el desplazamiento de
 la ecuación (10), h = 1×10⁻⁶. El origen no entra en esa muestra.
