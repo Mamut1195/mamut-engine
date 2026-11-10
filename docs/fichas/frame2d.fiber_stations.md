@@ -10,7 +10,7 @@ de un programa estructural externo.
 - Autor, modelo si es IA, fecha y rol: agente cloud de Cursor (Cursor Agent),
   modelo: DESCONOCIDO, 2026-11-09 (America/Guayaquil). Rol: especificador e
   implementador. La corrección del signo de κz es de la misma sesión, el
-  2026-11-10.
+  2026-11-09 (ECT).
 - Kind propio, contrato y versión del método: `frame2d.fiber_stations`,
   `element/1` (`ContractId::new("element", 1, 0)`), método `0.1.0`.
 - Módulo, crate y consumidor previsto:
@@ -300,6 +300,88 @@ se mueven para igualar un programa externo.
    estaciones pedidas va de 0 a 64. Pasar de 64 es `ENG-E-0010`. Ese tope
    es el dominio del método 0.1.0, no un presupuesto de tiempo o memoria.
 
+## Seguimiento MAM-1037
+
+Autor de este apartado: agente cloud de Cursor (Cursor Agent), modelo:
+DESCONOCIDO, 2026-11-09 (America/Guayaquil, ECT, UTC−5). Rol: especificador
+de los esperados. La barra y la sección no cambian de código. Esta sesión
+no vio salidas numéricas de un programa estructural externo. Las
+reducciones de abajo se hicieron antes de ejecutar el ensayo.
+
+13. Voladizo axial con `StaticNewton`. La barra mide L = 4 m, de
+    (0, 0, 0) a (4, 0, 0). El nudo i está empotrado. El nudo j recibe
+    solo tracción. La sección es la de control, con una salvedad: el
+    acero usa b = 1/20, no b = 0. Hay dos barras de 1/1024 m², así que
+    A = 1/512 m². El hormigón en tracción no aporta tensión ni tangente.
+    La sección es simétrica en y y la carga no tiene parte transversal,
+    así que κz = 0, v_j = 0 y θ_j = 0. El axil de fluencia de las dos
+    barras es N★ = fy A. La carga final es P = (3/2) N★ y la tensión
+    de cada barra es σ = (3/2) fy.
+
+    Con historia nula y tracción monótona, la rama ya escrita de
+    `steel.bilinear_kinematic` da
+
+    σ = fy + b E (ε − fy/E),
+    ε_p = (1 − b) (ε − fy/E),
+    α = b E (ε − fy/E).
+
+    De σ = (3/2) fy sale ε − fy/E = fy / (2 b E) y α = fy/2. Con
+    b = 1/20 y fy/E = 1/400,
+
+    ε = 11/400, Ux_j = ε L = 11/100 m, ε_p = 19/800.
+
+    En binary64 la literal 0.05 es el mismo número que 1/20, y 11/400,
+    11/100 y 19/800 coinciden con esa evaluación. ε0 es constante, así
+    que las tres estaciones guardan el mismo par [ε_p, α] en las dos
+    barras. La rama plástica es lineal de pendiente b E: un paso de
+    Newton sobre esa rama cae en este estado. La holgura absoluta de
+    Ux es 3×10⁻⁹ m, el techo del residuo 1×10⁻⁸ P partido por la
+    rigidez axial b E A / L. La holgura de ε_p es 1×10⁻⁹, por encima de
+    (1 − b) veces ese techo partido por L. La de α es 10 Pa, por encima
+    de b E veces el techo de deformación. v_j y θ_j se comparan con
+    1×10⁻⁹: el campo impar es nulo por simetría, y esa cota queda muy
+    por debajo del desplazamiento transversal que autorizaría el mismo
+    residuo si la carga no fuera axial.
+
+14. Mismo voladizo, con momento de punta y sin axil ni corte. El
+    momento en j es M = 1000 N·m, positivo alrededor de +z. Los
+    factores absolutos crecen: 1/4, 1/2, 3/4 y 1. En esta barra ε0 es
+    constante y κz es lineal en ξ. El campo de curvatura constante κ,
+    con v_i = θ_i = 0, es θ_j = κ L y v_j = κ L² / 2, con
+    Ux_j = ε0 L. Si N y Mz son constantes, (13) da la fuerza nodal
+    [−N, 0, −Mz, N, 0, Mz]. El nudo libre exige N = 0 y Mz = M, y el
+    equilibrio de sólido rígido pone en i la fuerza [0, 0, −M]. El
+    corte recuperado es −f_v,i = 0. Ese par (ε0, κ) no se despeja en
+    forma cerrada: la parábola y las franjas en tracción mueven el eje
+    neutro, y Ux, Uy y θ quedan definidos por N(ε0, κ) = 0 junto con
+    Mz(ε0, κ) = M. No se fija su magnitud.
+
+    Signo. Con κ > 0 y ε0 = 0 el hormigón de y > 0 está comprimido y
+    aporta N < 0, mientras el acero simétrico aporta
+    N = 2 E A_s ε0 = 0. Bajar ε0 aumenta la compresión. La raíz N = 0
+    está en ε0 > 0, así que Ux_j > 0. En la parábola ascendente, y con
+    el acero elástico, M > 0 exige κ > 0, y de ahí v_j > 0 y θ_j > 0.
+
+    Simetría. Las tres estaciones comparten (ε0, κ), así que repiten
+    N = 0 y Mz = M, y sus historias coinciden. Las dos barras no son
+    imagen una de la otra: una queda en tracción y la otra en
+    compresión.
+
+    La historia plástica sí admite forma cerrada, por una cota. Sin el
+    hormigón, EI_s = 2 E A_s y² = 9 E / 131072 con y = 3/16. En la
+    parábola ascendente el hormigón comprimido suma tangente no
+    negativa, así que κ ≤ M / EI_s. Para que las franjas extremas
+    tengan a la vez tracción y compresión, la deformación de tracción
+    del acero queda por debajo de κ · 3/8, o sea de
+    M · 131072 / (24 E). Con M = 1000 N·m y este E esa cota es
+    256/9375000, menor que 3×10⁻⁵ y menor que fy/E = 1/400. M = 1000 N·m
+    es una carga redonda elegida para dejar esa separación; no se movió
+    para parecerse a otro programa. La historia aceptada es doce ceros.
+    La igualdad de Mz en las tres estaciones es la huella del campo
+    constante del que sale la cota. La comparación usa 1×10⁻⁴ N o N·m,
+    diez veces el techo 1×10⁻⁸ M del residuo de Newton y muy por debajo
+    del momento aplicado.
+
 ## Casos fijados antes de ejecutar
 
 | Caso / fuente / cita | Parámetros SI | Entrada e historia | Esperado analítico | Tolerancia y justificación |
@@ -308,6 +390,8 @@ se mueven para igualar un programa externo.
 | Armadura asimétrica. Ecuación (14). Mismo campo. `ElasticFrame` y la barra de Euler con el mismo κz = v″, Mz = EI v″. | Barras 1/1024 m² y 4/1024 m². Euler: E, A e I explícitos. | q de (10). Historia nula. | (14) y (13) para la barra de fibras. EA ε0 y EI v″ para `ElasticFrame` y para la estación de Euler. En ambos, Mz de estación = −f_θ,i. | La misma holgura. |
 | Curvatura lineal. Ecuación (15). Integral de Boole, independiente de (2)–(4). | Sección simétrica de control. | q de (15). Historia nula. | La integral de Boole de (8). | Holgura de redondeo f64 de esa integral, piso 1×10⁻⁶ N o N·m, por encima del último bit de sumas del orden de 1×10⁶. |
 | Historia solo en la estación izquierda. Apartado 11. | Igual. | ε_p = 1/10000 en la barra superior izquierda. | Cuadratura (2)–(4) con esa historia en la primera estación. | La misma holgura de 1×10⁻⁶. |
+| Voladizo axial con `StaticNewton`. Apartado 13. Acero `steel.bilinear_kinematic`, b = 1/20. | Sección de control con b = 1/20. L = 4 m. P = (3/2) fy / 512. | Factores absolutos 1/4, 1/2, 3/4 y 1. Historia inicial de 12 ceros. | Ux_j = 11/100 m, v_j = 0, θ_j = 0. En las dos barras y las tres estaciones, ε_p = 19/800 y α = fy/2. El axil recuperado es P. | Ux a 3×10⁻⁹ m. ε_p a 1×10⁻⁹. α a 10 Pa. v_j y θ_j a 1×10⁻⁹. Axil: el mayor entre 1×10⁻⁶ relativo y el residuo de Newton. |
+| Voladizo con momento de punta. Apartado 14. | La misma sección del apartado 13. M = 1000 N·m. | Los mismos factores. Historia inicial nula. | Fuerza nodal [0, 0, −M, 0, 0, M]. En x/L = 0, 1/2 y 1: N = 0, Vy = 0 y Mz = M. Historia de doce ceros. Ux_j > 0, v_j > 0 y θ_j > 0. | Equilibrio a 1×10⁻⁴ N o N·m. La magnitud de Ux, v y θ no tiene forma cerrada. |
 
 Muestra lisa para la diferencia finita del kit: solo el desplazamiento de
 la ecuación (10), h = 1×10⁻⁶. El origen no entra en esa muestra.
@@ -320,7 +404,12 @@ de cero (`ENG-E-0013`), y más de 64 estaciones pedidas (`ENG-E-0010`).
 ## Integración y evidencia
 
 - Exportaciones: `FiberStationBar`, kind `frame2d.fiber_stations`,
-  marcado experimental en el código. Sin fábrica JSON y sin registro
+  marcado experimental en el código. `FIBER_STATIONS_EXPERIMENTAL` vale
+  true porque el método 0.1.0 no sustituye a `frame2d.euler_elastic` y
+  no se declara validado por un programa externo. El test
+  `control_station_matches_section_equilibrium` lee esa constante y
+  comprueba que es true. No es un presupuesto de tiempo o memoria. Sin
+  fábrica JSON y sin registro
   global. `frame2d.euler_elastic` queda como está. La entrada JSON, el
   esquema, la CLI y los bindings no entran en este método.
 - Conformidad del rasgo: `check_element` con la muestra de la ecuación

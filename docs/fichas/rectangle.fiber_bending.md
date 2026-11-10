@@ -258,6 +258,12 @@ order, is [−1/8192, 0, 1/128, 0].
     in (6): 240375/1048576 and 627375/1048576. Both
     x = 125 k / 1024 are below 1, so (A.9) applies. The history is four
     zeros.
+    `SectionResponse` publishes the integrated pair (N, Mz), the 2×2
+    tangent and the steel history. It does not publish a per-strip stress
+    or tangent, and MAM-1037 does not add that query. The cracking test
+    builds the public uniaxial concrete law from the section parameters
+    and evaluates it at each positive strip strain above. Both calls
+    return σ = 0 and K = 0. The section implementation is unchanged.
 
 16. Concrete sums use only the two compressed strips, each of area
     A_i = 1/32. The ratio sum is 867750/1048576, and
@@ -313,7 +319,7 @@ not taken from another program.
 | Tension limit, κz = 0. Concrete tension rule of the existing law; steel σ = E ε. | Same section | e = [1/1024, 0], history four zeros | N = 2 E / 1048576, Mz = 0 | Exact for these dyadic products. |
 | Origin. | Same section | e = [0, 0], history four zeros | N = 0, Mz = 0 | Exact. |
 | Prior steel history. Equations (11)–(14) of this sheet. Concrete parts of (8) and (9). Steel return from `crates/engine-laws/src/uniaxial/steel_bilinear.rs`; textbook page: cita desconocida. | Same section | e = [−1/1024, 1/256], history [−1/8192, 0, 1/128, 0] | N and Mz from (13). Tangent from (14). The yielded bar’s trial ε_p is 81/102400 within 1×10⁻¹⁵ and its α is 0. The other bar keeps [−1/8192, 0]. | Same resultant and tangent tolerance as the control row. Plastic-strain absolute tolerance 1×10⁻¹⁵, from the binary64 bound in (12). |
-| Cracked bending. Equations (15)–(18). Tension rule of `docs/fichas/concrete.kent_park.md`; printed page: cita desconocida. Elastic steel σ = Eε. | Same section | e = [0, 1/256], history four zeros | N and Mz from (17). Tangent from (18). Trial history stays four zeros. | Same resultant and tangent tolerance as the control row. The two positive concrete strains are the zero-stress branch, so they are absent from (16) and (18). |
+| Cracked bending. Equations (15)–(18). Tension rule of `docs/fichas/concrete.kent_park.md`; printed page: cita desconocida. Elastic steel σ = Eε. | Same section | e = [0, 1/256], history four zeros | N and Mz from (17). Tangent from (18). Trial history stays four zeros. Each positive strip strain, read on the public uniaxial concrete law, has σ = 0 and K = 0. | Same resultant and tangent tolerance as the control row. The two positive concrete strains are the zero-stress branch, so they are absent from (16) and (18). The section response does not publish per-strip stress. |
 
 Finite-difference sample: the control strain only, h = 1×10⁻⁶. That h is
 inside the kit limits 1×10⁻⁹ and 1×10⁻². On the parabola,
@@ -344,7 +350,7 @@ stops before the residual limit (`ENG-E-0007`).
   an engine-input kind.
 - Checks, tests passed/failed and logs under `$CARGO_TARGET_DIR`:
   `cargo test --offline --locked -p engine-laws --test rectangle_fiber`:
-  9 passed, 0 failed.
+  11 passed, 0 failed.
   `cargo test --offline --locked -p engine-laws --doc rectangle_fiber`:
   1 passed.
   `cargo test --offline --locked --workspace`: exit 0.
