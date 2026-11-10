@@ -32,6 +32,8 @@ cargo test --offline --locked -p engine-cli --test contract all_accepted_fixture
 ```
 
 `cargo metadata` informó `engine-api` `0.1.0`. Resultados: 58/58 huellas de `crates/engine-cli/tests/golden/stdout-sha256.json`, 1/1 digesto de `describe-1.stdout.sha256` (`7a76a5bbfe58cb284e4cf6c9f64e8da4eb3c3854e1e582a6d7bfded3c358d049`), 11/11 filas de análisis de `docs/DETERMINISM.md` y 1/1 aserción de `facade.rs` (`engine_version` igual a `0.1.0`). Las cuatro pruebas salieron 0. El árbol temporal se eliminó sin commit.
+
+Cargo.lock sha256 anterior `bc4eb03e44c6334c541248e73f0358584f40f1475c21e3aea1765a5c9b81fae4`, nuevo `facf8c4e97d8111d10bcba8cf008a0273109e6e191da3dcc2b3865bb801b400d`: subida de versión de los paquetes propios. El valor nuevo es el sha256 real del `Cargo.lock` después de integrar main y coincide con el cálculo de J4 anterior al merge, porque main no modificó ese archivo. `package_count` sigue en 83 y `registry_package_count` en 60. Integrar #24 y #25 no cambió huellas del CLI, el digesto de `describe` ni `docs/DETERMINISM.md`.
 - Comparación con oráculo (repositorio hermano, informativa): no.
 - Declaración: "No consulté código fuente ni salidas de OpenSees, Frame3DD, Stabileo, CalculiX ni LAPACK, ni de sus derivados, para este ticket. Esta sesión no abrió ese código ni esas salidas."
 - Revisor clean-room: PENDING
