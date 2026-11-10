@@ -1,0 +1,117 @@
+\chapter{Marco de verificación y validación}\label{sec:marco-vv10}
+Este capítulo encuadra el informe ENG-VAL-006. La tabla canónica, con una fila por caso de VAL-001 a VAL-041, es \texttt{preregistro/tolerancias.csv}. La tabla impresa repite el estado, la tolerancia, la sección, el error máximo y el número de magnitudes. El resto de columnas (cita, historia de git, notas) vive en el CSV. La página del PDF es DESCONOCIDO: esta entrega no compila el informe para asignar folios.
+
+\section{Norma y cita}
+El encuadre pedido es ASME V\&V~10-2019 (R2025), verificación y validación en mecánica de sólidos computacional. La norma no está en esta sesión. Sección y página: cita desconocida. No se inventan números de apartado. El catálogo público del estándar está en \url{https://www.asme.org/codes-standards/find-codes-standards/standard-for-verification-and-validation-in-computational-solid-mechanics}. Esa dirección no es una sección de la norma. ASME V\&V~10.1-2012 se nombra solo como ejemplo trabajado del mismo proceso; su sección y su página también son cita desconocida.
+
+\section{Uso previsto}
+El uso previsto de este informe es documentar, para la versión~1 del motor, si el código resuelve las ecuaciones de los modelos que la V1 declara. Esas capacidades son la estática lineal, las combinaciones, el P-Delta elástico, el análisis modal, el espectro de respuesta y la geotecnia descrita en el capítulo de capacidades (Winkler, perfil geostático, consolidación unidimensional y leyes no lineales con Newton), por la entrada \texttt{engine-input/1}.
+
+No es un informe de diseño ni aplica por su cuenta factores normativos. No cubre dinámica en el tiempo, pushover, pandeo como capacidad de diseño ni elementos finitos de continuo. Esas exclusiones ya están en el capítulo de limitaciones; aquí se añaden al uso previsto para que el alcance quede declarado antes de comparar.
+
+\section{Magnitudes de respuesta}
+Las magnitudes de respuesta dependen del caso: desplazamientos y giros, reacciones, fuerzas y momentos de barra, periodos y participación modal, respuesta espectral, deriva y amplificación cuando el caso las define, tensiones del perfil y grado de consolidación, e igualdad de bytes en VAL-029. La columna \texttt{n\_magnitudes} cuenta cuántas de esas magnitudes se comparan. Hoy está en DESCONOCIDO en los cuarenta y un casos, porque esta entrega no recorre resultados.
+
+VAL-031 no tiene magnitudes definidas en este árbol: quedan DESCONOCIDO.
+
+\section{Verificación separada de la validación}
+La verificación pregunta si el código y el cálculo resuelven las ecuaciones. La validación pregunta si esas ecuaciones representan ensayos físicos, e incluye la cuantificación de incertidumbre experimental. Este informe es, en la V1, un informe de verificación: formas cerradas, valores publicados y, cuando un caso ya lo tenía escrito, otro programa. No debe leerse como validación experimental.
+
+La validación contra ensayos físicos queda fuera de la V1. No se añade ningún caso de laboratorio en esta entrega.
+
+\section{Métrica}
+La métrica que el informe publica es el error relativo. Si \(x\) es el valor del motor y \(x_{\mathrm{ref}}\) el de referencia,
+\[
+e=\frac{|x-x_{\mathrm{ref}}|}{|x_{\mathrm{ref}}|}
+\]
+cuando \(x_{\mathrm{ref}}\) no es aproximadamente cero. Si \(x_{\mathrm{ref}}\approx 0\), el denominador pasa a ser el máximo del valor absoluto de la serie de referencia, para no publicar un relativo infinito. El umbral numérico de \(\approx 0\) no está escrito en el plan: queda DESCONOCIDO y ha de quedar fijado antes de ejecutar la campaña. La columna \texttt{umbral\_x\_ref\_aprox\_0} lo registra así en las cuarenta y una filas.
+
+En los casos consolidados, el criterio de aceptación sigue siendo el que ya estaba escrito, de la forma \(|c-r|\le A+R|r|\) o el texto citado en la fila. Publicar \(e\) no sustituye ese criterio ni lo relaja. VAL-024 conserva su tolerancia absoluta. VAL-029 conserva la igualdad de bytes. VAL-030 conserva el par escrito \(A=0\), \(R=0\).
+
+\section{Tolerancia según la fuente, solo para lo que aún no estaba escrito}
+Para un caso nuevo, sin número previo en el repositorio, la tolerancia se elige por el tipo de fuente y no se calibra contra una corrida:
+\begin{itemize}
+\item forma cerrada: entre \(1\mathrm{e}{-6}\) y \(1\mathrm{e}{-10}\);
+\item libro o ejemplo publicado, del orden de \(1\mathrm{e}{-3}\);
+\item lectura de gráfico: de 2 a 5 por ciento;
+\item AISC: 3 por ciento en momento y 5 por ciento en desplazamiento;
+\item segundo programa con la misma formulación: del orden de \(1\mathrm{e}{-6}\).
+\end{itemize}
+Si la formulación del segundo programa es distinta, hay que explicarlo. En esta sesión esa coincidencia es DESCONOCIDO donde la fila lo dice, y entonces no se usa la banda de \(1\mathrm{e}{-6}\).
+
+\section{Qué consolida y qué preregistra}
+Las clases son estas. La tabla no cambia ningún número ya escrito.
+\begin{itemize}
+\item Consolidada: VAL-001 a VAL-030, VAL-037, VAL-038, VAL-039 y VAL-040. El orden de ejecución es DESCONOCIDO. La columna \texttt{introduccion\_git} trae la fecha de committer del archivo que contiene la tolerancia. Esa fecha no es una fecha de corrida. Los CSV de datos del informe, de VAL-001 a VAL-030, siguen en el marcador de dos líneas.
+\item Preregistrada: VAL-033, VAL-034, VAL-035, VAL-036 y VAL-041. No se ejecutó nada para elegir el número.
+\item DESCONOCIDO: VAL-031, por fijar antes de ejecutar.
+\item VAL-037, dentro de las consolidadas: la cota \(\lvert B_2^{\mathrm{motor}}-50/47\rvert\le 10^{-6}\) se fijó después de la revisión r1 de \#23. Está en \texttt{docs/validation-report/casos/deriv/VAL-037.tex} y en \texttt{B2\_TOLERANCE}. El preregistro de MAM-850 está en el commit \texttt{5696f82a806b05ab9745e2557dfac2d2b0e04cd4} de la rama de ese PR. Por el squash no es accesible desde main. El squash en main es \texttt{9aeebcc000ca42c0f94b5aa41507b1da1e378743}.
+\item VAL-032: pendiente de congelación (Q2). El README no declara un SHA de congelación, Q2 debe verificar antes de congelar y una parte es solo diagnóstico. La fila cita el campo \texttt{tolerances\_preregistered} y no copia sus valores.
+\end{itemize}
+
+Conteo de las 41 filas, por la columna \texttt{clase}:
+\begin{itemize}
+\item consolidación: 34 (VAL-001 a VAL-030, VAL-037, VAL-038, VAL-039 y VAL-040);
+\item preregistro: 5 (VAL-033, VAL-034, VAL-035, VAL-036 y VAL-041);
+\item DESCONOCIDO: 1 (VAL-031);
+\item pendiente de congelación (Q2): 1 (VAL-032);
+\item en revisión: 0.
+\end{itemize}
+
+\section{Error máximo y número de magnitudes}
+Cada fila tiene \texttt{error\_maximo} y \texttt{n\_magnitudes}. El error máximo es el mayor \(e\) de las magnitudes comparadas del caso, con la métrica de arriba. \(N\) es el número de esas magnitudes. El mecanismo es escribir esas dos celdas cuando exista una campaña posterior que lea resultados versionados del propio motor y la referencia ya citada. Esa campaña no puede modificar \texttt{tolerancia\_relativa}, \texttt{tolerancia\_absoluta} ni \texttt{criterio\_aceptacion}. Esta entrega deja las dos celdas en DESCONOCIDO y no lanza la campaña.
+
+\section{Tabla}
+\begin{longtable}{@{}ll>{\raggedright\arraybackslash}p{4.6cm}lll@{}}
+\caption{Tolerancias de VAL-001 a VAL-041. Canónica: \texttt{preregistro/tolerancias.csv}. Página: DESCONOCIDO.}\label{tab:tolerancias}\\
+\toprule
+Caso & Estado & Tolerancia & Sección & Error máx. & \(N\)\\
+\midrule
+\endfirsthead
+\toprule
+Caso & Estado & Tolerancia & Sección & Error máx. & \(N\)\\
+\midrule
+\endhead
+VAL-001 & consolidado & A=0, R=1e-6 & sec:VAL-001 & DESCONOCIDO & DESCONOCIDO \\
+VAL-002 & consolidado & A=0, R=1e-6 & sec:VAL-002 & DESCONOCIDO & DESCONOCIDO \\
+VAL-003 & consolidado & A=0, R=1e-6 & sec:VAL-003 & DESCONOCIDO & DESCONOCIDO \\
+VAL-004 & consolidado & A=0, R=1e-6 & sec:VAL-004 & DESCONOCIDO & DESCONOCIDO \\
+VAL-005 & consolidado & A=0, R=1e-6 & sec:VAL-005 & DESCONOCIDO & DESCONOCIDO \\
+VAL-006 & consolidado & A=0, R=1e-10 & sec:VAL-006 & DESCONOCIDO & DESCONOCIDO \\
+VAL-007 & consolidado & A=0, R=1e-10 & sec:VAL-007 & DESCONOCIDO & DESCONOCIDO \\
+VAL-008 & consolidado & A=0, R=1e-12 & sec:VAL-008 & DESCONOCIDO & DESCONOCIDO \\
+VAL-009 & consolidado & A=0, R=1e-10 & sec:VAL-009 & DESCONOCIDO & DESCONOCIDO \\
+VAL-010 & consolidado & A=0, R=1e-8 & sec:VAL-010 & DESCONOCIDO & DESCONOCIDO \\
+VAL-011 & consolidado & A=0, R=1e-8 & sec:VAL-011 & DESCONOCIDO & DESCONOCIDO \\
+VAL-012 & consolidado & A=0, R=1e-10 & sec:VAL-012 & DESCONOCIDO & DESCONOCIDO \\
+VAL-013 & consolidado & A=0, R=1e-3 & sec:VAL-013 & DESCONOCIDO & DESCONOCIDO \\
+VAL-014 & consolidado & A=0, R=1e-3 & sec:VAL-014 & DESCONOCIDO & DESCONOCIDO \\
+VAL-015 & consolidado & A=0, R=1e-3 & sec:VAL-015 & DESCONOCIDO & DESCONOCIDO \\
+VAL-016 & consolidado & A=0, R=1e-3 & sec:VAL-016 & DESCONOCIDO & DESCONOCIDO \\
+VAL-017 & consolidado & A=0, R=1e-2 & sec:VAL-017 & DESCONOCIDO & DESCONOCIDO \\
+VAL-018 & consolidado & A=0, R=0.03 & sec:VAL-018 & DESCONOCIDO & DESCONOCIDO \\
+VAL-019 & consolidado & A=0, R=0.03 & sec:VAL-019 & DESCONOCIDO & DESCONOCIDO \\
+VAL-020 & consolidado & A=0, R=1e-3 & sec:VAL-020 & DESCONOCIDO & DESCONOCIDO \\
+VAL-021 & consolidado & A=0, R=1e-6 & sec:VAL-021 & DESCONOCIDO & DESCONOCIDO \\
+VAL-022 & consolidado & A=0, R=1e-3 & sec:VAL-022 & DESCONOCIDO & DESCONOCIDO \\
+VAL-023 & consolidado & A=0, R=1e-2 & sec:VAL-023 & DESCONOCIDO & DESCONOCIDO \\
+VAL-024 & consolidado & A=1e-4, R=0 & sec:VAL-024 & DESCONOCIDO & DESCONOCIDO \\
+VAL-025 & consolidado & A=0, R=1e-12 & sec:VAL-025 & DESCONOCIDO & DESCONOCIDO \\
+VAL-026 & consolidado & A=0, R=1e-6 & sec:VAL-026 & DESCONOCIDO & DESCONOCIDO \\
+VAL-027 & consolidado & A=0, R=1e-12 & sec:VAL-027 & DESCONOCIDO & DESCONOCIDO \\
+VAL-028 & consolidado & A=0, R=1e-6 & sec:VAL-028 & DESCONOCIDO & DESCONOCIDO \\
+VAL-029 & consolidado & A=0, R=0 & sec:VAL-029 & DESCONOCIDO & DESCONOCIDO \\
+VAL-030 & consolidado & A=0, R=0 & sec:VAL-030 & DESCONOCIDO & DESCONOCIDO \\
+VAL-031 & DESCONOCIDO & DESCONOCIDO & sin sección en el informe & DESCONOCIDO & DESCONOCIDO \\
+VAL-032 & pendiente de congelación (Q2) & campo tolerances\_preregistered & sin sección en informe.tex & DESCONOCIDO & DESCONOCIDO \\
+VAL-033 & preregistro & R=1e-3 (libro) & sin sección en el informe & DESCONOCIDO & DESCONOCIDO \\
+VAL-034 & preregistro & R=1e-3 (libro) & sin sección en el informe & DESCONOCIDO & DESCONOCIDO \\
+VAL-035 & preregistro & M 3 por ciento; Delta 5 por ciento & sin sección en el informe & DESCONOCIDO & DESCONOCIDO \\
+VAL-036 & preregistro & R=1e-6 (banda 1e-6 a 1e-10) & sin sección en el informe & DESCONOCIDO & DESCONOCIDO \\
+VAL-037 & consolidado & \(\lvert B_2^{\mathrm{motor}}-50/47\rvert\le 10^{-6}\) & sec:VAL-037 & DESCONOCIDO & DESCONOCIDO \\
+VAL-038 & consolidado & \(\lvert\lambda-P_{cr}\rvert\le 0+10^{-3}\lvert P_{cr}\rvert\) & sec:VAL-038 & DESCONOCIDO & DESCONOCIDO \\
+VAL-039 & consolidado & relativa 1e-10 & sin sección en informe.tex & DESCONOCIDO & DESCONOCIDO \\
+VAL-040 & consolidado & relativa 1e-10 & sin sección en informe.tex & DESCONOCIDO & DESCONOCIDO \\
+VAL-041 & preregistro & R=1e-3 (libro) & sin sección en el informe & DESCONOCIDO & DESCONOCIDO \\
+\bottomrule
+\end{longtable}

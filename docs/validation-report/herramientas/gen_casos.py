@@ -64,7 +64,7 @@ Ticket & {tk}\\\\
 Engine & commit \\texttt{{\\EngineCommit}}\\\\
 Binario & SHA-256 \\texttt{{\\EngineBinSHA}}\\\\
 Entrada & SHA-256 \\texttt{{\\EntradaSHA{{{i}}}}}\\\\
-Tolerancia & $|c-r|\\le A+R|r|$, $A={A:g}$, $R={R:g}$ (fijada a priori)\\\\
+Tolerancia & $|c-r|\\le A+R|r|$, $A={A:g}$, $R={R:g}$ (clase consolidada; orden de ejecución DESCONOCIDO; el marco también distingue preregistro, DESCONOCIDO y VAL-037 tras la r1 de \\#23)\\\\
 Estado de datos & \\directlua{{mamut.estado('{i}')}}\\\\
 \\end{{ficha}}
 
