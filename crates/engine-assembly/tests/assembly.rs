@@ -77,6 +77,39 @@ fn system(
 }
 
 #[test]
+fn static_constructor_reduces_mass_and_kg_to_the_same_values_on_request() {
+    let m = model(2);
+    let mut element = contribution(0, 100.0);
+    element.mass_lumped = Some(DMat::new(2, 2, vec![2.0, 0.0, 0.0, 3.0]).unwrap());
+    element.mass_consistent = Some(DMat::new(2, 2, vec![2.0, 0.4, 0.4, 3.0]).unwrap());
+    element.geometric = Some(DMat::new(2, 2, vec![1.0, -1.0, -1.0, 1.0]).unwrap());
+    let elements = [element];
+    let mut eager = LinearSystem::from_model(ReferenceBackend, &m, &elements, &[]).unwrap();
+    let mut deferred =
+        LinearSystem::from_model_with_diaphragms_static(ReferenceBackend, &m, &elements, &[], &[])
+            .unwrap();
+    let n = eager.n_free_dofs();
+    assert_eq!(deferred.n_free_dofs(), n);
+    for kind in [MassKind::Lumped, MassKind::Consistent] {
+        let mut left = SymMatrix::zeros(n).unwrap();
+        let mut right = SymMatrix::zeros(n).unwrap();
+        eager.mass(kind, &mut left).unwrap();
+        deferred.mass(kind, &mut right).unwrap();
+        assert_eq!(left, right);
+        assert_eq!(
+            eager.has_massless_dofs(kind).unwrap(),
+            deferred.has_massless_dofs(kind).unwrap()
+        );
+    }
+    let zeros = vec![0.0; n];
+    let mut left = SymMatrix::zeros(n).unwrap();
+    let mut right = SymMatrix::zeros(n).unwrap();
+    eager.geometric(&zeros, &mut left).unwrap();
+    deferred.geometric(&zeros, &mut right).unwrap();
+    assert_eq!(left, right);
+}
+
+#[test]
 fn hand_derived_matrices_displacements_and_global_equilibrium() {
     for fixture in [
         &fixtures::TWO_SPRINGS,

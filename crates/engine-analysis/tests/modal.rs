@@ -515,7 +515,7 @@ fn no_massless_dofs_lowest_modes_matches_direct_backend_bits() {
         (shear(3, 17., 3.), MassKind::Lumped),
         (beam(1, true, 0.37), MassKind::Consistent),
     ] {
-        assert!(!system.has_massless_dofs(kind));
+        assert!(!system.has_massless_dofs(kind).unwrap());
         let n = system.n_free_dofs();
         let mut k = SymMatrix::zeros(n).unwrap();
         let mut m = SymMatrix::zeros(n).unwrap();
@@ -548,7 +548,7 @@ fn consistent_coupled_mass_condenses_and_recovers_full_orthonormal_modes() {
     };
     let mut system =
         LinearSystem::from_model(ReferenceBackend, &model, &[contribution], &[]).unwrap();
-    assert!(system.has_massless_dofs(MassKind::Consistent));
+    assert!(system.has_massless_dofs(MassKind::Consistent).unwrap());
     // Own elimination: R=[-1/2,1/4], Kred=[[5,3/2],[3/2,19/4]].
     let k = SymMatrix::new(DMat::new(2, 2, vec![5., 1.5, 1.5, 4.75]).unwrap()).unwrap();
     let m = SymMatrix::new(DMat::new(2, 2, vec![2., 0.5, 0.5, 1.]).unwrap()).unwrap();
@@ -609,7 +609,7 @@ fn condensed_diaphragm_modes_follow_rigid_slave_kinematics() {
         &[diaphragm],
     )
     .unwrap();
-    assert!(system.has_massless_dofs(MassKind::Lumped));
+    assert!(system.has_massless_dofs(MassKind::Lumped).unwrap());
     let result = Modal::run(&mut system, 3, MassKind::Lumped, &[[1., 0., 0.]]).unwrap();
     assert!(result.modes.iter().any(|m| m.global_shape[3].abs() > 0.1));
     for mode in &result.modes {

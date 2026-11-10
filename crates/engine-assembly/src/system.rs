@@ -83,9 +83,13 @@ pub struct LinearSystem<B> {
     consistent: SparseMatrix,
     kg: SparseMatrix,
     k_free: SymMatrix,
-    lumped_free: SymMatrix,
-    consistent_free: SymMatrix,
-    kg_free: SymMatrix,
+    /// Dense M_ff. None until the first modal request when the static
+    /// constructor skipped this reduction.
+    lumped_free: Option<SymMatrix>,
+    /// Dense consistent M_ff. Same deferral as `lumped_free`.
+    consistent_free: Option<SymMatrix>,
+    /// Dense Kg_ff from the assembled reference. Same deferral as `lumped_free`.
+    kg_free: Option<SymMatrix>,
     pattern: SparsityPattern,
     forces: BTreeMap<String, Vec<Real>>,
     nodal_forces: BTreeMap<String, Vec<Real>>,
@@ -132,6 +136,14 @@ fn reduced<B: LinAlgBackend>(
     SymMatrix::new(DMat::new(n, n, values)?)
 }
 
+/// Free displacements of several cases and the single reduced-K factor.
+pub struct FactoredCases {
+    /// One reduced displacement vector per case, in request order.
+    pub displacements: Vec<Vec<Real>>,
+    /// Factor of reduced K used for every vector in `displacements`.
+    pub factor: Box<dyn SymFactorization>,
+}
+
 impl<B: LinAlgBackend> LinearSystem<B> {
     /// Assembles model nodes, supports, cases, and masses plus element contributions.
     ///
@@ -160,11 +172,38 @@ impl<B: LinAlgBackend> LinearSystem<B> {
     /// M and Kg, including producers, receive the same transformation.
     /// Propagates diagnostics from from_model and Constraints::with_diaphragms.
     pub fn from_model_with_diaphragms(
+        backend: B,
+        model: &Model,
+        elements: &[ElementContribution],
+        prescribed: &[PrescribedDof],
+        diaphragms: &[RigidDiaphragm],
+    ) -> EResult<Self> {
+        Self::build(backend, model, elements, prescribed, diaphragms, true)
+    }
+
+    /// Like [`Self::from_model_with_diaphragms`], but the dense reductions of
+    /// M and Kg wait until a caller reads them.
+    ///
+    /// Linear static does not read those matrices. Modal, buckling, and a
+    /// geometric query still obtain the same reduced values on first use.
+    /// Sparse M, sparse Kg, and the structural pattern are built here.
+    pub fn from_model_with_diaphragms_static(
+        backend: B,
+        model: &Model,
+        elements: &[ElementContribution],
+        prescribed: &[PrescribedDof],
+        diaphragms: &[RigidDiaphragm],
+    ) -> EResult<Self> {
+        Self::build(backend, model, elements, prescribed, diaphragms, false)
+    }
+
+    fn build(
         mut backend: B,
         model: &Model,
         elements: &[ElementContribution],
         prescribed: &[PrescribedDof],
         diaphragms: &[RigidDiaphragm],
+        reduce_mass_and_kg: bool,
     ) -> EResult<Self> {
         let map = DofMap::new(&model.nodes)?;
         let constraints =
@@ -179,9 +218,15 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             nodal_forces,
         } = assemble_model(&mut backend, &map, model, elements)?;
         let k_free = reduced(&mut backend, &k, &constraints)?;
-        let lumped_free = reduced(&mut backend, &lumped, &constraints)?;
-        let consistent_free = reduced(&mut backend, &consistent, &constraints)?;
-        let kg_free = reduced(&mut backend, &kg, &constraints)?;
+        let (lumped_free, consistent_free, kg_free) = if reduce_mass_and_kg {
+            (
+                Some(reduced(&mut backend, &lumped, &constraints)?),
+                Some(reduced(&mut backend, &consistent, &constraints)?),
+                Some(reduced(&mut backend, &kg, &constraints)?),
+            )
+        } else {
+            (None, None, None)
+        };
         // Structural union of K, M, and Kg, including their explicit zeros.
         let mut coordinates = Vec::new();
         for matrix in [&k, &lumped, &consistent, &kg] {
@@ -260,15 +305,55 @@ impl<B: LinAlgBackend> LinearSystem<B> {
 
     /// Indicates whether M_ff contains exactly zero rows/columns after supports and MPC.
     /// Uses no tolerances and does not classify a small positive mass as zero.
-    pub fn has_massless_dofs(&self, kind: MassKind) -> bool {
-        let mass = match kind {
-            MassKind::Lumped => &self.lumped_free,
-            MassKind::Consistent => &self.consistent_free,
-        };
-        mass.dense()
+    /// A static system reduces M on this call if it was not reduced at assembly.
+    /// Propagates that reduction's diagnostics.
+    pub fn has_massless_dofs(&mut self, kind: MassKind) -> EResult<bool> {
+        let mass = self.reduced_mass(kind)?;
+        Ok(mass
+            .dense()
             .values()
             .chunks_exact(mass.order().max(1))
-            .any(|row| row.iter().all(|&v| v == 0.0))
+            .any(|row| row.iter().all(|&v| v == 0.0)))
+    }
+
+    fn reduced_mass(&mut self, kind: MassKind) -> EResult<&SymMatrix> {
+        self.ensure_reduced_mass(kind)?;
+        match kind {
+            MassKind::Lumped => self.lumped_free.as_ref(),
+            MassKind::Consistent => self.consistent_free.as_ref(),
+        }
+        .ok_or_else(|| EngineError::new("ENG-E-0012", "Reduced mass is missing."))
+    }
+
+    fn ensure_reduced_mass(&mut self, kind: MassKind) -> EResult<()> {
+        let ready = match kind {
+            MassKind::Lumped => self.lumped_free.is_some(),
+            MassKind::Consistent => self.consistent_free.is_some(),
+        };
+        if ready {
+            return Ok(());
+        }
+        let matrix = match kind {
+            MassKind::Lumped => reduced(&mut self.backend, &self.lumped, &self.constraints)?,
+            MassKind::Consistent => {
+                reduced(&mut self.backend, &self.consistent, &self.constraints)?
+            }
+        };
+        match kind {
+            MassKind::Lumped => self.lumped_free = Some(matrix),
+            MassKind::Consistent => self.consistent_free = Some(matrix),
+        }
+        Ok(())
+    }
+
+    fn reduced_assembled_kg(&mut self) -> EResult<&SymMatrix> {
+        if self.kg_free.is_none() {
+            let matrix = reduced(&mut self.backend, &self.kg, &self.constraints)?;
+            self.kg_free = Some(matrix);
+        }
+        self.kg_free
+            .as_ref()
+            .ok_or_else(|| EngineError::new("ENG-E-0012", "Reduced Kg is missing."))
     }
 
     /// Lowest modes of K_ff and M_ff, with the system's own backend.
@@ -294,10 +379,12 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         check: &mut dyn FnMut() -> EResult<()>,
     ) -> EResult<engine_linalg::LowestModes> {
         check()?;
+        self.ensure_reduced_mass(kind)?;
         let mass = match kind {
-            MassKind::Lumped => &self.lumped_free,
-            MassKind::Consistent => &self.consistent_free,
-        };
+            MassKind::Lumped => self.lumped_free.as_ref(),
+            MassKind::Consistent => self.consistent_free.as_ref(),
+        }
+        .ok_or_else(|| EngineError::new("ENG-E-0012", "Reduced mass is missing."))?;
         let mut solve = || -> EResult<engine_linalg::LowestModes> {
             if let Some(reduction) = engine_linalg::guyan_condense_with_check(
                 &mut self.backend,
@@ -449,7 +536,7 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         let reference = self.kg_reference.clone();
         let geometric = self.geometric_at(&reference)?;
         if self.geometric_producers.is_empty() {
-            Ok(self.kg_free.clone())
+            Ok(self.reduced_assembled_kg()?.clone())
         } else {
             reduced(&mut self.backend, &geometric, &self.constraints)
         }
@@ -758,6 +845,18 @@ impl<B: LinAlgBackend> LinearSystem<B> {
         cases: &[(CaseRef, Real)],
         check: &mut dyn FnMut() -> EResult<()>,
     ) -> EResult<Vec<Vec<Real>>> {
+        Ok(self.solve_cases_with_factor(cases, check)?.displacements)
+    }
+
+    /// Same solutions as [`Self::solve_cases_with_check`], together with the K factor.
+    ///
+    /// Every right-hand side uses that factor. A later substitution with the
+    /// same K reuses it.
+    pub fn solve_cases_with_factor(
+        &mut self,
+        cases: &[(CaseRef, Real)],
+        check: &mut dyn FnMut() -> EResult<()>,
+    ) -> EResult<FactoredCases> {
         check()?;
         if cases.is_empty() {
             return Err(error("ENG-E-0010", "Empty case list."));
@@ -780,7 +879,8 @@ impl<B: LinAlgBackend> LinearSystem<B> {
             .backend
             .factorize_with_check(&self.k_free, check)
             .map_err(|e| self.translate_solver_error(e))?;
-        rhs.iter()
+        let solutions = rhs
+            .iter()
             .map(|rhs| {
                 check()?;
                 let solution = factorization
@@ -791,7 +891,11 @@ impl<B: LinAlgBackend> LinearSystem<B> {
                 finite(solution.values())?;
                 Ok(solution.values().to_vec())
             })
-            .collect()
+            .collect::<EResult<Vec<_>>>()?;
+        Ok(FactoredCases {
+            displacements: solutions,
+            factor: factorization,
+        })
     }
 
     /// Recovers R = (Tᵀ(Ku − factor F))_p at every prescribed independent DOF:
@@ -987,17 +1091,14 @@ impl<B: LinAlgBackend> SystemView for LinearSystem<B> {
     }
     fn mass(&mut self, kind: MassKind, out: &mut SymMatrix) -> EResult<()> {
         size(out.order(), self.n_free_dofs())?;
-        *out = match kind {
-            MassKind::Lumped => self.lumped_free.clone(),
-            MassKind::Consistent => self.consistent_free.clone(),
-        };
+        *out = self.reduced_mass(kind)?.clone();
         Ok(())
     }
     fn geometric(&mut self, u: &[Real], out: &mut SymMatrix) -> EResult<()> {
         size(out.order(), self.n_free_dofs())?;
         let kg = self.geometric_at(u)?;
         let result = if self.geometric_producers.is_empty() {
-            self.kg_free.clone()
+            self.reduced_assembled_kg()?.clone()
         } else {
             reduced(&mut self.backend, &kg, &self.constraints)?
         };

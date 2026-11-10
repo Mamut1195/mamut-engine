@@ -162,7 +162,7 @@ impl Modal {
             translations.push(r);
         }
         let n = free.len();
-        let condensed = system.has_massless_dofs(kind);
+        let condensed = system.has_massless_dofs(kind)?;
         let spectrum = system.lowest_modes_with_check(kind, count, &mut check)?;
         if spectrum.eigenvalues.len() != count
             || spectrum.vectors.rows() != n

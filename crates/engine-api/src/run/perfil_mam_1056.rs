@@ -119,7 +119,7 @@ fn time_static(json: &str, rows: &mut Vec<(String, Vec<f64>)>) -> Option<f64> {
         started.elapsed().as_secs_f64(),
     );
     let started = Instant::now();
-    let mut system = LinearSystem::from_model_with_diaphragms(
+    let mut system = LinearSystem::from_model_with_diaphragms_static(
         ReferenceBackend,
         model_for_system.as_ref(),
         &contributions,
@@ -247,7 +247,7 @@ fn time_modal(json: &str, rows: &mut Vec<(String, Vec<f64>)>) {
         "modal/sistema_y_reduccion",
         started.elapsed().as_secs_f64(),
     );
-    assert!(!system.has_massless_dofs(MassKind::Lumped));
+    assert!(!system.has_massless_dofs(MassKind::Lumped).unwrap());
     let started = Instant::now();
     let mut calls = 0_u64;
     let mut intervals = Vec::new();

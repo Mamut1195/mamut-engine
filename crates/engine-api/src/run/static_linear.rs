@@ -25,24 +25,22 @@ pub(crate) fn execute(context: MethodContext<'_>) -> Result<(), Failure> {
     }
     let mut cases = Vec::new();
     let mut solutions = Vec::new();
-    for (index, case) in model.cases.iter().enumerate() {
+    cancel.check()?;
+    let requests: Vec<_> = model
+        .cases
+        .iter()
+        .map(|case| (CaseRef(case.name.clone()), 1.0))
+        .collect();
+    let solved = StaticLinear::run_about_with_check(system, &requests, [0.0; 3], &mut || {
+        cancel
+            .check()
+            .map_err(|_| EngineError::new("ENG-E-0012", "Cancellation requested by the facade"))
+    })?;
+    if solved.cases.len() != requests.len() {
+        return Err(EngineError::new("ENG-E-0012", "Solver has no case result").into());
+    }
+    for (index, solution) in solved.cases.into_iter().enumerate() {
         cancel.check()?;
-        let solution = StaticLinear::run_about_with_check(
-            system,
-            &[(CaseRef(case.name.clone()), 1.0)],
-            [0.0; 3],
-            &mut || {
-                cancel.check().map_err(|_| {
-                    EngineError::new("ENG-E-0012", "Cancellation requested by the facade")
-                })
-            },
-        );
-        cancel.check()?;
-        let solution = solution?
-            .cases
-            .into_iter()
-            .next()
-            .ok_or_else(|| EngineError::new("ENG-E-0012", "Solver has no case result"))?;
         let heated = super::temperature::recovery_bars(members, index)?;
         let views = member_views(members, &heated, index, None);
         let recovered = CaseResults::recover_with_check(&solution, system, &views, &mut || {

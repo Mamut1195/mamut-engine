@@ -159,7 +159,7 @@ impl PreparedLinear {
             &execution.temperature,
         )?;
         let contributions = assemble_members(&execution.model, &members)?;
-        let mut system = LinearSystem::from_model_with_diaphragms(
+        let mut system = LinearSystem::from_model_with_diaphragms_static(
             ReferenceBackend,
             model_for_system.as_ref(),
             &contributions,
