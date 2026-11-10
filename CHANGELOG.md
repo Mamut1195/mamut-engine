@@ -260,6 +260,13 @@
   `docs/fichas/frame2d.fiber_stations.md`, y esa ficha escribe la cota
   256/9375000 < fy/E. `run` y `validate` no cambian de comportamiento.
 
+- MAM-1039: precisa la causa del hueco de la primera corrida de VAL-037.
+  En pDelta el acortamiento por gravedad no altera B2; la causa es la
+  flexibilidad axial de las columnas por el vuelco. El ensayo de
+  sensibilidad queda como escala de la gravedad: la variante por 5/6
+  escala toda la Kg y no es la mutación 6/5 a 1. «L x 2» es aritmética
+  de la forma cerrada. La conclusión del presupuesto no cambia.
+
 ### Corregido
 
 - MAM-11: walk the buckling residual by component so the test loop satisfies clippy.
@@ -277,6 +284,10 @@
 - MAM-843: traduce al inglés la documentación Rust, los comentarios y los mensajes
   de aserción y pánico autorizados de las pruebas de los demás crates; conserva
   los literales de datos, contratos y salidas (tramo 2).
+
+- MAM-845: enmarca el informe ENG-VAL-006 según ASME V&V 10 y versiona la tabla de tolerancias de VAL-001 a VAL-041.
+  La validación contra ensayos físicos queda fuera de la V1. El error máximo y el número de magnitudes quedan definidos, sin campaña.
+  VAL-037 queda consolidado: la cota se fijó después de la revisión r1 de \#23. VAL-032 queda pendiente de congelación (Q2). Conteos: 34 consolidados, 5 preregistrados, 1 DESCONOCIDO, 1 pendiente de congelación y 0 en revisión.
 
 - MAM-850: añade VAL-037 y VAL-038 al informe de validación.
   VAL-037 compara el B2 de un pórtico de tres pisos con el operador
