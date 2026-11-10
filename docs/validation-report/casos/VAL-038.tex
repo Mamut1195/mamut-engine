@@ -1,14 +1,17 @@
 % VAL-038. Escrito a mano: la herramienta gen_casos.py deja una columna de un tercer programa, y este informe no la lleva.
 \section{VAL-038: cuatro cargas críticas de Euler}\label{sec:VAL-038}
+\begingroup
+\renewcommand\EngineCommit{453a743dd602670eb21c5a0db2743d01e5cbb32a}
 \begin{ficha}
 Fuente & Derivación propia, ecuación~\eqref{eq:val038-viga}, ya archivada en \texttt{provenance/ENG-ANL-006.md}. Timoshenko y Gere: cita desconocida.\\
 Ticket & MAM-850\\
-Engine & commit \texttt{\EngineCommit}\\
+Engine & commit \texttt{\EngineCommit}. Los fuentes de producción son los de main; esta rama no los cambia.\\
 Binario & SHA-256 \texttt{\EngineBinSHA}\\
 Entrada & SHA-256 \texttt{\EntradaSHA{VAL-038}}\\
 Tolerancia & \(\lvert\lambda-P_{cr}\rvert\le 0+10^{-3}\lvert P_{cr}\rvert\), la misma ya escrita en el ensayo de ocho elementos. No se reajusta en este ticket.\\
 Estado de datos & \directlua{mamut.estado_par('VAL-038')}\\
 \end{ficha}
+\endgroup
 
 \paragraph{Modelo.}
 \begin{center}\diag{euler4}\end{center}

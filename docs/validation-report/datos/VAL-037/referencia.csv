@@ -1,6 +1,6 @@
-# B2 de piso = 1/(1 - SigmaP/Pe), Pe = H*h/Delta lineal del mismo caso.
-# No es una tabla publicada. Los tres numeros salen de esa forma cerrada.
+# B2 del operador cubico de Hermite: 50/47 = 1/(1 - (6/5)*(1/20)).
+# Delta1 = H h^3 / (12 E suma Ic) = 0.001 m. No sale del motor.
 piso,b2
-1,1.0967771596808886
-2,1.0789759616410164
-3,1.0533676896359763
+1,1.0638297872340425
+2,1.0638297872340425
+3,1.0638297872340425
