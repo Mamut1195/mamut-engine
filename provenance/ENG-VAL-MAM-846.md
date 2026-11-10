@@ -54,8 +54,8 @@ La tabla semáforo, leída con Lua 5.4.6 sobre esos CSV y sin compilar LaTeX, da
 | `cargo test --offline --locked --workspace` | exit 0 |
 | Lua 5.4.6, `mamut.semaforo` sobre los CSV versionados | exit 0. No es la compilación del informe. |
 | `lualatex` y `latexmk` | DESCONOCIDO: no están en el PATH. El informe no se compiló. |
-| `bash clean-room/check.sh origin/main` | se anota en el commit siguiente, sobre el árbol ya versionado |
-| `bash scripts/changelog-check.sh origin/main` | se anota en el commit siguiente, sobre el árbol ya versionado |
+| `bash clean-room/check.sh origin/main` | exit 0. Clean-room: OK |
+| `bash scripts/changelog-check.sh origin/main` | exit 0. No hay cambios en crates ni en bindings; el fragmento igual está en `changelog.d` |
 
 ## Qué no se abrió
 
