@@ -255,9 +255,21 @@ de cero (`ENG-E-0013`).
 - Banco nativo: el caso de la tabla, en el test del crate. No hay
   documento fixture/1, porque la barra no es un kind de la entrada del
   motor.
-- Comandos, aciertos y fallos: se anotan en `provenance/ENG-ELM-006.md`
-  después de ejecutarlos en esta sesión. La comparación de los 16 hashes
-  no regenera `docs/DETERMINISM.md`.
+- Comandos, aciertos y fallos, en esta sesión:
+  `cargo test --offline --locked -p engine-elements-frame --test fiber_stations`:
+  4 passed, 0 failed.
+  `cargo test --offline --locked -p engine-elements-frame --doc fiber_stations`:
+  1 passed.
+  `cargo test --offline --locked --workspace`: exit 0.
+  `cargo fmt --all -- --check`: exit 0.
+  `cargo clippy --offline --locked --workspace --all-targets -- -D warnings`:
+  exit 0.
+  `cargo doc --offline --locked --no-deps --workspace` con warnings denegados:
+  exit 0.
+  `cargo check --offline --locked --workspace --target wasm32-unknown-unknown`:
+  exit 0. Ese comando compila; no ejecuta la barra en wasm.
+  La comparación de los 16 hashes no regenera `docs/DETERMINISM.md`.
+  El detalle queda en `provenance/ENG-ELM-006.md`.
 - Bitácora y revisión: `provenance/ENG-ELM-006.md`. Revisor clean-room:
   PENDING. Este cambio no cierra MAM-107 y no aprueba un presupuesto de
   tiempo o memoria. El método queda experimental: no se declara validado

@@ -2,6 +2,9 @@
 //! Beam-column `frame2d.euler_elastic`, contract element/1, method 0.1.0.
 //! [`WinklerFrame2D`] adds a consistent transverse foundation attached to ground;
 //! [`WinklerFactory`] constructs `frame2d.winkler` with SI properties.
+//! [`FiberStationBar`] is a separate bar: it samples `rectangle.fiber_bending`
+//! at three stations and does not replace [`EulerFrame2D`]. The notes below
+//! describe [`EulerFrame2D`].
 //!
 //! Homogeneous, infinitesimal Euler–Bernoulli, without shear deformation, section
 //! rotary inertia, or history. D2 is in horizontal X-Y, Z=0; local x
@@ -50,6 +53,7 @@
 #![deny(missing_docs)]
 
 mod factory;
+mod fiber_stations;
 mod geometric;
 mod geometry;
 mod loads;
@@ -64,6 +68,7 @@ use engine_core::{ContractId, Dof, EResult, EngineError, Real};
 use engine_laws::uniaxial::Elastic;
 use engine_linalg::DMat;
 pub use factory::{FrameFactory, WinklerFactory};
+pub use fiber_stations::{FiberStationBar, FIBER_STATION_COUNT};
 pub use release::MomentReleases;
 pub use winkler::WinklerFrame2D;
 type Matrix = [[Real; 6]; 6];
