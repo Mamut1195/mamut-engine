@@ -1,4 +1,5 @@
 use super::*;
+use engine_core::MissingId;
 
 fn valid_model(dim: Dim) -> Model {
     let mut model = Model::new();
@@ -73,14 +74,16 @@ fn check(diagnostic: &Diagnostic, code: &str, entity: &str, context: &str) {
     assert_eq!(diagnostic.entities.len(), 1);
     assert_eq!(entity_key(&diagnostic.entities[0]), entity);
     assert!(diagnostic.hint.as_ref().unwrap().contains(context));
-    assert_eq!(
-        diagnostic.severity,
-        engine_core::catalog::lookup(code).unwrap().severity
-    );
-    assert_eq!(
-        diagnostic.message,
-        engine_core::catalog::lookup(code).unwrap().message
-    );
+    let registered = engine_core::catalog::lookup(code).unwrap();
+    assert_eq!(diagnostic.severity, registered.severity);
+    if let Some(reference) = &diagnostic.reference {
+        assert!(diagnostic.message.starts_with(registered.message));
+        assert!(diagnostic.message.contains(context));
+        assert!(!reference.entity_kind.is_empty());
+        assert!(!reference.referenced_by.is_empty());
+    } else {
+        assert_eq!(diagnostic.message, registered.message);
+    }
 }
 
 #[test]
@@ -362,4 +365,126 @@ fn huge_and_tiny_finite_coordinates_do_not_create_false_zero_lengths() {
     let diagnostics = validate(&model);
     assert_eq!(diagnostics.len(), 1);
     check(&diagnostics[0], "ENG-E-0005", "miembro:10", "Member 10");
+}
+
+#[test]
+fn missing_member_node_names_the_end_and_nearby_ids() {
+    let mut model = valid_model(Dim::D2);
+    model.insert_node(Node::new(NodeId(10), Dim::D2, [4.0, 0.0, 0.0]));
+    model.members[0].nodes[1] = NodeId(11);
+    let diagnostic = validate(&model)
+        .into_iter()
+        .find(|item| item.code == "ENG-E-0003")
+        .expect("broken node reference");
+    assert!(diagnostic.message.contains("node"));
+    assert!(diagnostic.message.contains("11"));
+    assert!(diagnostic.message.contains("member 10"));
+    assert!(diagnostic.message.contains("end 1"));
+    assert!(diagnostic.message.contains("members[0].nodes[1]"));
+    let reference = diagnostic.reference.expect("reference context");
+    assert_eq!(reference.entity_kind, "node");
+    assert_eq!(reference.missing_id, MissingId::Number(11));
+    assert_eq!(reference.referenced_by, "members[0].nodes[1]");
+    assert_eq!(
+        reference.suggestions,
+        vec!["1".to_string(), "10".to_string()]
+    );
+}
+
+#[test]
+fn missing_section_names_the_member_and_a_nearby_id() {
+    let mut model = valid_model(Dim::D2);
+    model.sections[0].id = "beam".into();
+    model.members[0].section = "beem".into();
+    let diagnostic = reference_of(&model, "section");
+    assert!(diagnostic.message.contains("section"));
+    assert!(diagnostic.message.contains("beem"));
+    assert!(diagnostic.message.contains("member 10"));
+    assert!(diagnostic.message.contains("members[0].section"));
+    let reference = diagnostic.reference.expect("reference context");
+    assert_eq!(reference.entity_kind, "section");
+    assert_eq!(reference.missing_id, MissingId::Name("beem".into()));
+    assert_eq!(reference.referenced_by, "members[0].section");
+    assert_eq!(reference.suggestions, vec!["beam".to_string()]);
+}
+
+#[test]
+fn missing_law_names_the_member_and_a_nearby_id() {
+    let mut model = valid_model(Dim::D2);
+    model.laws[0].name = "elastic".into();
+    model.members[0].law = "elastix".into();
+    let diagnostic = reference_of(&model, "law");
+    assert!(diagnostic.message.contains("law"));
+    assert!(diagnostic.message.contains("elastix"));
+    assert!(diagnostic.message.contains("member 10"));
+    assert!(diagnostic.message.contains("members[0].law"));
+    let reference = diagnostic.reference.expect("reference context");
+    assert_eq!(reference.entity_kind, "law");
+    assert_eq!(reference.missing_id, MissingId::Name("elastix".into()));
+    assert_eq!(reference.referenced_by, "members[0].law");
+    assert_eq!(reference.suggestions, vec!["elastic".to_string()]);
+}
+
+#[test]
+fn missing_case_names_the_combination_and_the_term() {
+    let mut model = valid_model(Dim::D2);
+    model.cases[0].name = "dead".into();
+    model.combinations[0].terms[0].case = "deaf".into();
+    let diagnostic = reference_of(&model, "case");
+    assert!(diagnostic.message.contains("case"));
+    assert!(diagnostic.message.contains("deaf"));
+    assert!(diagnostic.message.contains("combination combinación-a"));
+    assert!(diagnostic.message.contains("term 0"));
+    assert!(diagnostic.message.contains("combinations[0].terms[0].case"));
+    let reference = diagnostic.reference.expect("reference context");
+    assert_eq!(reference.entity_kind, "case");
+    assert_eq!(reference.missing_id, MissingId::Name("deaf".into()));
+    assert_eq!(reference.referenced_by, "combinations[0].terms[0].case");
+    assert_eq!(reference.suggestions, vec!["dead".to_string()]);
+}
+
+#[test]
+fn missing_support_node_names_the_support() {
+    let mut model = valid_model(Dim::D2);
+    model.supports[0].node = NodeId(12);
+    let diagnostic = reference_of(&model, "support");
+    assert!(diagnostic.message.contains("node"));
+    assert!(diagnostic.message.contains("12"));
+    assert!(diagnostic.message.contains("support apoyo-a"));
+    assert!(diagnostic.message.contains("supports[0].node"));
+    let reference = diagnostic.reference.expect("reference context");
+    assert_eq!(reference.entity_kind, "node");
+    assert_eq!(reference.missing_id, MissingId::Number(12));
+    assert_eq!(reference.referenced_by, "supports[0].node");
+    assert_eq!(
+        reference.suggestions,
+        vec!["1".to_string(), "2".to_string()]
+    );
+}
+
+#[test]
+fn missing_load_node_names_the_case_and_the_load_index() {
+    let mut model = valid_model(Dim::D2);
+    model.cases[0].loads[0].node = NodeId(12);
+    let diagnostic = reference_of(&model, "load");
+    assert!(diagnostic.message.contains("node"));
+    assert!(diagnostic.message.contains("12"));
+    assert!(diagnostic.message.contains("case caso-a"));
+    assert!(diagnostic.message.contains("load 0"));
+    assert!(diagnostic.message.contains("cases[0].loads[0].node"));
+    let reference = diagnostic.reference.expect("reference context");
+    assert_eq!(reference.entity_kind, "node");
+    assert_eq!(reference.missing_id, MissingId::Number(12));
+    assert_eq!(reference.referenced_by, "cases[0].loads[0].node");
+    assert_eq!(
+        reference.suggestions,
+        vec!["1".to_string(), "2".to_string()]
+    );
+}
+
+fn reference_of(model: &Model, marker: &str) -> Diagnostic {
+    validate(model)
+        .into_iter()
+        .find(|diagnostic| diagnostic.code == "ENG-E-0003" && diagnostic.message.contains(marker))
+        .unwrap_or_else(|| panic!("missing {marker} reference"))
 }

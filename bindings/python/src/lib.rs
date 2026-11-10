@@ -49,7 +49,9 @@ mod python {
                 } else if let Some(v) = n.as_f64() {
                     v.into_pyobject(py)?.into_any().unbind()
                 } else {
-                    return Err(InternalEngineError::new_err("Número JSON no representable"));
+                    let err = InternalEngineError::new_err("Número JSON no representable");
+                    apply_reference(py, &err, &json!({}))?;
+                    return Err(err);
                 }
             }
             Value::Array(values) => {
@@ -80,7 +82,52 @@ mod python {
         value.setattr("code", code)?;
         value.setattr("entities", object(py, entities)?)?;
         value.setattr("cause", cause)?;
+        apply_reference(py, &err, &json!({}))?;
         Ok(err)
+    }
+
+    fn apply_reference(py: Python<'_>, err: &PyErr, diagnostic: &Value) -> PyResult<()> {
+        let value = err.value(py);
+        let kind = diagnostic
+            .get("entity_kind")
+            .filter(|item| item.is_string());
+        value.setattr(
+            "entity_kind",
+            match kind {
+                Some(item) => object(py, item)?,
+                None => py.None(),
+            },
+        )?;
+        let missing = diagnostic
+            .get("missing_id")
+            .filter(|item| item.is_string() || item.is_i64() || item.is_u64());
+        value.setattr(
+            "missing_id",
+            match missing {
+                Some(item) => object(py, item)?,
+                None => py.None(),
+            },
+        )?;
+        let path = diagnostic
+            .get("referenced_by")
+            .filter(|item| item.is_string());
+        value.setattr(
+            "referenced_by",
+            match path {
+                Some(item) => object(py, item)?,
+                None => py.None(),
+            },
+        )?;
+        let suggestions = PyList::empty(py);
+        if let Some(items) = diagnostic.get("suggestions").and_then(Value::as_array) {
+            for item in items {
+                if let Some(text) = item.as_str() {
+                    suggestions.append(text)?;
+                }
+            }
+        }
+        value.setattr("suggestions", suggestions)?;
+        Ok(())
     }
 
     fn api_error(py: Python<'_>, err: ApiError) -> PyResult<PyErr> {
@@ -228,6 +275,7 @@ mod python {
             _ => AnalysisError::new_err(cause.to_owned()),
         };
         let err = engine_error(py, err, code, &diagnostic["entities"], cause)?;
+        apply_reference(py, &err, &diagnostic)?;
         err.value(py).setattr("document", result.document)?;
         err.value(py)
             .setattr("diagnostics", object(py, &document["diagnostics"])?)?;
@@ -297,7 +345,13 @@ mod python {
             Status::InternalError => InternalEngineError::new_err(cause.clone()),
             _ => AnalysisError::new_err(cause.clone()),
         };
-        engine_error(py, err, code, &entities, &cause).unwrap_or_else(|err| err)
+        let err = engine_error(py, err, code, &entities, &cause).unwrap_or_else(|err| err);
+        if let Some(item) = diagnostic {
+            if let Err(failure) = apply_reference(py, &err, &json!(item)) {
+                return failure;
+            }
+        }
+        err
     }
 
     /// Owns one factored linearStatic model. Not sendable: the factor stays on this thread.

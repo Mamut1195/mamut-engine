@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import mamut_engine
 
-from .types import JSONDocument, JSONValue, ResultDiagnostic, ResultEntity
+from .types import JSONDocument, ResultDiagnostic, ResultEntity
 
 
 class EngineError(Exception):
@@ -17,6 +17,10 @@ class EngineError(Exception):
     document: str | None
     diagnostics: list[ResultDiagnostic]
     results: mamut_engine.Results | None
+    entity_kind: str | None
+    missing_id: int | str | None
+    referenced_by: str | None
+    suggestions: list[str]
 
     def __init__(self, cause: str, *, code: str = "API-E-INPUT",
                  entities: list[ResultEntity] | None = None, severity: str = "error",
@@ -30,6 +34,24 @@ class EngineError(Exception):
         self.document = None
         self.diagnostics = []
         self.results = None
+        self.entity_kind = None
+        self.missing_id = None
+        self.referenced_by = None
+        self.suggestions = []
+
+    def apply_reference(self, diagnostic: ResultDiagnostic | None) -> None:
+        """Copia tipo, id ausente y cita. Sin diagnóstico, deja los campos vacíos."""
+        if diagnostic is None:
+            self.entity_kind = None
+            self.missing_id = None
+            self.referenced_by = None
+            self.suggestions = []
+            return
+        self.entity_kind = diagnostic.get("entity_kind")
+        self.missing_id = diagnostic.get("missing_id")
+        self.referenced_by = diagnostic.get("referenced_by")
+        suggestions = diagnostic.get("suggestions")
+        self.suggestions = [] if suggestions is None else list(suggestions)
 
 
 class InvalidInputError(EngineError):

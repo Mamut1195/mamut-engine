@@ -41,6 +41,7 @@
 #![deny(missing_docs)]
 
 use engine_core::math;
+use engine_core::{similar_ids, MissingId, ReferenceContext};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub use engine_core::{Diagnostic, Dim, Dof, EntityRef, MemberId, NodeId, Real};
@@ -262,6 +263,47 @@ fn report(out: &mut Vec<Diagnostic>, code: &str, entity: EntityRef, context: Str
     out.push(diagnostic);
 }
 
+struct Citation<'a> {
+    kind: &'static str,
+    missing_id: MissingId,
+    owner_kind: &'static str,
+    owner_id: &'a str,
+    place: String,
+    path: String,
+    known: &'a [String],
+    hint: String,
+}
+
+fn broken(out: &mut Vec<Diagnostic>, entity: EntityRef, citation: Citation<'_>) {
+    let rendered = citation.missing_id.text();
+    let suggestions = similar_ids(&rendered, citation.known.iter().map(String::as_str));
+    let mut message = format!(
+        "The referenced entity does not exist. Missing {kind} {rendered}, referenced by {owner_kind} {owner_id} at {place} ({path}).",
+        kind = citation.kind,
+        owner_kind = citation.owner_kind,
+        owner_id = citation.owner_id,
+        place = citation.place,
+        path = citation.path,
+    );
+    if !suggestions.is_empty() {
+        message.push_str(" Similar ids: ");
+        message.push_str(&suggestions.join(", "));
+        message.push('.');
+    }
+    let mut diagnostic =
+        Diagnostic::from_code("ENG-E-0003").expect("Código existente en engine-core");
+    diagnostic.entities.push(entity);
+    diagnostic.message = message;
+    diagnostic.hint = Some(citation.hint);
+    diagnostic.reference = Some(Box::new(ReferenceContext {
+        entity_kind: citation.kind,
+        missing_id: citation.missing_id,
+        referenced_by: citation.path,
+        suggestions,
+    }));
+    out.push(diagnostic);
+}
+
 fn duplicate<K: Ord>(
     seen: &mut BTreeSet<K>,
     key: K,
@@ -310,6 +352,11 @@ fn component(
 /// errors; if there are no terms, `Case(id_combinación)` is a nominal reference.
 /// These nominal references do not assert the existence of a law or case with the same name.
 /// `hint` always includes the class and exact name/id of the original entity.
+/// A broken reference keeps `ENG-E-0003` and fills [`engine_core::ReferenceContext`]:
+/// missing kind and id, the path in `referenced_by`, and up to three similar ids
+/// from [`engine_core::similar_ids`]. The message starts with the catalog sentence
+/// and then names those values in English. The catalog translates only the exact
+/// default sentence, so the longer message stays in English.
 ///
 /// Duplicate identifiers:
 /// ```
@@ -383,6 +430,18 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
     let sections: BTreeSet<_> = model.sections.iter().map(|s| s.id.as_str()).collect();
     let laws: BTreeSet<_> = model.laws.iter().map(|l| l.name.as_str()).collect();
     let cases: BTreeSet<_> = model.cases.iter().map(|c| c.name.as_str()).collect();
+    let node_labels: Vec<String> = model
+        .nodes
+        .iter()
+        .map(|node| node.id.0.to_string())
+        .collect();
+    let section_labels: Vec<String> = model
+        .sections
+        .iter()
+        .map(|section| section.id.clone())
+        .collect();
+    let law_labels: Vec<String> = model.laws.iter().map(|law| law.name.clone()).collect();
+    let case_labels: Vec<String> = model.cases.iter().map(|case| case.name.clone()).collect();
     let connected: BTreeSet<_> = model.members.iter().flat_map(|m| m.nodes).collect();
     let mut seen = BTreeSet::new();
     for node in &model.nodes {
@@ -417,9 +476,10 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
         }
     }
     let mut seen = BTreeSet::new();
-    for member in &model.members {
+    for (index, member) in model.members.iter().enumerate() {
         let entity = EntityRef::Member(member.id);
         let context = format!("Member {}", member.id.0);
+        let owner_id = member.id.0.to_string();
         duplicate(
             &mut seen,
             member.id,
@@ -429,28 +489,52 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
         );
         for (end, id) in member.nodes.iter().enumerate() {
             if !nodes.contains_key(id) {
-                report(
+                broken(
                     &mut out,
-                    "ENG-E-0003",
                     entity.clone(),
-                    format!("{context}, end {}: missing node {}", ["i", "j"][end], id.0),
+                    Citation {
+                        kind: "node",
+                        missing_id: MissingId::Number(u64::from(id.0)),
+                        owner_kind: "member",
+                        owner_id: &owner_id,
+                        place: format!("end {end}"),
+                        path: format!("members[{index}].nodes[{end}]"),
+                        known: &node_labels,
+                        hint: format!("{context}, end {}: missing node {}", ["i", "j"][end], id.0),
+                    },
                 );
             }
         }
         if !sections.contains(member.section.as_str()) {
-            report(
+            broken(
                 &mut out,
-                "ENG-E-0003",
                 entity.clone(),
-                format!("{context}, missing section {:?}", member.section),
+                Citation {
+                    kind: "section",
+                    missing_id: MissingId::Name(member.section.clone()),
+                    owner_kind: "member",
+                    owner_id: &owner_id,
+                    place: "section".to_owned(),
+                    path: format!("members[{index}].section"),
+                    known: &section_labels,
+                    hint: format!("{context}, missing section {:?}", member.section),
+                },
             );
         }
         if !laws.contains(member.law.as_str()) {
-            report(
+            broken(
                 &mut out,
-                "ENG-E-0003",
                 entity.clone(),
-                format!("{context}, missing law {:?}", member.law),
+                Citation {
+                    kind: "law",
+                    missing_id: MissingId::Name(member.law.clone()),
+                    owner_kind: "member",
+                    owner_id: &owner_id,
+                    place: "law".to_owned(),
+                    path: format!("members[{index}].law"),
+                    known: &law_labels,
+                    hint: format!("{context}, missing law {:?}", member.law),
+                },
             );
         }
         if let (Some(a), Some(b)) = (nodes.get(&member.nodes[0]), nodes.get(&member.nodes[1])) {
@@ -523,7 +607,7 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
         }
     }
     let mut seen = BTreeSet::new();
-    for support in &model.supports {
+    for (index, support) in model.supports.iter().enumerate() {
         let entity = EntityRef::Node(support.node);
         let context = format!("Support {:?}, node {}", support.id, support.node.0);
         duplicate(
@@ -534,7 +618,20 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
             context.clone(),
         );
         if !nodes.contains_key(&support.node) {
-            report(&mut out, "ENG-E-0003", entity.clone(), context.clone());
+            broken(
+                &mut out,
+                entity.clone(),
+                Citation {
+                    kind: "node",
+                    missing_id: MissingId::Number(u64::from(support.node.0)),
+                    owner_kind: "support",
+                    owner_id: &support.id,
+                    place: "node".to_owned(),
+                    path: format!("supports[{index}].node"),
+                    known: &node_labels,
+                    hint: context.clone(),
+                },
+            );
         }
         for dof in &support.restrained {
             component(
@@ -547,7 +644,7 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
         }
     }
     let mut seen = BTreeSet::new();
-    for case in &model.cases {
+    for (case_index, case) in model.cases.iter().enumerate() {
         let entity = EntityRef::Case(case.name.clone());
         let context = format!("Case {:?}", case.name);
         duplicate(
@@ -560,7 +657,20 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
         for (index, load) in case.loads.iter().enumerate() {
             let context = format!("{context}, load {index}, node {}", load.node.0);
             if !nodes.contains_key(&load.node) {
-                report(&mut out, "ENG-E-0003", entity.clone(), context.clone());
+                broken(
+                    &mut out,
+                    entity.clone(),
+                    Citation {
+                        kind: "node",
+                        missing_id: MissingId::Number(u64::from(load.node.0)),
+                        owner_kind: "case",
+                        owner_id: &case.name,
+                        place: format!("load {index}"),
+                        path: format!("cases[{case_index}].loads[{index}].node"),
+                        known: &node_labels,
+                        hint: context.clone(),
+                    },
+                );
             }
             for value in &load.values {
                 let context = format!("{context}, DOF {}", value.dof);
@@ -576,7 +686,7 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
         }
     }
     let mut seen = BTreeSet::new();
-    for combination in &model.combinations {
+    for (combination_index, combination) in model.combinations.iter().enumerate() {
         let context = format!("Combination {:?}", combination.id);
         let entity = EntityRef::Case(
             combination
@@ -596,13 +706,26 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
             let entity = EntityRef::Case(term.case.clone());
             let context = format!("{context}, term {index}, case {:?}", term.case);
             if !cases.contains(term.case.as_str()) {
-                report(&mut out, "ENG-E-0003", entity.clone(), context.clone());
+                broken(
+                    &mut out,
+                    entity.clone(),
+                    Citation {
+                        kind: "case",
+                        missing_id: MissingId::Name(term.case.clone()),
+                        owner_kind: "combination",
+                        owner_id: &combination.id,
+                        place: format!("term {index}"),
+                        path: format!("combinations[{combination_index}].terms[{index}].case"),
+                        known: &case_labels,
+                        hint: context.clone(),
+                    },
+                );
             }
             finite(&mut out, term.factor, entity, context);
         }
     }
     let mut seen = BTreeSet::new();
-    for mass in &model.masses {
+    for (index, mass) in model.masses.iter().enumerate() {
         let entity = EntityRef::Node(mass.node);
         let context = format!("Mass {:?}, node {}", mass.id, mass.node.0);
         duplicate(
@@ -613,7 +736,20 @@ pub fn validate(model: &Model) -> Vec<Diagnostic> {
             context.clone(),
         );
         if !nodes.contains_key(&mass.node) {
-            report(&mut out, "ENG-E-0003", entity.clone(), context.clone());
+            broken(
+                &mut out,
+                entity.clone(),
+                Citation {
+                    kind: "node",
+                    missing_id: MissingId::Number(u64::from(mass.node.0)),
+                    owner_kind: "mass",
+                    owner_id: &mass.id,
+                    place: "node".to_owned(),
+                    path: format!("masses[{index}].node"),
+                    known: &node_labels,
+                    hint: context.clone(),
+                },
+            );
         }
         for value in &mass.values {
             let context = format!("{context}, DOF {}", value.dof);
