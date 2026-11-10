@@ -303,7 +303,10 @@ def validate(model: ModelLike, *, lang: str = "en") -> ValidationReport:
     """Valida argumentos antes del FFI y delega la topología en Rust.
 
     Los defectos topológicos se devuelven como diagnósticos, igual que engine-api.
-    No comprueba estabilidad ni ejecuta análisis.
+    No comprueba estabilidad ni ejecuta análisis. Si buckling.linear trae
+    temperature_loads en su caso de referencia, o pDelta en el de gravedad,
+    el diagnóstico es ENG-E-0013. El caso lateral y un caso que no es la
+    referencia no se rechazan aquí.
     """
     _language(lang)
     return cast(ValidationReport, _call(_native.validate, _input(model), lang=lang))

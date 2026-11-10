@@ -248,7 +248,11 @@ mismo miembro y caso es `ENG-E-0002`. La suma de 16384 incluye `loads`,
 desde el modelo original no conserva esas cargas nodales. Kg sigue el axil
 mecánico y no incluye αΔT. `buckling.linear` rechaza con `ENG-E-0013` un caso
 de referencia con `temperature_loads` no vacío. pDelta rechaza igual el caso
-de gravedad. No se publica factor ni desplazamiento.
+de gravedad. `validate` anticipa ese diagnóstico en el `Ok` de diagnósticos:
+no tiene código de salida; `run` lo traduce a `unsupported` y salida 3.
+No se publica factor ni desplazamiento. La temperatura solo en el caso
+lateral de pDelta, o en un caso que no es la referencia de `buckling.linear`,
+sigue permitida.
 
 `model.prescribed` opcional: `[{node,dof,value}]`, constante para todos los casos,
 sin factor de carga. `model.diaphragms` opcional: `[{master,slaves:[ids]}]`, diafragma
@@ -458,7 +462,10 @@ reacciones de gravedad. Los prescritos no se escalan. La gravedad requiere
 cargas nodales: con cargas de miembro se devuelve unsupported/3, porque el
 productor no recibe la corrección de acciones de extremo para recuperar N.
 El mismo estado y el código `ENG-E-0013` se devuelven si el caso de gravedad
-trae `temperature_loads` no vacío: Kg no incluye el axil térmico.
+trae `temperature_loads` no vacío: Kg no incluye el axil térmico. `validate`
+informa ese diagnóstico antes de ejecutar. El caso lateral puede llevar
+temperatura: su efecto axial en una barra alineada y libre es α·ΔT·L, porque
+Kg de la cercha no entra en el grado axial.
 `convergence` publica casos/factores, opciones, inercia y métricas ordenadas por
 iteración (cambio relativo y residual absoluto/relativo). NotConverged y Unstable
 producen código 4, sin respuestas parciales, conservando ese reporte y avisos.

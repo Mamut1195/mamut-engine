@@ -118,6 +118,40 @@ fn case_has_temperature(execution: &input::Execution, case: &str) -> bool {
         .any(|(item, loads)| item.name == case && !loads.is_empty())
 }
 
+/// ENG-E-0013 when the geometric reference carries uniform temperature.
+///
+/// pDelta uses the gravity case. `buckling.linear` uses `reference`. A lateral
+/// case, or any case that is not that reference, is not this rejection.
+/// `validate` and `run` share this check.
+pub(crate) fn geometric_temperature_rejection(execution: &input::Execution) -> Option<EngineError> {
+    let analysis = execution.analyses.first()?;
+    let (case, message) = match analysis {
+        Analysis::PDelta {
+            options: input::Object(options),
+        } => (
+            options.gravity.0.case.as_str(),
+            "P-Delta: the gravity case has uniform temperature; Kg does not include the thermal axial",
+        ),
+        Analysis::Buckling {
+            options: input::Object(options),
+        } => (
+            options.reference.0.case.as_str(),
+            "Buckling: the reference case has uniform temperature; Kg does not include the thermal axial",
+        ),
+        Analysis::LinearStatic {}
+        | Analysis::Nonlinear { .. }
+        | Analysis::SoilProfile { .. }
+        | Analysis::Consolidation { .. }
+        | Analysis::Modal { .. }
+        | Analysis::Spectrum { .. } => return None,
+    };
+    if case_has_temperature(execution, case) {
+        Some(EngineError::new("ENG-E-0013", message))
+    } else {
+        None
+    }
+}
+
 pub(crate) fn pdelta_budget(execution: &input::Execution) -> usize {
     if let Analysis::PDelta {
         options: input::Object(o),
@@ -197,12 +231,8 @@ pub(crate) fn pdelta(context: MethodContext<'_>) -> Result<(), Failure> {
         )
         .into());
     }
-    if case_has_temperature(execution, &o.gravity.0.case) {
-        return Err(EngineError::new(
-            "ENG-E-0013",
-            "P-Delta: the gravity case has uniform temperature; Kg does not include the thermal axial",
-        )
-        .into());
+    if let Some(error) = geometric_temperature_rejection(execution) {
+        return Err(error.into());
     }
     let mut producers = Vec::new();
     for (m, contribution) in members.iter().zip(contributions) {
@@ -330,12 +360,8 @@ pub(crate) fn buckling(context: MethodContext<'_>) -> Result<(), Failure> {
         )
         .into());
     }
-    if case_has_temperature(execution, &o.reference.0.case) {
-        return Err(EngineError::new(
-            "ENG-E-0013",
-            "Buckling: the reference case has uniform temperature; Kg does not include the thermal axial",
-        )
-        .into());
+    if let Some(error) = geometric_temperature_rejection(execution) {
+        return Err(error.into());
     }
     let mut producers = Vec::new();
     for (m, contribution) in members.iter().zip(contributions) {
