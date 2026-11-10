@@ -1,2 +1,6 @@
-# Serie del motor. Vacia en el preregistro, antes de ejecutar buckling.linear.
+# Menor autovalor de buckling.linear, ocho elementos, referencia de compresion unitaria.
 c,pcr
+0.25,92.527731886447199
+1,370.12229210220261
+2.0457485159382953,757.25503987723005
+4,1481.1988538461794

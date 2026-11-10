@@ -1,2 +1,6 @@
-# Forma cerrada del piso. Se llena con B2 del motor lineal despues de la corrida. Preregistro: todavia sin numeros.
+# B2 de piso = 1/(1 - SigmaP/Pe), Pe = H*h/Delta lineal del mismo caso.
+# No es una tabla publicada. Los tres numeros salen de esa forma cerrada.
 piso,b2
+1,1.0967771596808886
+2,1.0789759616410164
+3,1.0533676896359763
