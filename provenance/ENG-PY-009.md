@@ -30,7 +30,7 @@ Unidades: no se supone un sistema en campos ni en docstrings. Las unidades tipad
 
 En Python 3.10 la biblioteca estándar todavía no tiene `enum.StrEnum`. El módulo declara una clase `StrEnum` sobre `str` y `Enum` solo en ese intérprete. El piso `requires-python` sigue en `>=3.10`. Cambiarlo exigiría `pyproject.toml`, y este PR no lo toca.
 
-Los límites numéricos, los patrones y el `allOf` condicional de la coordenada quedan en el esquema. El módulo no los reimplementa. Un campo opcional vale `None` cuando el documento omite la propiedad; si el esquema permite null, `None` también representa ese null.
+Los límites numéricos, los patrones y el `allOf` condicional de la coordenada quedan en el esquema. El módulo no los reimplementa. Un campo opcional ausente y un null explícito se representan los dos con `None`. Distinguirlos es MAM-1062 (centinela UNSET).
 
 ## Verificación
 
@@ -45,3 +45,29 @@ Los límites numéricos, los patrones y el `allOf` condicional de la coordenada 
 | `bash scripts/build-python-wheel.sh` | 1. La wheel se construye, se instala en un venv limpio y las pruebas de `test_gen_v1` y `test_typing` pasan contra ella. Falla `test_parity_matrix`: pide `MAMUT_PARITY_REFERENCES`, y el script no exporta esa variable. El fallo es anterior a este cambio. |
 
 `mypy --strict` sobre el paquete completo sigue informando errores en módulos que este PR no toca. Por eso la corrida de arriba limita el seguimiento de importaciones a silencio y nombra solo el generador y el módulo generado.
+
+## Confirmación en main, sin esta rama
+
+Commit: `6ace1bca93c3e566b1f9af8c56644ed521e627a8`. Árbol desprendido en ese commit de main. `git branch --show-current` no devolvió rama. `git rev-parse HEAD` devolvió ese SHA. No estaba la rama de este PR.
+
+`MAMUT_PARITY_REFERENCES` no estaba definida. `CARGO_TARGET_DIR` apuntaba a un directorio de compilación fuera del repositorio, como exige el script. `MATURIN` era maturin 1.15.0. El directorio de salida era nuevo.
+
+Comando, desde la raíz de ese árbol:
+
+```
+unset MAMUT_PARITY_REFERENCES
+export CARGO_NET_OFFLINE=true
+bash scripts/build-python-wheel.sh <directorio-nuevo>
+```
+
+Código de salida: 1.
+
+Extracto, sin la ruta del archivo de la prueba:
+
+```
+test_same_matrix_matches_closed_forms_rust_bytes_and_typed_errors ... FAIL
+AssertionError: None is not true : Set MAMUT_PARITY_REFERENCES using the Rust parity_matrix test
+FAILED (failures=1, skipped=7)
+```
+
+98 pruebas, 1 fallo, 7 omitidas. Este PR no modifica `scripts/build-python-wheel.sh`.

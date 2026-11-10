@@ -7,9 +7,14 @@ repositorio compara los bytes.
 Las dataclasses son frozen, slots y kw_only. Cada enum de cadenas es un
 StrEnum cerrado. La unión Analysis está discriminada por method.
 
-Un campo opcional vale None cuando el documento omite la propiedad. Si el
-esquema permite null, None también representa ese null. None no inventa una
-magnitud ni un valor que el esquema no haya escrito.
+En Python 3.10 la biblioteca estándar todavía no ofrece enum.StrEnum. En ese
+intérprete este módulo usa un StrEnum propio, definido sobre str y Enum, sin
+metaclase propia. Desde Python 3.11 usa enum.StrEnum.
+
+Un campo opcional ausente y un null explícito del esquema se representan los
+dos con None. None no inventa una magnitud ni un valor que el esquema no haya
+escrito. Si algún día hace falta distinguirlos, eso es MAM-1062 (centinela
+UNSET).
 """
 
 from __future__ import annotations
