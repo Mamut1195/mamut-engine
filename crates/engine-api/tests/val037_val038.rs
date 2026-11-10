@@ -3,7 +3,7 @@
 //! SOURCE: own derivation in docs/validation-report/casos/deriv/VAL-037.tex
 //! and provenance/ENG-ANL-006.md.
 //! CITATION: Timoshenko–Gere page, section, and equation: DESCONOCIDO.
-//! The acceptance band 0.35*(B2-1)+0.005 was committed before this run.
+//! The acceptance |B2 - 50/47| <= 1e-6 was pushed in 5696f82 before this run.
 //! source.kind = analytical. No third-program column and no external engine.
 mod support;
 
@@ -19,15 +19,13 @@ const STORIES: usize = 3;
 const STORY_HEIGHT: f64 = 4.0;
 const BAY: f64 = 6.0;
 const MODULUS: f64 = 2.0e8;
-const AREA: f64 = 0.2;
+const AREA: f64 = 1.0e5;
 const INERTIA_COLUMN: f64 = 0.02;
-const INERTIA_BEAM: f64 = 6.0;
-const FLOOR_GRAVITY: f64 = 1.6e5;
-const FLOOR_LATERAL: f64 = 1.0e3;
-const B2_SLOPE: f64 = 0.35;
-const B2_OFFSET: f64 = 0.005;
-const MIN_CLOSED_EXCESS: f64 = 0.02;
-const MAX_STORY_RATIO: f64 = 0.25;
+const INERTIA_BEAM: f64 = 3.0e5;
+const ROOF_GRAVITY: f64 = 3.0e5;
+const ROOF_LATERAL: f64 = 1500.0;
+const B2_TOLERANCE: f64 = 1.0e-6;
+const CLOSED_DRIFT: f64 = 0.001;
 
 const EULER_E: f64 = 200.0;
 const EULER_I: f64 = 3.0;
@@ -93,13 +91,13 @@ fn load(node_id: u32, dof: &str, value: f64) -> Value {
     json!({"node": node_id, "values": [{"dof": dof, "value": value}]})
 }
 
-fn portal(cases: Vec<Value>, analysis: Value) -> Value {
+fn portal(height: f64, cases: Vec<Value>, analysis: Value) -> Value {
     let mut nodes = Vec::new();
     let mut members = Vec::new();
     let mut supports = Vec::new();
     let mut member_id = 1u32;
     for level in 0..=STORIES {
-        let y = STORY_HEIGHT * level as f64;
+        let y = height * level as f64;
         let left = (level * 2 + 1) as u32;
         let right = left + 1;
         nodes.push(node(left, 0.0, y));
@@ -148,15 +146,10 @@ fn portal(cases: Vec<Value>, analysis: Value) -> Value {
     })
 }
 
-fn floor_loads(dof: &str, total: f64) -> Vec<Value> {
+fn roof_loads(dof: &str, total: f64) -> Vec<Value> {
     let half = total / 2.0;
-    let mut loads = Vec::new();
-    for level in 1..=STORIES {
-        let left = (level * 2 + 1) as u32;
-        loads.push(load(left, dof, half));
-        loads.push(load(left + 1, dof, half));
-    }
-    loads
+    let left = (STORIES * 2 + 1) as u32;
+    vec![load(left, dof, half), load(left + 1, dof, half)]
 }
 
 fn case_named(name: &str, loads: Vec<Value>) -> Value {
@@ -173,7 +166,7 @@ fn pdelta_analysis() -> Value {
         "options": {
             "gravity": {"case": "G", "factor": 1.0},
             "lateral": {"case": "H", "factor": 1.0},
-            "tolerance": 1e-10,
+            "tolerance": 1e-12,
             "max_iterations": 40,
             "displacement_scale": 1e-3,
             "rotation_scale": 1e-3
@@ -213,61 +206,101 @@ fn mean_ux(case: &Value, level: usize) -> f64 {
     0.5 * (left + right)
 }
 
-#[test]
-fn three_story_b2_stays_inside_the_preregistered_band() {
+fn hermite_reference() -> f64 {
+    let critical = 12.0 * MODULUS * (2.0 * INERTIA_COLUMN) / (STORY_HEIGHT * STORY_HEIGHT);
+    let ratio = ROOF_GRAVITY / critical;
+    1.0 / (1.0 - (6.0 / 5.0) * ratio)
+}
+
+fn amplifiers(height: f64, gravity: f64) -> ([f64; 3], [f64; 3]) {
     let lateral = execute(portal(
-        vec![case_named("H", floor_loads("Ux", FLOOR_LATERAL))],
+        height,
+        vec![case_named("H", roof_loads("Ux", ROOF_LATERAL))],
         lateral_analysis(),
     ));
     let second = execute(portal(
+        height,
         vec![
-            case_named("G", floor_loads("Uy", -FLOOR_GRAVITY)),
-            case_named("H", floor_loads("Ux", FLOOR_LATERAL)),
+            case_named("G", roof_loads("Uy", gravity)),
+            case_named("H", roof_loads("Ux", ROOF_LATERAL)),
         ],
         pdelta_analysis(),
     ));
-    assert_eq!(lateral["methods"], json!(["linearStatic"]));
-    assert_eq!(second["methods"], json!(["pDelta"]));
     assert_eq!(second["convergence"]["status"], "ok");
-    assert_eq!(second["convergence"]["tolerance"], 1e-10);
-    assert_eq!(second["convergence"]["max_iterations"], 40);
+    assert_eq!(second["convergence"]["tolerance"], 1e-12);
     let linear = case_by_name(&lateral, "H");
     let geometric = case_by_name(&second, "H");
+    let mut drifts = [0.0; 3];
+    let mut ratios = [0.0; 3];
     for story in 1..=STORIES {
-        let carried = (STORIES + 1 - story) as f64;
-        let shear = carried * FLOOR_LATERAL;
-        let compression = carried * FLOOR_GRAVITY;
         let delta_linear = mean_ux(linear, story) - mean_ux(linear, story - 1);
         let delta_second = mean_ux(geometric, story) - mean_ux(geometric, story - 1);
-        assert!(
-            delta_linear > 0.0,
-            "piso {story}: linear drift {delta_linear}"
-        );
-        assert!(
-            delta_second > delta_linear,
-            "piso {story}: P-Delta did not increase the drift"
-        );
-        let critical = shear * STORY_HEIGHT / delta_linear;
-        let ratio = compression / critical;
-        let closed = 1.0 / (1.0 - ratio);
-        let engine = delta_second / delta_linear;
-        let band = B2_SLOPE * (closed - 1.0) + B2_OFFSET;
+        assert!(delta_linear.is_finite() && delta_linear > 0.0);
+        drifts[story - 1] = delta_linear;
+        ratios[story - 1] = delta_second / delta_linear;
+    }
+    (drifts, ratios)
+}
+
+#[test]
+fn three_story_hermite_b2_stays_within_1e_6() {
+    let accepted = 50.0 / 47.0;
+    assert_eq!(hermite_reference(), accepted);
+    let (drifts, ratios) = amplifiers(STORY_HEIGHT, -ROOF_GRAVITY);
+    for story in 1..=STORIES {
+        let drift = drifts[story - 1];
+        let engine = ratios[story - 1];
         println!(
-            "VAL037 piso={story} b2_piso={closed:.16e} b2_motor={engine:.16e} ratio={ratio:.16e} band={band:.16e}"
+            "VAL037 piso={story} delta1={drift:.16e} b2_motor={engine:.16e} hermite={accepted:.16e}"
         );
         assert!(
-            closed - 1.0 > MIN_CLOSED_EXCESS,
-            "piso {story}: closed excess {} is below the declared floor; {CITATION}",
-            closed - 1.0
+            (drift - CLOSED_DRIFT).abs() <= 1e-8,
+            "piso {story}: Delta1 {drift} leaves the closed value {CLOSED_DRIFT}"
         );
         assert!(
-            ratio > 0.0 && ratio < MAX_STORY_RATIO,
-            "piso {story}: r={ratio} is outside the declared regime"
+            (engine - accepted).abs() <= B2_TOLERANCE,
+            "piso {story}: motor {engine} vs 50/47, tol {B2_TOLERANCE}; {CITATION}"
         );
+    }
+}
+
+fn closed_at_height(height: f64, gravity_scale: f64) -> f64 {
+    let critical = 12.0 * MODULUS * (2.0 * INERTIA_COLUMN) / (height * height);
+    let ratio = (gravity_scale * ROOF_GRAVITY) / critical;
+    1.0 / (1.0 - (6.0 / 5.0) * ratio)
+}
+
+#[test]
+fn mutations_stay_outside_the_1e_6_band() {
+    let accepted = 50.0 / 47.0;
+    let (_, nominal) = amplifiers(STORY_HEIGHT, -ROOF_GRAVITY);
+    // Kg scales with the axial force. 5/6 turns the sway factor 6/5 into 1.
+    let chord = amplifiers(STORY_HEIGHT, -ROOF_GRAVITY * 5.0 / 6.0).1;
+    let softer = amplifiers(STORY_HEIGHT, -ROOF_GRAVITY * 0.8).1;
+    let stiffer = amplifiers(STORY_HEIGHT, -ROOF_GRAVITY * 1.1).1;
+    let tension = amplifiers(STORY_HEIGHT, ROOF_GRAVITY).1;
+    let doubled = closed_at_height(STORY_HEIGHT * 2.0, 1.0);
+    let variants = [
+        ("6/5 a 1", chord[0]),
+        ("Kg x 0.8", softer[0]),
+        ("Kg x 1.1", stiffer[0]),
+        ("sin pdelta", 1.0),
+        ("signo de P", tension[0]),
+        ("L x 2", doubled),
+    ];
+    for (name, value) in variants {
+        let gap = (value - accepted).abs();
+        println!("VAL037 mutacion {name} valor={value:.16e} hueco={gap:.6e}");
         assert!(
-            (engine - closed).abs() <= band,
-            "piso {story}: motor {engine} vs piso {closed}, band {band}; {CITATION}"
+            gap > B2_TOLERANCE,
+            "{name}: hueco {gap} no supera {B2_TOLERANCE}"
         );
+        for engine in nominal {
+            assert!(
+                (engine - value).abs() > B2_TOLERANCE,
+                "{name}: el motor quedaria dentro de la banda"
+            );
+        }
     }
 }
 

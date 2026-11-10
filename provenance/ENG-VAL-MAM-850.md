@@ -35,7 +35,43 @@ Tolerancia: `|B2_motor − 50/47| ≤ 1e-6`. Cubre redondeo, `G ≤ 2e-7` y acor
 
 Huecos de las variantes, calculados con la aritmética de la forma cerrada y sin ejecutar el motor: 6/5→1 da `1.12e-2`; Kg×0.8 da `1.34e-2`; Kg×1.1 da `6.83e-3`; sin término geométrico da `6.38e-2`; el signo de P cambiado da `1.20e-1`; la altura `2h` en la forma cerrada da `2.52e-1`. Todas superan `1e-6`.
 
-La serie del motor de este modelo no está en este commit.
+El commit de este preregistro es `5696f82a806b05ab9745e2557dfac2d2b0e04cd4`, fecha real 2026-11-10 04:34:24 +0000 (2026-11-09 23:34:24 ECT). Se empujó a la rama antes de ejecutar el modelo. No se asignó fecha de autor ni de committer a mano.
+
+## Corrida del modelo nuevo
+
+`cargo test --offline --locked -p engine-api --test val037_val038` pasó después de ese empuje. Tres ensayos, cero fallos. `Δ1` cerrada `0.001 m`. Referencia `50/47 = 1.0638297872340425`.
+
+| Piso | Δ1 del motor (m) | B2 del motor | |B2 − 50/47| |
+| --- | ---: | ---: | ---: |
+| 1 | 0.0010000004348738709 | 1.0638298070043912 | 1.98e-8 |
+| 2 | 0.0010000010678617261 | 1.0638298357231972 | 4.85e-8 |
+| 3 | 0.0010000012838284962 | 1.0638298455085473 | 5.83e-8 |
+
+Los tres quedan dentro de `1e-6`.
+
+Variantes ejecutadas o evaluadas con la forma cerrada. El hueco es la distancia a `50/47`. Todas superan `1e-6`, y el motor nominal también queda fuera de cada variante:
+
+| Variante | Valor | Hueco |
+| --- | ---: | ---: |
+| 6/5→1, gravedad por 5/6 | 1.0526315950709941 | 1.12e-2 |
+| Kg×0.8, gravedad por 0.8 | 1.0504201834796654 | 1.34e-2 |
+| Kg×1.1, gravedad por 1.1 | 1.0706638335963594 | 6.83e-3 |
+| sin término geométrico | 1 | 6.38e-2 |
+| signo de P cambiado | 0.9433962109448136 | 1.20e-1 |
+| altura 2h en la forma cerrada | 1.3157894736842106 | 2.52e-1 |
+
+`Kg` entra lineal en el axil, así que escalar la gravedad escala `Kg`. El factor 5/6 convierte el 6/5 del corrimiento en 1.
+
+## Comandos de esta entrega
+
+- `cargo fmt --all -- --check`: exit 0
+- `cargo clippy --offline --locked --workspace --all-targets -- -D warnings`: exit 0
+- `cargo test --offline --locked --workspace`: exit 0
+- `RUSTDOCFLAGS=-D warnings cargo doc --offline --locked --no-deps --workspace`: exit 0
+- `cargo check --offline --locked --workspace --target wasm32-unknown-unknown`: exit 0
+- `cargo build --offline --locked --release --target wasm32-unknown-unknown -p engine-wasm`: exit 0
+
+LaTeX no se compiló: `lualatex` y `latexmk` no están instalados y no se descargó una distribución. `docs/contracts/error-codes-1.json` no se editó y sigue con 32 entradas.
 
 ## VAL-038
 

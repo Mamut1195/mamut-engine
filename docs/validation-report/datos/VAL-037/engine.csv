@@ -1,2 +1,5 @@
-# Serie del motor de este modelo. Vacia hasta despues del preregistro.
+# B2 del motor = deriva pdelta / deriva lineal. Criterio: |B2 - 50/47| <= 1e-6.
 piso,b2
+1,1.0638298070043912
+2,1.0638298357231972
+3,1.0638298455085473
