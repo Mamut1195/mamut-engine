@@ -46,3 +46,4 @@ no implementa los tickets 01, 02 ni 03.
 | 8 | [08-toml-linea-columna.md](08-toml-linea-columna.md) | Ya, en paralelo | Decisión U11 ya escrita en `docs/V1.md`. |
 | 9 | [09-pilote-reese-matlock.md](09-pilote-reese-matlock.md) | Solo con la fuente publicada en la sesión | MAM-49. |
 | — | [10-no-empezar.md](10-no-empezar.md) | No | Presupuestos, release y licencia comercial. |
+| 14 | [14-generador-python-v1.md](14-generador-python-v1.md) | Ya. Jonathan confirmó la opción C el 2026-11-10. | MAM-925. No depende de una ley nueva. |
