@@ -3,7 +3,7 @@
 - Estado: abierto. Puede empezar ya, en paralelo con el resto.
 - Relación: MAM-1056. Esta ficha no cierra MAM-107 y no aprueba un presupuesto de tiempo o memoria.
 - Reglas comunes: [README.md](README.md).
-- Número: en las ramas remotas `j2/*` consultadas al abrir la ficha están el 11 (`j2/mam-67-diseno-solver-disperso`) y el 12 (`j2/mam-1045-errores-de-referencia`). El 13, el 14 y el 15 no aparecen en esas ramas. El 16 está libre y es el que usa esta ficha.
+- Número: en las ramas remotas `j2/*` consultadas al abrir la ficha están el 11 (`j2/mam-67-diseno-solver-disperso`) y el 12 (`j2/mam-1045-errores-de-referencia`). El 13, el 14 y el 15 no aparecen en esas ramas. El 16 está libre y es el que usa esta ficha. Al integrar main, el 11 ya está en el índice. El 16 sigue libre.
 
 ## Qué ya existe
 
