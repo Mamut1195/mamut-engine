@@ -1,6 +1,6 @@
 # Clean-room log · ENG-VAL-MAM-846
 
-- Ticket / PR: MAM-846 · ENG-VAL-006. Rama `j2/mam-846-estructura-informe`. El número del pull request queda DESCONOCIDO al redactar esta bitácora: se abre en borrador después del push. No se marca listo y no se fusiona.
+- Ticket / PR: MAM-846 · ENG-VAL-006. Rama `j2/mam-846-estructura-informe`. Pull request 29, en borrador. No se marca listo y no se fusiona.
 - Author(s): agente cloud de Cursor (Cursor Agent), modelo: DESCONOCIDO. Fecha: 2026-11-10 01:30 (America/Guayaquil, ECT, UTC-5).
 - Role: implementer. Solo documentación del informe. Sin código de crates.
 - Contract implemented: ninguno de producción. El informe sigue siendo ENG-VAL-006.
