@@ -277,31 +277,25 @@ fn diagnostics_bytes(value: &Value) -> String {
     canonical_json(&value.to_string()).unwrap()
 }
 
-/// A model error would be status invalid. Temperature on the geometric
-/// reference is still ENG-E-0013, and that code selects unsupported.
+/// A disconnected node is invalid/2. Temperature on the reference does not
+/// change that status and does not add ENG-E-0013.
 fn assert_invalid_model_with_temperature(model: &Value) {
     let input = model.to_string();
     let validated = validate(&input).unwrap();
-    let first_error = validated
-        .iter()
-        .find(|item| item.severity == "error")
-        .expect("model error");
-    assert_ne!(first_error.code, "ENG-E-0013");
-    assert!(validated
-        .iter()
-        .any(|item| item.code == "ENG-E-0013" && item.severity == "error"));
+    assert!(validated.iter().any(|item| item.code == "ENG-E-0004"));
+    assert!(validated.iter().all(|item| item.code != "ENG-E-0013"));
     let outcome = run(&input, &CancelToken::new(), |_| {});
-    assert_eq!(outcome.status, Status::Unsupported, "{}", outcome.document);
-    assert_eq!(outcome.exit_code(), 3);
+    assert_eq!(outcome.status, Status::Invalid, "{}", outcome.document);
+    assert_eq!(outcome.exit_code(), 2);
     let document: Value = serde_json::from_str(&outcome.document).unwrap();
-    assert_eq!(document["status"], "unsupported");
+    assert_eq!(document["status"], "invalid");
     let from_validate = diagnostics_bytes(&serde_json::to_value(&validated).unwrap());
     let from_run = diagnostics_bytes(&document["diagnostics"]);
     assert_eq!(from_validate, from_run, "{}", outcome.document);
 }
 
 #[test]
-fn invalid_model_with_gravity_or_reference_temperature_is_unsupported() {
+fn invalid_model_with_gravity_or_reference_temperature_stays_invalid() {
     assert_invalid_model_with_temperature(&disconnect(pdelta(true, false)));
     assert_invalid_model_with_temperature(&disconnect(buckling(true, false)));
 }

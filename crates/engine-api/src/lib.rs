@@ -272,9 +272,8 @@ fn fingerprint_value(value: &Value) -> Result<String, ApiError> {
 
 /// Validates the contract, conventions, and topology; does not check stability.
 /// Parsing/contract failures are `Err`; model defects are `Ok` diagnostics.
-/// A job that does not carry exactly one analysis, and a geometric reference
-/// with member loads or uniform temperature, are `Ok` diagnostics with the
-/// same code and text `run` puts in its document.
+/// Where `run` already rejects before the solver, these diagnostics use the
+/// same code, text, and order. `run` itself is unchanged.
 pub fn validate(input_json: &str) -> Result<Vec<Diagnostic>, ApiError> {
     validate_with(input_json, &CancelToken::new(), |_| {})
 }
@@ -299,7 +298,7 @@ pub fn validate_with(
     checkpoint(cancel, &mut progress, "parse", 1)?;
     let execution = input::decode(value)?;
     checkpoint(cancel, &mut progress, "model", 2)?;
-    let diagnostics = run::validation(&execution);
+    let diagnostics = run::diagnostics_for_validate(&execution);
     checkpoint(cancel, &mut progress, "topology", 3)?;
     Ok(diagnostics)
 }

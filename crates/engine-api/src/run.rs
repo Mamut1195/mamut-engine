@@ -587,44 +587,92 @@ fn has_error(diagnostics: &[Diagnostic]) -> bool {
     diagnostics.iter().any(|d| d.severity == "error")
 }
 
-/// Records the geometric rejections `run` already emits.
+fn append_extension_error(diagnostics: &mut Vec<Diagnostic>, error: EngineError) {
+    // `run` stops at this error. A reference temperature is not added after it.
+    diagnostics.extend(Failure::from(error).1);
+}
+
+fn append_geo_input_error(diagnostics: &mut Vec<Diagnostic>, error: impl Into<Diagnostic>) {
+    // `run` stops at this error. A reference temperature is not added after it.
+    diagnostics.push(error.into());
+}
+
+/// Same diagnostic `run` returns for an experimental method without opt-in.
 ///
-/// Temperature is recorded even when the model is already invalid, so a later
-/// status choice can stay unsupported. Member loads stay silent in that
-/// situation: `run` never reaches them after an earlier error.
-fn append_capability_rejections(diagnostics: &mut Vec<Diagnostic>, e: &input::Execution) {
-    let blocked = has_error(diagnostics);
-    if let Some(error) = advanced::geometric_temperature_rejection(e) {
-        diagnostics.extend(Failure::from(error).1);
+/// `run` resolves the method before model validation. Consolidation and soil
+/// fixtures that already set `allow_experimental` are unchanged.
+fn experimental_diagnostics(e: &input::Execution) -> Option<Vec<Diagnostic>> {
+    if e.allow_experimental || e.methods.len() != 1 {
+        return None;
     }
-    if blocked || has_error(diagnostics) {
-        return;
+    let method = e.methods[0];
+    if !matches!(
+        method,
+        "buckling.linear" | "nonlinearStatic" | "soilProfile" | "consolidation1d"
+    ) {
+        return None;
     }
-    if let Some(error) = advanced::member_load_rejection(e) {
-        diagnostics.extend(Failure::from(error).1);
+    match crate::methods::resolve(method, crate::methods::INPUT_CONTRACT, false) {
+        Ok(_) => None,
+        Err(error) => Some(Failure::from(error).1),
     }
 }
 
-pub(crate) fn validation(e: &input::Execution) -> Vec<Diagnostic> {
+/// Member-load rejection in the order `run` reaches it, after assembly.
+///
+/// Absent when the reference has no member loads. An earlier `build_members`
+/// or `load_vector` error is returned instead, so a transverse truss load stays
+/// ENG-E-0010 and an unknown element stays that cause.
+fn anticipate_reference_member_loads(e: &input::Execution) -> Option<Vec<Diagnostic>> {
+    advanced::member_load_rejection(e)?;
+    let members = match build_members(e) {
+        Err(failure) => return Some(failure.1),
+        Ok(members) => members,
+    };
+    if let Err(failure) = assemble_members(&e.model, &members) {
+        return Some(failure.1);
+    }
+    match advanced::geometric_gate(e) {
+        Ok(()) => None,
+        Err(failure) => Some(failure.1),
+    }
+}
+
+/// Diagnostics `validate` returns. `run` keeps its own order and is not called.
+pub(crate) fn diagnostics_for_validate(e: &input::Execution) -> Vec<Diagnostic> {
     if let Some(found) = advanced::single_analysis_diagnostic(e) {
         return vec![found];
     }
+    if let Some(found) = experimental_diagnostics(e) {
+        return found;
+    }
+    let mut diagnostics = validation(e);
+    // A model, extension, or geo error blocks member loads and a second
+    // temperature diagnostic. That is the guard `run` already has by stopping.
+    let blocked = has_error(&diagnostics);
+    if blocked {
+        return diagnostics;
+    }
+    if let Some(more) = anticipate_reference_member_loads(e) {
+        diagnostics.extend(more);
+    }
+    diagnostics
+}
+
+pub(crate) fn validation(e: &input::Execution) -> Vec<Diagnostic> {
     let mut diagnostics: Vec<_> = engine_model::validate(&e.model).into_iter().filter(|d| {
         // A node attached to a spring already has boundary connectivity.
         !(d.code == "ENG-E-0004" && d.entities.iter().any(|entity| matches!(entity, EntityRef::Node(id) if e.springs.iter().any(|s| s.nodes.contains(&id.0)))))
     }).map(Diagnostic::from).collect();
     if has_error(&diagnostics) {
-        append_capability_rejections(&mut diagnostics, e);
         return diagnostics;
     }
     if let Err(error) = crate::extensions::validate(e) {
-        diagnostics.extend(Failure::from(error).1);
-        append_capability_rejections(&mut diagnostics, e);
+        append_extension_error(&mut diagnostics, error);
         return diagnostics;
     }
     if let Err(error) = crate::geo_input::validate(e) {
-        diagnostics.push(error.into());
-        append_capability_rejections(&mut diagnostics, e);
+        append_geo_input_error(&mut diagnostics, error);
         return diagnostics;
     }
     let has_temperature = e.temperature.iter().any(|case| !case.is_empty());
@@ -646,6 +694,10 @@ pub(crate) fn validation(e: &input::Execution) -> Vec<Diagnostic> {
             Ok(_) => {}
         }
     }
-    append_capability_rejections(&mut diagnostics, e);
+    if !has_error(&diagnostics) {
+        if let Some(error) = advanced::geometric_temperature_rejection(e) {
+            diagnostics.extend(Failure::from(error).1);
+        }
+    }
     diagnostics
 }

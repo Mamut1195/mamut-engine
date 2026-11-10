@@ -236,6 +236,46 @@ pub(crate) fn spectrum_budget(execution: &input::Execution) -> usize {
     }
 }
 
+/// Combinations, step bounds, member loads, then reference temperature.
+///
+/// This is the order `run` already uses inside pDelta and `buckling.linear`.
+/// Temperature is checked after member loads. `validate` calls the same gate
+/// only once earlier errors, including assembly, have not already rejected.
+pub(crate) fn geometric_gate(execution: &input::Execution) -> Result<(), Failure> {
+    reject_combinations(execution)?;
+    match execution.analyses.first() {
+        Some(Analysis::PDelta {
+            options: input::Object(options),
+        }) => bounded_steps(options.max_iterations)?,
+        Some(Analysis::Buckling {
+            options: input::Object(options),
+        }) => {
+            if options.mode_count > crate::MAX_JSON_ARRAY_ITEMS {
+                return Err(invalid(format!(
+                    "Steps/modes require 0..={}",
+                    crate::MAX_JSON_ARRAY_ITEMS
+                )));
+            }
+        }
+        Some(
+            Analysis::LinearStatic {}
+            | Analysis::Nonlinear { .. }
+            | Analysis::SoilProfile { .. }
+            | Analysis::Consolidation { .. }
+            | Analysis::Modal { .. }
+            | Analysis::Spectrum { .. },
+        )
+        | None => return Ok(()),
+    }
+    if let Some(error) = member_load_rejection(execution) {
+        return Err(error.into());
+    }
+    if let Some(error) = geometric_temperature_rejection(execution) {
+        return Err(error.into());
+    }
+    Ok(())
+}
+
 pub(crate) fn pdelta(context: MethodContext<'_>) -> Result<(), Failure> {
     let MethodContext {
         execution,
@@ -248,23 +288,15 @@ pub(crate) fn pdelta(context: MethodContext<'_>) -> Result<(), Failure> {
         total,
         ..
     } = context;
-    reject_combinations(execution)?;
     let Analysis::PDelta {
         options: input::Object(o),
     } = &execution.analyses[0]
     else {
         return Err(invalid("Inconsistent analysis adapter"));
     };
-
-    bounded_steps(o.max_iterations)?;
     // geometric_producer recovers N from deformations; it does not receive member
     // loads to correct end actions for the gravity case.
-    if let Some(error) = member_load_rejection(execution) {
-        return Err(error.into());
-    }
-    if let Some(error) = geometric_temperature_rejection(execution) {
-        return Err(error.into());
-    }
+    geometric_gate(execution)?;
     let mut producers = Vec::new();
     for (m, contribution) in members.iter().zip(contributions) {
         cancel.check()?;
@@ -363,27 +395,15 @@ pub(crate) fn buckling(context: MethodContext<'_>) -> Result<(), Failure> {
         total,
         ..
     } = context;
-    reject_combinations(execution)?;
     let Analysis::Buckling {
         options: input::Object(o),
     } = &execution.analyses[0]
     else {
         return Err(invalid("Inconsistent analysis adapter"));
     };
-    if o.mode_count > crate::MAX_JSON_ARRAY_ITEMS {
-        return Err(invalid(format!(
-            "Steps/modes require 0..={}",
-            crate::MAX_JSON_ARRAY_ITEMS
-        )));
-    }
     // geometric_producer recovers N from the reference displacement. A member
     // load would change the end actions without appearing in that displacement.
-    if let Some(error) = member_load_rejection(execution) {
-        return Err(error.into());
-    }
-    if let Some(error) = geometric_temperature_rejection(execution) {
-        return Err(error.into());
-    }
+    geometric_gate(execution)?;
     let mut producers = Vec::new();
     for (m, contribution) in members.iter().zip(contributions) {
         cancel.check()?;

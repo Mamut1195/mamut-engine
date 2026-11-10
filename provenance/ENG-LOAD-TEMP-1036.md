@@ -29,11 +29,20 @@
 ## Qué cambia
 
 `validate` ya devolvía ENG-E-0013 cuando la referencia geométrica trae
-temperatura. Ahora también lo añade si el modelo ya tiene otro error, y
-`run` elige `unsupported` porque ese código está en la lista. El rechazo por
-`member_loads` en el caso de gravedad o en el de referencia, y el rechazo de
-un documento que no trae exactamente un análisis, salen de las mismas
-funciones que usa `run`, con el mismo código y el mismo texto.
+temperatura. También repite el rechazo por `member_loads` y el de un
+documento que no trae exactamente un análisis, con el mismo código y el mismo
+texto que `run`. Si `run` se detiene antes (método experimental, elemento,
+ensamblado, combinaciones o pasos), `validate` devuelve esa causa. `run` no
+cambia: un modelo inválido con temperatura en la referencia sigue en
+`invalid`, sin un segundo diagnóstico.
+
+## Corrida posterior a la revisión r1
+
+La CLI `run --input … --progress ndjson` se comparó con la base
+f29a9673f0010c757674e1ed8f4004fbbf228f07 sobre el corpus de la revisión. De 313
+casos, los cuatro modelos rc3d modal y spectrum grandes quedaron fuera en
+debug. Los otros 309 coinciden en stdout, stderr y código de salida: 0
+diferencias. Fecha de esta corrida: 2026-11-09 (ECT).
 
 ## Declaración de sesión
 
