@@ -8,8 +8,9 @@
 //! inertia, no mass and no geometric stiffness. Nonzero span loads are
 //! outside method 0.1.0. D2 only: local x from i to j, y = (−sin, cos),
 //! z = +Z. Order `[ux, uy, rz]` per node. Positive N is tension. Positive
-//! rotation is about +z. Section strain is ε0 = (u_j − u_i) / L and
-//! κz = −v″, so ε(y) = ε0 − κz y.
+//! rotation is about +z and equals dv/dx. A positive rotation moves the
+//! fiber at y toward −x by y·θ, so ε(y) = ε0 − y v″. The section uses
+//! ε(y) = ε0 − κz y, therefore κz = v″. Method 0.1.0 is experimental.
 
 use crate::geometry::Geometry;
 use crate::{finite, invalid, unsupported, vector, Matrix};
@@ -29,11 +30,20 @@ use std::slice;
 /// memory budget, and it is not moved to match another program.
 pub const FIBER_STATION_COUNT: usize = 3;
 
+/// Upper count of stations accepted by `recover`.
+///
+/// This is the domain of method 0.1.0. It is not a time or memory budget.
+pub const MAX_RECOVER_STATIONS: usize = 64;
+
+/// Method 0.1.0 is experimental.
+pub const FIBER_STATIONS_EXPERIMENTAL: bool = true;
+
 const DOFS: [Dof; 3] = [Dof::Ux, Dof::Uy, Dof::Rz];
 
 /// Two-node bar whose section is [`RectangleFiberBending`].
 ///
-/// History is the section history at each station, left to right. `respond`
+/// Experimental method 0.1.0. History is the section history at each
+/// station, left to right. `respond`
 /// does not mutate the bar or the committed history. The caller keeps a
 /// trial only by replacing the committed slice.
 ///
@@ -172,13 +182,14 @@ fn stations(length: Real) -> EResult<[Station; FIBER_STATION_COUNT]> {
 fn operators(length: Real, xi: Real) -> EResult<Operators> {
     let inverse = finite(1.0 / length, "1/L (m⁻¹)")?;
     let length_sq = finite(length * length, "L² (m²)")?;
-    let lever = finite(1.0 - 2.0 * xi, "1-2ξ")?;
-    let transverse = finite(6.0 * lever / length_sq, "transverse curvature operator")?;
-    let theta_i = finite((4.0 - 6.0 * xi) * inverse, "θ_i curvature operator")?;
-    let theta_j = finite((2.0 - 6.0 * xi) * inverse, "θ_j curvature operator")?;
+    // κz = v″. These are ∂v″/∂q from the Hermite functions in the sheet.
+    let bend_i = finite((-6.0 + 12.0 * xi) / length_sq, "v_i curvature operator")?;
+    let theta_i = finite((-4.0 + 6.0 * xi) * inverse, "θ_i curvature operator")?;
+    let bend_j = finite((6.0 - 12.0 * xi) / length_sq, "v_j curvature operator")?;
+    let theta_j = finite((-2.0 + 6.0 * xi) * inverse, "θ_j curvature operator")?;
     Ok(Operators {
         axial: [-inverse, 0.0, 0.0, inverse, 0.0, 0.0],
-        curvature: [0.0, transverse, theta_i, 0.0, -transverse, theta_j],
+        curvature: [0.0, bend_i, theta_i, 0.0, bend_j, theta_j],
     })
 }
 
@@ -358,6 +369,11 @@ impl Element for FiberStationBar {
         stations_requested: &[Real],
     ) -> EResult<ElementOutput> {
         vector(committed, self.state_len(), "Committed history")?;
+        if stations_requested.len() > MAX_RECOVER_STATIONS {
+            return Err(invalid(
+                "frame2d.fiber_stations: station count must be from 0 to 64.",
+            ));
+        }
         let geometry = Geometry::new(ctx)?;
         let local = geometry.local_vector(u_e)?;
         reject_loads(loads)?;

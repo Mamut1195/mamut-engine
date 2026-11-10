@@ -68,7 +68,9 @@ use engine_core::{ContractId, Dof, EResult, EngineError, Real};
 use engine_laws::uniaxial::Elastic;
 use engine_linalg::DMat;
 pub use factory::{FrameFactory, WinklerFactory};
-pub use fiber_stations::{FiberStationBar, FIBER_STATION_COUNT};
+pub use fiber_stations::{
+    FiberStationBar, FIBER_STATIONS_EXPERIMENTAL, FIBER_STATION_COUNT, MAX_RECOVER_STATIONS,
+};
 pub use release::MomentReleases;
 pub use winkler::WinklerFrame2D;
 type Matrix = [[Real; 6]; 6];
