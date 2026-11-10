@@ -1,0 +1,69 @@
+Esta banda se fijó después de conocer la revisión r1 de J4 sobre el commit \texttt{0f60da3a2f6f9a5cc3defdebca764b1762e392b4}. La banda anterior, \(0{,}35(B_2-1)+0{,}005\), queda retirada: era demasiado ancha y la \(\Delta_1\) con la que se armaba \(P_e\) salía del propio motor. Esa serie vieja no era una referencia analítica; era una comparación interna. No se vuelve a usar.
+
+\paragraph{Dos fórmulas distintas.}
+La forma de cuerda retiene solo el cortante \((\Sigma P)\,\Delta/h\):
+\begin{equation}
+B_2^{\mathrm{cuerda}}=\frac{1}{1-r},\qquad r=\frac{\Sigma P}{P_e},\qquad P_e=Kh.
+\label{eq:val037-cuerda}
+\end{equation}
+Es la aproximación de piso sin arqueo de la barra. La clave \cite{aisc16} ya está en la bibliografía del informe y documenta el Comentario C2, no un apéndice de amplificación. La forma \(1/(1-r)\) podría ser la del Apéndice 8 de AISC sin el factor \(R_M\); la sección y la ecuación exactas son cita desconocida. No se usa como criterio de aceptación.
+
+La barra del motor integra \(N\int (v')^2\,\mathrm{d}x\) con las cúbicas de Hermite (\texttt{provenance/ENG-ELM-002.md}). Con giros de piso impedidos el vector transversal es \((0,0,\Delta,0)\) y el cortante geométrico vale \((6/5)\,N/h\). En compresión, \(N=-P\),
+\begin{equation}
+B_2^{\mathrm{H}}=\frac{1}{1-\tfrac{6}{5}r}.
+\label{eq:val037-hermite}
+\end{equation}
+Esa es la referencia cerrada del operador que el motor ensambla, con un elemento por columna. \(1/(1-r)\) y \(1/(1-6r/5)\) difieren en el arqueo de la cúbica: \(\int_0^h(v')^2\,\mathrm{d}x=(6/5)\Delta^2/h\) frente a \(\Delta^2/h\) de la cuerda recta. Para \(r\) pequeño la diferencia es del orden de \(0{,}2\,r\).
+
+\paragraph{El hueco de la corrida anterior.}
+Con \(EA=4\cdot 10^{7}~\mathrm{N}\) el acortamiento elástico del piso bajo era \(Nh/EA\approx 6\cdot 10^{-3}\,h\). La nota preregistrada atribuía el hueco a los giros de nudo. La r1 mostró que el hueco venía sobre todo de ese acortamiento, no de los giros. Esta página no repite aquella medición y no conserva aquella explicación.
+
+\paragraph{Modelo con \(\Delta_1\) cerrada.}
+Tres pisos, un vano, un elemento por barra, sin relajaciones. Plano \(XY\), \(Y\) hacia arriba. \(h=4~\mathrm{m}\), vano \(\ell=6~\mathrm{m}\), \(E=2\cdot 10^{8}~\mathrm{Pa}\), \(I_c=0{,}02~\mathrm{m}^4\), \(I_v=3\cdot 10^{5}~\mathrm{m}^4\), \(A=10^{5}~\mathrm{m}^2\) en columnas y vigas. Así \(EA=2\cdot 10^{13}~\mathrm{N}\).
+
+La carga lateral total \(H=1500~\mathrm{N}\) y la carga vertical total \(\Sigma P=3\cdot 10^{5}~\mathrm{N}\) se aplican solo en los dos nudos de cubierta, repartidas por igual. Cada piso ve el mismo cortante \(H\) y la misma compresión \(\Sigma P\).
+
+Con vigas rígidas y columnas axialmente rígidas los giros de piso son nulos, las columnas quedan en doble curvatura y
+\begin{equation}
+\Delta_1=\frac{H h^3}{12 E \sum I_c}.
+\label{eq:val037-delta}
+\end{equation}
+Aquí \(\sum I_c=0{,}04~\mathrm{m}^4\), así \(K=12 E\sum I_c/h^3=1{,}5\cdot 10^{6}~\mathrm{N/m}\), \(P_e=Kh=6\cdot 10^{6}~\mathrm{N}\), \(\Delta_1=H/K=0{,}001~\mathrm{m}\) y \(r=\Sigma P/P_e=1/20\). Nada de eso se lee del motor. Entonces
+\begin{equation}
+B_2^{\mathrm{H}}=\frac{1}{1-\tfrac{6}{5}\cdot\tfrac{1}{20}}=\frac{50}{47}.
+\label{eq:val037-valor}
+\end{equation}
+Los tres pisos comparten ese valor. \(G=(I_c/h)/(I_v/\ell)=10^{-7}\) en cubierta y el doble en un nudo intermedio. El acortamiento de una columna es \(P_{\mathrm{col}}/EA=7{,}5\cdot 10^{-9}\).
+
+El control de Picard, distinto de la tolerancia de abajo, es \(10^{-12}\), cuarenta pasos, escala de desplazamiento \(10^{-3}~\mathrm{m}\) y escala de giro \(10^{-3}~\mathrm{rad}\).
+
+\paragraph{Tolerancia.}
+Se acepta el piso cuando
+\begin{equation}
+\bigl|B_2^{\mathrm{motor}}-50/47\bigr|\le 10^{-6}.
+\label{eq:val037-tol}
+\end{equation}
+La cota se arma antes de ejecutar este modelo, por tres contribuciones ya contadas y no por una corrida:
+el redondeo de \texttt{f64} en un sistema cuyo contraste axial/lateral es del orden de \(10^{6}\) mueve \(B_2\) en torno a \(10^{-8}\);
+\(G\le 2\cdot 10^{-7}\) mueve la rigidez lateral en una fracción de ese orden y \(B_2\) bastante por debajo de \(10^{-7}\);
+el acortamiento \(7{,}5\cdot 10^{-9}\) queda, aun entrando entero en \(B_2\), debajo de \(10^{-8}\).
+La suma está por debajo de \(2\cdot 10^{-7}\). El \(10^{-6}\) es cinco veces esa suma.
+
+Esa cota separa el operador de Hermite de las variantes siguientes, evaluadas con la misma aritmética y sin ejecutar el motor. El hueco es \(|B-50/47|\).
+
+\begin{center}\small
+\begin{tabular}{lc}\toprule
+Variante & Hueco\\\midrule
+\(6/5\to 1\), esto es \(1/(1-r)\) & \(1{,}12\cdot 10^{-2}\)\\
+\(K_g\times 0{,}8\) & \(1{,}34\cdot 10^{-2}\)\\
+\(K_g\times 1{,}1\) & \(6{,}83\cdot 10^{-3}\)\\
+sin término geométrico, \(B_2=1\) & \(6{,}38\cdot 10^{-2}\)\\
+signo de \(P\) cambiado & \(1{,}20\cdot 10^{-1}\)\\
+altura de piso \(2h\) en la forma cerrada & \(2{,}52\cdot 10^{-1}\)\\
+\bottomrule\end{tabular}
+\end{center}
+
+Todas quedan muy por encima de \(10^{-6}\).
+
+\paragraph{Estado de los métodos.}
+\texttt{buckling.linear} es Experimental. \texttt{pdelta} (fachada \texttt{pDelta}) está publicado como Stable. Este caso no cambia el registro ni el código de producción. La comparación acepta el operador de Hermite de la ecuación~\eqref{eq:val037-hermite}.

@@ -1,0 +1,43 @@
+% VAL-037. Escrito a mano. gen_casos.py no regenera este archivo: su plantilla emite una columna de un tercer programa.
+\section{VAL-037: \(B_2\) de un pórtico de tres pisos}\label{sec:VAL-037}
+\begingroup
+\renewcommand\EngineCommit{453a743dd602670eb21c5a0db2743d01e5cbb32a}
+\begin{ficha}
+Fuente & Operador cúbico de Hermite, ecuaciones~\eqref{eq:val037-hermite} y~\eqref{eq:val037-valor}. La forma \(1/(1-r)\) y el Apéndice 8 de AISC sin \(R_M\): cita desconocida en sección y ecuación. \cite{aisc16} en este informe es el Comentario C2.\\
+Ticket & MAM-850\\
+Engine & commit \texttt{\EngineCommit}. Los fuentes de producción son los de main; esta rama no los cambia.\\
+Binario & SHA-256 \texttt{\EngineBinSHA}\\
+Entrada & SHA-256 \texttt{\EntradaSHA{VAL-037}}\\
+Tolerancia & \(\lvert B_2^{\mathrm{motor}}-50/47\rvert\le 10^{-6}\), escrita después de la r1 y antes de ejecutar este modelo.\\
+Estado de datos & \directlua{mamut.estado_par('VAL-037')}\\
+\end{ficha}
+\endgroup
+
+\paragraph{Modelo.}
+\begin{center}\diag{portico3}\end{center}
+Tres pisos, un vano, columnas de \(EA\) muy grande y vigas rígidas, como declara la derivación. \(\Delta_1=H h^3/(12 E\sum I_c)\) no se toma del motor. \texttt{pdelta} está publicado como Stable.
+
+\paragraph{Referencia y derivación.} \input{casos/deriv/VAL-037}
+
+\paragraph{Reproducción.}
+\begin{enumerate}\small
+\item Calcular \(\Delta_1\) y \(B_2^{\mathrm{H}}=50/47\) con las ecuaciones de la derivación, sin leer desplazamientos.
+\item Resolver el caso lateral con \texttt{linearStatic} y el caso de gravedad más lateral con \texttt{pdelta}, con los controles de Picard de la derivación.
+\item \(B_2^{\mathrm{motor}}\) es la deriva de piso de \texttt{pdelta} dividida por la deriva de piso lineal. Se compara con \(50/47\).
+\end{enumerate}
+
+\paragraph{Resultados.}
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[grafico, xlabel={piso}, ylabel={$B_2$}]
+\directlua{mamut.serie('VAL-037','referencia','piso','b2','ref','Operador de Hermite')}
+\directlua{mamut.serie('VAL-037','engine','piso','b2','eng','MAMUT Engine')}
+\end{axis}
+\end{tikzpicture}
+\end{center}
+\begin{center}\small
+\begin{tabular}{rrrrrl}\toprule
+piso & Hermite & Motor & Error rel. & Tol. & Veredicto\\\midrule
+\directlua{mamut.tabla_par('VAL-037','piso','b2',1e-6,0)}
+\bottomrule\end{tabular}
+\end{center}
